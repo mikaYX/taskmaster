@@ -1,0 +1,39 @@
+{
+    "name": "Taskmaster",
+    "version": "1.0.0",
+    "description": "Taskmaster App Backend",
+    "main": "server.js",
+    "scripts": {
+        "start": "concurrently \"npm run server\" \"npm run client\"",
+        "server": "node server.js",
+        "client": "cd client && npm run dev",
+        "dev": "npm start",
+        "build": "cd client && npm run build"
+    },
+    "dependencies": {
+        "@azure/msal-node": "^3.8.4",
+        "@radix-ui/react-toast": "^1.2.15",
+        "activedirectory2": "^2.2.0",
+        "adm-zip": "^0.5.16",
+        "archiver": "^7.0.1",
+        "archiver-zip-encrypted": "^2.0.0",
+        "cookie": "^1.1.1",
+        "cron-parser": "^5.4.0",
+        "csv-stringify": "^6.4.6",
+        "date-fns": "^3.6.0",
+        "date-holidays": "^3.26.5",
+        "express": "^4.19.2",
+        "express-session": "^1.18.2",
+        "multer": "^2.0.2",
+        "node-cron": "^3.0.3",
+        "nodemailer": "^7.0.11",
+        "passport": "^0.7.0",
+        "passport-microsoft": "^2.1.0",
+        "pdfkit": "^0.15.0",
+        "sqlite": "^5.1.1",
+        "sqlite3": "^5.1.7"
+    },
+    "devDependencies": {
+        "concurrently": "^9.2.1"
+    }
+}
