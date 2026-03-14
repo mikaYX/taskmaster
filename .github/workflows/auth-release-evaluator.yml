@@ -106,7 +106,7 @@ jobs:
                   echo "::error title=🚨 NO-GO Release Détecté::L'Architecture d'Authentification subit une nette dégradation non couverte par notre SLO. Si ce Workflow tourne en amont d'un Hotfix, veuillez avertir l'Engineering Manager. Si ce code vient d'être déployé en production, consultez docs/RUNBOOK_AUTH_DEGRADATION.md pour initier un FALLBACK d'urgence."
 
             - name: Upload Artifact Proof
-              uses: actions/upload-artifact@v4
+              uses: actions/upload-artifact@v7
               if: always()
               with:
                   name: auth-release-verdict

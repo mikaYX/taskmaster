@@ -34,7 +34,7 @@ jobs:
           npm audit --json > frontend_audit_report.json || true
 
       - name: "Upload Audit Reports"
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: security-audit-reports
           path: |

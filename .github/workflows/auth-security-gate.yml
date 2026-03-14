@@ -87,7 +87,7 @@ jobs:
           [ -f trivy-secret-report.txt ] && cp trivy-secret-report.txt auth-security-report/ || true
 
       - name: Upload Auth Security Report Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: auth-security-report
@@ -95,7 +95,7 @@ jobs:
           retention-days: 14
 
       - name: Upload Security Exceptions Report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: security-exceptions-report
