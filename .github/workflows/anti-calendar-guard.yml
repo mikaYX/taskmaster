@@ -1,0 +1,20 @@
+name: Anti-Calendar Guard
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  check-calendar:
+    name: Check Calendar References
+    runs-on: ubuntu-latest
+    steps:
+      - name: Document Checkout
+        uses: actions/checkout@v4
+
+      - name: Run Anti-Calendar Guard Script
+        run: |
+          chmod +x scripts/check-calendar-refs.sh
+          ./scripts/check-calendar-refs.sh

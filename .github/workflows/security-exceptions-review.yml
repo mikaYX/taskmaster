@@ -1,0 +1,54 @@
+name: Security Exceptions Weekly Review
+
+on:
+    schedule:
+        - cron: "0 8 * * 1" # Chaque lundi à 8h00 UTC
+    workflow_dispatch:
+
+jobs:
+    review:
+        name: Weekly Review of Security Allowlist
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout Code
+              uses: actions/checkout@v4
+
+            - name: Setup Node
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 20
+
+            - name: Validate and Check Expirations
+              run: node scripts/validate-trivy-exceptions.js
+
+            - name: Prepare Detailed Review Summary
+              if: always()
+              run: |
+                  echo "## 🛡️ Weekly Security Exceptions Review" >> $GITHUB_STEP_SUMMARY
+
+                  if [ -f security-exceptions-report.json ]; then
+                    cat security-exceptions-report.json | jq -r '
+                      "**Scan Date:** \(.scanDate)\n\n" +
+                      "| Status | Count |\n" +
+                      "|--------|-------|\n" +
+                      "| Valid | \(.validCount) |\n" +
+                      "| Expired | \(.expiredCount) |\n" +
+                      "| Invalid | \(.invalidCount) |\n\n" +
+                      "### Details:\n" +
+                      "| ID | Status | Warnings | Errors |\n" +
+                      "|---|---|---|---|\n" +
+                      (
+                        .details[] | "| \(.id) | \(.status) | \(.warnings | join(\", \")) | \(.errors | join(\", \")) |"
+                      )
+                    ' >> $GITHUB_STEP_SUMMARY
+                  else
+                    echo "⚠️ Could not find security-exceptions-report.json. The validation script may have crashed completely." >> $GITHUB_STEP_SUMMARY
+                  fi
+
+            - name: Upload Security Exceptions Report
+              uses: actions/upload-artifact@v4
+              if: always()
+              with:
+                  name: security-exceptions-report
+                  path: security-exceptions-report.json
+                  retention-days: 14

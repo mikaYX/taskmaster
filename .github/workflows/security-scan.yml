@@ -1,0 +1,53 @@
+name: "Weekly Security Scan (CVE) & Alerting"
+
+on:
+  schedule:
+    # Run every Monday at 04:00 AM UTC
+    - cron: '0 4 * * 1'
+  workflow_dispatch:
+
+jobs:
+  npm-audit:
+    name: "NPM Audit Check"
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: "Checkout repository"
+        uses: actions/checkout@v4
+      
+      - name: "Set up Node.js"
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: "Run npm audit (Backend)"
+        working-directory: ./backend
+        run: |
+          npm audit --audit-level=high
+          npm audit --json > backend_audit_report.json || true
+          
+      - name: "Run npm audit (Frontend)"
+        working-directory: ./frontend
+        run: |
+          npm audit --audit-level=high
+          npm audit --json > frontend_audit_report.json || true
+
+      - name: "Upload Audit Reports"
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-audit-reports
+          path: |
+            backend/backend_audit_report.json
+            frontend/frontend_audit_report.json
+          
+      - name: "Notify Dev Team on Failure"
+        if: failure()
+        run: |
+          echo "::error::High/Critical CVEs found. Please review reports."
+          # Logic to alert dev team goes here (e.g., Slack webhook or Taskmaster Webhook)
+          if [ -n "$webhook_url" ]; then
+             curl -X POST -H "Content-type: application/json" --data "{\"text\":\"Alerte CVE: Vulnérabilités critiques/high détectées dans Taskmaster.\"}" $webhook_url
+          fi
+        env:
+          webhook_url: ${{ secrets.SECURITY_ALERT_WEBHOOK }}

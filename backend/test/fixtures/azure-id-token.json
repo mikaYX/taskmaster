@@ -1,0 +1,14 @@
+{
+    "aud": "00000000-0000-0000-0000-000000000000",
+    "iss": "https://login.microsoftonline.com/11111111-1111-1111-1111-111111111111/v2.0",
+    "iat": 1672531200,
+    "nbf": 1672531200,
+    "exp": 1672534800,
+    "name": "Test Azure User",
+    "oid": "22222222-2222-2222-2222-222222222222",
+    "preferred_username": "test.user@azure.com",
+    "email": "test.user@azure.com",
+    "sub": "some_random_base64_string",
+    "tid": "11111111-1111-1111-1111-111111111111",
+    "ver": "2.0"
+}

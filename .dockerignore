@@ -1,0 +1,21 @@
+# Contexte Dockerfile.fullstack (racine)
+.git
+.gitignore
+*.md
+.env
+.env.*
+!.env.example
+node_modules
+backend/node_modules
+frontend/node_modules
+**/dist
+**/coverage
+**/.nyc_output
+**/*.log
+.agent
+.agents
+.cursor
+.vscode
+.idea
+*.lcov
+docker-compose*.yml

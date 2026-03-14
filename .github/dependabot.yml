@@ -1,0 +1,75 @@
+version: 2
+
+updates:
+  # ─── GitHub Actions ────────────────────────────────────────────────────────
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+    labels:
+      - "dependencies"
+      - "ci"
+    commit-message:
+      prefix: "ci(actions)"
+
+  # ─── Backend (NestJS / Node.js) ────────────────────────────────────────────
+  - package-ecosystem: "npm"
+    directory: "/backend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "backend"
+    groups:
+      nestjs:
+        patterns:
+          - "@nestjs/*"
+      prisma:
+        patterns:
+          - "prisma"
+          - "@prisma/*"
+      testing:
+        patterns:
+          - "jest*"
+          - "@types/jest*"
+          - "ts-jest"
+          - "supertest"
+          - "@nestjs/testing"
+    ignore:
+      # ts-jest maintenu manuellement (compatibilité Jest 30)
+      - dependency-name: "ts-jest"
+        update-types: ["version-update:semver-major"]
+    commit-message:
+      prefix: "chore(backend-deps)"
+
+  # ─── Frontend (React / Vite) ───────────────────────────────────────────────
+  - package-ecosystem: "npm"
+    directory: "/frontend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "frontend"
+    groups:
+      radix-ui:
+        patterns:
+          - "@radix-ui/*"
+      tanstack:
+        patterns:
+          - "@tanstack/*"
+      testing:
+        patterns:
+          - "vitest*"
+          - "@vitest/*"
+          - "@testing-library/*"
+          - "@playwright/*"
+    commit-message:
+      prefix: "chore(frontend-deps)"

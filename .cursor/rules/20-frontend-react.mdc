@@ -1,0 +1,16 @@
+---
+description: "React + Vite conventions"
+globs:
+  - "frontend/src/**/*.{ts,tsx}"
+  - "frontend/src/**/*.css"
+  - "frontend/**/vite.config.ts"
+alwaysApply: false
+---
+
+# Frontend React
+
+- Build UI with typed functional components and keep logic inside feature folders (e.g., `frontend/src/features/...`).
+- Derive state via hooks, lift only when necessary, and use React Query for server data.
+- Validate form inputs with shared schema definitions when available and keep validation close to the form.
+- Prefer design-system primitives and consistent Tailwind utility ordering.
+- Keep styling/configuration (Tailwind, Vite) centralized and documented; avoid inline `style` overrides.

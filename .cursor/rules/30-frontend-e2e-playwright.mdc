@@ -1,0 +1,15 @@
+---
+description: "Playwright E2E conventions"
+globs:
+  - "frontend/e2e/**/*.ts"
+  - "frontend/**/playwright.config.ts"
+alwaysApply: false
+---
+
+# Frontend E2E
+
+- Write scenarios that read as user stories and focus on observable outcomes.
+- Prefer semantic selectors (`getByRole`, `getByLabelText`) and avoid raw CSS/XPath selectors.
+- Keep each test isolated with explicit setup/teardown and deterministic fixtures.
+- Rely on Playwright's built-in waiting/assertions instead of manual `waitForTimeout`.
+- Reserve Playwright for critical flows; do not duplicate every unit/integration test here.

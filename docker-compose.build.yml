@@ -1,0 +1,75 @@
+# Même stack que docker-compose.yml mais l'app est construite localement (build) au lieu de l'image du registry.
+# Pour tester les changements sans push/pull. Utilise le même .env.
+#
+# Persistance : idem docker-compose.yml (volumes postgres_data, redis_data, app_*).
+# Pour ne pas revoir l'assistant de setup à chaque « up » : ne jamais lancer « down -v » (garder les volumes).
+# Même name que docker-compose.yml pour réutiliser les mêmes volumes.
+#
+# Usage: docker compose -f docker-compose.build.yml up --build -d
+
+name: taskmaster
+
+services:
+  postgres:
+    image: postgres:18.1-alpine
+    container_name: taskmaster_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      PGDATA: /var/lib/postgresql/data
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:8.4.1-alpine
+    container_name: taskmaster_redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: taskmaster:local
+    container_name: taskmaster_app
+    restart: unless-stopped
+    ports:
+      - "${PORT:-3000}:3000"
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      REDIS_URL: redis://redis:6379
+    volumes:
+      - app_backups:/app/backups
+      - app_uploads:/app/public/uploads
+      - app_procedures:/app/storage/procedures
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  redis_data:
+  app_backups:
+  app_uploads:
+  app_procedures:

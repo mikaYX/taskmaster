@@ -1,0 +1,36 @@
+services:
+  postgres:
+    image: postgres:18.1-alpine
+    container_name: taskmaster_local_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: taskmaster
+      POSTGRES_PASSWORD: taskmaster_dev
+      POSTGRES_DB: taskmaster
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_local_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U taskmaster -d taskmaster"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:8.4.1-alpine
+    container_name: taskmaster_local_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_local_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_local_data:
+  redis_local_data:

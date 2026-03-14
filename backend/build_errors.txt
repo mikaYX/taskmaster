@@ -1,0 +1,51 @@
+
+> backend@1.0.0 build
+> nest build
+
+[96msrc/todos/todos.controller.ts[0m:[93m20[0m:[93m47[0m - [91merror[0m[90m TS2339: [0mProperty 'userGroupMembership' does not exist on type 'PrismaService'.
+
+[7m20[0m         const memberships = await this.prisma.userGroupMembership.findMany({
+[7m  [0m [91m                                              ~~~~~~~~~~~~~~~~~~~[0m
+[96msrc/todos/todos.controller.ts[0m:[93m24[0m:[93m33[0m - [91merror[0m[90m TS7006: [0mParameter 'm' implicitly has an 'any' type.
+
+[7m24[0m         return memberships.map((m) => m.groupId);
+[7m  [0m [91m                                ~[0m
+[96msrc/todos/todos.service.ts[0m:[93m38[0m:[93m32[0m - [91merror[0m[90m TS2339: [0mProperty 'todo' does not exist on type 'PrismaService'.
+
+[7m38[0m             return this.prisma.todo.findMany({
+[7m  [0m [91m                               ~~~~[0m
+[96msrc/todos/todos.service.ts[0m:[93m45[0m:[93m32[0m - [91merror[0m[90m TS2339: [0mProperty 'todo' does not exist on type 'PrismaService'.
+
+[7m45[0m             return this.prisma.todo.findMany({
+[7m  [0m [91m                               ~~~~[0m
+[96msrc/todos/todos.service.ts[0m:[93m51[0m:[93m28[0m - [91merror[0m[90m TS2339: [0mProperty 'todo' does not exist on type 'PrismaService'.
+
+[7m51[0m         return this.prisma.todo.findMany({
+[7m  [0m [91m                           ~~~~[0m
+[96msrc/todos/todos.service.ts[0m:[93m65[0m:[93m28[0m - [91merror[0m[90m TS2339: [0mProperty 'todo' does not exist on type 'PrismaService'.
+
+[7m65[0m         return this.prisma.todo.create({
+[7m  [0m [91m                           ~~~~[0m
+[96msrc/todos/todos.service.ts[0m:[93m83[0m:[93m40[0m - [91merror[0m[90m TS2339: [0mProperty 'todo' does not exist on type 'PrismaService'.
+
+[7m83[0m         const todo = await this.prisma.todo.findUnique({
+[7m  [0m [91m                                       ~~~~[0m
+[96msrc/todos/todos.service.ts[0m:[93m102[0m:[93m13[0m - [91merror[0m[90m TS2561: [0mObject literal may only specify known properties, but 'groupId' does not exist in type 'TodoUpdateInput'. Did you mean to write 'group'?
+
+[7m102[0m             groupId: dto.groupId,
+[7m   [0m [91m            ~~~~~~~[0m
+[96msrc/todos/todos.service.ts[0m:[93m114[0m:[93m28[0m - [91merror[0m[90m TS2339: [0mProperty 'todo' does not exist on type 'PrismaService'.
+
+[7m114[0m         return this.prisma.todo.update({
+[7m   [0m [91m                           ~~~~[0m
+[96msrc/todos/todos.service.ts[0m:[93m121[0m:[93m40[0m - [91merror[0m[90m TS2339: [0mProperty 'todo' does not exist on type 'PrismaService'.
+
+[7m121[0m         const todo = await this.prisma.todo.findUnique({
+[7m   [0m [91m                                       ~~~~[0m
+[96msrc/todos/todos.service.ts[0m:[93m137[0m:[93m28[0m - [91merror[0m[90m TS2339: [0mProperty 'todo' does not exist on type 'PrismaService'.
+
+[7m137[0m         return this.prisma.todo.delete({
+[7m   [0m [91m                           ~~~~[0m
+
+Found 11 error(s).
+

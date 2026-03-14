@@ -1,0 +1,33 @@
+<samlp:Response xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" ID="_394e339a-5ea0-4f81-b586-1df2df8a1db5" Version="2.0" IssueInstant="2023-01-01T00:00:00Z" Destination="http://localhost:3000/auth/saml/acs">
+  <saml:Issuer xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion">https://idp.example.com/sso</saml:Issuer>
+  <samlp:Status>
+    <samlp:StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:Success"/>
+  </samlp:Status>
+  <saml:Assertion xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" ID="_df94c929-7935-4cb3-91ee-48f57f5ab19e" IssueInstant="2023-01-01T00:00:00Z" Version="2.0">
+    <saml:Issuer>https://idp.example.com/sso</saml:Issuer>
+    <saml:Subject>
+      <saml:NameID Format="urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress">test.user@saml.com</saml:NameID>
+      <saml:SubjectConfirmation Method="urn:oasis:names:tc:SAML:2.0:cm:bearer">
+        <saml:SubjectConfirmationData Recipient="http://localhost:3000/auth/saml/acs" NotOnOrAfter="2035-01-01T00:05:00Z"/>
+      </saml:SubjectConfirmation>
+    </saml:Subject>
+    <saml:Conditions NotBefore="2023-01-01T00:00:00Z" NotOnOrAfter="2035-01-01T00:05:00Z">
+      <saml:AudienceRestriction>
+        <saml:Audience>taskmaster-backend</saml:Audience>
+      </saml:AudienceRestriction>
+    </saml:Conditions>
+    <saml:AuthnStatement AuthnInstant="2023-01-01T00:00:00Z" SessionIndex="_bd7e6fb6-2394-4b5c-897b-94ff8a3a0e1b">
+      <saml:AuthnContext>
+        <saml:AuthnContextClassRef>urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport</saml:AuthnContextClassRef>
+      </saml:AuthnContext>
+    </saml:AuthnStatement>
+    <saml:AttributeStatement>
+      <saml:Attribute Name="email">
+        <saml:AttributeValue>test.user@saml.com</saml:AttributeValue>
+      </saml:Attribute>
+      <saml:Attribute Name="displayname">
+        <saml:AttributeValue>Test SAML User</saml:AttributeValue>
+      </saml:Attribute>
+    </saml:AttributeStatement>
+  </saml:Assertion>
+</samlp:Response>
