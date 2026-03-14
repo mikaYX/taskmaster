@@ -1,0 +1,34 @@
+# .trivyignore — Exceptions de sécurité Trivy
+#
+# Ce fichier est la baseline versionnée des exceptions approuvées.
+# En CI (auth-security-gate.yml), il est *régénéré* par :
+#   node scripts/validate-trivy-exceptions.js
+# à partir de security/trivy-exceptions.json (source de vérité).
+#
+# NE PAS ÉDITER MANUELLEMENT en production.
+# Pour ajouter une exception : modifier security/trivy-exceptions.json
+# en respectant le schéma { id, reason, owner, expiresAt }.
+#
+# Référence : https://aquasecurity.github.io/trivy/latest/docs/configuration/filtering/
+
+# False positive test for the auth-gate. — owner: security-team — expires: 2026-12-31
+CVE-202X-TEST
+
+# hono / @hono/node-server vulns (GHSA-*) sont dans @prisma/dev (tooling Prisma CLI, non exposé au runtime).
+# Corriger imposerait de downgrader Prisma v7 → v6 (breaking change).
+# Accepté jusqu'à ce que Prisma publie un patch compatible.
+# owner: backend-team — expires: 2026-09-01
+GHSA-wc8c-qw6v-h7f6
+GHSA-9r54-q6cx-xmh5
+GHSA-6wqw-2p9w-4vw4
+GHSA-r354-f388-2fhh
+GHSA-w332-q679-j88p
+GHSA-gq3j-xvxp-8hrf
+GHSA-5pq2-9x2x-5p6w
+GHSA-p6xx-57qc-3wxr
+GHSA-q5qw-h33p-qvwr
+
+# lodash / ajv vulns dans @prisma/dev et @nestjs/cli (outils de développement uniquement, non exposés au runtime).
+# owner: backend-team — expires: 2026-09-01
+GHSA-xxjr-mmjv-4gpg
+GHSA-2g4f-4pwh-qvx6

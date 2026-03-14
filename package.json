@@ -1,0 +1,69 @@
+{
+  "name": "taskmaster",
+  "version": "1.0.0",
+  "description": "Taskmaster — Task management monorepo (NestJS + React)",
+  "private": true,
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "dev": "concurrently -n backend,frontend -c cyan,magenta \"npm -w backend run start:dev\" \"npm -w frontend run dev\"",
+    "dev:backend": "npm -w backend run start:dev",
+    "dev:frontend": "npm -w frontend run dev",
+    "build": "npm -w backend run build && npm -w frontend run build",
+    "build:backend": "npm -w backend run build",
+    "build:frontend": "npm -w frontend run build",
+    "test": "npm -w backend run test && npm -w frontend run test",
+    "test:backend": "npm -w backend run test",
+    "test:frontend": "npm -w frontend run test",
+    "test:e2e": "npm -w backend run test:e2e",
+    "lint": "npm -w backend run lint && npm -w frontend run lint",
+    "lint:backend": "npm -w backend run lint",
+    "lint:frontend": "npm -w frontend run lint",
+    "typecheck": "npm -w backend run typecheck && npm -w frontend run typecheck",
+    "typecheck:backend": "npm -w backend run typecheck",
+    "typecheck:frontend": "npm -w frontend run typecheck",
+    "format": "npm -w backend run format",
+    "db:push": "npm -w backend run db:push",
+    "db:generate": "npm -w backend run db:generate",
+    "postinstall": "npm -w backend run db:generate"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  },
+  "overrides": {
+    "lodash": "4.17.23",
+    "hono": "^4.12.8",
+    "@hono/node-server": "^1.19.11",
+    "@prisma/dev": {
+      "hono": "^4.12.8",
+      "@hono/node-server": "^1.19.11"
+    },
+    "@types/pg": "^8.18.0",
+    "ajv": "^8.18.0",
+    "qs": "^6.15.0",
+    "flatted": "^3.4.1",
+    "file-type": "^21.3.2",
+    "@nestjs/common": {
+      "file-type": "^21.3.2"
+    },
+    "undici": "^7.24.2",
+    "test-exclude": {
+      "minimatch": "^3.1.2",
+      "glob": "^8.1.0"
+    },
+    "archiver-utils": {
+      "glob": "^8.1.0"
+    },
+    "jest-config": {
+      "glob": "^8.1.0"
+    },
+    "jest-runtime": {
+      "glob": "^8.1.0"
+    },
+    "minimatch": "^10.2.1",
+    "tar": "^7.5.10",
+    "terser": "^5.31.0"
+  }
+}

@@ -1,0 +1,39 @@
+# Dépendances et build local
+node_modules
+.npm
+dist
+.vite
+
+# Env
+.env
+.env.*
+!.env.example
+
+# VCS
+.git
+.gitignore
+
+# Tests et qualité
+**/*.spec.ts
+**/*.spec.tsx
+**/*.test.ts
+**/*.test.tsx
+**/__tests__
+**/__mocks__
+**/e2e
+coverage
+*.lcov
+
+# Docs et dev
+README*
+docs
+*.md
+.cursor
+.vscode
+.idea
+*.log
+
+# Playwright / outils de test
+playwright-report
+test-results
+.blob

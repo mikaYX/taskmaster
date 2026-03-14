@@ -1,0 +1,482 @@
+generator client {
+  provider     = "prisma-client-js"
+  output       = "../node_modules/.prisma/client"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Config {
+  key       String   @id @db.VarChar(255)
+  value     String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("configs")
+}
+
+model User {
+  id                        Int                        @id @default(autoincrement())
+  username                  String                     @unique @db.VarChar(255)
+  fullname                  String?                    @db.VarChar(255)
+  avatarUrl                 String?                    @map("avatar_url") @db.VarChar(512)
+  email                     String?                    @db.VarChar(255)
+  passwordHash              String?                    @map("password_hash") @db.VarChar(255)
+  role                      UserRole                   @default(USER)
+  authProvider              AuthProvider               @default(LOCAL) @map("auth_provider")
+  externalId                String?                    @map("external_id") @db.VarChar(255)
+  mustChangePassword        Boolean                    @default(false) @map("must_change_password")
+  createdAt                 DateTime                   @default(now()) @map("created_at")
+  updatedAt                 DateTime                   @updatedAt @map("updated_at")
+  deletedAt                 DateTime?                  @map("deleted_at")
+  mfaEnabled                Boolean                    @default(false) @map("mfa_enabled")
+  mfaRecoveryCodesHash      String?                    @map("mfa_recovery_codes_hash")
+  mfaSecretEncrypted        String?                    @map("mfa_secret_encrypted") @db.VarChar(255)
+  auditLogs                 AuditLog[]
+  passkeys                  Passkey[]
+  refreshTokens             RefreshToken[]
+  statusUpdates             Status[]
+  taskAssignments           TaskAssignment[]
+  taskDelegationTargetUsers TaskDelegationTargetUser[]
+  taskDelegationsLegacy     TaskDelegation[]           @relation("DelegateUserLegacy")
+  taskDelegationsCreated    TaskDelegation[]           @relation("DelegatedBy")
+  tasksDeleted              Task[]                     @relation("TaskDeletedBy")
+  groupMemberships          UserGroupMembership[]
+  sites                     UserSiteAssignment[]
+  todos                     Todo[]
+
+  @@index([email])
+  @@index([externalId])
+  @@index([deletedAt])
+  @@map("users")
+}
+
+model Site {
+  id                   Int                   @id @default(autoincrement())
+  name                 String                @db.VarChar(255)
+  code                 String                @unique @db.VarChar(50)
+  description          String?
+  parentId             Int?                  @map("parent_id")
+  isActive             Boolean               @default(true) @map("is_active")
+  createdAt            DateTime              @default(now()) @map("created_at")
+  updatedAt            DateTime              @updatedAt @map("updated_at")
+  groups               Group[]
+  schedules            Schedule[]
+  parent               Site?                 @relation("SiteHierarchy", fields: [parentId], references: [id])
+  children             Site[]                @relation("SiteHierarchy")
+  taskAssignments      TaskAssignment[]
+  taskGroupAssignments TaskGroupAssignment[]
+  tasks                Task[]
+  users                UserSiteAssignment[]
+  todos                Todo[]
+
+  @@index([parentId])
+  @@map("sites")
+}
+
+model UserSiteAssignment {
+  userId    Int      @map("user_id")
+  siteId    Int      @map("site_id")
+  isDefault Boolean  @default(false) @map("is_default")
+  createdAt DateTime @default(now()) @map("created_at")
+  site      Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, siteId])
+  @@index([userId])
+  @@index([siteId])
+  @@map("user_site_assignments")
+}
+
+model RefreshToken {
+  id        Int       @id @default(autoincrement())
+  userId    Int       @map("user_id")
+  tokenHash String    @unique @map("token_hash") @db.VarChar(64)
+  familyId  String    @map("family_id") @db.VarChar(36)
+  expiresAt DateTime  @map("expires_at")
+  revokedAt DateTime? @map("revoked_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  userAgent String?   @map("user_agent") @db.VarChar(255)
+  ipAddress String?   @map("ip_address") @db.VarChar(45)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([familyId])
+  @@index([expiresAt])
+  @@map("refresh_tokens")
+}
+
+model Passkey {
+  id         String    @id @db.VarChar(255)
+  publicKey  Bytes     @map("public_key")
+  userId     Int       @map("user_id")
+  counter    BigInt
+  deviceType String    @map("device_type") @db.VarChar(32)
+  backedUp   Boolean   @map("backed_up")
+  transports String?   @db.VarChar(255)
+  createdAt  DateTime  @default(now()) @map("created_at")
+  lastUsedAt DateTime? @map("last_used_at")
+  name       String?   @db.VarChar(255)
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("passkeys")
+}
+
+model Group {
+  id                         Int                         @id @default(autoincrement())
+  name                       String                      @unique @db.VarChar(255)
+  isSystem                   Boolean                     @default(false) @map("is_system")
+  createdAt                  DateTime                    @default(now()) @map("created_at")
+  updatedAt                  DateTime                    @updatedAt @map("updated_at")
+  deletedAt                  DateTime?                   @map("deleted_at")
+  description                String?
+  siteId                     Int                         @default(1) @map("site_id")
+  site                       Site                        @relation(fields: [siteId], references: [id])
+  taskDelegationTargetGroups TaskDelegationTargetGroup[]
+  taskAssignments            TaskGroupAssignment[]
+  members                    UserGroupMembership[]
+  todos                      Todo[]
+
+  @@index([siteId])
+  @@index([deletedAt])
+  @@map("groups")
+}
+
+model UserGroupMembership {
+  userId    Int      @map("user_id")
+  groupId   Int      @map("group_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  group     Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, groupId])
+  @@map("user_group_memberships")
+}
+
+model Task {
+  id                      Int                      @id @default(autoincrement())
+  periodicity             String                   @db.VarChar(50)
+  description             String
+  procedureUrl            String?                  @map("procedure_url")
+  startDate               DateTime                 @map("start_date") @db.Date
+  endDate                 DateTime?                @map("end_date") @db.Date
+  activeUntil             DateTime?                @map("active_until") @db.Date
+  skipWeekends            Boolean                  @default(true) @map("skip_weekends")
+  skipHolidays            Boolean                  @default(true) @map("skip_holidays")
+  createdAt               DateTime                 @default(now()) @map("created_at")
+  updatedAt               DateTime                 @updatedAt @map("updated_at")
+  dueOffset               Int?                     @map("due_offset")
+  recurrenceMode          String                   @default("ON_SCHEDULE") @map("recurrence_mode") @db.VarChar(50)
+  rrule                   String?
+  timezone                String                   @default("UTC") @db.VarChar(50)
+  useGlobalWindowDefaults Boolean                  @default(true) @map("use_global_window_defaults")
+  windowEndTime           String?                  @map("window_end_time") @db.VarChar(5)
+  windowStartTime         String?                  @map("window_start_time") @db.VarChar(5)
+  isContinuousBlock       Boolean                  @default(false) @map("is_continuous_block")
+  name                    String                   @db.VarChar(255)
+  priority                String                   @default("MEDIUM") @db.VarChar(50)
+  project                 String?                  @db.VarChar(255)
+  category                String?                  @db.VarChar(255)
+  deletedAt               DateTime?                @map("deleted_at")
+  deletedBy               Int?                     @map("deleted_by")
+  siteId                  Int                      @default(1) @map("site_id")
+  notifications           Notification[]
+  schedules               Schedule[]
+  statuses                Status[]
+  userAssignments         TaskAssignment[]
+  delegations             TaskDelegation[]
+  groupAssignments        TaskGroupAssignment[]
+  taskNotifications       TaskNotification[]
+  overrides               TaskOccurrenceOverride[]
+  deletedByUser           User?                    @relation("TaskDeletedBy", fields: [deletedBy], references: [id])
+  site                    Site                     @relation(fields: [siteId], references: [id])
+
+  @@index([siteId])
+  @@index([startDate])
+  @@index([activeUntil])
+  @@index([deletedAt])
+  @@map("tasks")
+}
+
+model TaskOccurrenceOverride {
+  id           Int            @id @default(autoincrement())
+  taskId       Int            @map("task_id")
+  originalDate DateTime       @map("original_date") @db.Date
+  action       OverrideAction
+  targetDate   DateTime?      @map("target_date") @db.Date
+  reason       String?
+  createdAt    DateTime       @default(now()) @map("created_at")
+  updatedAt    DateTime       @updatedAt @map("updated_at")
+  task         Task           @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, originalDate])
+  @@index([taskId, originalDate])
+  @@map("task_occurrence_overrides")
+}
+
+model Schedule {
+  id              Int            @id @default(autoincrement())
+  taskId          Int            @map("task_id")
+  recurrenceMode  String         @default("ON_SCHEDULE") @map("recurrence_mode") @db.VarChar(20)
+  rrule           String?
+  timezone        String         @default("UTC") @db.VarChar(50)
+  openOffset      Int            @default(0) @map("open_offset")
+  closeOffset     Int?           @map("close_offset")
+  dueOffset       Int?           @map("due_offset")
+  status          ScheduleStatus @default(ACTIVE)
+  maxOccurrences  Int?           @map("max_occurrences")
+  occurrenceCount Int            @default(0) @map("occurrence_count")
+  endsAt          DateTime?      @map("ends_at")
+  pausedAt        DateTime?      @map("paused_at")
+  label           String?        @db.VarChar(255)
+  createdAt       DateTime       @default(now()) @map("created_at")
+  updatedAt       DateTime       @updatedAt @map("updated_at")
+  siteId          Int?           @map("site_id")
+  site            Site?          @relation(fields: [siteId], references: [id])
+  task            Task           @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+  @@index([status])
+  @@index([siteId])
+  @@map("schedules")
+}
+
+model TaskAssignment {
+  taskId    Int      @map("task_id")
+  userId    Int      @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  siteId    Int      @default(1) @map("site_id")
+  site      Site     @relation(fields: [siteId], references: [id])
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([taskId, userId])
+  @@index([siteId])
+  @@map("task_assignments")
+}
+
+model TaskGroupAssignment {
+  taskId    Int      @map("task_id")
+  groupId   Int      @map("group_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  siteId    Int      @default(1) @map("site_id")
+  group     Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  site      Site     @relation(fields: [siteId], references: [id])
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@id([taskId, groupId])
+  @@index([siteId])
+  @@map("task_group_assignments")
+}
+
+model TaskDelegation {
+  id                 Int                         @id @default(autoincrement())
+  taskId             Int                         @map("task_id")
+  delegateUserId     Int?                        @map("delegate_user_id")
+  startDate          DateTime?                   @map("start_date") @db.Date
+  endDate            DateTime?                   @map("end_date") @db.Date
+  createdAt          DateTime                    @default(now()) @map("created_at")
+  delegatedById      Int?                        @map("delegated_by_id")
+  endAt              DateTime?                   @map("end_at") @db.Timestamptz(6)
+  expiredNotifiedAt  DateTime?                   @map("expired_notified_at") @db.Timestamptz(6)
+  reason             String?
+  startAt            DateTime?                   @map("start_at") @db.Timestamptz(6)
+  updatedAt          DateTime                    @updatedAt @map("updated_at")
+  targetGroups       TaskDelegationTargetGroup[]
+  targetUsers        TaskDelegationTargetUser[]
+  delegateUserLegacy User?                       @relation("DelegateUserLegacy", fields: [delegateUserId], references: [id], onDelete: Cascade)
+  delegatedBy        User?                       @relation("DelegatedBy", fields: [delegatedById], references: [id], onDelete: Cascade)
+  task               Task                        @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@map("task_delegations")
+}
+
+model TaskDelegationTargetUser {
+  delegationId Int            @map("delegation_id")
+  userId       Int            @map("user_id")
+  delegation   TaskDelegation @relation(fields: [delegationId], references: [id], onDelete: Cascade)
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([delegationId, userId])
+  @@map("task_delegation_target_users")
+}
+
+model TaskDelegationTargetGroup {
+  delegationId Int            @map("delegation_id")
+  groupId      Int            @map("group_id")
+  delegation   TaskDelegation @relation(fields: [delegationId], references: [id], onDelete: Cascade)
+  group        Group          @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@id([delegationId, groupId])
+  @@map("task_delegation_target_groups")
+}
+
+model Status {
+  id                Int        @id @default(autoincrement())
+  taskId            Int        @map("task_id")
+  instanceDate      DateTime   @map("instance_date") @db.Date
+  status            TaskStatus @default(RUNNING)
+  comment           String?
+  updatedByUserId   Int?       @map("updated_by_user_id")
+  updatedByUsername String?    @map("updated_by_username") @db.VarChar(255)
+  updatedAt         DateTime   @updatedAt @map("updated_at")
+  task              Task       @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  updatedBy         User?      @relation(fields: [updatedByUserId], references: [id])
+
+  @@unique([taskId, instanceDate])
+  @@index([instanceDate])
+  @@index([status])
+  @@map("statuses")
+}
+
+model Notification {
+  id     Int      @id @default(autoincrement())
+  taskId Int      @map("task_id")
+  kind   String   @db.VarChar(50)
+  sentAt DateTime @map("sent_at")
+  task   Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, kind, sentAt])
+  @@map("notifications")
+}
+
+model AuditLog {
+  id        Int      @id @default(autoincrement())
+  timestamp DateTime @default(now())
+  actorId   Int?     @map("actor_id")
+  actorName String?  @map("actor_name")
+  action    String   @db.VarChar(100)
+  target    String?  @db.VarChar(100)
+  category  String   @db.VarChar(50)
+  severity  String   @default("INFO") @db.VarChar(20)
+  details   String?
+  ipAddress String?  @map("ip_address") @db.VarChar(45)
+  actor     User?    @relation(fields: [actorId], references: [id])
+
+  @@index([timestamp])
+  @@index([category])
+  @@index([actorId])
+  @@map("audit_logs")
+}
+
+model ApiKey {
+  id         Int       @id @default(autoincrement())
+  name       String?   @db.VarChar(100)
+  description String?  @db.VarChar(255)
+  keyPrefix  String    @map("key_prefix") @db.VarChar(8)
+  hashedKey  String    @map("hashed_key") @db.VarChar(255)
+  scopes     String[]
+  revokedAt  DateTime? @map("revoked_at")
+  expiresAt  DateTime? @map("expires_at")
+  lastUsedAt DateTime? @map("last_used_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  @@index([keyPrefix], map: "api_keys_prefix_idx")
+  @@map("api_keys")
+}
+
+model NotificationChannel {
+  id                Int                     @id @default(autoincrement())
+  type              NotificationChannelType
+  name              String                  @db.VarChar(255)
+  config            String
+  enabled           Boolean                 @default(true)
+  createdAt         DateTime                @default(now()) @map("created_at")
+  updatedAt         DateTime                @updatedAt @map("updated_at")
+  taskNotifications TaskNotification[]
+
+  @@map("notification_channels")
+}
+
+model TaskNotification {
+  id               Int                 @id @default(autoincrement())
+  taskId           Int                 @map("task_id")
+  channelId        Int                 @map("channel_id")
+  notifyOnFailed   Boolean             @default(true) @map("notify_on_failed")
+  notifyOnMissing  Boolean             @default(true) @map("notify_on_overdue")
+  notifyOnReminder Boolean             @default(false) @map("notify_on_reminder")
+  emailUserIds     Json?               @map("email_user_ids")
+  emailGroupIds    Json?               @map("email_group_ids")
+  emailCustom      Json?               @map("email_custom")
+  createdAt        DateTime            @default(now()) @map("created_at")
+  updatedAt        DateTime            @updatedAt @map("updated_at")
+  channel          NotificationChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  task             Task                @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, channelId])
+  @@index([taskId])
+  @@index([channelId])
+  @@map("task_notifications")
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  MANAGER
+  USER
+  GUEST
+}
+
+enum AuthProvider {
+  LOCAL
+  LDAP
+  AZURE_AD
+  OIDC
+  SAML
+}
+
+enum OverrideAction {
+  MOVE
+  SKIP
+}
+
+enum ScheduleStatus {
+  ACTIVE
+  PAUSED
+  COMPLETED
+  CANCELLED
+}
+
+enum TaskStatus {
+  SUCCESS
+  FAILED
+  MISSING
+  RUNNING
+}
+
+enum NotificationChannelType {
+  SLACK
+  TEAMS
+  EMAIL
+  TELEGRAM
+  PUSH
+}
+
+model Todo {
+  id          Int       @id @default(autoincrement())
+  title       String
+  isCompleted Boolean   @default(false) @map("is_completed")
+  completedAt DateTime? @map("completed_at")
+  dueDate     DateTime? @map("due_date")
+  scope       TodoScope @default(PRIVATE)
+  userId      Int       @map("user_id")
+  groupId     Int?      @map("group_id")
+  siteId      Int       @default(1) @map("site_id")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  group       Group?    @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  site        Site      @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([siteId])
+  @@index([groupId])
+  @@map("todos")
+}
+
+enum TodoScope {
+  PRIVATE
+  COLLECTIVE
+}

@@ -1,0 +1,81 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Environment variables
+.env
+.env.bak
+.env.local
+.env.*.local
+git.pub
+github.key
+github.key.pub
+.git/
+git
+
+# Build outputs
+/dist
+/build
+client/dist/
+client/build/
+backend/dist/
+backend/generated/
+frontend/dist/
+backend/test_results.json
+
+# Database
+*.sqlite*.db
+*.db-journal
+data/
+export/
+
+# Données Docker (backups, uploads, procedures) montées dans ./app
+data/
+
+# Generated Files
+exports/*
+client/public/uploads/
+backend/public/uploads/
+backup/*
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# OS Files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Debug files
+*-debug.json
+tsc-errors*.txt
+
+#Liste feature.txt
+
+# Debug & test scripts (never commit)
+token.json
+login.json
+last_backup.json
+trigger_backup.js
+validate_s3_async.sh
+# Certificats CA d'entreprise (ne pas versionner)
+certs/
+
+.agent/
+.agents/
+.cursor/
+.vscode/
+.idea/
+.cursorrules
+.github/

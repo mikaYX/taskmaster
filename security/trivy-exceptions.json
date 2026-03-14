@@ -1,0 +1,10 @@
+{
+    "exceptions": [
+        {
+            "id": "CVE-202X-TEST",
+            "reason": "False positive test for the auth-gate.",
+            "owner": "security-team",
+            "expiresAt": "2026-12-31"
+        }
+    ]
+}

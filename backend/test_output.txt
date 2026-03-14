@@ -1,0 +1,18 @@
+
+> backend@1.0.0 test:e2e
+> jest --config ./test/jest-e2e.json --forceExit test/guests-creation.e2e-spec.ts --verbose
+
+PASS test/guests-creation.e2e-spec.ts (5.253 s)
+  Guests Creation and Flow (e2e)
+    ✓ POST /users should FAIL when trying to create role GUEST (117 ms)
+    ✓ POST /guests/site/:siteId should SUCCEED for admin (424 ms)
+    ✓ GET /guests should list active guests (19 ms)
+    ✓ PATCH /guests/:id/regenerate should work (363 ms)
+    ✓ DELETE /guests/:id should revoke access (50 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       5 passed, 5 total
+Snapshots:   0 total
+Time:        5.659 s, estimated 6 s
+Ran all test suites matching test/guests-creation.e2e-spec.ts.
+Force exiting Jest: Have you considered using `--detectOpenHandles` to detect async operations that kept running after all tests finished?

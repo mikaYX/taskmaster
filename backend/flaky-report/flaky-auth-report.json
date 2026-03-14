@@ -1,0 +1,30 @@
+{
+  "totalRuns": 5,
+  "passes": 5,
+  "failures": 0,
+  "isFlaky": false,
+  "isConsistentFailure": false,
+  "runs": [
+    {
+      "run": 1,
+      "status": "PASS"
+    },
+    {
+      "run": 2,
+      "status": "PASS"
+    },
+    {
+      "run": 3,
+      "status": "PASS"
+    },
+    {
+      "run": 4,
+      "status": "PASS"
+    },
+    {
+      "run": 5,
+      "status": "PASS"
+    }
+  ],
+  "timestamp": "2026-02-23T11:15:36.198Z"
+}
