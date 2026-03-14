@@ -17,7 +17,7 @@ jobs:
           fetch-depth: 0 # Nécessaire pour un scan complet des confs et secrets de l'historique
 
       - name: Install NodeJS for Validators
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 20
 
