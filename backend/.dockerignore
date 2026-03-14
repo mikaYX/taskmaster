@@ -1,0 +1,48 @@
+# Dépendances et build local
+node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+dist
+.next
+out
+
+# Env et secrets
+.env
+.env.*
+!.env.example
+
+# VCS
+.git
+.gitignore
+
+# Tests et qualité (inutiles en image)
+test
+**/*.spec.ts
+**/*.e2e-spec.ts
+**/*.mock.ts
+**/__mocks__
+**/__tests__
+coverage
+.nyc_output
+*.lcov
+
+# Config Prisma alternative (on utilise schema.prisma)
+prisma.config.ts
+prisma.config.js
+!prisma.config.cjs
+
+# Docs et dev
+README*
+docs
+*.md
+.cursor
+.vscode
+.idea
+*.log
+Liste*.txt
+rapport*
+
+# Lockfile optionnel (monorepo: lock à la racine)
+# Inclure package-lock.json si présent pour npm ci

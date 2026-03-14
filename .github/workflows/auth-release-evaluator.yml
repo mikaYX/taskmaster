@@ -1,0 +1,114 @@
+name: Auth Release GO/NO-GO
+
+on:
+    push:
+        branches: [release/*, main]
+    pull_request:
+        branches: [main]
+    workflow_dispatch:
+
+jobs:
+    auth-release-gate:
+        name: Evaluate Auth SLI/SLO
+        runs-on: ubuntu-latest
+
+        services:
+            postgres:
+                image: postgres:15
+                env:
+                    POSTGRES_USER: taskmaster
+                    POSTGRES_PASSWORD: taskmaster_password
+                    POSTGRES_DB: taskmaster_db
+                ports:
+                    - 5432:5432
+                options: >-
+                    --health-cmd pg_isready
+                    --health-interval 10s
+                    --health-timeout 5s
+                    --health-retries 5
+            redis:
+                image: redis:7-alpine
+                ports:
+                    - 6379:6379
+
+        steps:
+            - name: Checkout Code
+              uses: actions/checkout@v4
+
+            - name: Minimal Node.js Setup
+              uses: actions/setup-node@v4
+              with:
+                  node-version: "20.x"
+                  cache: "npm"
+                  cache-dependency-path: backend/package-lock.json
+
+            - name: Install dependencies
+              working-directory: ./backend
+              run: npm ci
+
+            - name: Build Application Payload
+              working-directory: ./backend
+              run: npm run build
+
+            - name: Prepare Quality Gate Environment
+              working-directory: ./backend
+              run: |
+                  echo "DATABASE_URL=postgresql://taskmaster:taskmaster_password@localhost:5432/taskmaster_db?schema=public" > .env
+                  echo "REDIS_URL=redis://localhost:6379" >> .env
+                  echo "AUTH_SECRET=quality_gate_secret_key_ci_123456" >> .env
+                  # /!\ CONFIGURATION CRITIQUE /!\ 
+                  # On abaisse drastiquement la "Grace Window" à 1 seconde uniquement pour le Pipeline.
+                  # Cela permet de tester la "Révocation de Famille" (Replay hors grace) sans attendre 1 minute dans la CI.
+                  echo "AUTH_GRACE_WINDOW_SECONDS=1" >> .env
+
+                  npx prisma db push --accept-data-loss
+
+            - name: Boot Server In Background
+              working-directory: ./backend
+              run: |
+                  npm run start:prod &
+
+                  # Wait securely for API to boot up
+                  echo "Attente de l'amorçage de l'API..."
+                  sleep 12
+
+            - name: Evaluate GO/NO-GO (Blackbox SLI Gathering)
+              id: gate_evaluation
+              working-directory: ./backend
+              env:
+                  API_URL: "http://localhost:3000/api"
+                  SMOKE_USERNAME: "testgateuser"
+                  SMOKE_PASSWORD: "gate_password123"
+              run: |
+                  # 1. Enregistre l'utilisateur en BDD
+                  npx ts-node seed-gate-user.ts
+
+                  # 2. Exécute l'Evaluateur GO/NO-GO
+                  # Produit automatiquement `auth-release-verdict.json` et Crash si NO-GO
+                  npx ts-node ../scripts/auth-release-gate.ts
+
+            - name: Attach Verdict Details to Pull Request
+              if: always()
+              run: |
+                  echo "## Auth GO/NO-GO Verdict 🚀" >> $GITHUB_STEP_SUMMARY
+
+                  if [ -f auth-release-verdict.json ]; then
+                     echo '```json' >> $GITHUB_STEP_SUMMARY
+                     cat auth-release-verdict.json >> $GITHUB_STEP_SUMMARY
+                     echo '```' >> $GITHUB_STEP_SUMMARY
+                  else
+                     echo "❌ **Erreur d'Exécution** : Le fichier d'évaluation JSON n'a pas pu être produit. Veuillez enquêter sur les logs." >> $GITHUB_STEP_SUMMARY
+                  fi
+
+            - name: Alert and Rollback Trigger
+              if: failure()
+              run: |
+                  echo "::error title=🚨 NO-GO Release Détecté::L'Architecture d'Authentification subit une nette dégradation non couverte par notre SLO. Si ce Workflow tourne en amont d'un Hotfix, veuillez avertir l'Engineering Manager. Si ce code vient d'être déployé en production, consultez docs/RUNBOOK_AUTH_DEGRADATION.md pour initier un FALLBACK d'urgence."
+
+            - name: Upload Artifact Proof
+              uses: actions/upload-artifact@v4
+              if: always()
+              with:
+                  name: auth-release-verdict
+                  path: auth-release-verdict.json
+                  retention-days: 14

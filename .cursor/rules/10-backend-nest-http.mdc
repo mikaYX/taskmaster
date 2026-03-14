@@ -1,0 +1,20 @@
+---
+description: "NestJS HTTP conventions"
+globs:
+  - "backend/src/**/*.controller.ts"
+  - "backend/src/**/*.module.ts"
+  - "backend/src/**/dto/**/*.ts"
+  - "backend/src/**/*.dto.ts"
+  - "backend/src/**/*.guard.ts"
+  - "backend/src/**/*.interceptor.ts"
+  - "backend/src/**/*.filter.ts"
+alwaysApply: false
+---
+
+# Backend Nest HTTP
+
+- Keep controllers thin: validate input, delegate to services, and format responses.
+- Put all complex business logic in services, helpers, or domain modules, never controllers.
+- Validate request bodies with DTOs/class-validator and transform with class-transformer decorators.
+- Return status codes and envelopes consistent with existing APIs (JSON `{ data, meta }` or equivalent).
+- Group related providers/exports inside feature modules; avoid mixing unrelated providers.

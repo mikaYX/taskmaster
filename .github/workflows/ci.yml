@@ -1,0 +1,49 @@
+name: CI — Build, Lint, Typecheck
+
+on:
+  push:
+    branches: [main, develop, dev]
+  pull_request:
+    branches: [main, develop, dev]
+
+jobs:
+  ci:
+    name: Build · Lint · Typecheck
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20.x"
+          cache: "npm"
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+        env:
+          PUPPETEER_SKIP_DOWNLOAD: "true"
+
+      - name: Generate Prisma client
+        run: npm run db:generate
+
+      - name: Typecheck backend
+        run: npm run typecheck:backend
+
+      - name: Typecheck frontend
+        run: npm run typecheck:frontend
+
+      - name: Lint backend
+        run: npm run lint:backend
+
+      - name: Lint frontend
+        run: npm run lint:frontend
+
+      - name: Build backend
+        run: npm run build:backend
+
+      - name: Build frontend
+        run: npm run build:frontend

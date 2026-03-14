@@ -1,0 +1,12 @@
+---
+description: "Repository-wide baseline requirements"
+alwaysApply: true
+---
+
+# Repo Core
+
+- Keep proposed changes scoped to the area asked in the task.
+- Respect the frontend/backend boundary: updates to `frontend/` stay under that directory and backend work stays under `backend/`.
+- Use the repo's existing TypeScript configuration and naming conventions unless a strong reason exists to diverge.
+- Add tests or update existing ones when modifying behavior that already has coverage.
+- Keep documentation (README/SETUP) aligned with any new setup or scripts.

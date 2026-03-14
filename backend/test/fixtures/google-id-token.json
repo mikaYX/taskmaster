@@ -1,0 +1,17 @@
+{
+    "iss": "https://accounts.google.com",
+    "azp": "1234567890-app.apps.googleusercontent.com",
+    "aud": "1234567890-app.apps.googleusercontent.com",
+    "sub": "10769150350006150715113082367",
+    "email": "test.user@google.com",
+    "email_verified": true,
+    "at_hash": "HK6E_P6Dh8Y93mRNtsDB1Q",
+    "name": "Test Google User",
+    "picture": "https://lh3.googleusercontent.com/a/ALm5wu0=s96-c",
+    "given_name": "Test",
+    "family_name": "User",
+    "locale": "en",
+    "iat": 1672531200,
+    "exp": 1672534800,
+    "hd": "google.com"
+}

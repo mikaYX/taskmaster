@@ -1,0 +1,107 @@
+services:
+  postgres:
+    image: postgres:18.1-alpine
+    container_name: taskmaster_prod_db
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      PGDATA: /var/lib/postgresql/data
+    volumes:
+      - postgres_prod_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:8.4.1-alpine
+    container_name: taskmaster_prod_redis
+    restart: always
+    volumes:
+      - redis_prod_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  migrator:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: builder
+    container_name: taskmaster_prod_migrator
+    restart: "no"
+    command: npx prisma migrate deploy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: taskmaster_prod_backend
+    restart: always
+    user: node
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      REDIS_URL: redis://redis:6379
+      AUTH_SECRET: ${AUTH_SECRET}
+      BACKUP_STORAGE_PATH: /app/backups
+      BACKUP_ENCRYPTION_KEY: ${BACKUP_ENCRYPTION_KEY}
+      CORS_ORIGIN: ${CORS_ORIGIN}
+      # Email settings would go here too
+    volumes:
+      - backup_prod_data:/app/backups
+      - upload_prod_data:/app/public/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrator:
+        condition: service_completed_successfully
+    healthcheck:
+      # Pas de curl en image: healthcheck via Node
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/api/health',r=>{let b='';r.on('data',c=>b+=c);r.on('end',()=>process.exit(r.statusCode===200?0:1));}).on('error',()=>process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    ports:
+      - "3000:3000"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: taskmaster_prod_frontend
+    restart: always
+    environment:
+      # Frontend build time envs require modification of Dockerfile to accept ARGs
+      # But for runtime config in SPA, we usually bake it in or verify correctness.
+      # Assuming VITE_API_URL is baked or relative.
+      # If relative, we need reverse proxy configuration.
+      # For now, simplistic setup.
+      NODE_ENV: production
+    ports:
+      - "80:80"
+    healthcheck:
+       test: ["CMD", "wget", "--spider", "http://localhost:80"]
+       interval: 30s
+       timeout: 10s
+       retries: 3
+
+volumes:
+  postgres_prod_data:
+  redis_prod_data:
+  backup_prod_data:
+  upload_prod_data:

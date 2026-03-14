@@ -1,0 +1,123 @@
+name: Auth Non-Regression CI
+
+on:
+  push:
+    branches: [main, develop, dev]
+  pull_request:
+    branches: [main, develop, dev]
+
+jobs:
+  auth-tests:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: taskmaster
+          POSTGRES_PASSWORD: taskmaster_password
+          POSTGRES_DB: taskmaster_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Use Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20.x"
+          cache: "npm"
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install backend dependencies
+        working-directory: ./backend
+        run: npm ci
+
+      - name: Install frontend dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Create Test .env
+        working-directory: ./
+        run: |
+          echo "DATABASE_URL=postgresql://taskmaster:taskmaster_password@localhost:5432/taskmaster_db?schema=public" > .env
+          echo "TEST_DATABASE_URL=postgresql://taskmaster:taskmaster_password@localhost:5432/taskmaster_db?schema=public" >> .env
+          echo "REDIS_URL=redis://localhost:6379" >> .env
+          echo "AUTH_SECRET=a_very_long_secure_secret_key_intended_for_testing_123" >> .env
+          echo "AUTH_GRACE_WINDOW_SECONDS=60" >> .env
+
+      - name: Run Prisma DB push
+        working-directory: ./backend
+        run: npx prisma db push --accept-data-loss
+
+      - name: Run Anti-Flakiness Test Gate
+        working-directory: ./backend
+        run: npm run test:auth:flaky
+
+      - name: Run All Tests and Publish Results
+        run: |
+          echo "## Authenticated Test Suites Execution" >> $GITHUB_STEP_SUMMARY
+
+          # Backend Tests
+          echo "### Backend Test Results" >> $GITHUB_STEP_SUMMARY
+          cd backend
+          BACKEND_OUT=$(npm run test 2>&1) || BACKEND_EXIT=$?
+          echo '```text' >> $GITHUB_STEP_SUMMARY
+          echo "$BACKEND_OUT" | tail -n 25 >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+          if echo "$BACKEND_OUT" | grep -qE "Test Suites: 0 total|Tests:       0 total"; then
+            echo "❌ **ERROR**: 0 backend tests executed. Blocking merge." >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+          if [ "${BACKEND_EXIT:-0}" -ne 0 ]; then
+            echo "❌ Backend tests failed." >> $GITHUB_STEP_SUMMARY
+            exit $BACKEND_EXIT
+          fi
+          cd ..
+
+          # Frontend Tests
+          echo "### Frontend Test Results" >> $GITHUB_STEP_SUMMARY
+          cd frontend
+          FRONTEND_OUT=$(npm run test 2>&1) || FRONTEND_EXIT=$?
+          echo '```text' >> $GITHUB_STEP_SUMMARY
+          echo "$FRONTEND_OUT" | tail -n 25 >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+          if echo "$FRONTEND_OUT" | grep -qE "Test Files  0 passed \(0\)|Tests  0 passed \(0\)"; then
+            echo "❌ **ERROR**: 0 frontend tests executed. Blocking merge." >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+          if [ "${FRONTEND_EXIT:-0}" -ne 0 ]; then
+            echo "❌ Frontend tests failed." >> $GITHUB_STEP_SUMMARY
+            exit $FRONTEND_EXIT
+          fi
+
+          echo "✅ All tests executed successfully!" >> $GITHUB_STEP_SUMMARY
+
+      - name: Expose Flaky Test Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: flaky-auth-report
+          path: backend/flaky-report/
+          retention-days: 14
+
+      - name: Expose Auth Regression Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: auth-coverage-report
+          path: backend/coverage-auth/
+          retention-days: 14

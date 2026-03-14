@@ -1,0 +1,22 @@
+# Build de l'image taskmaster (fullstack) pour Docker Hub.
+# Un seul Dockerfile à la racine : API + SPA dans une image.
+#
+# Usage:
+#   export DOCKERHUB_USER=votre-compte
+#   docker compose -f docker-compose.dockerhub.yml build
+#   docker compose -f docker-compose.dockerhub.yml push
+#
+# Avec tag:
+#   DOCKERHUB_USER=monuser TAG=1.0.0 docker compose -f docker-compose.dockerhub.yml build --push
+
+services:
+  fullstack:
+    image: ${DOCKERHUB_USER:-votre-compte}/taskmaster:${TAG:-latest}
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - taskmaster_node_modules:/app/node_modules
+
+volumes:
+  taskmaster_node_modules:

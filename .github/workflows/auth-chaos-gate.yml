@@ -1,0 +1,93 @@
+name: Auth Chaos Test Gate
+
+on:
+    push:
+        branches: [main, develop, dev]
+    pull_request:
+        branches: [main, develop, dev]
+    workflow_dispatch:
+
+jobs:
+    auth-chaos:
+        name: Authentication Chaos Testing
+        runs-on: ubuntu-latest
+        continue-on-error: true # Considéré comme "Optionnelle"
+
+        services:
+            postgres:
+                image: postgres:15
+                env:
+                    POSTGRES_USER: taskmaster
+                    POSTGRES_PASSWORD: taskmaster_password
+                    POSTGRES_DB: taskmaster_db
+                ports:
+                    - 5432:5432
+                options: >-
+                    --health-cmd pg_isready
+                    --health-interval 10s
+                    --health-timeout 5s
+                    --health-retries 5
+            redis:
+                image: redis:7-alpine
+                ports:
+                    - 6379:6379
+
+        steps:
+            - name: Checkout Code
+              uses: actions/checkout@v4
+
+            - name: Use Node.js 20
+              uses: actions/setup-node@v4
+              with:
+                  node-version: "20.x"
+                  cache: "npm"
+                  cache-dependency-path: backend/package-lock.json
+
+            - name: Install dependencies
+              working-directory: ./backend
+              run: npm ci
+
+            - name: Mock Environment Variables
+              working-directory: ./
+              run: |
+                  echo "DATABASE_URL=postgresql://taskmaster:taskmaster_password@localhost:5432/taskmaster_db?schema=public" > .env
+                  echo "TEST_DATABASE_URL=postgresql://taskmaster:taskmaster_password@localhost:5432/taskmaster_db?schema=public" >> .env
+                  echo "REDIS_URL=redis://localhost:6379" >> .env
+                  echo "AUTH_SECRET=a_very_long_secure_secret_key_intended_for_testing_123" >> .env
+                  echo "AUTH_GRACE_WINDOW_SECONDS=60" >> .env
+
+            - name: DB Migrate
+              working-directory: ./backend
+              run: npx prisma db push --accept-data-loss
+
+            - name: Run Chaos Specification Target
+              id: chaos_run
+              working-directory: ./backend
+              run: >
+                  npx jest --config ./test/jest-e2e.json test/auth-chaos.e2e-spec.ts
+                  --reporters=default
+                  --reporters=jest-junit
+              env:
+                  JEST_JUNIT_OUTPUT_DIR: "./auth-chaos-report/"
+                  JEST_JUNIT_OUTPUT_NAME: "chaos-results.xml"
+
+            - name: Generate Chaos Markdown Summary
+              if: always()
+              run: |
+                  echo "## Auth Chaos Report 🌪️" >> $GITHUB_STEP_SUMMARY
+
+                  if [ "${{ steps.chaos_run.outcome }}" == "success" ]; then
+                     echo "✅ **PASS**: L'Authentification a survécu à la perturbation d'infrastructure." >> $GITHUB_STEP_SUMMARY
+                     echo "Les invariants critiques (Révocation propre, Anti-Boucle, Fail-over) n'ont pas fuité de Token et n'ont pas retourné d'erreurs HTTP 500." >> $GITHUB_STEP_SUMMARY
+                  else
+                     echo "❌ **FAIL**: Le backend Auth ne s'est pas remis gracieusement d'un dysfonctionnement critique injecté dans le pool infrastructure." >> $GITHUB_STEP_SUMMARY
+                     echo "Veuillez examiner l'Artifact de rapport téléchargeable pour évaluer son éligibilité à la Release." >> $GITHUB_STEP_SUMMARY
+                  fi
+
+            - name: Upload Chaos Report Artifact
+              uses: actions/upload-artifact@v4
+              if: always()
+              with:
+                  name: auth-chaos-report
+                  path: backend/auth-chaos-report/
+                  retention-days: 14

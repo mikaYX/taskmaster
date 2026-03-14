@@ -1,0 +1,17 @@
+---
+description: "Prisma schema, migrations, and data access"
+globs:
+  - "backend/prisma/**/*.prisma"
+  - "backend/prisma/**/*.ts"
+  - "backend/src/**/*.service.ts"
+  - "backend/src/**/*.repository.ts"
+alwaysApply: false
+---
+
+# Backend Prisma Data
+
+- Capture schema changes via migrations; avoid manual SQL edits outside Prisma migrations.
+- Select only needed fields (use `select`/`include`) and batch writes when a loop would produce identical queries.
+- Wrap multi-step data updates in transactions; let services orchestrate transactions when necessary.
+- Keep Prisma queries inside services/repositories and return domain-friendly errors upstream.
+- Map persistence errors to HTTP-friendly responses before they leave the backend layer.

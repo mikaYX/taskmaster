@@ -1,0 +1,103 @@
+name: Auth Security Gate
+
+on:
+  push:
+    branches: [main, develop, dev]
+  pull_request:
+    branches: [main, develop, dev]
+
+jobs:
+  auth-security:
+    name: Security Scans (Vulns & Secrets)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Nécessaire pour un scan complet des confs et secrets de l'historique
+
+      - name: Install NodeJS for Validators
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Validate Security Exceptions & Generate .trivyignore
+        run: node scripts/validate-trivy-exceptions.js
+
+      # ==================================
+      # 1. SCAN DÉPENDANCES (BACK + FRONT)
+      # ==================================
+      - name: Run Trivy Vulnerability Scanner (Dependencies)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: "fs"
+          scan-ref: "."
+          scanners: "vuln"
+          severity: "HIGH,CRITICAL"
+          ignore-unfixed: true
+          format: "table"
+          output: "trivy-vuln-report.txt"
+          exit-code: "1" # Bloquant si une vulnérabilité Haute/Critique n'est pas ignorée
+          trivyignores: ".trivyignore"
+
+      # ==================================
+      # 2. SCAN SECRETS & CONFIGURATIONS
+      # ==================================
+      - name: Run Trivy Secret & Config Scanner
+        uses: aquasecurity/trivy-action@master
+        if: always() # Toujours exécuter, même si le premier a échoué
+        with:
+          scan-type: "fs"
+          scan-ref: "."
+          scanners: "secret,config"
+          severity: "HIGH,CRITICAL"
+          format: "table"
+          output: "trivy-secret-report.txt"
+          exit-code: "1" # Bloquant si un secret git ou une missconfig critique est repérée
+          trivyignores: ".trivyignore"
+
+      # ==================================
+      # 3. GÉNÉRATION DE L'ARTEFACT FINAL
+      # ==================================
+      - name: Generate Auth Security Summary
+        if: always()
+        run: |
+          echo "## Auth Security Gate Report 🛡️" >> $GITHUB_STEP_SUMMARY
+
+          echo "### Vulnerabilities (Backend + Frontend)" >> $GITHUB_STEP_SUMMARY
+          echo '```text' >> $GITHUB_STEP_SUMMARY
+          if [ -f trivy-vuln-report.txt ]; then
+            cat trivy-vuln-report.txt >> $GITHUB_STEP_SUMMARY
+          else
+            echo "✅ No HIGH/CRITICAL vulnerabilities found." >> $GITHUB_STEP_SUMMARY
+          fi
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+          echo "### Secrets & Configurations" >> $GITHUB_STEP_SUMMARY
+          echo '```text' >> $GITHUB_STEP_SUMMARY
+          if [ -f trivy-secret-report.txt ]; then
+            cat trivy-secret-report.txt >> $GITHUB_STEP_SUMMARY
+          else
+            echo "✅ No HIGH/CRITICAL leaked secrets or misconfigurations found." >> $GITHUB_STEP_SUMMARY
+          fi
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+          mkdir -p auth-security-report
+          [ -f trivy-vuln-report.txt ] && cp trivy-vuln-report.txt auth-security-report/ || true
+          [ -f trivy-secret-report.txt ] && cp trivy-secret-report.txt auth-security-report/ || true
+
+      - name: Upload Auth Security Report Artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: auth-security-report
+          path: auth-security-report/
+          retention-days: 14
+
+      - name: Upload Security Exceptions Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: security-exceptions-report
+          path: security-exceptions-report.json
+          retention-days: 14
