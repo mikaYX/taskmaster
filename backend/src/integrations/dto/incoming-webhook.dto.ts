@@ -19,10 +19,10 @@ export class IncomingWebhookDto {
   @ApiProperty({
     description: 'Action to perform',
     example: 'COMPLETE_TASK',
-    enum: ['COMPLETE_TASK', 'CREATE_TASK'],
+    enum: ['COMPLETE_TASK', 'CREATE_TASK', 'DELETE_TASK'],
   })
   @IsString()
-  @IsIn(['COMPLETE_TASK', 'CREATE_TASK'])
+  @IsIn(['COMPLETE_TASK', 'CREATE_TASK', 'DELETE_TASK'])
   action!: string;
 
   @ApiProperty({

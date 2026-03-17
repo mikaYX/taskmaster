@@ -97,6 +97,13 @@ class EnvironmentVariables {
   @IsOptional()
   @IsString()
   VERSION_CHECK_REPO?: string;
+
+  @IsOptional()
+  @IsString()
+  @MinLength(16, {
+    message: 'BOOTSTRAP_SECRET must be at least 16 characters long',
+  })
+  BOOTSTRAP_SECRET?: string;
 }
 
 export function validate(
@@ -126,6 +133,8 @@ export function validate(
     if (!validatedConfig.CORS_ORIGIN) missing.push('CORS_ORIGIN');
     if (!validatedConfig.BACKUP_ENCRYPTION_KEY)
       missing.push('BACKUP_ENCRYPTION_KEY');
+    if (!validatedConfig.BOOTSTRAP_SECRET)
+      missing.push('BOOTSTRAP_SECRET');
 
     if (missing.length > 0) {
       throw new Error(`Running in PRODUCTION requires: ${missing.join(', ')}`);
