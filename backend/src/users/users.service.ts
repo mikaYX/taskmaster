@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
+  BadRequestException,
   Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma';
@@ -138,7 +139,12 @@ export class UsersService {
       },
     });
 
-    const siteId = dto.siteId ?? this.prisma.getDefaultSiteId() ?? 1;
+    const siteId = dto.siteId ?? this.prisma.getDefaultSiteId();
+    if (!siteId) {
+      throw new BadRequestException(
+        'Cannot create user: no siteId provided and no default site found for the current user.',
+      );
+    }
     await this.prisma.client.userSiteAssignment.create({
       data: { userId: user.id, siteId, isDefault: true },
     });

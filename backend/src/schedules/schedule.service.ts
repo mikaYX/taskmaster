@@ -72,7 +72,15 @@ export class ScheduleService {
             dueOffset: dto.dueOffset,
             maxOccurrences: dto.maxOccurrences,
             endsAt: dto.endsAt ? new Date(dto.endsAt) : undefined,
-            siteId: dto.siteId ?? this.prisma.getDefaultSiteId() ?? 1,
+            siteId: (() => {
+              const resolved = dto.siteId ?? this.prisma.getDefaultSiteId();
+              if (!resolved) {
+                throw new BadRequestException(
+                  `Cannot create schedule for task ${dto.taskId}: no siteId provided and no default site found.`,
+                );
+              }
+              return resolved;
+            })(),
             label: dto.label,
           },
         }),
@@ -110,7 +118,15 @@ export class ScheduleService {
         dueOffset: dto.dueOffset,
         maxOccurrences: dto.maxOccurrences,
         endsAt: dto.endsAt ? new Date(dto.endsAt) : undefined,
-        siteId: dto.siteId ?? this.prisma.getDefaultSiteId() ?? 1,
+        siteId: (() => {
+          const resolved = dto.siteId ?? this.prisma.getDefaultSiteId();
+          if (!resolved) {
+            throw new BadRequestException(
+              `Cannot create schedule for task ${dto.taskId}: no siteId provided and no default site found.`,
+            );
+          }
+          return resolved;
+        })(),
         label: dto.label,
       },
     });

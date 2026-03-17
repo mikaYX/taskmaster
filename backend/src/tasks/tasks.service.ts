@@ -720,7 +720,15 @@ export class TasksService {
         endDate: dto.endDate ? new Date(dto.endDate) : null,
         skipWeekends: dto.skipWeekends ?? true,
         skipHolidays: dto.skipHolidays ?? true,
-        siteId: this.prisma.getDefaultSiteId() ?? 1,
+        siteId: (() => {
+          const resolved = this.prisma.getDefaultSiteId();
+          if (!resolved) {
+            throw new BadRequestException(
+              'Cannot create task: no default site found for the current user. Ensure a valid X-Site-Id header is provided.',
+            );
+          }
+          return resolved;
+        })(),
 
         userAssignments: dto.userIds?.length
           ? { createMany: { data: dto.userIds.map((userId) => ({ userId })) } }
