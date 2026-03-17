@@ -21,9 +21,9 @@ describe('RolesGuard', () => {
 
   describe('when using @RequirePermission', () => {
     it('should allow if user has permission (ADMIN has TASK_DELETE)', () => {
-      (reflector.getAllAndOverride as jest.Mock).mockReturnValue([
-        Permission.TASK_DELETE,
-      ]);
+      (reflector.getAllAndOverride as jest.Mock)
+        .mockReturnValueOnce([Permission.TASK_DELETE])
+        .mockReturnValueOnce(null);
       const context = {
         getHandler: jest.fn(),
         getClass: jest.fn(),
@@ -38,9 +38,9 @@ describe('RolesGuard', () => {
     });
 
     it('should allow if user has permission (USER has TASK_READ)', () => {
-      (reflector.getAllAndOverride as jest.Mock).mockReturnValue([
-        Permission.TASK_READ,
-      ]);
+      (reflector.getAllAndOverride as jest.Mock)
+        .mockReturnValueOnce([Permission.TASK_READ])
+        .mockReturnValueOnce(null);
       const context = {
         getHandler: jest.fn(),
         getClass: jest.fn(),
@@ -55,9 +55,9 @@ describe('RolesGuard', () => {
     });
 
     it('should deny if user lacks permission (USER tries TASK_DELETE)', () => {
-      (reflector.getAllAndOverride as jest.Mock).mockReturnValue([
-        Permission.TASK_DELETE,
-      ]);
+      (reflector.getAllAndOverride as jest.Mock)
+        .mockReturnValueOnce([Permission.TASK_DELETE])
+        .mockReturnValueOnce(null);
       const context = {
         getHandler: jest.fn(),
         getClass: jest.fn(),
@@ -73,9 +73,9 @@ describe('RolesGuard', () => {
     });
 
     it('should throw Forbidden if user has no role', () => {
-      (reflector.getAllAndOverride as jest.Mock).mockReturnValue([
-        Permission.TASK_READ,
-      ]);
+      (reflector.getAllAndOverride as jest.Mock)
+        .mockReturnValueOnce([Permission.TASK_READ])
+        .mockReturnValueOnce(null);
       const context = {
         getHandler: jest.fn(),
         getClass: jest.fn(),

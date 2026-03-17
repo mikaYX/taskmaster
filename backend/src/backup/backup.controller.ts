@@ -25,6 +25,7 @@ import { Inject, forwardRef } from '@nestjs/common';
 import { EmailService } from '../email';
 import { SettingsService } from '../settings';
 import { IdempotencyInterceptor } from '../common/interceptors/idempotency.interceptor';
+import { FileValidationPipe } from '../common/pipes/file-validation.pipe';
 
 // Local definition to avoid global namespace issues with Express.Multer.File
 interface MulterFile {
@@ -85,7 +86,13 @@ export class BackupController {
     }),
   )
   async restore(
-    @UploadedFile() file: MulterFile,
+    @UploadedFile(
+      new FileValidationPipe({
+        allowedMimeTypes: ['application/gzip', 'application/x-gzip'],
+        allowUndefinedMimeType: true, // for `.enc` streams
+        maxSizeBytes: 5 * 1024 * 1024 * 1024, // 5GB
+      }),
+    ) file: MulterFile,
     @Body() body: { decryptionKey?: string; force?: string; filename?: string },
   ) {
     let path = '';
@@ -120,7 +127,15 @@ export class BackupController {
       }),
     }),
   )
-  async validateExternal(@UploadedFile() file: MulterFile) {
+  async validateExternal(
+    @UploadedFile(
+      new FileValidationPipe({
+        allowedMimeTypes: ['application/gzip', 'application/x-gzip'],
+        allowUndefinedMimeType: true, // for `.enc` streams
+        maxSizeBytes: 1024 * 1024 * 1024, // 1GB limit for validation
+      }),
+    ) file: MulterFile,
+  ) {
     if (!file) throw new Error('No file uploaded');
 
     const result = await this.backupService.validateBackup(file.path);
@@ -168,7 +183,15 @@ export class BackupController {
     }),
     IdempotencyInterceptor,
   )
-  async importBackup(@UploadedFile() file: MulterFile) {
+  async importBackup(
+    @UploadedFile(
+      new FileValidationPipe({
+        allowedMimeTypes: ['application/gzip', 'application/x-gzip'],
+        allowUndefinedMimeType: true, // for `.enc` streams
+        maxSizeBytes: 5 * 1024 * 1024 * 1024, // 5GB limit
+      }),
+    ) file: MulterFile,
+  ) {
     if (!file) throw new Error('No file uploaded');
     // We pass the temp path and original name (stripped of prefix)
     const originalName = file.originalname;

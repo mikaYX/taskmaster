@@ -41,6 +41,7 @@ import { RequirePermission } from '../auth/decorators/require-permission.decorat
 import { Permission } from '../auth/permissions.enum';
 import { EmailService } from '../email';
 import { LdapService } from '../auth/ldap.service';
+import { FileValidationPipe } from '../common/pipes/file-validation.pipe';
 
 /**
  * Settings Controller.
@@ -466,7 +467,12 @@ export class SettingsController {
   @RequirePermission(Permission.SETTINGS_WRITE)
   @UseInterceptors(FileInterceptor('file'))
   uploadLogo(
-    @UploadedFile()
+    @UploadedFile(
+      new FileValidationPipe({
+        allowedMimeTypes: ['image/png', 'image/jpeg', 'image/webp', 'image/x-icon'],
+        maxSizeBytes: 5 * 1024 * 1024,
+      }),
+    )
     file: {
       mimetype: string;
       originalname: string;
@@ -485,7 +491,12 @@ export class SettingsController {
   @RequirePermission(Permission.SETTINGS_WRITE)
   @UseInterceptors(FileInterceptor('file'))
   uploadFavicon(
-    @UploadedFile()
+    @UploadedFile(
+      new FileValidationPipe({
+        allowedMimeTypes: ['image/png', 'image/jpeg', 'image/webp', 'image/x-icon'],
+        maxSizeBytes: 5 * 1024 * 1024,
+      }),
+    )
     file: {
       mimetype: string;
       originalname: string;
@@ -528,21 +539,6 @@ export class SettingsController {
   ) {
     if (!file) {
       throw new BadRequestException('No file uploaded');
-    }
-
-    // Validate mime type
-    const allowedMimeTypes = [
-      'image/png',
-      'image/jpeg',
-      'image/webp',
-      'image/x-icon',
-      'image/svg+xml',
-    ];
-
-    if (!allowedMimeTypes.includes(file.mimetype)) {
-      throw new BadRequestException(
-        `Invalid file type. Allowed: ${allowedMimeTypes.join(', ')}`,
-      );
     }
 
     // Save file (simple local storage)

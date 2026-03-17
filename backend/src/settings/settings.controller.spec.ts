@@ -3,6 +3,7 @@ import { SettingsController } from './settings.controller';
 import { SettingsService } from './settings.service';
 import { LdapService } from '../auth/ldap.service';
 import { EmailService } from '../email/email.service';
+import { JwtAuthGuard, RolesGuard } from '../auth';
 
 describe('SettingsController', () => {
   let controller: SettingsController;
@@ -31,7 +32,12 @@ describe('SettingsController', () => {
         { provide: EmailService, useValue: mockEmailService },
         { provide: LdapService, useValue: mockLdapService },
       ],
-    }).compile();
+    })
+      .overrideGuard(JwtAuthGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(RolesGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get<SettingsController>(SettingsController);
     settingsService = module.get(SettingsService);
@@ -314,7 +320,9 @@ describe('SettingsController', () => {
     });
 
     afterEach(() => {
-      cryptoSpy.mockRestore();
+      if (cryptoSpy) {
+        cryptoSpy.mockRestore();
+      }
     });
 
     it('should return success if cert is valid (no metadata)', async () => {
