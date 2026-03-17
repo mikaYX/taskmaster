@@ -1,4 +1,4 @@
-import { ForbiddenException } from '@nestjs/common';
+import { ForbiddenException, BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ClsService } from 'nestjs-cls';
 import { CompositeAuthGuard } from './composite-auth.guard';
@@ -93,12 +93,23 @@ describe('CompositeAuthGuard — tenant isolation', () => {
     expect(mockCls.set).toHaveBeenCalledWith('selectedSiteId', 999);
   });
 
-  it('should allow API_KEY to access any site via X-Site-Id', async () => {
+  it('should REJECT API_KEY without X-Site-Id header', async () => {
     const ctx = createMockContext(
       { id: 'apikey:1', role: 'API_KEY' },
-      { 'x-site-id': '999' },
     );
+    await expect(guard.canActivate(ctx as any)).rejects.toThrow(
+      ForbiddenException,
+    );
+  });
+
+  it('should allow API_KEY with valid X-Site-Id and inject tenant scope', async () => {
+    const user = { id: 'apikey:1', role: 'API_KEY' };
+    const ctx = createMockContext(user, { 'x-site-id': '42' });
+
     await expect(guard.canActivate(ctx as any)).resolves.toBe(true);
+    expect(mockCls.set).toHaveBeenCalledWith('selectedSiteId', 42);
+    // Verify sites were injected for buildSiteFilter()
+    expect((user as any).sites).toEqual([{ siteId: 42, isDefault: true }]);
   });
 
   it('should reject invalid X-Site-Id (non-numeric)', async () => {
@@ -107,7 +118,7 @@ describe('CompositeAuthGuard — tenant isolation', () => {
       { 'x-site-id': 'abc' },
     );
     await expect(guard.canActivate(ctx as any)).rejects.toThrow(
-      ForbiddenException,
+      BadRequestException,
     );
   });
 
@@ -117,7 +128,7 @@ describe('CompositeAuthGuard — tenant isolation', () => {
       { 'x-site-id': '-1' },
     );
     await expect(guard.canActivate(ctx as any)).rejects.toThrow(
-      ForbiddenException,
+      BadRequestException,
     );
   });
 
@@ -127,7 +138,7 @@ describe('CompositeAuthGuard — tenant isolation', () => {
       { 'x-site-id': '0' },
     );
     await expect(guard.canActivate(ctx as any)).rejects.toThrow(
-      ForbiddenException,
+      BadRequestException,
     );
   });
 
@@ -147,7 +158,7 @@ describe('CompositeAuthGuard — tenant isolation', () => {
 
   it('should NOT load site assignments for API_KEY users', async () => {
     const user = { id: 'apikey:1', role: 'API_KEY' };
-    const ctx = createMockContext(user);
+    const ctx = createMockContext(user, { 'x-site-id': '1' });
 
     await guard.canActivate(ctx as any);
 
