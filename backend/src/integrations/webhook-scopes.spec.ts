@@ -1,4 +1,4 @@
-import { ForbiddenException, BadRequestException } from '@nestjs/common';
+import { ForbiddenException, BadRequestException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { Reflector } from '@nestjs/core';
 import { ScopesGuard } from '../auth/guards/scopes.guard';
@@ -102,9 +102,9 @@ describe('ScopesGuard', () => {
   });
 });
 
-// ─── IntegrationsService Scope Validation Tests ─────────────────────
+// ─── IntegrationsService Scope + Tenant Validation Tests ────────────
 
-describe('IntegrationsService — scope validation', () => {
+describe('IntegrationsService — scope & tenant validation', () => {
   let service: IntegrationsService;
 
   const mockTasksService = {
@@ -117,11 +117,19 @@ describe('IntegrationsService — scope validation', () => {
   };
 
   const mockPrisma = {
-    client: {},
+    client: {
+      task: {
+        findFirst: jest.fn(),
+      },
+    },
+    buildSiteFilter: jest.fn().mockReturnValue({ siteId: 1 }),
   };
 
   beforeEach(async () => {
     jest.clearAllMocks();
+    // Default: task belongs to tenant (findFirst returns the task)
+    mockPrisma.client.task.findFirst.mockResolvedValue({ id: 1 });
+    mockPrisma.buildSiteFilter.mockReturnValue({ siteId: 1 });
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -134,6 +142,8 @@ describe('IntegrationsService — scope validation', () => {
 
     service = module.get<IntegrationsService>(IntegrationsService);
   });
+
+  // ── Scope validation ────────────────────────────────────────────
 
   it('should reject CREATE_TASK for API key without task:create scope', async () => {
     const user = { role: 'API_KEY', permissions: [Permission.TASK_UPDATE] };
@@ -221,4 +231,79 @@ describe('IntegrationsService — scope validation', () => {
     const result = await service.processIncomingWebhook(dto as any, jwtUser);
     expect(result.success).toBe(true);
   });
+
+  // ── Tenant isolation ────────────────────────────────────────────
+
+  it('should reject COMPLETE_TASK if task does not belong to caller tenant', async () => {
+    // Task not found in tenant scope → findFirst returns null
+    mockPrisma.client.task.findFirst.mockResolvedValue(null);
+
+    const user = {
+      role: 'API_KEY',
+      sub: 1,
+      username: 'api-test',
+      permissions: [Permission.TASK_UPDATE],
+    };
+    const dto = {
+      source: 'test',
+      action: 'COMPLETE_TASK',
+      payload: { taskId: 999, instanceDate: '2024-01-01' },
+    };
+
+    await expect(
+      service.processIncomingWebhook(dto as any, user),
+    ).rejects.toThrow(NotFoundException);
+  });
+
+  it('should reject DELETE_TASK if task does not belong to caller tenant', async () => {
+    mockPrisma.client.task.findFirst.mockResolvedValue(null);
+
+    const user = {
+      role: 'API_KEY',
+      sub: 1,
+      permissions: [Permission.TASK_DELETE],
+    };
+    const dto = {
+      source: 'test',
+      action: 'DELETE_TASK',
+      payload: { taskId: 999 },
+    };
+
+    await expect(
+      service.processIncomingWebhook(dto as any, user),
+    ).rejects.toThrow(NotFoundException);
+  });
+
+  it('should verify tenant filter is applied when checking task ownership', async () => {
+    mockPrisma.buildSiteFilter.mockReturnValue({ siteId: 42 });
+    mockPrisma.client.task.findFirst.mockResolvedValue({ id: 1 });
+    mockStatusService.upsert.mockResolvedValue({ id: 1 });
+
+    const user = {
+      role: 'API_KEY',
+      sub: 1,
+      username: 'api-test',
+      permissions: [Permission.TASK_UPDATE],
+    };
+    const dto = {
+      source: 'test',
+      action: 'COMPLETE_TASK',
+      payload: { taskId: 1, instanceDate: '2024-01-01' },
+    };
+
+    await service.processIncomingWebhook(dto as any, user);
+
+    // Verify buildSiteFilter was called and its result was spread into findFirst
+    expect(mockPrisma.buildSiteFilter).toHaveBeenCalled();
+    expect(mockPrisma.client.task.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          id: 1,
+          siteId: 42,
+          deletedAt: null,
+        }),
+      }),
+    );
+  });
 });
+

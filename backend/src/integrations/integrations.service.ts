@@ -3,6 +3,7 @@ import {
   Logger,
   BadRequestException,
   ForbiddenException,
+  NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { TasksService } from '../tasks/tasks.service';
@@ -83,6 +84,36 @@ export class IntegrationsService {
     }
   }
 
+  /**
+   * Verify that a task belongs to the caller's tenant before operating on it.
+   * Uses PrismaService.buildSiteFilter() which resolves the caller's accessible sites
+   * from the CLS context (set by CompositeAuthGuard).
+   *
+   * This prevents cross-tenant access: an API key for site A cannot modify
+   * tasks belonging to site B, even if the API key has the correct scopes.
+   */
+  private async assertTaskBelongsToTenant(taskId: number): Promise<void> {
+    const siteFilter = this.prisma.buildSiteFilter();
+
+    const task = await this.prisma.client.task.findFirst({
+      where: {
+        id: taskId,
+        deletedAt: null,
+        ...siteFilter,
+      },
+      select: { id: true },
+    });
+
+    if (!task) {
+      this.logger.warn(
+        `[SECURITY] Tenant isolation — task ${taskId} not found or not accessible for current tenant`,
+      );
+      throw new NotFoundException(
+        `Task ${taskId} not found or not accessible from your tenant.`,
+      );
+    }
+  }
+
   private async completeTaskAction(dto: IncomingWebhookDto, user: any) {
     if (!dto.payload?.taskId || !dto.payload?.instanceDate) {
       throw new BadRequestException(
@@ -91,6 +122,9 @@ export class IntegrationsService {
     }
 
     const { taskId, instanceDate, comment } = dto.payload;
+
+    // Tenant isolation: verify the task belongs to the caller's tenant
+    await this.assertTaskBelongsToTenant(taskId);
 
     try {
       const result = await this.statusService.upsert(
@@ -143,6 +177,9 @@ export class IntegrationsService {
 
     const { taskId } = dto.payload;
 
+    // Tenant isolation: verify the task belongs to the caller's tenant
+    await this.assertTaskBelongsToTenant(taskId);
+
     try {
       await this.tasksService.softDelete(taskId, user?.sub || 0);
       this.logger.log(
@@ -155,4 +192,5 @@ export class IntegrationsService {
     }
   }
 }
+
 
