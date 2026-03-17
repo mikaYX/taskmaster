@@ -4,6 +4,8 @@ import { TasksService } from './tasks.service';
 
 import { ProcedureStorageService } from './procedure-storage.service';
 import { ConfigService } from '@nestjs/config';
+import { CompositeAuthGuard } from '../auth/guards/composite-auth.guard';
+import { RolesGuard } from '../auth';
 
 describe('Procedure Upload Concurrency', () => {
   let controller: TasksController;
@@ -28,7 +30,12 @@ describe('Procedure Upload Concurrency', () => {
         { provide: ConfigService, useValue: { get: jest.fn() } },
         { provide: 'REDIS_CLIENT', useValue: {} },
       ],
-    }).compile();
+    })
+      .overrideGuard(CompositeAuthGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(RolesGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get<TasksController>(TasksController);
     tasksService = module.get(TasksService);

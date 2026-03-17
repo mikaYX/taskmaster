@@ -46,6 +46,7 @@ import type { JwtPayload } from '../auth/strategies/jwt.strategy';
 import { IdempotencyInterceptor } from '../common/interceptors/idempotency.interceptor';
 import { UseInterceptors } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { FileValidationPipe } from '../common/pipes/file-validation.pipe';
 
 /**
  * Tasks Controller.
@@ -205,27 +206,19 @@ export class TasksController {
       limits: {
         fileSize: Number(process.env.PROCEDURE_MAX_SIZE_MB || 5) * 1024 * 1024,
       },
-      fileFilter: (req, file, cb) => {
-        const allowedMimeTypes = [
-          'application/pdf',
-          'application/msword',
-          'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        ];
-        if (!allowedMimeTypes.includes(file.mimetype)) {
-          return cb(
-            new BadRequestException(
-              'Only PDF, DOC, and DOCX files are allowed',
-            ),
-            false,
-          );
-        }
-        cb(null, true);
-      },
     }),
   )
   async uploadProcedure(
     @Param('id', ParseIntPipe) id: number,
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFile(
+      new FileValidationPipe({
+        allowedMimeTypes: [
+          'application/pdf',
+          'application/msword',
+          'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        ],
+      }),
+    ) file: Express.Multer.File,
     @CurrentUser() user: JwtPayload,
   ) {
     if (!file) throw new BadRequestException('File is required');

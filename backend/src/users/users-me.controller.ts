@@ -12,6 +12,7 @@ import {
   HttpException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { FileValidationPipe } from '../common/pipes/file-validation.pipe';
 import { memoryStorage } from 'multer';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -41,22 +42,16 @@ export class UsersMeController {
   @HttpCode(HttpStatus.OK)
   async uploadAvatar(
     @CurrentUser() user: JwtPayload,
-    @UploadedFile() file: Express.Multer.File | undefined,
+    @UploadedFile(
+      new FileValidationPipe({
+        allowedMimeTypes: ['image/png', 'image/jpeg', 'image/webp'],
+        maxSizeBytes: 5 * 1024 * 1024,
+      }),
+    ) file: Express.Multer.File | undefined,
   ) {
     try {
       if (!file?.buffer) {
         throw new BadRequestException('No file uploaded');
-      }
-      const allowedMimeTypes = [
-        'image/png',
-        'image/jpeg',
-        'image/webp',
-        'image/svg+xml',
-      ];
-      if (!allowedMimeTypes.includes(file.mimetype)) {
-        throw new BadRequestException(
-          `Invalid file type. Allowed: ${allowedMimeTypes.join(', ')}`,
-        );
       }
       const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
       if (!fs.existsSync(uploadsDir)) {

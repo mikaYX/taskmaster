@@ -3,6 +3,8 @@ import { ConfigService } from '@nestjs/config';
 import { TasksController } from './tasks.controller';
 import { ProcedureStorageService } from './procedure-storage.service';
 import { TasksService } from './tasks.service';
+import { CompositeAuthGuard } from '../auth/guards/composite-auth.guard';
+import { RolesGuard } from '../auth';
 
 describe('TasksController', () => {
   let controller: TasksController;
@@ -22,7 +24,12 @@ describe('TasksController', () => {
         { provide: ConfigService, useValue: { get: jest.fn() } },
         { provide: 'REDIS_CLIENT', useValue: {} },
       ],
-    }).compile();
+    })
+      .overrideGuard(CompositeAuthGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(RolesGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get<TasksController>(TasksController);
     tasksService = module.get(TasksService);

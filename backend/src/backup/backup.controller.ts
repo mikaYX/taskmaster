@@ -90,6 +90,7 @@ export class BackupController {
       new FileValidationPipe({
         allowedMimeTypes: ['application/gzip', 'application/x-gzip'],
         allowUndefinedMimeType: true, // for `.enc` streams
+        allowedExtensionsWhenUndefined: ['.enc'],
         maxSizeBytes: 5 * 1024 * 1024 * 1024, // 5GB
       }),
     ) file: MulterFile,
@@ -132,6 +133,7 @@ export class BackupController {
       new FileValidationPipe({
         allowedMimeTypes: ['application/gzip', 'application/x-gzip'],
         allowUndefinedMimeType: true, // for `.enc` streams
+        allowedExtensionsWhenUndefined: ['.enc'],
         maxSizeBytes: 1024 * 1024 * 1024, // 1GB limit for validation
       }),
     ) file: MulterFile,
@@ -188,6 +190,7 @@ export class BackupController {
       new FileValidationPipe({
         allowedMimeTypes: ['application/gzip', 'application/x-gzip'],
         allowUndefinedMimeType: true, // for `.enc` streams
+        allowedExtensionsWhenUndefined: ['.enc'],
         maxSizeBytes: 5 * 1024 * 1024 * 1024, // 5GB limit
       }),
     ) file: MulterFile,

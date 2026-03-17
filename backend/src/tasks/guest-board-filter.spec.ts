@@ -3,6 +3,8 @@ import { TasksController } from './tasks.controller';
 import { TasksService } from './tasks.service';
 import { ProcedureStorageService } from './procedure-storage.service';
 import { ConfigService } from '@nestjs/config';
+import { CompositeAuthGuard } from '../auth/guards/composite-auth.guard';
+import { RolesGuard } from '../auth';
 
 describe('TasksController Guest Board Filter', () => {
     let controller: TasksController;
@@ -31,7 +33,12 @@ describe('TasksController Guest Board Filter', () => {
                     useValue: {},
                 },
             ],
-        }).compile();
+        })
+            .overrideGuard(CompositeAuthGuard)
+            .useValue({ canActivate: () => true })
+            .overrideGuard(RolesGuard)
+            .useValue({ canActivate: () => true })
+            .compile();
 
         controller = module.get<TasksController>(TasksController);
         service = module.get<TasksService>(TasksService);

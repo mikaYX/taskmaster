@@ -1,0 +1,1851 @@
+npm warn config ignoring workspace config at C:\Users\Mika\Desktop\Projets\taskmaster\backend/.npmrc
+(node:12324) Warning: `--localstorage-file` was provided without a valid path
+(Use `node --trace-warnings ...` to show where the warning was created)
+FAIL src/auth/auth.controller.oidc.spec.ts
+  ÔùÅ AuthController OIDC endpoints ÔÇ║ GET /auth/external/login/:provider ÔÇ║ should redirect to OIDC login URL using BACKEND_URL
+
+    Nest can't resolve dependencies of the AuthRateLimitGuard (?, Reflector). Please make sure that the argument "REDIS_CLIENT" at index [0] is available in the RootTestModule module.
+
+    Potential solutions:
+    - Is RootTestModule a valid NestJS module?
+    - If "REDIS_CLIENT" is a provider, is it part of the current RootTestModule?
+    - If "REDIS_CLIENT" is exported from a separate @Module, is that module imported within RootTestModule?
+      @Module({
+        imports: [ /* the Module containing "REDIS_CLIENT" */ ]
+      })
+
+    For more common dependency resolution issues, see: https://docs.nestjs.com/faq/common-errors
+
+      24 |     };
+      25 |
+    > 26 |     const module: TestingModule = await Test.createTestingModule({
+         |                                   ^
+      27 |       controllers: [AuthController],
+      28 |       providers: [
+      29 |         { provide: AuthService, useValue: mockAuthService },
+
+      at TestingInjector.lookupComponentInParentModules (../../node_modules/@nestjs/core/injector/injector.js:290:19)
+      at TestingInjector.resolveComponentWrapper (../../node_modules/@nestjs/testing/testing-injector.js:19:45)
+      at resolveParam (../../node_modules/@nestjs/core/injector/injector.js:140:38)
+          at async Promise.all (index 0)
+      at TestingInjector.resolveConstructorParams (../../node_modules/@nestjs/core/injector/injector.js:169:27)
+      at TestingInjector.loadInstance (../../node_modules/@nestjs/core/injector/injector.js:75:13)
+      at TestingInjector.loadInjectable (../../node_modules/@nestjs/core/injector/injector.js:99:9)
+      at ../../node_modules/@nestjs/core/injector/instance-loader.js:80:13
+          at async Promise.all (index 0)
+      at TestingInstanceLoader.createInstancesOfInjectables (../../node_modules/@nestjs/core/injector/instance-loader.js:79:9)
+      at ../../node_modules/@nestjs/core/injector/instance-loader.js:41:13
+          at async Promise.all (index 1)
+      at TestingInstanceLoader.createInstances (../../node_modules/@nestjs/core/injector/instance-loader.js:39:9)
+      at TestingInstanceLoader.createInstancesOfDependencies (../../node_modules/@nestjs/core/injector/instance-loader.js:22:13)
+      at TestingInstanceLoader.createInstancesOfDependencies (../../node_modules/@nestjs/testing/testing-instance-loader.js:9:9)
+      at TestingModuleBuilder.createInstancesOfDependencies (../../node_modules/@nestjs/testing/testing-module.builder.js:118:9)
+      at TestingModuleBuilder.compile (../../node_modules/@nestjs/testing/testing-module.builder.js:74:9)
+      at Object.<anonymous> (auth/auth.controller.oidc.spec.ts:26:35)
+
+  ÔùÅ AuthController OIDC endpoints ÔÇ║ GET /auth/external/callback/:provider ÔÇ║ should redirect to frontend with sso_ticket using BACKEND_URL
+
+    Nest can't resolve dependencies of the AuthRateLimitGuard (?, Reflector). Please make sure that the argument "REDIS_CLIENT" at index [0] is available in the RootTestModule module.
+
+    Potential solutions:
+    - Is RootTestModule a valid NestJS module?
+    - If "REDIS_CLIENT" is a provider, is it part of the current RootTestModule?
+    - If "REDIS_CLIENT" is exported from a separate @Module, is that module imported within RootTestModule?
+      @Module({
+        imports: [ /* the Module containing "REDIS_CLIENT" */ ]
+      })
+
+    For more common dependency resolution issues, see: https://docs.nestjs.com/faq/common-errors
+
+      24 |     };
+      25 |
+    > 26 |     const module: TestingModule = await Test.createTestingModule({
+         |                                   ^
+      27 |       controllers: [AuthController],
+      28 |       providers: [
+      29 |         { provide: AuthService, useValue: mockAuthService },
+
+      at TestingInjector.lookupComponentInParentModules (../../node_modules/@nestjs/core/injector/injector.js:290:19)
+      at TestingInjector.resolveComponentWrapper (../../node_modules/@nestjs/testing/testing-injector.js:19:45)
+      at resolveParam (../../node_modules/@nestjs/core/injector/injector.js:140:38)
+          at async Promise.all (index 0)
+      at TestingInjector.resolveConstructorParams (../../node_modules/@nestjs/core/injector/injector.js:169:27)
+      at TestingInjector.loadInstance (../../node_modules/@nestjs/core/injector/injector.js:75:13)
+      at TestingInjector.loadInjectable (../../node_modules/@nestjs/core/injector/injector.js:99:9)
+      at ../../node_modules/@nestjs/core/injector/instance-loader.js:80:13
+          at async Promise.all (index 0)
+      at TestingInstanceLoader.createInstancesOfInjectables (../../node_modules/@nestjs/core/injector/instance-loader.js:79:9)
+      at ../../node_modules/@nestjs/core/injector/instance-loader.js:41:13
+          at async Promise.all (index 1)
+      at TestingInstanceLoader.createInstances (../../node_modules/@nestjs/core/injector/instance-loader.js:39:9)
+      at TestingInstanceLoader.createInstancesOfDependencies (../../node_modules/@nestjs/core/injector/instance-loader.js:22:13)
+      at TestingInstanceLoader.createInstancesOfDependencies (../../node_modules/@nestjs/testing/testing-instance-loader.js:9:9)
+      at TestingModuleBuilder.createInstancesOfDependencies (../../node_modules/@nestjs/testing/testing-module.builder.js:118:9)
+      at TestingModuleBuilder.compile (../../node_modules/@nestjs/testing/testing-module.builder.js:74:9)
+      at Object.<anonymous> (auth/auth.controller.oidc.spec.ts:26:35)
+
+  ÔùÅ AuthController OIDC endpoints ÔÇ║ POST /auth/external/exchange ÔÇ║ should exchange sso_ticket for tokens
+
+    Nest can't resolve dependencies of the AuthRateLimitGuard (?, Reflector). Please make sure that the argument "REDIS_CLIENT" at index [0] is available in the RootTestModule module.
+
+    Potential solutions:
+    - Is RootTestModule a valid NestJS module?
+    - If "REDIS_CLIENT" is a provider, is it part of the current RootTestModule?
+    - If "REDIS_CLIENT" is exported from a separate @Module, is that module imported within RootTestModule?
+      @Module({
+        imports: [ /* the Module containing "REDIS_CLIENT" */ ]
+      })
+
+    For more common dependency resolution issues, see: https://docs.nestjs.com/faq/common-errors
+
+      24 |     };
+      25 |
+    > 26 |     const module: TestingModule = await Test.createTestingModule({
+         |                                   ^
+      27 |       controllers: [AuthController],
+      28 |       providers: [
+      29 |         { provide: AuthService, useValue: mockAuthService },
+
+      at TestingInjector.lookupComponentInParentModules (../../node_modules/@nestjs/core/injector/injector.js:290:19)
+      at TestingInjector.resolveComponentWrapper (../../node_modules/@nestjs/testing/testing-injector.js:19:45)
+      at resolveParam (../../node_modules/@nestjs/core/injector/injector.js:140:38)
+          at async Promise.all (index 0)
+      at TestingInjector.resolveConstructorParams (../../node_modules/@nestjs/core/injector/injector.js:169:27)
+      at TestingInjector.loadInstance (../../node_modules/@nestjs/core/injector/injector.js:75:13)
+      at TestingInjector.loadInjectable (../../node_modules/@nestjs/core/injector/injector.js:99:9)
+      at ../../node_modules/@nestjs/core/injector/instance-loader.js:80:13
+          at async Promise.all (index 0)
+      at TestingInstanceLoader.createInstancesOfInjectables (../../node_modules/@nestjs/core/injector/instance-loader.js:79:9)
+      at ../../node_modules/@nestjs/core/injector/instance-loader.js:41:13
+          at async Promise.all (index 1)
+      at TestingInstanceLoader.createInstances (../../node_modules/@nestjs/core/injector/instance-loader.js:39:9)
+      at TestingInstanceLoader.createInstancesOfDependencies (../../node_modules/@nestjs/core/injector/instance-loader.js:22:13)
+      at TestingInstanceLoader.createInstancesOfDependencies (../../node_modules/@nestjs/testing/testing-instance-loader.js:9:9)
+      at TestingModuleBuilder.createInstancesOfDependencies (../../node_modules/@nestjs/testing/testing-module.builder.js:118:9)
+      at TestingModuleBuilder.compile (../../node_modules/@nestjs/testing/testing-module.builder.js:74:9)
+      at Object.<anonymous> (auth/auth.controller.oidc.spec.ts:26:35)
+
+  ÔùÅ AuthController OIDC endpoints ÔÇ║ POST /auth/external/exchange ÔÇ║ should throw if ticket is invalid
+
+    Nest can't resolve dependencies of the AuthRateLimitGuard (?, Reflector). Please make sure that the argument "REDIS_CLIENT" at index [0] is available in the RootTestModule module.
+
+    Potential solutions:
+    - Is RootTestModule a valid NestJS module?
+    - If "REDIS_CLIENT" is a provider, is it part of the current RootTestModule?
+    - If "REDIS_CLIENT" is exported from a separate @Module, is that module imported within RootTestModule?
+      @Module({
+        imports: [ /* the Module containing "REDIS_CLIENT" */ ]
+      })
+
+    For more common dependency resolution issues, see: https://docs.nestjs.com/faq/common-errors
+
+      24 |     };
+      25 |
+    > 26 |     const module: TestingModule = await Test.createTestingModule({
+         |                                   ^
+      27 |       controllers: [AuthController],
+      28 |       providers: [
+      29 |         { provide: AuthService, useValue: mockAuthService },
+
+      at TestingInjector.lookupComponentInParentModules (../../node_modules/@nestjs/core/injector/injector.js:290:19)
+      at TestingInjector.resolveComponentWrapper (../../node_modules/@nestjs/testing/testing-injector.js:19:45)
+      at resolveParam (../../node_modules/@nestjs/core/injector/injector.js:140:38)
+          at async Promise.all (index 0)
+      at TestingInjector.resolveConstructorParams (../../node_modules/@nestjs/core/injector/injector.js:169:27)
+      at TestingInjector.loadInstance (../../node_modules/@nestjs/core/injector/injector.js:75:13)
+      at TestingInjector.loadInjectable (../../node_modules/@nestjs/core/injector/injector.js:99:9)
+      at ../../node_modules/@nestjs/core/injector/instance-loader.js:80:13
+          at async Promise.all (index 0)
+      at TestingInstanceLoader.createInstancesOfInjectables (../../node_modules/@nestjs/core/injector/instance-loader.js:79:9)
+      at ../../node_modules/@nestjs/core/injector/instance-loader.js:41:13
+          at async Promise.all (index 1)
+      at TestingInstanceLoader.createInstances (../../node_modules/@nestjs/core/injector/instance-loader.js:39:9)
+      at TestingInstanceLoader.createInstancesOfDependencies (../../node_modules/@nestjs/core/injector/instance-loader.js:22:13)
+      at TestingInstanceLoader.createInstancesOfDependencies (../../node_modules/@nestjs/testing/testing-instance-loader.js:9:9)
+      at TestingModuleBuilder.createInstancesOfDependencies (../../node_modules/@nestjs/testing/testing-module.builder.js:118:9)
+      at TestingModuleBuilder.compile (../../node_modules/@nestjs/testing/testing-module.builder.js:74:9)
+      at Object.<anonymous> (auth/auth.controller.oidc.spec.ts:26:35)
+
+(node:17360) Warning: `--localstorage-file` was provided without a valid path
+(Use `node --trace-warnings ...` to show where the warning was created)
+FAIL src/auth/passkeys.controller.spec.ts
+  ÔùÅ PasskeysController ÔÇ║ should verify authentication
+
+    TypeError: Cannot read properties of undefined (reading 'cookie')
+
+      78 |     const result = await this.authService.completeLogin(user.id);
+      79 |     const { refreshToken, ...rest } = result;
+    > 80 |     res.cookie(AuthController.REFRESH_COOKIE_NAME, refreshToken, {
+         |         ^
+      81 |       httpOnly: true,
+      82 |       secure: this.isProd,
+      83 |       sameSite: 'strict',
+
+      at PasskeysController.verifyAuthentication (auth/passkeys.controller.ts:80:9)
+      at Object.<anonymous> (auth/passkeys.controller.spec.ts:119:20)
+
+FAIL src/auth/auth.service.spec.ts
+  ÔùÅ AuthService ÔÇ║ getSession with passkey enforcement logic ÔÇ║ should return passkeyPolicy=optional for USER by default when passkeys are enabled
+
+    expect(received).toMatchObject(expected)
+
+    - Expected  - 1
+    + Received  + 1
+
+      Object {
+    -   "passkeyPolicy": "optional",
+    +   "passkeyPolicy": "disabled",
+      }
+
+      372 |
+      373 |       const session = await service.getSession(1);
+    > 374 |       expect(session).toMatchObject({
+          |                       ^
+      375 |         passkeyPolicy: 'optional',
+      376 |       });
+      377 |     });
+
+      at Object.<anonymous> (auth/auth.service.spec.ts:374:23)
+
+  ÔùÅ AuthService ÔÇ║ getSession with passkey enforcement logic ÔÇ║ should return passkeyPolicy=required for USER if security.enforcement.passkeys.user is true
+
+    expect(received).toMatchObject(expected)
+
+    - Expected  - 1
+    + Received  + 1
+
+      Object {
+    -   "passkeyPolicy": "required",
+    +   "passkeyPolicy": "disabled",
+      }
+
+      386 |
+      387 |       const session = await service.getSession(1);
+    > 388 |       expect(session).toMatchObject({
+          |                       ^
+      389 |         passkeyPolicy: 'required',
+      390 |       });
+      391 |     });
+
+      at Object.<anonymous> (auth/auth.service.spec.ts:388:23)
+
+  ÔùÅ AuthService ÔÇ║ getSession with passkey enforcement logic ÔÇ║ should resolve anti-conflict for MANAGER: required if userReq is true
+
+    expect(received).toMatchObject(expected)
+
+    - Expected  - 1
+    + Received  + 1
+
+      Object {
+    -   "passkeyPolicy": "required",
+    +   "passkeyPolicy": "disabled",
+      }
+
+      403 |
+      404 |       const session = await service.getSession(1);
+    > 405 |       expect(session).toMatchObject({
+          |                       ^
+      406 |         passkeyPolicy: 'required',
+      407 |       });
+      408 |     });
+
+      at Object.<anonymous> (auth/auth.service.spec.ts:405:23)
+
+  ÔùÅ AuthService ÔÇ║ getSession with passkey enforcement logic ÔÇ║ should resolve anti-conflict for GUEST: required if guestReq is true
+
+    expect(received).toMatchObject(expected)
+
+    - Expected  - 1
+    + Received  + 1
+
+      Object {
+    -   "passkeyPolicy": "required",
+    +   "passkeyPolicy": "disabled",
+      }
+
+      420 |
+      421 |       const session = await service.getSession(1);
+    > 422 |       expect(session).toMatchObject({
+          |                       ^
+      423 |         passkeyPolicy: 'required',
+      424 |       });
+      425 |     });
+
+      at Object.<anonymous> (auth/auth.service.spec.ts:422:23)
+
+  ÔùÅ AuthService ÔÇ║ getSession with passkey enforcement logic ÔÇ║ should return hasPasskey=true if user has configured passkeys
+
+    expect(received).toMatchObject(expected)
+
+    - Expected  - 1
+    + Received  + 1
+
+      Object {
+        "hasPasskey": true,
+    -   "passkeyPolicy": "optional",
+    +   "passkeyPolicy": "disabled",
+      }
+
+      432 |
+      433 |       const session = await service.getSession(1);
+    > 434 |       expect(session).toMatchObject({
+          |                       ^
+      435 |         hasPasskey: true,
+      436 |         passkeyPolicy: 'optional', // default from mockSettings
+      437 |       });
+
+      at Object.<anonymous> (auth/auth.service.spec.ts:434:23)
+
+(node:9540) Warning: `--localstorage-file` was provided without a valid path
+(Use `node --trace-warnings ...` to show where the warning was created)
+FAIL src/notifications/notifications.controller.spec.ts
+  ÔùÅ NotificationsController ÔÇ║ should be defined
+
+    Nest can't resolve dependencies of the JwtAuthGuard (ClsService, Reflector, ?). Please make sure that the argument AuthService at index [2] is available in the RootTestModule module.
+
+    Potential solutions:
+    - Is RootTestModule a valid NestJS module?
+    - If AuthService is a provider, is it part of the current RootTestModule?
+    - If AuthService is exported from a separate @Module, is that module imported within RootTestModule?
+      @Module({
+        imports: [ /* the Module containing AuthService */ ]
+      })
+
+    For more common dependency resolution issues, see: https://docs.nestjs.com/faq/common-errors
+
+       7 |
+       8 |   beforeEach(async () => {
+    >  9 |     const module: TestingModule = await Test.createTestingModule({
+         |                                   ^
+      10 |       controllers: [NotificationsController],
+      11 |       providers: [{ provide: NotificationsService, useValue: {} }],
+      12 |     }).compile();
+
+      at TestingInjector.lookupComponentInParentModules (../../node_modules/@nestjs/core/injector/injector.js:290:19)
+      at TestingInjector.resolveComponentWrapper (../../node_modules/@nestjs/testing/testing-injector.js:19:45)
+      at resolveParam (../../node_modules/@nestjs/core/injector/injector.js:140:38)
+          at async Promise.all (index 2)
+      at TestingInjector.resolveConstructorParams (../../node_modules/@nestjs/core/injector/injector.js:169:27)
+      at TestingInjector.loadInstance (../../node_modules/@nestjs/core/injector/injector.js:75:13)
+      at TestingInjector.loadInjectable (../../node_modules/@nestjs/core/injector/injector.js:99:9)
+      at ../../node_modules/@nestjs/core/injector/instance-loader.js:80:13
+          at async Promise.all (index 0)
+      at TestingInstanceLoader.createInstancesOfInjectables (../../node_modules/@nestjs/core/injector/instance-loader.js:79:9)
+      at ../../node_modules/@nestjs/core/injector/instance-loader.js:41:13
+          at async Promise.all (index 1)
+      at TestingInstanceLoader.createInstances (../../node_modules/@nestjs/core/injector/instance-loader.js:39:9)
+      at TestingInstanceLoader.createInstancesOfDependencies (../../node_modules/@nestjs/core/injector/instance-loader.js:22:13)
+      at TestingInstanceLoader.createInstancesOfDependencies (../../node_modules/@nestjs/testing/testing-instance-loader.js:9:9)
+      at TestingModuleBuilder.createInstancesOfDependencies (../../node_modules/@nestjs/testing/testing-module.builder.js:118:9)
+      at TestingModuleBuilder.compile (../../node_modules/@nestjs/testing/testing-module.builder.js:74:9)
+      at Object.<anonymous> (notifications/notifications.controller.spec.ts:9:35)
+
+(node:6460) Warning: `--localstorage-file` was provided without a valid path
+(Use `node --trace-warnings ...` to show where the warning was created)
+FAIL src/modules/delegations/delegations.controller.spec.ts
+  ÔùÅ DelegationsController ÔÇ║ should be defined
+
+    Nest can't resolve dependencies of the JwtAuthGuard (ClsService, Reflector, ?). Please make sure that the argument AuthService at index [2] is available in the RootTestModule module.
+
+    Potential solutions:
+    - Is RootTestModule a valid NestJS module?
+    - If AuthService is a provider, is it part of the current RootTestModule?
+    - If AuthService is exported from a separate @Module, is that module imported within RootTestModule?
+      @Module({
+        imports: [ /* the Module containing AuthService */ ]
+      })
+
+    For more common dependency resolution issues, see: https://docs.nestjs.com/faq/common-errors
+
+      18 |
+      19 |   beforeEach(async () => {
+    > 20 |     const module: TestingModule = await Test.createTestingModule({
+         |                                   ^
+      21 |       controllers: [DelegationsController],
+      22 |       providers: [
+      23 |         { provide: DelegationsService, useValue: mockDelegationsService },
+
+      at TestingInjector.lookupComponentInParentModules (../../node_modules/@nestjs/core/injector/injector.js:290:19)
+      at TestingInjector.resolveComponentWrapper (../../node_modules/@nestjs/testing/testing-injector.js:19:45)
+      at resolveParam (../../node_modules/@nestjs/core/injector/injector.js:140:38)
+          at async Promise.all (index 2)
+      at TestingInjector.resolveConstructorParams (../../node_modules/@nestjs/core/injector/injector.js:169:27)
+      at TestingInjector.loadInstance (../../node_modules/@nestjs/core/injector/injector.js:75:13)
+      at TestingInjector.loadInjectable (../../node_modules/@nestjs/core/injector/injector.js:99:9)
+      at ../../node_modules/@nestjs/core/injector/instance-loader.js:80:13
+          at async Promise.all (index 0)
+      at TestingInstanceLoader.createInstancesOfInjectables (../../node_modules/@nestjs/core/injector/instance-loader.js:79:9)
+      at ../../node_modules/@nestjs/core/injector/instance-loader.js:41:13
+          at async Promise.all (index 1)
+      at TestingInstanceLoader.createInstances (../../node_modules/@nestjs/core/injector/instance-loader.js:39:9)
+      at TestingInstanceLoader.createInstancesOfDependencies (../../node_modules/@nestjs/core/injector/instance-loader.js:22:13)
+      at TestingInstanceLoader.createInstancesOfDependencies (../../node_modules/@nestjs/testing/testing-instance-loader.js:9:9)
+      at TestingModuleBuilder.createInstancesOfDependencies (../../node_modules/@nestjs/testing/testing-module.builder.js:118:9)
+      at TestingModuleBuilder.compile (../../node_modules/@nestjs/testing/testing-module.builder.js:74:9)
+      at Object.<anonymous> (modules/delegations/delegations.controller.spec.ts:20:35)
+
+  ÔùÅ DelegationsController ÔÇ║ create ÔÇ║ should call DelegationsService.create and return result
+
+    Nest can't resolve dependencies of the JwtAuthGuard (ClsService, Reflector, ?). Please make sure that the argument AuthService at index [2] is available in the RootTestModule module.
+
+    Potential solutions:
+    - Is RootTestModule a valid NestJS module?
+    - If AuthService is a provider, is it part of the current RootTestModule?
+    - If AuthService is exported from a separate @Module, is that module imported within RootTestModule?
+      @Module({
+        imports: [ /* the Module containing AuthService */ ]
+      })
+
+    For more common dependency resolution issues, see: https://docs.nestjs.com/faq/common-errors
+
+      18 |
+      19 |   beforeEach(async () => {
+    > 20 |     const module: TestingModule = await Test.createTestingModule({
+         |                                   ^
+      21 |       controllers: [DelegationsController],
+      22 |       providers: [
+      23 |         { provide: DelegationsService, useValue: mockDelegationsService },
+
+      at TestingInjector.lookupComponentInParentModules (../../node_modules/@nestjs/core/injector/injector.js:290:19)
+      at TestingInjector.resolveComponentWrapper (../../node_modules/@nestjs/testing/testing-injector.js:19:45)
+      at resolveParam (../../node_modules/@nestjs/core/injector/injector.js:140:38)
+          at async Promise.all (index 2)
+      at TestingInjector.resolveConstructorParams (../../node_modules/@nestjs/core/injector/injector.js:169:27)
+      at TestingInjector.loadInstance (../../node_modules/@nestjs/core/injector/injector.js:75:13)
+      at TestingInjector.loadInjectable (../../node_modules/@nestjs/core/injector/injector.js:99:9)
+      at ../../node_modules/@nestjs/core/injector/instance-loader.js:80:13
+          at async Promise.all (index 0)
+      at TestingInstanceLoader.createInstancesOfInjectables (../../node_modules/@nestjs/core/injector/instance-loader.js:79:9)
+      at ../../node_modules/@nestjs/core/injector/instance-loader.js:41:13
+          at async Promise.all (index 1)
+      at TestingInstanceLoader.createInstances (../../node_modules/@nestjs/core/injector/instance-loader.js:39:9)
+      at TestingInstanceLoader.createInstancesOfDependencies (../../node_modules/@nestjs/core/injector/instance-loader.js:22:13)
+      at TestingInstanceLoader.createInstancesOfDependencies (../../node_modules/@nestjs/testing/testing-instance-loader.js:9:9)
+      at TestingModuleBuilder.createInstancesOfDependencies (../../node_modules/@nestjs/testing/testing-module.builder.js:118:9)
+      at TestingModuleBuilder.compile (../../node_modules/@nestjs/testing/testing-module.builder.js:74:9)
+      at Object.<anonymous> (modules/delegations/delegations.controller.spec.ts:20:35)
+
+  ÔùÅ DelegationsController ÔÇ║ findAll ÔÇ║ should call DelegationsService.findAll and return result
+
+    Nest can't resolve dependencies of the JwtAuthGuard (ClsService, Reflector, ?). Please make sure that the argument AuthService at index [2] is available in the RootTestModule module.
+
+    Potential solutions:
+    - Is RootTestModule a valid NestJS module?
+    - If AuthService is a provider, is it part of the current RootTestModule?
+    - If AuthService is exported from a separate @Module, is that module imported within RootTestModule?
+      @Module({
+        imports: [ /* the Module containing AuthService */ ]
+      })
+
+    For more common dependency resolution issues, see: https://docs.nestjs.com/faq/common-errors
+
+      18 |
+      19 |   beforeEach(async () => {
+    > 20 |     const module: TestingModule = await Test.createTestingModule({
+         |                                   ^
+      21 |       controllers: [DelegationsController],
+      22 |       providers: [
+      23 |         { provide: DelegationsService, useValue: mockDelegationsService },
+
+      at TestingInjector.lookupComponentInParentModules (../../node_modules/@nestjs/core/injector/injector.js:290:19)
+      at TestingInjector.resolveComponentWrapper (../../node_modules/@nestjs/testing/testing-injector.js:19:45)
+      at resolveParam (../../node_modules/@nestjs/core/injector/injector.js:140:38)
+          at async Promise.all (index 2)
+      at TestingInjector.resolveConstructorParams (../../node_modules/@nestjs/core/injector/injector.js:169:27)
+      at TestingInjector.loadInstance (../../node_modules/@nestjs/core/injector/injector.js:75:13)
+      at TestingInjector.loadInjectable (../../node_modules/@nestjs/core/injector/injector.js:99:9)
+      at ../../node_modules/@nestjs/core/injector/instance-loader.js:80:13
+          at async Promise.all (index 0)
+      at TestingInstanceLoader.createInstancesOfInjectables (../../node_modules/@nestjs/core/injector/instance-loader.js:79:9)
+      at ../../node_modules/@nestjs/core/injector/instance-loader.js:41:13
+          at async Promise.all (index 1)
+      at TestingInstanceLoader.createInstances (../../node_modules/@nestjs/core/injector/instance-loader.js:39:9)
+      at TestingInstanceLoader.createInstancesOfDependencies (../../node_modules/@nestjs/core/injector/instance-loader.js:22:13)
+      at TestingInstanceLoader.createInstancesOfDependencies (../../node_modules/@nestjs/testing/testing-instance-loader.js:9:9)
+      at TestingModuleBuilder.createInstancesOfDependencies (../../node_modules/@nestjs/testing/testing-module.builder.js:118:9)
+      at TestingModuleBuilder.compile (../../node_modules/@nestjs/testing/testing-module.builder.js:74:9)
+      at Object.<anonymous> (modules/delegations/delegations.controller.spec.ts:20:35)
+
+  ÔùÅ DelegationsController ÔÇ║ update ÔÇ║ should call DelegationsService.update and return result
+
+    Nest can't resolve dependencies of the JwtAuthGuard (ClsService, Reflector, ?). Please make sure that the argument AuthService at index [2] is available in the RootTestModule module.
+
+    Potential solutions:
+    - Is RootTestModule a valid NestJS module?
+    - If AuthService is a provider, is it part of the current RootTestModule?
+    - If AuthService is exported from a separate @Module, is that module imported within RootTestModule?
+      @Module({
+        imports: [ /* the Module containing AuthService */ ]
+      })
+
+    For more common dependency resolution issues, see: https://docs.nestjs.com/faq/common-errors
+
+      18 |
+      19 |   beforeEach(async () => {
+    > 20 |     const module: TestingModule = await Test.createTestingModule({
+         |                                   ^
+      21 |       controllers: [DelegationsController],
+      22 |       providers: [
+      23 |         { provide: DelegationsService, useValue: mockDelegationsService },
+
+      at TestingInjector.lookupComponentInParentModules (../../node_modules/@nestjs/core/injector/injector.js:290:19)
+      at TestingInjector.resolveComponentWrapper (../../node_modules/@nestjs/testing/testing-injector.js:19:45)
+      at resolveParam (../../node_modules/@nestjs/core/injector/injector.js:140:38)
+          at async Promise.all (index 2)
+      at TestingInjector.resolveConstructorParams (../../node_modules/@nestjs/core/injector/injector.js:169:27)
+      at TestingInjector.loadInstance (../../node_modules/@nestjs/core/injector/injector.js:75:13)
+      at TestingInjector.loadInjectable (../../node_modules/@nestjs/core/injector/injector.js:99:9)
+      at ../../node_modules/@nestjs/core/injector/instance-loader.js:80:13
+          at async Promise.all (index 0)
+      at TestingInstanceLoader.createInstancesOfInjectables (../../node_modules/@nestjs/core/injector/instance-loader.js:79:9)
+      at ../../node_modules/@nestjs/core/injector/instance-loader.js:41:13
+          at async Promise.all (index 1)
+      at TestingInstanceLoader.createInstances (../../node_modules/@nestjs/core/injector/instance-loader.js:39:9)
+      at TestingInstanceLoader.createInstancesOfDependencies (../../node_modules/@nestjs/core/injector/instance-loader.js:22:13)
+      at TestingInstanceLoader.createInstancesOfDependencies (../../node_modules/@nestjs/testing/testing-instance-loader.js:9:9)
+      at TestingModuleBuilder.createInstancesOfDependencies (../../node_modules/@nestjs/testing/testing-module.builder.js:118:9)
+      at TestingModuleBuilder.compile (../../node_modules/@nestjs/testing/testing-module.builder.js:74:9)
+      at Object.<anonymous> (modules/delegations/delegations.controller.spec.ts:20:35)
+
+  ÔùÅ DelegationsController ÔÇ║ remove ÔÇ║ should call DelegationsService.remove and return result
+
+    Nest can't resolve dependencies of the JwtAuthGuard (ClsService, Reflector, ?). Please make sure that the argument AuthService at index [2] is available in the RootTestModule module.
+
+    Potential solutions:
+    - Is RootTestModule a valid NestJS module?
+    - If AuthService is a provider, is it part of the current RootTestModule?
+    - If AuthService is exported from a separate @Module, is that module imported within RootTestModule?
+      @Module({
+        imports: [ /* the Module containing AuthService */ ]
+      })
+
+    For more common dependency resolution issues, see: https://docs.nestjs.com/faq/common-errors
+
+      18 |
+      19 |   beforeEach(async () => {
+    > 20 |     const module: TestingModule = await Test.createTestingModule({
+         |                                   ^
+      21 |       controllers: [DelegationsController],
+      22 |       providers: [
+      23 |         { provide: DelegationsService, useValue: mockDelegationsService },
+
+      at TestingInjector.lookupComponentInParentModules (../../node_modules/@nestjs/core/injector/injector.js:290:19)
+      at TestingInjector.resolveComponentWrapper (../../node_modules/@nestjs/testing/testing-injector.js:19:45)
+      at resolveParam (../../node_modules/@nestjs/core/injector/injector.js:140:38)
+          at async Promise.all (index 2)
+      at TestingInjector.resolveConstructorParams (../../node_modules/@nestjs/core/injector/injector.js:169:27)
+      at TestingInjector.loadInstance (../../node_modules/@nestjs/core/injector/injector.js:75:13)
+      at TestingInjector.loadInjectable (../../node_modules/@nestjs/core/injector/injector.js:99:9)
+      at ../../node_modules/@nestjs/core/injector/instance-loader.js:80:13
+          at async Promise.all (index 0)
+      at TestingInstanceLoader.createInstancesOfInjectables (../../node_modules/@nestjs/core/injector/instance-loader.js:79:9)
+      at ../../node_modules/@nestjs/core/injector/instance-loader.js:41:13
+          at async Promise.all (index 1)
+      at TestingInstanceLoader.createInstances (../../node_modules/@nestjs/core/injector/instance-loader.js:39:9)
+      at TestingInstanceLoader.createInstancesOfDependencies (../../node_modules/@nestjs/core/injector/instance-loader.js:22:13)
+      at TestingInstanceLoader.createInstancesOfDependencies (../../node_modules/@nestjs/testing/testing-instance-loader.js:9:9)
+      at TestingModuleBuilder.createInstancesOfDependencies (../../node_modules/@nestjs/testing/testing-module.builder.js:118:9)
+      at TestingModuleBuilder.compile (../../node_modules/@nestjs/testing/testing-module.builder.js:74:9)
+      at Object.<anonymous> (modules/delegations/delegations.controller.spec.ts:20:35)
+
+FAIL src/schedules/schedule.rbac.spec.ts
+  ÔùÅ Schedule RBAC ÔÇö RolesGuard permission enforcement ÔÇ║ USER role ÔÇ║ GET /schedules ÔÇö SCHEDULE_READ ÔÇö allowed
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      36 |         Permission.SCHEDULE_READ,
+      37 |       ]);
+    > 38 |       expect(guard.canActivate(makeContext(Role.USER))).toBe(true);
+         |                                                         ^
+      39 |     });
+      40 |
+      41 |     it('POST /schedules ÔÇö SCHEDULE_CREATE ÔÇö denied', () => {
+
+      at Object.<anonymous> (schedules/schedule.rbac.spec.ts:38:57)
+
+  ÔùÅ Schedule RBAC ÔÇö RolesGuard permission enforcement ÔÇ║ ADMIN role ÔÇ║ GET /schedules ÔÇö SCHEDULE_READ ÔÇö allowed
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      66 |         Permission.SCHEDULE_READ,
+      67 |       ]);
+    > 68 |       expect(guard.canActivate(makeContext(Role.SUPER_ADMIN))).toBe(true);
+         |                                                                ^
+      69 |     });
+      70 |
+      71 |     it('POST /schedules ÔÇö SCHEDULE_CREATE ÔÇö allowed', () => {
+
+      at Object.<anonymous> (schedules/schedule.rbac.spec.ts:68:64)
+
+  ÔùÅ Schedule RBAC ÔÇö RolesGuard permission enforcement ÔÇ║ ADMIN role ÔÇ║ POST /schedules ÔÇö SCHEDULE_CREATE ÔÇö allowed
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      73 |         Permission.SCHEDULE_CREATE,
+      74 |       ]);
+    > 75 |       expect(guard.canActivate(makeContext(Role.SUPER_ADMIN))).toBe(true);
+         |                                                                ^
+      76 |     });
+      77 |
+      78 |     it('PUT /schedules/:id ÔÇö SCHEDULE_UPDATE ÔÇö allowed', () => {
+
+      at Object.<anonymous> (schedules/schedule.rbac.spec.ts:75:64)
+
+  ÔùÅ Schedule RBAC ÔÇö RolesGuard permission enforcement ÔÇ║ ADMIN role ÔÇ║ PUT /schedules/:id ÔÇö SCHEDULE_UPDATE ÔÇö allowed
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      80 |         Permission.SCHEDULE_UPDATE,
+      81 |       ]);
+    > 82 |       expect(guard.canActivate(makeContext(Role.SUPER_ADMIN))).toBe(true);
+         |                                                                ^
+      83 |     });
+      84 |
+      85 |     it('DELETE /schedules/:id ÔÇö SCHEDULE_DELETE ÔÇö allowed', () => {
+
+      at Object.<anonymous> (schedules/schedule.rbac.spec.ts:82:64)
+
+  ÔùÅ Schedule RBAC ÔÇö RolesGuard permission enforcement ÔÇ║ ADMIN role ÔÇ║ DELETE /schedules/:id ÔÇö SCHEDULE_DELETE ÔÇö allowed
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      87 |         Permission.SCHEDULE_DELETE,
+      88 |       ]);
+    > 89 |       expect(guard.canActivate(makeContext(Role.SUPER_ADMIN))).toBe(true);
+         |                                                                ^
+      90 |     });
+      91 |   });
+      92 | });
+
+      at Object.<anonymous> (schedules/schedule.rbac.spec.ts:89:64)
+
+FAIL src/groups/groups.service.spec.ts
+  ÔùÅ Point 92 ÔÇö GroupsService soft-delete ÔÇ║ create() ÔÇ║ doit autoriser la cr├®ation d'un groupe avec le nom d'un groupe soft-deleted
+
+    TypeError: Cannot read properties of undefined (reading 'findUnique')
+
+      84 |       const defaultId = this.prisma.getDefaultSiteId();
+      85 |       if (defaultId != null) {
+    > 86 |         const siteExists = await this.prisma.client.site.findUnique({
+         |                                                          ^
+      87 |           where: { id: defaultId },
+      88 |         });
+      89 |         if (siteExists) {
+
+      at GroupsService.create (groups/groups.service.ts:86:58)
+      at Object.<anonymous> (groups/groups.service.spec.ts:183:36)
+
+(node:3668) Warning: `--localstorage-file` was provided without a valid path
+(Use `node --trace-warnings ...` to show where the warning was created)
+FAIL src/tasks/tasks.controller.spec.ts (5.033 s)
+  ÔùÅ TasksController ÔÇ║ run ÔÇ║ should call service run and return DRY_RUN contract for V1
+
+    Nest can't resolve dependencies of the CompositeAuthGuard (ClsService, ?). Please make sure that the argument PrismaService at index [1] is available in the RootTestModule module.
+
+    Potential solutions:
+    - Is RootTestModule a valid NestJS module?
+    - If PrismaService is a provider, is it part of the current RootTestModule?
+    - If PrismaService is exported from a separate @Module, is that module imported within RootTestModule?
+      @Module({
+        imports: [ /* the Module containing PrismaService */ ]
+      })
+
+    For more common dependency resolution issues, see: https://docs.nestjs.com/faq/common-errors
+
+      15 |     const mockDelegationsService = {};
+      16 |
+    > 17 |     const module: TestingModule = await Test.createTestingModule({
+         |                                   ^
+      18 |       controllers: [TasksController],
+      19 |       providers: [
+      20 |         { provide: TasksService, useValue: mockTasksService },
+
+      at TestingInjector.lookupComponentInParentModules (../../node_modules/@nestjs/core/injector/injector.js:290:19)
+      at TestingInjector.resolveComponentWrapper (../../node_modules/@nestjs/testing/testing-injector.js:19:45)
+      at resolveParam (../../node_modules/@nestjs/core/injector/injector.js:140:38)
+          at async Promise.all (index 1)
+      at TestingInjector.resolveConstructorParams (../../node_modules/@nestjs/core/injector/injector.js:169:27)
+      at TestingInjector.loadInstance (../../node_modules/@nestjs/core/injector/injector.js:75:13)
+      at TestingInjector.loadInjectable (../../node_modules/@nestjs/core/injector/injector.js:99:9)
+      at ../../node_modules/@nestjs/core/injector/instance-loader.js:80:13
+          at async Promise.all (index 0)
+      at TestingInstanceLoader.createInstancesOfInjectables (../../node_modules/@nestjs/core/injector/instance-loader.js:79:9)
+      at ../../node_modules/@nestjs/core/injector/instance-loader.js:41:13
+          at async Promise.all (index 1)
+      at TestingInstanceLoader.createInstances (../../node_modules/@nestjs/core/injector/instance-loader.js:39:9)
+      at TestingInstanceLoader.createInstancesOfDependencies (../../node_modules/@nestjs/core/injector/instance-loader.js:22:13)
+      at TestingInstanceLoader.createInstancesOfDependencies (../../node_modules/@nestjs/testing/testing-instance-loader.js:9:9)
+      at TestingModuleBuilder.createInstancesOfDependencies (../../node_modules/@nestjs/testing/testing-module.builder.js:118:9)
+      at TestingModuleBuilder.compile (../../node_modules/@nestjs/testing/testing-module.builder.js:74:9)
+      at Object.<anonymous> (tasks/tasks.controller.spec.ts:17:35)
+
+(node:6952) Warning: `--localstorage-file` was provided without a valid path
+(Use `node --trace-warnings ...` to show where the warning was created)
+FAIL src/tasks/guest-board-filter.spec.ts (5.16 s)
+  ÔùÅ TasksController Guest Board Filter ÔÇ║ should explicitly force status RUNNING and ignore filtering parameters when role is GUEST
+
+    Nest can't resolve dependencies of the CompositeAuthGuard (ClsService, ?). Please make sure that the argument PrismaService at index [1] is available in the RootTestModule module.
+
+    Potential solutions:
+    - Is RootTestModule a valid NestJS module?
+    - If PrismaService is a provider, is it part of the current RootTestModule?
+    - If PrismaService is exported from a separate @Module, is that module imported within RootTestModule?
+      @Module({
+        imports: [ /* the Module containing PrismaService */ ]
+      })
+
+    For more common dependency resolution issues, see: https://docs.nestjs.com/faq/common-errors
+
+      10 |
+      11 |     beforeEach(async () => {
+    > 12 |         const module: TestingModule = await Test.createTestingModule({
+         |                                       ^
+      13 |             controllers: [TasksController],
+      14 |             providers: [
+      15 |                 {
+
+      at TestingInjector.lookupComponentInParentModules (../../node_modules/@nestjs/core/injector/injector.js:290:19)
+      at TestingInjector.resolveComponentWrapper (../../node_modules/@nestjs/testing/testing-injector.js:19:45)
+      at resolveParam (../../node_modules/@nestjs/core/injector/injector.js:140:38)
+          at async Promise.all (index 1)
+      at TestingInjector.resolveConstructorParams (../../node_modules/@nestjs/core/injector/injector.js:169:27)
+      at TestingInjector.loadInstance (../../node_modules/@nestjs/core/injector/injector.js:75:13)
+      at TestingInjector.loadInjectable (../../node_modules/@nestjs/core/injector/injector.js:99:9)
+      at ../../node_modules/@nestjs/core/injector/instance-loader.js:80:13
+          at async Promise.all (index 0)
+      at TestingInstanceLoader.createInstancesOfInjectables (../../node_modules/@nestjs/core/injector/instance-loader.js:79:9)
+      at ../../node_modules/@nestjs/core/injector/instance-loader.js:41:13
+          at async Promise.all (index 1)
+      at TestingInstanceLoader.createInstances (../../node_modules/@nestjs/core/injector/instance-loader.js:39:9)
+      at TestingInstanceLoader.createInstancesOfDependencies (../../node_modules/@nestjs/core/injector/instance-loader.js:22:13)
+      at TestingInstanceLoader.createInstancesOfDependencies (../../node_modules/@nestjs/testing/testing-instance-loader.js:9:9)
+      at TestingModuleBuilder.createInstancesOfDependencies (../../node_modules/@nestjs/testing/testing-module.builder.js:118:9)
+      at TestingModuleBuilder.compile (../../node_modules/@nestjs/testing/testing-module.builder.js:74:9)
+      at Object.<anonymous> (tasks/guest-board-filter.spec.ts:12:39)
+
+  ÔùÅ TasksController Guest Board Filter ÔÇ║ should pass parameters normally when role is NOT GUEST
+
+    Nest can't resolve dependencies of the CompositeAuthGuard (ClsService, ?). Please make sure that the argument PrismaService at index [1] is available in the RootTestModule module.
+
+    Potential solutions:
+    - Is RootTestModule a valid NestJS module?
+    - If PrismaService is a provider, is it part of the current RootTestModule?
+    - If PrismaService is exported from a separate @Module, is that module imported within RootTestModule?
+      @Module({
+        imports: [ /* the Module containing PrismaService */ ]
+      })
+
+    For more common dependency resolution issues, see: https://docs.nestjs.com/faq/common-errors
+
+      10 |
+      11 |     beforeEach(async () => {
+    > 12 |         const module: TestingModule = await Test.createTestingModule({
+         |                                       ^
+      13 |             controllers: [TasksController],
+      14 |             providers: [
+      15 |                 {
+
+      at TestingInjector.lookupComponentInParentModules (../../node_modules/@nestjs/core/injector/injector.js:290:19)
+      at TestingInjector.resolveComponentWrapper (../../node_modules/@nestjs/testing/testing-injector.js:19:45)
+      at resolveParam (../../node_modules/@nestjs/core/injector/injector.js:140:38)
+          at async Promise.all (index 1)
+      at TestingInjector.resolveConstructorParams (../../node_modules/@nestjs/core/injector/injector.js:169:27)
+      at TestingInjector.loadInstance (../../node_modules/@nestjs/core/injector/injector.js:75:13)
+      at TestingInjector.loadInjectable (../../node_modules/@nestjs/core/injector/injector.js:99:9)
+      at ../../node_modules/@nestjs/core/injector/instance-loader.js:80:13
+          at async Promise.all (index 0)
+      at TestingInstanceLoader.createInstancesOfInjectables (../../node_modules/@nestjs/core/injector/instance-loader.js:79:9)
+      at ../../node_modules/@nestjs/core/injector/instance-loader.js:41:13
+          at async Promise.all (index 1)
+      at TestingInstanceLoader.createInstances (../../node_modules/@nestjs/core/injector/instance-loader.js:39:9)
+      at TestingInstanceLoader.createInstancesOfDependencies (../../node_modules/@nestjs/core/injector/instance-loader.js:22:13)
+      at TestingInstanceLoader.createInstancesOfDependencies (../../node_modules/@nestjs/testing/testing-instance-loader.js:9:9)
+      at TestingModuleBuilder.createInstancesOfDependencies (../../node_modules/@nestjs/testing/testing-module.builder.js:118:9)
+      at TestingModuleBuilder.compile (../../node_modules/@nestjs/testing/testing-module.builder.js:74:9)
+      at Object.<anonymous> (tasks/guest-board-filter.spec.ts:12:39)
+
+(node:13080) Warning: `--localstorage-file` was provided without a valid path
+(Use `node --trace-warnings ...` to show where the warning was created)
+FAIL src/tasks/upload-concurrency.spec.ts (5.242 s)
+  ÔùÅ Procedure Upload Concurrency ÔÇ║ Scenario: Double Upload Concurrency Simulation
+
+    Nest can't resolve dependencies of the CompositeAuthGuard (ClsService, ?). Please make sure that the argument PrismaService at index [1] is available in the RootTestModule module.
+
+    Potential solutions:
+    - Is RootTestModule a valid NestJS module?
+    - If PrismaService is a provider, is it part of the current RootTestModule?
+    - If PrismaService is exported from a separate @Module, is that module imported within RootTestModule?
+      @Module({
+        imports: [ /* the Module containing PrismaService */ ]
+      })
+
+    For more common dependency resolution issues, see: https://docs.nestjs.com/faq/common-errors
+
+      21 |     };
+      22 |
+    > 23 |     const module: TestingModule = await Test.createTestingModule({
+         |                                   ^
+      24 |       controllers: [TasksController],
+      25 |       providers: [
+      26 |         { provide: TasksService, useValue: mockTasksService },
+
+      at TestingInjector.lookupComponentInParentModules (../../node_modules/@nestjs/core/injector/injector.js:290:19)
+      at TestingInjector.resolveComponentWrapper (../../node_modules/@nestjs/testing/testing-injector.js:19:45)
+      at resolveParam (../../node_modules/@nestjs/core/injector/injector.js:140:38)
+          at async Promise.all (index 1)
+      at TestingInjector.resolveConstructorParams (../../node_modules/@nestjs/core/injector/injector.js:169:27)
+      at TestingInjector.loadInstance (../../node_modules/@nestjs/core/injector/injector.js:75:13)
+      at TestingInjector.loadInjectable (../../node_modules/@nestjs/core/injector/injector.js:99:9)
+      at ../../node_modules/@nestjs/core/injector/instance-loader.js:80:13
+          at async Promise.all (index 0)
+      at TestingInstanceLoader.createInstancesOfInjectables (../../node_modules/@nestjs/core/injector/instance-loader.js:79:9)
+      at ../../node_modules/@nestjs/core/injector/instance-loader.js:41:13
+          at async Promise.all (index 1)
+      at TestingInstanceLoader.createInstances (../../node_modules/@nestjs/core/injector/instance-loader.js:39:9)
+      at TestingInstanceLoader.createInstancesOfDependencies (../../node_modules/@nestjs/core/injector/instance-loader.js:22:13)
+      at TestingInstanceLoader.createInstancesOfDependencies (../../node_modules/@nestjs/testing/testing-instance-loader.js:9:9)
+      at TestingModuleBuilder.createInstancesOfDependencies (../../node_modules/@nestjs/testing/testing-module.builder.js:118:9)
+      at TestingModuleBuilder.compile (../../node_modules/@nestjs/testing/testing-module.builder.js:74:9)
+      at Object.<anonymous> (tasks/upload-concurrency.spec.ts:23:35)
+
+FAIL src/notifications/notifications.service.spec.ts
+  ÔùÅ NotificationsService ÔÇ║ should be defined
+
+    Nest can't resolve dependencies of the NotificationsService (PrismaService, EncryptionService, EmailService, SettingsService, ?). Please make sure that the argument PushService at index [4] is available in the RootTestModule module.
+
+    Potential solutions:
+    - Is RootTestModule a valid NestJS module?
+    - If PushService is a provider, is it part of the current RootTestModule?
+    - If PushService is exported from a separate @Module, is that module imported within RootTestModule?
+      @Module({
+        imports: [ /* the Module containing PushService */ ]
+      })
+
+    For more common dependency resolution issues, see: https://docs.nestjs.com/faq/common-errors
+
+      10 |
+      11 |   beforeEach(async () => {
+    > 12 |     const module: TestingModule = await Test.createTestingModule({
+         |                                   ^
+      13 |       providers: [
+      14 |         NotificationsService,
+      15 |         { provide: PrismaService, useValue: {} },
+
+      at TestingInjector.lookupComponentInParentModules (../../node_modules/@nestjs/core/injector/injector.js:290:19)
+      at TestingInjector.resolveComponentWrapper (../../node_modules/@nestjs/testing/testing-injector.js:19:45)
+      at resolveParam (../../node_modules/@nestjs/core/injector/injector.js:140:38)
+          at async Promise.all (index 4)
+      at TestingInjector.resolveConstructorParams (../../node_modules/@nestjs/core/injector/injector.js:169:27)
+      at TestingInjector.loadInstance (../../node_modules/@nestjs/core/injector/injector.js:75:13)
+      at TestingInjector.loadProvider (../../node_modules/@nestjs/core/injector/injector.js:103:9)
+      at ../../node_modules/@nestjs/core/injector/instance-loader.js:56:13
+          at async Promise.all (index 3)
+      at TestingInstanceLoader.createInstancesOfProviders (../../node_modules/@nestjs/core/injector/instance-loader.js:55:9)
+      at ../../node_modules/@nestjs/core/injector/instance-loader.js:40:13
+          at async Promise.all (index 1)
+      at TestingInstanceLoader.createInstances (../../node_modules/@nestjs/core/injector/instance-loader.js:39:9)
+      at TestingInstanceLoader.createInstancesOfDependencies (../../node_modules/@nestjs/core/injector/instance-loader.js:22:13)
+      at TestingInstanceLoader.createInstancesOfDependencies (../../node_modules/@nestjs/testing/testing-instance-loader.js:9:9)
+      at TestingModuleBuilder.createInstancesOfDependencies (../../node_modules/@nestjs/testing/testing-module.builder.js:118:9)
+      at TestingModuleBuilder.compile (../../node_modules/@nestjs/testing/testing-module.builder.js:74:9)
+      at Object.<anonymous> (notifications/notifications.service.spec.ts:12:35)
+
+PASS src/tasks/tasks.service.spec.ts
+PASS src/modules/delegations/delegation-scheduler.service.spec.ts
+PASS src/backup/backup-security.spec.ts
+PASS src/backup/backup-visibility.spec.ts
+PASS src/scheduler/pause-resume.spec.ts
+PASS src/scheduler/scheduler-consistency.spec.ts
+PASS src/modules/delegations/delegations.service.spec.ts
+PASS src/integrations/webhook-scopes.spec.ts
+PASS src/settings/settings.controller.spec.ts
+[Nest] 13080  - 17/03/2026 22:21:18   ERROR [EmailService] Circuit Breaker Open: Email sending fallback triggered.
+[Nest] 13080  - 17/03/2026 22:21:18   ERROR [EmailService] Circuit Breaker Open: Email sending fallback triggered.
+[Nest] 13080  - 17/03/2026 22:21:18   ERROR [EmailService] Circuit Breaker Open: Email sending fallback triggered.
+[Nest] 13080  - 17/03/2026 22:21:18   ERROR [EmailService] Circuit Breaker Open: Email sending fallback triggered.
+[Nest] 13080  - 17/03/2026 22:21:18   ERROR [EmailService] Circuit Breaker Open: Email sending fallback triggered.
+[Nest] 13080  - 17/03/2026 22:21:18   ERROR [EmailService] Circuit Breaker Open: Email sending fallback triggered.
+[Nest] 13080  - 17/03/2026 22:21:18   ERROR [EmailService] Circuit Breaker Open: Email sending fallback triggered.
+[Nest] 13080  - 17/03/2026 22:21:18   ERROR [EmailService] Circuit Breaker Open: Email sending fallback triggered.
+[Nest] 13080  - 17/03/2026 22:21:18   ERROR [EmailService] Circuit Breaker Open: Email sending fallback triggered.
+[Nest] 13080  - 17/03/2026 22:21:18   ERROR [EmailService] Circuit Breaker Open: Email sending fallback triggered.
+[Nest] 13080  - 17/03/2026 22:21:18   ERROR [EmailService] Circuit Breaker Open: Email sending fallback triggered.
+[Nest] 13080  - 17/03/2026 22:21:18   ERROR [EmailService] Circuit Breaker Open: Email sending fallback triggered.
+[Nest] 13080  - 17/03/2026 22:21:18   ERROR [EmailService] Circuit Breaker Open: Email sending fallback triggered.
+[Nest] 13080  - 17/03/2026 22:21:18   ERROR [EmailService] Circuit Breaker Open: Email sending fallback triggered.
+[Nest] 13080  - 17/03/2026 22:21:18   ERROR [EmailService] Circuit Breaker Open: Email sending fallback triggered.
+[Nest] 13080  - 17/03/2026 22:21:18   ERROR [EmailService] Circuit Breaker Open: Email sending fallback triggered.
+[Nest] 13080  - 17/03/2026 22:21:18   ERROR [EmailService] Circuit Breaker Open: Email sending fallback triggered.
+[Nest] 13080  - 17/03/2026 22:21:18   ERROR [EmailService] Circuit Breaker Open: Email sending fallback triggered.
+[Nest] 13080  - 17/03/2026 22:21:18   ERROR [EmailService] Circuit Breaker Open: Email sending fallback triggered.
+[Nest] 13080  - 17/03/2026 22:21:18   ERROR [EmailService] Circuit Breaker Open: Email sending fallback triggered.
+PASS src/email/email.breaker.spec.ts
+  ÔùÅ Console
+
+    console.log
+      Provider called 1 times
+
+      at Object.<anonymous> (email/email.breaker.spec.ts:90:13)
+
+PASS src/tasks/timezone-drift.spec.ts
+PASS src/setup/setup.security.spec.ts
+PASS src/tasks/instance.service.spec.ts
+PASS src/schedules/schedule.bench.spec.ts
+  ÔùÅ Console
+
+    console.log
+      Benchmark: 20 iterations ├ù 50 items
+
+      at Object.<anonymous> (schedules/schedule.bench.spec.ts:102:13)
+
+    console.log
+        p50: 0.19ms
+
+      at Object.<anonymous> (schedules/schedule.bench.spec.ts:103:13)
+
+    console.log
+        p95: 1.67ms
+
+      at Object.<anonymous> (schedules/schedule.bench.spec.ts:104:13)
+
+    console.log
+        max: 1.67ms
+
+      at Object.<anonymous> (schedules/schedule.bench.spec.ts:105:13)
+
+PASS src/tasks/update-task.spec.ts
+PASS src/tasks/recurrence-validation.spec.ts
+PASS src/tasks/tasks-rbac.spec.ts
+PASS src/tasks/instance.from-completion.spec.ts
+PASS src/auth/strategies/api-key.strategy.spec.ts
+PASS src/schedules/schedule.service.spec.ts
+[Nest] 6952  - 17/03/2026 22:21:19   ERROR [AzureAdService] [AZURE_AD_ERROR_MISSING_EMAIL] No email provided from Azure AD claims
+PASS src/auth/azure-ad.service.spec.ts
+PASS src/auth/ldap.service.spec.ts
+[Nest] 17360  - 17/03/2026 22:21:19   ERROR [OidcService] [OIDC_ERROR_MISSING_EMAIL] No email provided from OIDC IdP
+PASS src/auth/oidc.service.spec.ts
+PASS src/common/logger/logger.spec.ts
+PASS src/auth/guards/jwt-auth.guard.spec.ts
+PASS src/tasks/instance.v2.spec.ts
+[Nest] 6952  - 17/03/2026 22:21:19   ERROR [RecurrenceService] FROM_COMPLETION RRule parse failed: INVALID
+[Nest] 6952  - 17/03/2026 22:21:19   ERROR [RecurrenceService] Error: Unknown RRULE property 'INVALID'
+    at C:\Users\Mika\Desktop\Projets\taskmaster\node_modules\rrule\dist\es5\rrule.js:2234:23
+    at Array.forEach (<anonymous>)
+    at parseRrule (C:\Users\Mika\Desktop\Projets\taskmaster\node_modules\rrule\dist\es5\rrule.js:2191:11)
+    at parseLine (C:\Users\Mika\Desktop\Projets\taskmaster\node_modules\rrule\dist\es5\rrule.js:2174:16)
+    at Array.map (<anonymous>)
+    at RRule.parseString (C:\Users\Mika\Desktop\Projets\taskmaster\node_modules\rrule\dist\es5\rrule.js:2151:10)
+    at RecurrenceService.getNextFromCompletion (C:\Users\Mika\Desktop\Projets\taskmaster\backend\src\tasks\recurrence.service.ts:168:29)
+    at Object.<anonymous> (C:\Users\Mika\Desktop\Projets\taskmaster\backend\src\tasks\recurrence.from-completion.spec.ts:89:30)
+    at Promise.finally.completed (C:\Users\Mika\Desktop\Projets\taskmaster\node_modules\jest-circus\build\jestAdapterInit.js:1557:28)
+    at new Promise (<anonymous>)
+    at callAsyncCircusFn (C:\Users\Mika\Desktop\Projets\taskmaster\node_modules\jest-circus\build\jestAdapterInit.js:1497:10)
+    at _callCircusTest (C:\Users\Mika\Desktop\Projets\taskmaster\node_modules\jest-circus\build\jestAdapterInit.js:1007:40)
+    at processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at _runTest (C:\Users\Mika\Desktop\Projets\taskmaster\node_modules\jest-circus\build\jestAdapterInit.js:947:3)
+    at C:\Users\Mika\Desktop\Projets\taskmaster\node_modules\jest-circus\build\jestAdapterInit.js:849:7
+    at _runTestsForDescribeBlock (C:\Users\Mika\Desktop\Projets\taskmaster\node_modules\jest-circus\build\jestAdapterInit.js:862:11)
+    at _runTestsForDescribeBlock (C:\Users\Mika\Desktop\Projets\taskmaster\node_modules\jest-circus\build\jestAdapterInit.js:857:11)
+    at _runTestsForDescribeBlock (C:\Users\Mika\Desktop\Projets\taskmaster\node_modules\jest-circus\build\jestAdapterInit.js:857:11)
+    at run (C:\Users\Mika\Desktop\Projets\taskmaster\node_modules\jest-circus\build\jestAdapterInit.js:761:3)
+    at runAndTransformResultsToJestFormat (C:\Users\Mika\Desktop\Projets\taskmaster\node_modules\jest-circus\build\jestAdapterInit.js:1918:21)
+    at jestAdapter (C:\Users\Mika\Desktop\Projets\taskmaster\node_modules\jest-circus\build\runner.js:101:19)
+    at runTestInternal (C:\Users\Mika\Desktop\Projets\taskmaster\node_modules\jest-runner\build\testWorker.js:275:16)
+    at runTest (C:\Users\Mika\Desktop\Projets\taskmaster\node_modules\jest-runner\build\testWorker.js:343:7)
+    at Object.worker (C:\Users\Mika\Desktop\Projets\taskmaster\node_modules\jest-runner\build\testWorker.js:497:12)
+PASS src/tasks/recurrence.from-completion.spec.ts
+PASS src/audit/audit.service.spec.ts
+[Nest] 3668  - 17/03/2026 22:21:19   ERROR [SamlService] [SAML_ERROR] Validation error: Signature invalid
+[Nest] 3668  - 17/03/2026 22:21:19   ERROR [SamlService] [SAML_ERROR_MISSING_EMAIL] No email provided from SAML claims
+PASS src/auth/saml.service.spec.ts
+PASS src/tasks/recurrence.service.spec.ts
+PASS src/auth/guards/tenant-isolation.spec.ts
+[Nest] 9540  - 17/03/2026 22:21:20   ERROR [RefreshTokenService] [AUTH-AUDIT] SECURITY: Revoked token reuse detected! Family: family456 revoked.
+PASS src/tasks/recurrence.v2.spec.ts
+PASS src/auth/refresh-token.service.spec.ts
+PASS src/settings/settings.service.spec.ts
+PASS src/auth/guards/guest-readonly.spec.ts
+PASS src/auth/guards/auth-rate-limit.guard.spec.ts
+PASS src/scheduler/audit.scheduler.spec.ts
+PASS src/system/system.controller.spec.ts
+PASS src/tasks/validators/date-recurrence.validator.spec.ts
+PASS src/auth/guards/roles.guard.spec.ts
+PASS src/common/pipes/file-validation.pipe.spec.ts
+PASS src/system/version.service.spec.ts
+A worker process has failed to exit gracefully and has been force exited. This is likely caused by tests leaking due to improper teardown. Try running with --detectOpenHandles to find leaks. Active timers can also cause this, ensure that .unref() was called on them.
+
+Summary of all failing tests
+FAIL auth/auth.controller.oidc.spec.ts
+  ÔùÅ AuthController OIDC endpoints ÔÇ║ GET /auth/external/login/:provider ÔÇ║ should redirect to OIDC login URL using BACKEND_URL
+
+    Nest can't resolve dependencies of the AuthRateLimitGuard (?, Reflector). Please make sure that the argument "REDIS_CLIENT" at index [0] is available in the RootTestModule module.
+
+    Potential solutions:
+    - Is RootTestModule a valid NestJS module?
+    - If "REDIS_CLIENT" is a provider, is it part of the current RootTestModule?
+    - If "REDIS_CLIENT" is exported from a separate @Module, is that module imported within RootTestModule?
+      @Module({
+        imports: [ /* the Module containing "REDIS_CLIENT" */ ]
+      })
+
+    For more common dependency resolution issues, see: https://docs.nestjs.com/faq/common-errors
+
+      24 |     };
+      25 |
+    > 26 |     const module: TestingModule = await Test.createTestingModule({
+         |                                   ^
+      27 |       controllers: [AuthController],
+      28 |       providers: [
+      29 |         { provide: AuthService, useValue: mockAuthService },
+
+      at TestingInjector.lookupComponentInParentModules (../../node_modules/@nestjs/core/injector/injector.js:290:19)
+      at TestingInjector.resolveComponentWrapper (../../node_modules/@nestjs/testing/testing-injector.js:19:45)
+      at resolveParam (../../node_modules/@nestjs/core/injector/injector.js:140:38)
+          at async Promise.all (index 0)
+      at TestingInjector.resolveConstructorParams (../../node_modules/@nestjs/core/injector/injector.js:169:27)
+      at TestingInjector.loadInstance (../../node_modules/@nestjs/core/injector/injector.js:75:13)
+      at TestingInjector.loadInjectable (../../node_modules/@nestjs/core/injector/injector.js:99:9)
+      at ../../node_modules/@nestjs/core/injector/instance-loader.js:80:13
+          at async Promise.all (index 0)
+      at TestingInstanceLoader.createInstancesOfInjectables (../../node_modules/@nestjs/core/injector/instance-loader.js:79:9)
+      at ../../node_modules/@nestjs/core/injector/instance-loader.js:41:13
+          at async Promise.all (index 1)
+      at TestingInstanceLoader.createInstances (../../node_modules/@nestjs/core/injector/instance-loader.js:39:9)
+      at TestingInstanceLoader.createInstancesOfDependencies (../../node_modules/@nestjs/core/injector/instance-loader.js:22:13)
+      at TestingInstanceLoader.createInstancesOfDependencies (../../node_modules/@nestjs/testing/testing-instance-loader.js:9:9)
+      at TestingModuleBuilder.createInstancesOfDependencies (../../node_modules/@nestjs/testing/testing-module.builder.js:118:9)
+      at TestingModuleBuilder.compile (../../node_modules/@nestjs/testing/testing-module.builder.js:74:9)
+      at Object.<anonymous> (auth/auth.controller.oidc.spec.ts:26:35)
+
+  ÔùÅ AuthController OIDC endpoints ÔÇ║ GET /auth/external/callback/:provider ÔÇ║ should redirect to frontend with sso_ticket using BACKEND_URL
+
+    Nest can't resolve dependencies of the AuthRateLimitGuard (?, Reflector). Please make sure that the argument "REDIS_CLIENT" at index [0] is available in the RootTestModule module.
+
+    Potential solutions:
+    - Is RootTestModule a valid NestJS module?
+    - If "REDIS_CLIENT" is a provider, is it part of the current RootTestModule?
+    - If "REDIS_CLIENT" is exported from a separate @Module, is that module imported within RootTestModule?
+      @Module({
+        imports: [ /* the Module containing "REDIS_CLIENT" */ ]
+      })
+
+    For more common dependency resolution issues, see: https://docs.nestjs.com/faq/common-errors
+
+      24 |     };
+      25 |
+    > 26 |     const module: TestingModule = await Test.createTestingModule({
+         |                                   ^
+      27 |       controllers: [AuthController],
+      28 |       providers: [
+      29 |         { provide: AuthService, useValue: mockAuthService },
+
+      at TestingInjector.lookupComponentInParentModules (../../node_modules/@nestjs/core/injector/injector.js:290:19)
+      at TestingInjector.resolveComponentWrapper (../../node_modules/@nestjs/testing/testing-injector.js:19:45)
+      at resolveParam (../../node_modules/@nestjs/core/injector/injector.js:140:38)
+          at async Promise.all (index 0)
+      at TestingInjector.resolveConstructorParams (../../node_modules/@nestjs/core/injector/injector.js:169:27)
+      at TestingInjector.loadInstance (../../node_modules/@nestjs/core/injector/injector.js:75:13)
+      at TestingInjector.loadInjectable (../../node_modules/@nestjs/core/injector/injector.js:99:9)
+      at ../../node_modules/@nestjs/core/injector/instance-loader.js:80:13
+          at async Promise.all (index 0)
+      at TestingInstanceLoader.createInstancesOfInjectables (../../node_modules/@nestjs/core/injector/instance-loader.js:79:9)
+      at ../../node_modules/@nestjs/core/injector/instance-loader.js:41:13
+          at async Promise.all (index 1)
+      at TestingInstanceLoader.createInstances (../../node_modules/@nestjs/core/injector/instance-loader.js:39:9)
+      at TestingInstanceLoader.createInstancesOfDependencies (../../node_modules/@nestjs/core/injector/instance-loader.js:22:13)
+      at TestingInstanceLoader.createInstancesOfDependencies (../../node_modules/@nestjs/testing/testing-instance-loader.js:9:9)
+      at TestingModuleBuilder.createInstancesOfDependencies (../../node_modules/@nestjs/testing/testing-module.builder.js:118:9)
+      at TestingModuleBuilder.compile (../../node_modules/@nestjs/testing/testing-module.builder.js:74:9)
+      at Object.<anonymous> (auth/auth.controller.oidc.spec.ts:26:35)
+
+  ÔùÅ AuthController OIDC endpoints ÔÇ║ POST /auth/external/exchange ÔÇ║ should exchange sso_ticket for tokens
+
+    Nest can't resolve dependencies of the AuthRateLimitGuard (?, Reflector). Please make sure that the argument "REDIS_CLIENT" at index [0] is available in the RootTestModule module.
+
+    Potential solutions:
+    - Is RootTestModule a valid NestJS module?
+    - If "REDIS_CLIENT" is a provider, is it part of the current RootTestModule?
+    - If "REDIS_CLIENT" is exported from a separate @Module, is that module imported within RootTestModule?
+      @Module({
+        imports: [ /* the Module containing "REDIS_CLIENT" */ ]
+      })
+
+    For more common dependency resolution issues, see: https://docs.nestjs.com/faq/common-errors
+
+      24 |     };
+      25 |
+    > 26 |     const module: TestingModule = await Test.createTestingModule({
+         |                                   ^
+      27 |       controllers: [AuthController],
+      28 |       providers: [
+      29 |         { provide: AuthService, useValue: mockAuthService },
+
+      at TestingInjector.lookupComponentInParentModules (../../node_modules/@nestjs/core/injector/injector.js:290:19)
+      at TestingInjector.resolveComponentWrapper (../../node_modules/@nestjs/testing/testing-injector.js:19:45)
+      at resolveParam (../../node_modules/@nestjs/core/injector/injector.js:140:38)
+          at async Promise.all (index 0)
+      at TestingInjector.resolveConstructorParams (../../node_modules/@nestjs/core/injector/injector.js:169:27)
+      at TestingInjector.loadInstance (../../node_modules/@nestjs/core/injector/injector.js:75:13)
+      at TestingInjector.loadInjectable (../../node_modules/@nestjs/core/injector/injector.js:99:9)
+      at ../../node_modules/@nestjs/core/injector/instance-loader.js:80:13
+          at async Promise.all (index 0)
+      at TestingInstanceLoader.createInstancesOfInjectables (../../node_modules/@nestjs/core/injector/instance-loader.js:79:9)
+      at ../../node_modules/@nestjs/core/injector/instance-loader.js:41:13
+          at async Promise.all (index 1)
+      at TestingInstanceLoader.createInstances (../../node_modules/@nestjs/core/injector/instance-loader.js:39:9)
+      at TestingInstanceLoader.createInstancesOfDependencies (../../node_modules/@nestjs/core/injector/instance-loader.js:22:13)
+      at TestingInstanceLoader.createInstancesOfDependencies (../../node_modules/@nestjs/testing/testing-instance-loader.js:9:9)
+      at TestingModuleBuilder.createInstancesOfDependencies (../../node_modules/@nestjs/testing/testing-module.builder.js:118:9)
+      at TestingModuleBuilder.compile (../../node_modules/@nestjs/testing/testing-module.builder.js:74:9)
+      at Object.<anonymous> (auth/auth.controller.oidc.spec.ts:26:35)
+
+  ÔùÅ AuthController OIDC endpoints ÔÇ║ POST /auth/external/exchange ÔÇ║ should throw if ticket is invalid
+
+    Nest can't resolve dependencies of the AuthRateLimitGuard (?, Reflector). Please make sure that the argument "REDIS_CLIENT" at index [0] is available in the RootTestModule module.
+
+    Potential solutions:
+    - Is RootTestModule a valid NestJS module?
+    - If "REDIS_CLIENT" is a provider, is it part of the current RootTestModule?
+    - If "REDIS_CLIENT" is exported from a separate @Module, is that module imported within RootTestModule?
+      @Module({
+        imports: [ /* the Module containing "REDIS_CLIENT" */ ]
+      })
+
+    For more common dependency resolution issues, see: https://docs.nestjs.com/faq/common-errors
+
+      24 |     };
+      25 |
+    > 26 |     const module: TestingModule = await Test.createTestingModule({
+         |                                   ^
+      27 |       controllers: [AuthController],
+      28 |       providers: [
+      29 |         { provide: AuthService, useValue: mockAuthService },
+
+      at TestingInjector.lookupComponentInParentModules (../../node_modules/@nestjs/core/injector/injector.js:290:19)
+      at TestingInjector.resolveComponentWrapper (../../node_modules/@nestjs/testing/testing-injector.js:19:45)
+      at resolveParam (../../node_modules/@nestjs/core/injector/injector.js:140:38)
+          at async Promise.all (index 0)
+      at TestingInjector.resolveConstructorParams (../../node_modules/@nestjs/core/injector/injector.js:169:27)
+      at TestingInjector.loadInstance (../../node_modules/@nestjs/core/injector/injector.js:75:13)
+      at TestingInjector.loadInjectable (../../node_modules/@nestjs/core/injector/injector.js:99:9)
+      at ../../node_modules/@nestjs/core/injector/instance-loader.js:80:13
+          at async Promise.all (index 0)
+      at TestingInstanceLoader.createInstancesOfInjectables (../../node_modules/@nestjs/core/injector/instance-loader.js:79:9)
+      at ../../node_modules/@nestjs/core/injector/instance-loader.js:41:13
+          at async Promise.all (index 1)
+      at TestingInstanceLoader.createInstances (../../node_modules/@nestjs/core/injector/instance-loader.js:39:9)
+      at TestingInstanceLoader.createInstancesOfDependencies (../../node_modules/@nestjs/core/injector/instance-loader.js:22:13)
+      at TestingInstanceLoader.createInstancesOfDependencies (../../node_modules/@nestjs/testing/testing-instance-loader.js:9:9)
+      at TestingModuleBuilder.createInstancesOfDependencies (../../node_modules/@nestjs/testing/testing-module.builder.js:118:9)
+      at TestingModuleBuilder.compile (../../node_modules/@nestjs/testing/testing-module.builder.js:74:9)
+      at Object.<anonymous> (auth/auth.controller.oidc.spec.ts:26:35)
+
+FAIL auth/passkeys.controller.spec.ts
+  ÔùÅ PasskeysController ÔÇ║ should verify authentication
+
+    TypeError: Cannot read properties of undefined (reading 'cookie')
+
+      78 |     const result = await this.authService.completeLogin(user.id);
+      79 |     const { refreshToken, ...rest } = result;
+    > 80 |     res.cookie(AuthController.REFRESH_COOKIE_NAME, refreshToken, {
+         |         ^
+      81 |       httpOnly: true,
+      82 |       secure: this.isProd,
+      83 |       sameSite: 'strict',
+
+      at PasskeysController.verifyAuthentication (auth/passkeys.controller.ts:80:9)
+      at Object.<anonymous> (auth/passkeys.controller.spec.ts:119:20)
+
+FAIL auth/auth.service.spec.ts
+  ÔùÅ AuthService ÔÇ║ getSession with passkey enforcement logic ÔÇ║ should return passkeyPolicy=optional for USER by default when passkeys are enabled
+
+    expect(received).toMatchObject(expected)
+
+    - Expected  - 1
+    + Received  + 1
+
+      Object {
+    -   "passkeyPolicy": "optional",
+    +   "passkeyPolicy": "disabled",
+      }
+
+      372 |
+      373 |       const session = await service.getSession(1);
+    > 374 |       expect(session).toMatchObject({
+          |                       ^
+      375 |         passkeyPolicy: 'optional',
+      376 |       });
+      377 |     });
+
+      at Object.<anonymous> (auth/auth.service.spec.ts:374:23)
+
+  ÔùÅ AuthService ÔÇ║ getSession with passkey enforcement logic ÔÇ║ should return passkeyPolicy=required for USER if security.enforcement.passkeys.user is true
+
+    expect(received).toMatchObject(expected)
+
+    - Expected  - 1
+    + Received  + 1
+
+      Object {
+    -   "passkeyPolicy": "required",
+    +   "passkeyPolicy": "disabled",
+      }
+
+      386 |
+      387 |       const session = await service.getSession(1);
+    > 388 |       expect(session).toMatchObject({
+          |                       ^
+      389 |         passkeyPolicy: 'required',
+      390 |       });
+      391 |     });
+
+      at Object.<anonymous> (auth/auth.service.spec.ts:388:23)
+
+  ÔùÅ AuthService ÔÇ║ getSession with passkey enforcement logic ÔÇ║ should resolve anti-conflict for MANAGER: required if userReq is true
+
+    expect(received).toMatchObject(expected)
+
+    - Expected  - 1
+    + Received  + 1
+
+      Object {
+    -   "passkeyPolicy": "required",
+    +   "passkeyPolicy": "disabled",
+      }
+
+      403 |
+      404 |       const session = await service.getSession(1);
+    > 405 |       expect(session).toMatchObject({
+          |                       ^
+      406 |         passkeyPolicy: 'required',
+      407 |       });
+      408 |     });
+
+      at Object.<anonymous> (auth/auth.service.spec.ts:405:23)
+
+  ÔùÅ AuthService ÔÇ║ getSession with passkey enforcement logic ÔÇ║ should resolve anti-conflict for GUEST: required if guestReq is true
+
+    expect(received).toMatchObject(expected)
+
+    - Expected  - 1
+    + Received  + 1
+
+      Object {
+    -   "passkeyPolicy": "required",
+    +   "passkeyPolicy": "disabled",
+      }
+
+      420 |
+      421 |       const session = await service.getSession(1);
+    > 422 |       expect(session).toMatchObject({
+          |                       ^
+      423 |         passkeyPolicy: 'required',
+      424 |       });
+      425 |     });
+
+      at Object.<anonymous> (auth/auth.service.spec.ts:422:23)
+
+  ÔùÅ AuthService ÔÇ║ getSession with passkey enforcement logic ÔÇ║ should return hasPasskey=true if user has configured passkeys
+
+    expect(received).toMatchObject(expected)
+
+    - Expected  - 1
+    + Received  + 1
+
+      Object {
+        "hasPasskey": true,
+    -   "passkeyPolicy": "optional",
+    +   "passkeyPolicy": "disabled",
+      }
+
+      432 |
+      433 |       const session = await service.getSession(1);
+    > 434 |       expect(session).toMatchObject({
+          |                       ^
+      435 |         hasPasskey: true,
+      436 |         passkeyPolicy: 'optional', // default from mockSettings
+      437 |       });
+
+      at Object.<anonymous> (auth/auth.service.spec.ts:434:23)
+
+FAIL notifications/notifications.controller.spec.ts
+  ÔùÅ NotificationsController ÔÇ║ should be defined
+
+    Nest can't resolve dependencies of the JwtAuthGuard (ClsService, Reflector, ?). Please make sure that the argument AuthService at index [2] is available in the RootTestModule module.
+
+    Potential solutions:
+    - Is RootTestModule a valid NestJS module?
+    - If AuthService is a provider, is it part of the current RootTestModule?
+    - If AuthService is exported from a separate @Module, is that module imported within RootTestModule?
+      @Module({
+        imports: [ /* the Module containing AuthService */ ]
+      })
+
+    For more common dependency resolution issues, see: https://docs.nestjs.com/faq/common-errors
+
+       7 |
+       8 |   beforeEach(async () => {
+    >  9 |     const module: TestingModule = await Test.createTestingModule({
+         |                                   ^
+      10 |       controllers: [NotificationsController],
+      11 |       providers: [{ provide: NotificationsService, useValue: {} }],
+      12 |     }).compile();
+
+      at TestingInjector.lookupComponentInParentModules (../../node_modules/@nestjs/core/injector/injector.js:290:19)
+      at TestingInjector.resolveComponentWrapper (../../node_modules/@nestjs/testing/testing-injector.js:19:45)
+      at resolveParam (../../node_modules/@nestjs/core/injector/injector.js:140:38)
+          at async Promise.all (index 2)
+      at TestingInjector.resolveConstructorParams (../../node_modules/@nestjs/core/injector/injector.js:169:27)
+      at TestingInjector.loadInstance (../../node_modules/@nestjs/core/injector/injector.js:75:13)
+      at TestingInjector.loadInjectable (../../node_modules/@nestjs/core/injector/injector.js:99:9)
+      at ../../node_modules/@nestjs/core/injector/instance-loader.js:80:13
+          at async Promise.all (index 0)
+      at TestingInstanceLoader.createInstancesOfInjectables (../../node_modules/@nestjs/core/injector/instance-loader.js:79:9)
+      at ../../node_modules/@nestjs/core/injector/instance-loader.js:41:13
+          at async Promise.all (index 1)
+      at TestingInstanceLoader.createInstances (../../node_modules/@nestjs/core/injector/instance-loader.js:39:9)
+      at TestingInstanceLoader.createInstancesOfDependencies (../../node_modules/@nestjs/core/injector/instance-loader.js:22:13)
+      at TestingInstanceLoader.createInstancesOfDependencies (../../node_modules/@nestjs/testing/testing-instance-loader.js:9:9)
+      at TestingModuleBuilder.createInstancesOfDependencies (../../node_modules/@nestjs/testing/testing-module.builder.js:118:9)
+      at TestingModuleBuilder.compile (../../node_modules/@nestjs/testing/testing-module.builder.js:74:9)
+      at Object.<anonymous> (notifications/notifications.controller.spec.ts:9:35)
+
+FAIL modules/delegations/delegations.controller.spec.ts
+  ÔùÅ DelegationsController ÔÇ║ should be defined
+
+    Nest can't resolve dependencies of the JwtAuthGuard (ClsService, Reflector, ?). Please make sure that the argument AuthService at index [2] is available in the RootTestModule module.
+
+    Potential solutions:
+    - Is RootTestModule a valid NestJS module?
+    - If AuthService is a provider, is it part of the current RootTestModule?
+    - If AuthService is exported from a separate @Module, is that module imported within RootTestModule?
+      @Module({
+        imports: [ /* the Module containing AuthService */ ]
+      })
+
+    For more common dependency resolution issues, see: https://docs.nestjs.com/faq/common-errors
+
+      18 |
+      19 |   beforeEach(async () => {
+    > 20 |     const module: TestingModule = await Test.createTestingModule({
+         |                                   ^
+      21 |       controllers: [DelegationsController],
+      22 |       providers: [
+      23 |         { provide: DelegationsService, useValue: mockDelegationsService },
+
+      at TestingInjector.lookupComponentInParentModules (../../node_modules/@nestjs/core/injector/injector.js:290:19)
+      at TestingInjector.resolveComponentWrapper (../../node_modules/@nestjs/testing/testing-injector.js:19:45)
+      at resolveParam (../../node_modules/@nestjs/core/injector/injector.js:140:38)
+          at async Promise.all (index 2)
+      at TestingInjector.resolveConstructorParams (../../node_modules/@nestjs/core/injector/injector.js:169:27)
+      at TestingInjector.loadInstance (../../node_modules/@nestjs/core/injector/injector.js:75:13)
+      at TestingInjector.loadInjectable (../../node_modules/@nestjs/core/injector/injector.js:99:9)
+      at ../../node_modules/@nestjs/core/injector/instance-loader.js:80:13
+          at async Promise.all (index 0)
+      at TestingInstanceLoader.createInstancesOfInjectables (../../node_modules/@nestjs/core/injector/instance-loader.js:79:9)
+      at ../../node_modules/@nestjs/core/injector/instance-loader.js:41:13
+          at async Promise.all (index 1)
+      at TestingInstanceLoader.createInstances (../../node_modules/@nestjs/core/injector/instance-loader.js:39:9)
+      at TestingInstanceLoader.createInstancesOfDependencies (../../node_modules/@nestjs/core/injector/instance-loader.js:22:13)
+      at TestingInstanceLoader.createInstancesOfDependencies (../../node_modules/@nestjs/testing/testing-instance-loader.js:9:9)
+      at TestingModuleBuilder.createInstancesOfDependencies (../../node_modules/@nestjs/testing/testing-module.builder.js:118:9)
+      at TestingModuleBuilder.compile (../../node_modules/@nestjs/testing/testing-module.builder.js:74:9)
+      at Object.<anonymous> (modules/delegations/delegations.controller.spec.ts:20:35)
+
+  ÔùÅ DelegationsController ÔÇ║ create ÔÇ║ should call DelegationsService.create and return result
+
+    Nest can't resolve dependencies of the JwtAuthGuard (ClsService, Reflector, ?). Please make sure that the argument AuthService at index [2] is available in the RootTestModule module.
+
+    Potential solutions:
+    - Is RootTestModule a valid NestJS module?
+    - If AuthService is a provider, is it part of the current RootTestModule?
+    - If AuthService is exported from a separate @Module, is that module imported within RootTestModule?
+      @Module({
+        imports: [ /* the Module containing AuthService */ ]
+      })
+
+    For more common dependency resolution issues, see: https://docs.nestjs.com/faq/common-errors
+
+      18 |
+      19 |   beforeEach(async () => {
+    > 20 |     const module: TestingModule = await Test.createTestingModule({
+         |                                   ^
+      21 |       controllers: [DelegationsController],
+      22 |       providers: [
+      23 |         { provide: DelegationsService, useValue: mockDelegationsService },
+
+      at TestingInjector.lookupComponentInParentModules (../../node_modules/@nestjs/core/injector/injector.js:290:19)
+      at TestingInjector.resolveComponentWrapper (../../node_modules/@nestjs/testing/testing-injector.js:19:45)
+      at resolveParam (../../node_modules/@nestjs/core/injector/injector.js:140:38)
+          at async Promise.all (index 2)
+      at TestingInjector.resolveConstructorParams (../../node_modules/@nestjs/core/injector/injector.js:169:27)
+      at TestingInjector.loadInstance (../../node_modules/@nestjs/core/injector/injector.js:75:13)
+      at TestingInjector.loadInjectable (../../node_modules/@nestjs/core/injector/injector.js:99:9)
+      at ../../node_modules/@nestjs/core/injector/instance-loader.js:80:13
+          at async Promise.all (index 0)
+      at TestingInstanceLoader.createInstancesOfInjectables (../../node_modules/@nestjs/core/injector/instance-loader.js:79:9)
+      at ../../node_modules/@nestjs/core/injector/instance-loader.js:41:13
+          at async Promise.all (index 1)
+      at TestingInstanceLoader.createInstances (../../node_modules/@nestjs/core/injector/instance-loader.js:39:9)
+      at TestingInstanceLoader.createInstancesOfDependencies (../../node_modules/@nestjs/core/injector/instance-loader.js:22:13)
+      at TestingInstanceLoader.createInstancesOfDependencies (../../node_modules/@nestjs/testing/testing-instance-loader.js:9:9)
+      at TestingModuleBuilder.createInstancesOfDependencies (../../node_modules/@nestjs/testing/testing-module.builder.js:118:9)
+      at TestingModuleBuilder.compile (../../node_modules/@nestjs/testing/testing-module.builder.js:74:9)
+      at Object.<anonymous> (modules/delegations/delegations.controller.spec.ts:20:35)
+
+  ÔùÅ DelegationsController ÔÇ║ findAll ÔÇ║ should call DelegationsService.findAll and return result
+
+    Nest can't resolve dependencies of the JwtAuthGuard (ClsService, Reflector, ?). Please make sure that the argument AuthService at index [2] is available in the RootTestModule module.
+
+    Potential solutions:
+    - Is RootTestModule a valid NestJS module?
+    - If AuthService is a provider, is it part of the current RootTestModule?
+    - If AuthService is exported from a separate @Module, is that module imported within RootTestModule?
+      @Module({
+        imports: [ /* the Module containing AuthService */ ]
+      })
+
+    For more common dependency resolution issues, see: https://docs.nestjs.com/faq/common-errors
+
+      18 |
+      19 |   beforeEach(async () => {
+    > 20 |     const module: TestingModule = await Test.createTestingModule({
+         |                                   ^
+      21 |       controllers: [DelegationsController],
+      22 |       providers: [
+      23 |         { provide: DelegationsService, useValue: mockDelegationsService },
+
+      at TestingInjector.lookupComponentInParentModules (../../node_modules/@nestjs/core/injector/injector.js:290:19)
+      at TestingInjector.resolveComponentWrapper (../../node_modules/@nestjs/testing/testing-injector.js:19:45)
+      at resolveParam (../../node_modules/@nestjs/core/injector/injector.js:140:38)
+          at async Promise.all (index 2)
+      at TestingInjector.resolveConstructorParams (../../node_modules/@nestjs/core/injector/injector.js:169:27)
+      at TestingInjector.loadInstance (../../node_modules/@nestjs/core/injector/injector.js:75:13)
+      at TestingInjector.loadInjectable (../../node_modules/@nestjs/core/injector/injector.js:99:9)
+      at ../../node_modules/@nestjs/core/injector/instance-loader.js:80:13
+          at async Promise.all (index 0)
+      at TestingInstanceLoader.createInstancesOfInjectables (../../node_modules/@nestjs/core/injector/instance-loader.js:79:9)
+      at ../../node_modules/@nestjs/core/injector/instance-loader.js:41:13
+          at async Promise.all (index 1)
+      at TestingInstanceLoader.createInstances (../../node_modules/@nestjs/core/injector/instance-loader.js:39:9)
+      at TestingInstanceLoader.createInstancesOfDependencies (../../node_modules/@nestjs/core/injector/instance-loader.js:22:13)
+      at TestingInstanceLoader.createInstancesOfDependencies (../../node_modules/@nestjs/testing/testing-instance-loader.js:9:9)
+      at TestingModuleBuilder.createInstancesOfDependencies (../../node_modules/@nestjs/testing/testing-module.builder.js:118:9)
+      at TestingModuleBuilder.compile (../../node_modules/@nestjs/testing/testing-module.builder.js:74:9)
+      at Object.<anonymous> (modules/delegations/delegations.controller.spec.ts:20:35)
+
+  ÔùÅ DelegationsController ÔÇ║ update ÔÇ║ should call DelegationsService.update and return result
+
+    Nest can't resolve dependencies of the JwtAuthGuard (ClsService, Reflector, ?). Please make sure that the argument AuthService at index [2] is available in the RootTestModule module.
+
+    Potential solutions:
+    - Is RootTestModule a valid NestJS module?
+    - If AuthService is a provider, is it part of the current RootTestModule?
+    - If AuthService is exported from a separate @Module, is that module imported within RootTestModule?
+      @Module({
+        imports: [ /* the Module containing AuthService */ ]
+      })
+
+    For more common dependency resolution issues, see: https://docs.nestjs.com/faq/common-errors
+
+      18 |
+      19 |   beforeEach(async () => {
+    > 20 |     const module: TestingModule = await Test.createTestingModule({
+         |                                   ^
+      21 |       controllers: [DelegationsController],
+      22 |       providers: [
+      23 |         { provide: DelegationsService, useValue: mockDelegationsService },
+
+      at TestingInjector.lookupComponentInParentModules (../../node_modules/@nestjs/core/injector/injector.js:290:19)
+      at TestingInjector.resolveComponentWrapper (../../node_modules/@nestjs/testing/testing-injector.js:19:45)
+      at resolveParam (../../node_modules/@nestjs/core/injector/injector.js:140:38)
+          at async Promise.all (index 2)
+      at TestingInjector.resolveConstructorParams (../../node_modules/@nestjs/core/injector/injector.js:169:27)
+      at TestingInjector.loadInstance (../../node_modules/@nestjs/core/injector/injector.js:75:13)
+      at TestingInjector.loadInjectable (../../node_modules/@nestjs/core/injector/injector.js:99:9)
+      at ../../node_modules/@nestjs/core/injector/instance-loader.js:80:13
+          at async Promise.all (index 0)
+      at TestingInstanceLoader.createInstancesOfInjectables (../../node_modules/@nestjs/core/injector/instance-loader.js:79:9)
+      at ../../node_modules/@nestjs/core/injector/instance-loader.js:41:13
+          at async Promise.all (index 1)
+      at TestingInstanceLoader.createInstances (../../node_modules/@nestjs/core/injector/instance-loader.js:39:9)
+      at TestingInstanceLoader.createInstancesOfDependencies (../../node_modules/@nestjs/core/injector/instance-loader.js:22:13)
+      at TestingInstanceLoader.createInstancesOfDependencies (../../node_modules/@nestjs/testing/testing-instance-loader.js:9:9)
+      at TestingModuleBuilder.createInstancesOfDependencies (../../node_modules/@nestjs/testing/testing-module.builder.js:118:9)
+      at TestingModuleBuilder.compile (../../node_modules/@nestjs/testing/testing-module.builder.js:74:9)
+      at Object.<anonymous> (modules/delegations/delegations.controller.spec.ts:20:35)
+
+  ÔùÅ DelegationsController ÔÇ║ remove ÔÇ║ should call DelegationsService.remove and return result
+
+    Nest can't resolve dependencies of the JwtAuthGuard (ClsService, Reflector, ?). Please make sure that the argument AuthService at index [2] is available in the RootTestModule module.
+
+    Potential solutions:
+    - Is RootTestModule a valid NestJS module?
+    - If AuthService is a provider, is it part of the current RootTestModule?
+    - If AuthService is exported from a separate @Module, is that module imported within RootTestModule?
+      @Module({
+        imports: [ /* the Module containing AuthService */ ]
+      })
+
+    For more common dependency resolution issues, see: https://docs.nestjs.com/faq/common-errors
+
+      18 |
+      19 |   beforeEach(async () => {
+    > 20 |     const module: TestingModule = await Test.createTestingModule({
+         |                                   ^
+      21 |       controllers: [DelegationsController],
+      22 |       providers: [
+      23 |         { provide: DelegationsService, useValue: mockDelegationsService },
+
+      at TestingInjector.lookupComponentInParentModules (../../node_modules/@nestjs/core/injector/injector.js:290:19)
+      at TestingInjector.resolveComponentWrapper (../../node_modules/@nestjs/testing/testing-injector.js:19:45)
+      at resolveParam (../../node_modules/@nestjs/core/injector/injector.js:140:38)
+          at async Promise.all (index 2)
+      at TestingInjector.resolveConstructorParams (../../node_modules/@nestjs/core/injector/injector.js:169:27)
+      at TestingInjector.loadInstance (../../node_modules/@nestjs/core/injector/injector.js:75:13)
+      at TestingInjector.loadInjectable (../../node_modules/@nestjs/core/injector/injector.js:99:9)
+      at ../../node_modules/@nestjs/core/injector/instance-loader.js:80:13
+          at async Promise.all (index 0)
+      at TestingInstanceLoader.createInstancesOfInjectables (../../node_modules/@nestjs/core/injector/instance-loader.js:79:9)
+      at ../../node_modules/@nestjs/core/injector/instance-loader.js:41:13
+          at async Promise.all (index 1)
+      at TestingInstanceLoader.createInstances (../../node_modules/@nestjs/core/injector/instance-loader.js:39:9)
+      at TestingInstanceLoader.createInstancesOfDependencies (../../node_modules/@nestjs/core/injector/instance-loader.js:22:13)
+      at TestingInstanceLoader.createInstancesOfDependencies (../../node_modules/@nestjs/testing/testing-instance-loader.js:9:9)
+      at TestingModuleBuilder.createInstancesOfDependencies (../../node_modules/@nestjs/testing/testing-module.builder.js:118:9)
+      at TestingModuleBuilder.compile (../../node_modules/@nestjs/testing/testing-module.builder.js:74:9)
+      at Object.<anonymous> (modules/delegations/delegations.controller.spec.ts:20:35)
+
+FAIL schedules/schedule.rbac.spec.ts
+  ÔùÅ Schedule RBAC ÔÇö RolesGuard permission enforcement ÔÇ║ USER role ÔÇ║ GET /schedules ÔÇö SCHEDULE_READ ÔÇö allowed
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      36 |         Permission.SCHEDULE_READ,
+      37 |       ]);
+    > 38 |       expect(guard.canActivate(makeContext(Role.USER))).toBe(true);
+         |                                                         ^
+      39 |     });
+      40 |
+      41 |     it('POST /schedules ÔÇö SCHEDULE_CREATE ÔÇö denied', () => {
+
+      at Object.<anonymous> (schedules/schedule.rbac.spec.ts:38:57)
+
+  ÔùÅ Schedule RBAC ÔÇö RolesGuard permission enforcement ÔÇ║ ADMIN role ÔÇ║ GET /schedules ÔÇö SCHEDULE_READ ÔÇö allowed
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      66 |         Permission.SCHEDULE_READ,
+      67 |       ]);
+    > 68 |       expect(guard.canActivate(makeContext(Role.SUPER_ADMIN))).toBe(true);
+         |                                                                ^
+      69 |     });
+      70 |
+      71 |     it('POST /schedules ÔÇö SCHEDULE_CREATE ÔÇö allowed', () => {
+
+      at Object.<anonymous> (schedules/schedule.rbac.spec.ts:68:64)
+
+  ÔùÅ Schedule RBAC ÔÇö RolesGuard permission enforcement ÔÇ║ ADMIN role ÔÇ║ POST /schedules ÔÇö SCHEDULE_CREATE ÔÇö allowed
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      73 |         Permission.SCHEDULE_CREATE,
+      74 |       ]);
+    > 75 |       expect(guard.canActivate(makeContext(Role.SUPER_ADMIN))).toBe(true);
+         |                                                                ^
+      76 |     });
+      77 |
+      78 |     it('PUT /schedules/:id ÔÇö SCHEDULE_UPDATE ÔÇö allowed', () => {
+
+      at Object.<anonymous> (schedules/schedule.rbac.spec.ts:75:64)
+
+  ÔùÅ Schedule RBAC ÔÇö RolesGuard permission enforcement ÔÇ║ ADMIN role ÔÇ║ PUT /schedules/:id ÔÇö SCHEDULE_UPDATE ÔÇö allowed
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      80 |         Permission.SCHEDULE_UPDATE,
+      81 |       ]);
+    > 82 |       expect(guard.canActivate(makeContext(Role.SUPER_ADMIN))).toBe(true);
+         |                                                                ^
+      83 |     });
+      84 |
+      85 |     it('DELETE /schedules/:id ÔÇö SCHEDULE_DELETE ÔÇö allowed', () => {
+
+      at Object.<anonymous> (schedules/schedule.rbac.spec.ts:82:64)
+
+  ÔùÅ Schedule RBAC ÔÇö RolesGuard permission enforcement ÔÇ║ ADMIN role ÔÇ║ DELETE /schedules/:id ÔÇö SCHEDULE_DELETE ÔÇö allowed
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      87 |         Permission.SCHEDULE_DELETE,
+      88 |       ]);
+    > 89 |       expect(guard.canActivate(makeContext(Role.SUPER_ADMIN))).toBe(true);
+         |                                                                ^
+      90 |     });
+      91 |   });
+      92 | });
+
+      at Object.<anonymous> (schedules/schedule.rbac.spec.ts:89:64)
+
+FAIL groups/groups.service.spec.ts
+  ÔùÅ Point 92 ÔÇö GroupsService soft-delete ÔÇ║ create() ÔÇ║ doit autoriser la cr├®ation d'un groupe avec le nom d'un groupe soft-deleted
+
+    TypeError: Cannot read properties of undefined (reading 'findUnique')
+
+      84 |       const defaultId = this.prisma.getDefaultSiteId();
+      85 |       if (defaultId != null) {
+    > 86 |         const siteExists = await this.prisma.client.site.findUnique({
+         |                                                          ^
+      87 |           where: { id: defaultId },
+      88 |         });
+      89 |         if (siteExists) {
+
+      at GroupsService.create (groups/groups.service.ts:86:58)
+      at Object.<anonymous> (groups/groups.service.spec.ts:183:36)
+
+FAIL tasks/tasks.controller.spec.ts (5.033 s)
+  ÔùÅ TasksController ÔÇ║ run ÔÇ║ should call service run and return DRY_RUN contract for V1
+
+    Nest can't resolve dependencies of the CompositeAuthGuard (ClsService, ?). Please make sure that the argument PrismaService at index [1] is available in the RootTestModule module.
+
+    Potential solutions:
+    - Is RootTestModule a valid NestJS module?
+    - If PrismaService is a provider, is it part of the current RootTestModule?
+    - If PrismaService is exported from a separate @Module, is that module imported within RootTestModule?
+      @Module({
+        imports: [ /* the Module containing PrismaService */ ]
+      })
+
+    For more common dependency resolution issues, see: https://docs.nestjs.com/faq/common-errors
+
+      15 |     const mockDelegationsService = {};
+      16 |
+    > 17 |     const module: TestingModule = await Test.createTestingModule({
+         |                                   ^
+      18 |       controllers: [TasksController],
+      19 |       providers: [
+      20 |         { provide: TasksService, useValue: mockTasksService },
+
+      at TestingInjector.lookupComponentInParentModules (../../node_modules/@nestjs/core/injector/injector.js:290:19)
+      at TestingInjector.resolveComponentWrapper (../../node_modules/@nestjs/testing/testing-injector.js:19:45)
+      at resolveParam (../../node_modules/@nestjs/core/injector/injector.js:140:38)
+          at async Promise.all (index 1)
+      at TestingInjector.resolveConstructorParams (../../node_modules/@nestjs/core/injector/injector.js:169:27)
+      at TestingInjector.loadInstance (../../node_modules/@nestjs/core/injector/injector.js:75:13)
+      at TestingInjector.loadInjectable (../../node_modules/@nestjs/core/injector/injector.js:99:9)
+      at ../../node_modules/@nestjs/core/injector/instance-loader.js:80:13
+          at async Promise.all (index 0)
+      at TestingInstanceLoader.createInstancesOfInjectables (../../node_modules/@nestjs/core/injector/instance-loader.js:79:9)
+      at ../../node_modules/@nestjs/core/injector/instance-loader.js:41:13
+          at async Promise.all (index 1)
+      at TestingInstanceLoader.createInstances (../../node_modules/@nestjs/core/injector/instance-loader.js:39:9)
+      at TestingInstanceLoader.createInstancesOfDependencies (../../node_modules/@nestjs/core/injector/instance-loader.js:22:13)
+      at TestingInstanceLoader.createInstancesOfDependencies (../../node_modules/@nestjs/testing/testing-instance-loader.js:9:9)
+      at TestingModuleBuilder.createInstancesOfDependencies (../../node_modules/@nestjs/testing/testing-module.builder.js:118:9)
+      at TestingModuleBuilder.compile (../../node_modules/@nestjs/testing/testing-module.builder.js:74:9)
+      at Object.<anonymous> (tasks/tasks.controller.spec.ts:17:35)
+
+FAIL tasks/guest-board-filter.spec.ts (5.16 s)
+  ÔùÅ TasksController Guest Board Filter ÔÇ║ should explicitly force status RUNNING and ignore filtering parameters when role is GUEST
+
+    Nest can't resolve dependencies of the CompositeAuthGuard (ClsService, ?). Please make sure that the argument PrismaService at index [1] is available in the RootTestModule module.
+
+    Potential solutions:
+    - Is RootTestModule a valid NestJS module?
+    - If PrismaService is a provider, is it part of the current RootTestModule?
+    - If PrismaService is exported from a separate @Module, is that module imported within RootTestModule?
+      @Module({
+        imports: [ /* the Module containing PrismaService */ ]
+      })
+
+    For more common dependency resolution issues, see: https://docs.nestjs.com/faq/common-errors
+
+      10 |
+      11 |     beforeEach(async () => {
+    > 12 |         const module: TestingModule = await Test.createTestingModule({
+         |                                       ^
+      13 |             controllers: [TasksController],
+      14 |             providers: [
+      15 |                 {
+
+      at TestingInjector.lookupComponentInParentModules (../../node_modules/@nestjs/core/injector/injector.js:290:19)
+      at TestingInjector.resolveComponentWrapper (../../node_modules/@nestjs/testing/testing-injector.js:19:45)
+      at resolveParam (../../node_modules/@nestjs/core/injector/injector.js:140:38)
+          at async Promise.all (index 1)
+      at TestingInjector.resolveConstructorParams (../../node_modules/@nestjs/core/injector/injector.js:169:27)
+      at TestingInjector.loadInstance (../../node_modules/@nestjs/core/injector/injector.js:75:13)
+      at TestingInjector.loadInjectable (../../node_modules/@nestjs/core/injector/injector.js:99:9)
+      at ../../node_modules/@nestjs/core/injector/instance-loader.js:80:13
+          at async Promise.all (index 0)
+      at TestingInstanceLoader.createInstancesOfInjectables (../../node_modules/@nestjs/core/injector/instance-loader.js:79:9)
+      at ../../node_modules/@nestjs/core/injector/instance-loader.js:41:13
+          at async Promise.all (index 1)
+      at TestingInstanceLoader.createInstances (../../node_modules/@nestjs/core/injector/instance-loader.js:39:9)
+      at TestingInstanceLoader.createInstancesOfDependencies (../../node_modules/@nestjs/core/injector/instance-loader.js:22:13)
+      at TestingInstanceLoader.createInstancesOfDependencies (../../node_modules/@nestjs/testing/testing-instance-loader.js:9:9)
+      at TestingModuleBuilder.createInstancesOfDependencies (../../node_modules/@nestjs/testing/testing-module.builder.js:118:9)
+      at TestingModuleBuilder.compile (../../node_modules/@nestjs/testing/testing-module.builder.js:74:9)
+      at Object.<anonymous> (tasks/guest-board-filter.spec.ts:12:39)
+
+  ÔùÅ TasksController Guest Board Filter ÔÇ║ should pass parameters normally when role is NOT GUEST
+
+    Nest can't resolve dependencies of the CompositeAuthGuard (ClsService, ?). Please make sure that the argument PrismaService at index [1] is available in the RootTestModule module.
+
+    Potential solutions:
+    - Is RootTestModule a valid NestJS module?
+    - If PrismaService is a provider, is it part of the current RootTestModule?
+    - If PrismaService is exported from a separate @Module, is that module imported within RootTestModule?
+      @Module({
+        imports: [ /* the Module containing PrismaService */ ]
+      })
+
+    For more common dependency resolution issues, see: https://docs.nestjs.com/faq/common-errors
+
+      10 |
+      11 |     beforeEach(async () => {
+    > 12 |         const module: TestingModule = await Test.createTestingModule({
+         |                                       ^
+      13 |             controllers: [TasksController],
+      14 |             providers: [
+      15 |                 {
+
+      at TestingInjector.lookupComponentInParentModules (../../node_modules/@nestjs/core/injector/injector.js:290:19)
+      at TestingInjector.resolveComponentWrapper (../../node_modules/@nestjs/testing/testing-injector.js:19:45)
+      at resolveParam (../../node_modules/@nestjs/core/injector/injector.js:140:38)
+          at async Promise.all (index 1)
+      at TestingInjector.resolveConstructorParams (../../node_modules/@nestjs/core/injector/injector.js:169:27)
+      at TestingInjector.loadInstance (../../node_modules/@nestjs/core/injector/injector.js:75:13)
+      at TestingInjector.loadInjectable (../../node_modules/@nestjs/core/injector/injector.js:99:9)
+      at ../../node_modules/@nestjs/core/injector/instance-loader.js:80:13
+          at async Promise.all (index 0)
+      at TestingInstanceLoader.createInstancesOfInjectables (../../node_modules/@nestjs/core/injector/instance-loader.js:79:9)
+      at ../../node_modules/@nestjs/core/injector/instance-loader.js:41:13
+          at async Promise.all (index 1)
+      at TestingInstanceLoader.createInstances (../../node_modules/@nestjs/core/injector/instance-loader.js:39:9)
+      at TestingInstanceLoader.createInstancesOfDependencies (../../node_modules/@nestjs/core/injector/instance-loader.js:22:13)
+      at TestingInstanceLoader.createInstancesOfDependencies (../../node_modules/@nestjs/testing/testing-instance-loader.js:9:9)
+      at TestingModuleBuilder.createInstancesOfDependencies (../../node_modules/@nestjs/testing/testing-module.builder.js:118:9)
+      at TestingModuleBuilder.compile (../../node_modules/@nestjs/testing/testing-module.builder.js:74:9)
+      at Object.<anonymous> (tasks/guest-board-filter.spec.ts:12:39)
+
+FAIL tasks/upload-concurrency.spec.ts (5.242 s)
+  ÔùÅ Procedure Upload Concurrency ÔÇ║ Scenario: Double Upload Concurrency Simulation
+
+    Nest can't resolve dependencies of the CompositeAuthGuard (ClsService, ?). Please make sure that the argument PrismaService at index [1] is available in the RootTestModule module.
+
+    Potential solutions:
+    - Is RootTestModule a valid NestJS module?
+    - If PrismaService is a provider, is it part of the current RootTestModule?
+    - If PrismaService is exported from a separate @Module, is that module imported within RootTestModule?
+      @Module({
+        imports: [ /* the Module containing PrismaService */ ]
+      })
+
+    For more common dependency resolution issues, see: https://docs.nestjs.com/faq/common-errors
+
+      21 |     };
+      22 |
+    > 23 |     const module: TestingModule = await Test.createTestingModule({
+         |                                   ^
+      24 |       controllers: [TasksController],
+      25 |       providers: [
+      26 |         { provide: TasksService, useValue: mockTasksService },
+
+      at TestingInjector.lookupComponentInParentModules (../../node_modules/@nestjs/core/injector/injector.js:290:19)
+      at TestingInjector.resolveComponentWrapper (../../node_modules/@nestjs/testing/testing-injector.js:19:45)
+      at resolveParam (../../node_modules/@nestjs/core/injector/injector.js:140:38)
+          at async Promise.all (index 1)
+      at TestingInjector.resolveConstructorParams (../../node_modules/@nestjs/core/injector/injector.js:169:27)
+      at TestingInjector.loadInstance (../../node_modules/@nestjs/core/injector/injector.js:75:13)
+      at TestingInjector.loadInjectable (../../node_modules/@nestjs/core/injector/injector.js:99:9)
+      at ../../node_modules/@nestjs/core/injector/instance-loader.js:80:13
+          at async Promise.all (index 0)
+      at TestingInstanceLoader.createInstancesOfInjectables (../../node_modules/@nestjs/core/injector/instance-loader.js:79:9)
+      at ../../node_modules/@nestjs/core/injector/instance-loader.js:41:13
+          at async Promise.all (index 1)
+      at TestingInstanceLoader.createInstances (../../node_modules/@nestjs/core/injector/instance-loader.js:39:9)
+      at TestingInstanceLoader.createInstancesOfDependencies (../../node_modules/@nestjs/core/injector/instance-loader.js:22:13)
+      at TestingInstanceLoader.createInstancesOfDependencies (../../node_modules/@nestjs/testing/testing-instance-loader.js:9:9)
+      at TestingModuleBuilder.createInstancesOfDependencies (../../node_modules/@nestjs/testing/testing-module.builder.js:118:9)
+      at TestingModuleBuilder.compile (../../node_modules/@nestjs/testing/testing-module.builder.js:74:9)
+      at Object.<anonymous> (tasks/upload-concurrency.spec.ts:23:35)
+
+FAIL notifications/notifications.service.spec.ts
+  ÔùÅ NotificationsService ÔÇ║ should be defined
+
+    Nest can't resolve dependencies of the NotificationsService (PrismaService, EncryptionService, EmailService, SettingsService, ?). Please make sure that the argument PushService at index [4] is available in the RootTestModule module.
+
+    Potential solutions:
+    - Is RootTestModule a valid NestJS module?
+    - If PushService is a provider, is it part of the current RootTestModule?
+    - If PushService is exported from a separate @Module, is that module imported within RootTestModule?
+      @Module({
+        imports: [ /* the Module containing PushService */ ]
+      })
+
+    For more common dependency resolution issues, see: https://docs.nestjs.com/faq/common-errors
+
+      10 |
+      11 |   beforeEach(async () => {
+    > 12 |     const module: TestingModule = await Test.createTestingModule({
+         |                                   ^
+      13 |       providers: [
+      14 |         NotificationsService,
+      15 |         { provide: PrismaService, useValue: {} },
+
+      at TestingInjector.lookupComponentInParentModules (../../node_modules/@nestjs/core/injector/injector.js:290:19)
+      at TestingInjector.resolveComponentWrapper (../../node_modules/@nestjs/testing/testing-injector.js:19:45)
+      at resolveParam (../../node_modules/@nestjs/core/injector/injector.js:140:38)
+          at async Promise.all (index 4)
+      at TestingInjector.resolveConstructorParams (../../node_modules/@nestjs/core/injector/injector.js:169:27)
+      at TestingInjector.loadInstance (../../node_modules/@nestjs/core/injector/injector.js:75:13)
+      at TestingInjector.loadProvider (../../node_modules/@nestjs/core/injector/injector.js:103:9)
+      at ../../node_modules/@nestjs/core/injector/instance-loader.js:56:13
+          at async Promise.all (index 3)
+      at TestingInstanceLoader.createInstancesOfProviders (../../node_modules/@nestjs/core/injector/instance-loader.js:55:9)
+      at ../../node_modules/@nestjs/core/injector/instance-loader.js:40:13
+          at async Promise.all (index 1)
+      at TestingInstanceLoader.createInstances (../../node_modules/@nestjs/core/injector/instance-loader.js:39:9)
+      at TestingInstanceLoader.createInstancesOfDependencies (../../node_modules/@nestjs/core/injector/instance-loader.js:22:13)
+      at TestingInstanceLoader.createInstancesOfDependencies (../../node_modules/@nestjs/testing/testing-instance-loader.js:9:9)
+      at TestingModuleBuilder.createInstancesOfDependencies (../../node_modules/@nestjs/testing/testing-module.builder.js:118:9)
+      at TestingModuleBuilder.compile (../../node_modules/@nestjs/testing/testing-module.builder.js:74:9)
+      at Object.<anonymous> (notifications/notifications.service.spec.ts:12:35)
+
+
+Test Suites: 11 failed, 42 passed, 53 total
+Tests:       27 failed, 345 passed, 372 total
+Snapshots:   0 total
+Time:        12.303 s
+Ran all test suites.
+Force exiting Jest: Have you considered using `--detectOpenHandles` to detect async operations that kept running after all tests finished?
