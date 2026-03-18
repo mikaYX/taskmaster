@@ -63,9 +63,9 @@ export function ProfilePage() {
     const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
-        const allowed = ['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml'];
+        const allowed = ['image/png', 'image/jpeg', 'image/webp'];
         if (!allowed.includes(file.type)) {
-            toast.error('Format non supporté. Utilisez PNG, JPG, WebP ou SVG.');
+            toast.error('Format non supporté. Utilisez PNG, JPG ou WebP.');
             return;
         }
         const objectUrl = URL.createObjectURL(file);
@@ -134,7 +134,7 @@ export function ProfilePage() {
                                 <input
                                     ref={avatarInputRef}
                                     type="file"
-                                    accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                                    accept="image/png,image/jpeg,image/webp"
                                     className="hidden"
                                     onChange={handleAvatarChange}
                                 />

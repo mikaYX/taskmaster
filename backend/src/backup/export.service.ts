@@ -115,6 +115,11 @@ export class ExportService {
           // Handle objects/arrays (convert to JSON string if needed, mostly for safety)
           if (typeof val === 'object') str = JSON.stringify(val);
 
+          // Prevent CSV Injection (M3)
+          if (/^[=\-+\@]/.test(str)) {
+            str = "'" + str;
+          }
+
           // Escape CSV special chars
           if (str.includes(',') || str.includes('"') || str.includes('\n')) {
             return `"${str.replace(/"/g, '""')}"`;

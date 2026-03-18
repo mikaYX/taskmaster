@@ -42,6 +42,7 @@ import { Permission } from '../auth/permissions.enum';
 import { EmailService } from '../email';
 import { LdapService } from '../auth/ldap.service';
 import { FileValidationPipe } from '../common/pipes/file-validation.pipe';
+import { safeFetch } from '../common/utils/url-validator.util';
 
 /**
  * Settings Controller.
@@ -221,9 +222,10 @@ export class SettingsController {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000);
 
-      const response = await fetch(
+      const response = await safeFetch(
         'https://accounts.google.com/.well-known/openid-configuration',
         { signal: controller.signal },
+        { timeoutMs: 5000, allowHttp: false }
       );
       clearTimeout(timeoutId);
 
@@ -238,7 +240,7 @@ export class SettingsController {
 
       return { success: true, message: 'Google OAuth configuration is valid' };
     } catch (error) {
-      if (error instanceof Error && error.name === 'AbortError') {
+      if (error instanceof Error && (error.name === 'AbortError' || error.message.includes('timeout'))) {
         return {
           success: false,
           message: 'Failed to connect to Google: Timeout',
@@ -278,7 +280,7 @@ export class SettingsController {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000);
 
-      const response = await fetch(url, { signal: controller.signal });
+      const response = await safeFetch(url, { signal: controller.signal }, { timeoutMs: 5000, allowHttp: false });
       clearTimeout(timeoutId);
 
       if (!response.ok) {
@@ -347,9 +349,9 @@ export class SettingsController {
         try {
           const controller = new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), 5000);
-          const response = await fetch(dto.metadataUrl, {
+          const response = await safeFetch(dto.metadataUrl, {
             signal: controller.signal,
-          });
+          }, { timeoutMs: 5000, allowHttp: false });
           clearTimeout(timeoutId);
 
           if (!response.ok) {
@@ -408,14 +410,14 @@ export class SettingsController {
         ? `${dto.issuer}.well-known/openid-configuration`
         : `${dto.issuer}/.well-known/openid-configuration`;
 
-      // Fetch with 5 seconds timeout
+      // Fetch with 5 seconds timeout wrapped in safefetch
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000);
 
-      const response = await fetch(discoveryUrl, {
+      const response = await safeFetch(discoveryUrl, {
         signal: controller.signal,
         headers: { Accept: 'application/json' },
-      });
+      }, { timeoutMs: 5000, allowHttp: false });
 
       clearTimeout(timeoutId);
 

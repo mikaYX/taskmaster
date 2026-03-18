@@ -41,7 +41,7 @@ test.describe('Authentification — page de connexion', () => {
         await page.route(/\/api\/auth\/login$/, async route => {
             await route.fulfill({
                 status: 200,
-                json: { accessToken: 'tok123' },
+                json: { expiresIn: 900 },
             });
         });
 

@@ -2,7 +2,7 @@ import { http } from './http';
 import type {
     LoginDto,
     LoginResponse,
-    AuthTokens,
+    AuthSessionResponse,
     Session,
     ChangePasswordDto,
     VerifyMfaLoginDto,
@@ -25,7 +25,7 @@ export const authApi = {
      * Verify MFA and complete login.
      */
     verifyMfa: (dto: VerifyMfaLoginDto) =>
-        http.post<AuthTokens>('/auth/mfa/verify', dto),
+        http.post<AuthSessionResponse>('/auth/mfa/verify', dto),
 
     mfaGenerate: () =>
         http.post<MfaSetupResponse>('/auth/mfa/generate'),
@@ -45,8 +45,8 @@ export const authApi = {
     /**
      * Refresh tokens.
      */
-    refresh: (refreshToken: string) =>
-        http.post<AuthTokens>('/auth/refresh', { refreshToken }),
+    refresh: () =>
+        http.post<AuthSessionResponse>('/auth/refresh'),
 
     /**
      * Change password.
@@ -72,8 +72,8 @@ export const authApi = {
     generatePasskeyAuthenticationOptions: () =>
         http.get<{ options: any, sessionId: string }>('/auth/passkeys/login/options'),
     verifyPasskeyAuthentication: (response: any, sessionId: string) =>
-        http.post<AuthTokens>('/auth/passkeys/login/verify', { response, sessionId }),
+        http.post<AuthSessionResponse>('/auth/passkeys/login/verify', { response, sessionId }),
 
     exchangeSsoTicket: (ssoTicket: string) =>
-        http.post<AuthTokens & { expiresIn: number }>('/auth/external/exchange', { ssoTicket }),
+        http.post<AuthSessionResponse>('/auth/external/exchange', { ssoTicket }),
 };

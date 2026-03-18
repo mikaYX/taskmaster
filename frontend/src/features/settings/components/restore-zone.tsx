@@ -143,7 +143,12 @@ export const RestoreZone = forwardRef<RestoreZoneRef, RestoreZoneProps>(
                 // The backend decrypt logic will fail if key is empty and it needs one.
                 const keyToSend = decryptionKey || undefined;
 
-                await backupApi.restore(target, keyToSend, undefined); // force not implemented in UI yet but flow allows it
+                await backupApi.restore(
+                    target,
+                    keyToSend,
+                    undefined,
+                    isExternal ? 'temp' : 'backup',
+                ); // force not implemented in UI yet but flow allows it
 
                 toast.success('Système restauré. Redirection...');
                 setShowConfirmDialog(false);

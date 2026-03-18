@@ -56,7 +56,7 @@ describe('AuthService', () => {
     };
 
     mockSettingsService = {
-      get: jest.fn().mockResolvedValue('false'),
+      get: jest.fn().mockResolvedValue({ value: 'false' }),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -350,14 +350,14 @@ describe('AuthService', () => {
 
     beforeEach(() => {
       mockSettingsService.get.mockImplementation(async (key: string) => {
-        if (key === 'auth.passkeys.enabled') return 'true';
-        return 'false';
+        if (key === 'auth.passkeys.enabled') return { value: 'true' };
+        return { value: 'false' };
       });
     });
 
     it('should return passkeysEnabled=false if auth.passkeys.enabled is false', async () => {
       prismaClient.user.findFirst.mockResolvedValue(mockUserBase);
-      mockSettingsService.get.mockResolvedValue('false');
+      mockSettingsService.get.mockResolvedValue({ value: 'false' });
 
       const session = await service.getSession(1);
       expect(session).toMatchObject({
@@ -379,9 +379,9 @@ describe('AuthService', () => {
     it('should return passkeyPolicy=required for USER if security.enforcement.passkeys.user is true', async () => {
       prismaClient.user.findFirst.mockResolvedValue(mockUserBase);
       mockSettingsService.get.mockImplementation(async (key: string) => {
-        if (key === 'auth.passkeys.enabled') return 'true';
-        if (key === 'security.enforcement.passkeys.user') return 'true';
-        return 'false';
+        if (key === 'auth.passkeys.enabled') return { value: 'true' };
+        if (key === 'security.enforcement.passkeys.user') return { value: 'true' };
+        return { value: 'false' };
       });
 
       const session = await service.getSession(1);
@@ -396,9 +396,9 @@ describe('AuthService', () => {
         role: 'MANAGER',
       });
       mockSettingsService.get.mockImplementation(async (key: string) => {
-        if (key === 'auth.passkeys.enabled') return 'true';
-        if (key === 'auth.requirements.user.passkeys') return 'true';
-        return 'false';
+        if (key === 'auth.passkeys.enabled') return { value: 'true' };
+        if (key === 'auth.requirements.user.passkeys') return { value: 'true' };
+        return { value: 'false' };
       });
 
       const session = await service.getSession(1);
@@ -413,9 +413,9 @@ describe('AuthService', () => {
         role: 'GUEST',
       });
       mockSettingsService.get.mockImplementation(async (key: string) => {
-        if (key === 'auth.passkeys.enabled') return 'true';
-        if (key === 'auth.requirements.guest.passkeys') return 'true';
-        return 'false';
+        if (key === 'auth.passkeys.enabled') return { value: 'true' };
+        if (key === 'auth.requirements.guest.passkeys') return { value: 'true' };
+        return { value: 'false' };
       });
 
       const session = await service.getSession(1);

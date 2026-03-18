@@ -4,6 +4,11 @@ import { SettingsService } from './settings.service';
 import { LdapService } from '../auth/ldap.service';
 import { EmailService } from '../email/email.service';
 import { JwtAuthGuard, RolesGuard } from '../auth';
+import { safeFetch } from '../common/utils/url-validator.util';
+
+jest.mock('../common/utils/url-validator.util', () => ({
+  safeFetch: jest.fn(),
+}));
 
 describe('SettingsController', () => {
   let controller: SettingsController;
@@ -120,11 +125,11 @@ describe('SettingsController', () => {
 
   describe('testGoogleConnection()', () => {
     beforeEach(() => {
-      global.fetch = jest.fn();
+      (safeFetch as jest.Mock).mockReset();
     });
 
     it('should return success on valid config', async () => {
-      (global.fetch as jest.Mock).mockResolvedValue({
+      (safeFetch as jest.Mock).mockResolvedValue({
         ok: true,
         json: async () => ({
           authorization_endpoint: 'http://auth',
@@ -144,7 +149,7 @@ describe('SettingsController', () => {
     });
 
     it('should handle timeout', async () => {
-      (global.fetch as jest.Mock).mockImplementation(() => {
+      (safeFetch as jest.Mock).mockImplementation(() => {
         const error = new Error('Timeout');
         error.name = 'AbortError';
         return Promise.reject(error);
@@ -162,7 +167,7 @@ describe('SettingsController', () => {
     });
 
     it('should handle HTTP error from discovery endpoint', async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+      (safeFetch as jest.Mock).mockResolvedValueOnce({
         ok: false,
         status: 401,
         statusText: 'Unauthorized',
@@ -176,7 +181,7 @@ describe('SettingsController', () => {
     });
 
     it('should handle invalid JSON in discovery document', async () => {
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+      (safeFetch as jest.Mock).mockResolvedValueOnce({
         ok: true,
         json: async () => ({ invalid: 'data' }), // Missing required fields
       });
@@ -191,11 +196,11 @@ describe('SettingsController', () => {
 
   describe('testAzureConnection()', () => {
     beforeEach(() => {
-      global.fetch = jest.fn();
+      (safeFetch as jest.Mock).mockReset();
     });
 
     it('should return success on valid tenant uuid', async () => {
-      (global.fetch as jest.Mock).mockResolvedValue({
+      (safeFetch as jest.Mock).mockResolvedValue({
         ok: true,
         json: async () => ({
           authorization_endpoint: 'http://auth',
@@ -216,7 +221,7 @@ describe('SettingsController', () => {
     });
 
     it('should handle 404 tenant not found', async () => {
-      (global.fetch as jest.Mock).mockResolvedValue({
+      (safeFetch as jest.Mock).mockResolvedValue({
         ok: false,
         status: 404,
       });
@@ -234,7 +239,7 @@ describe('SettingsController', () => {
     });
 
     it('should handle timeout', async () => {
-      (global.fetch as jest.Mock).mockImplementationOnce(() => {
+      (safeFetch as jest.Mock).mockImplementationOnce(() => {
         const error = new Error('Timeout');
         error.name = 'AbortError';
         return Promise.reject(error);
@@ -252,11 +257,11 @@ describe('SettingsController', () => {
 
   describe('testOidcConnection', () => {
     beforeEach(() => {
-      global.fetch = jest.fn();
+      (safeFetch as jest.Mock).mockReset();
     });
 
     it('should validate OIDC configuration', async () => {
-      (global.fetch as jest.Mock).mockResolvedValue({
+      (safeFetch as jest.Mock).mockResolvedValue({
         ok: true,
         json: async () => ({
           authorization_endpoint: 'http://auth',
@@ -276,7 +281,7 @@ describe('SettingsController', () => {
 
     it('should handle timeout', async () => {
       // Mock fetch with AbortError
-      (global.fetch as jest.Mock).mockImplementation(() => {
+      (safeFetch as jest.Mock).mockImplementation(() => {
         const error = new Error('Timeout');
         error.name = 'AbortError';
         return Promise.reject(error);
@@ -293,7 +298,7 @@ describe('SettingsController', () => {
 
     it('should handle invalid discovery document', async () => {
       // Mock fetch returning invalid JSON endpoints
-      (global.fetch as jest.Mock).mockResolvedValue({
+      (safeFetch as jest.Mock).mockResolvedValue({
         ok: true,
         json: async () => ({}),
       });
@@ -312,7 +317,7 @@ describe('SettingsController', () => {
     let cryptoSpy: jest.SpyInstance;
 
     beforeEach(() => {
-      global.fetch = jest.fn();
+      (safeFetch as jest.Mock).mockReset();
       const crypto = require('crypto');
       cryptoSpy = jest
         .spyOn(crypto, 'X509Certificate')
@@ -337,7 +342,7 @@ describe('SettingsController', () => {
     });
 
     it('should handle timeout on metadata fetch', async () => {
-      (global.fetch as jest.Mock).mockImplementation(() => {
+      (safeFetch as jest.Mock).mockImplementation(() => {
         const error = new Error('Timeout');
         error.name = 'AbortError';
         return Promise.reject(error);
@@ -379,7 +384,7 @@ describe('SettingsController', () => {
           </IDPSSODescriptor>
         </EntityDescriptor>`;
 
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+      (safeFetch as jest.Mock).mockResolvedValueOnce({
         ok: true,
         text: async () => validMetadata,
       });
@@ -396,7 +401,7 @@ describe('SettingsController', () => {
     it('should reject metadata missing EntityDescriptor', async () => {
       const invalidMetadata = `<?xml version="1.0"?><root></root>`;
 
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+      (safeFetch as jest.Mock).mockResolvedValueOnce({
         ok: true,
         text: async () => invalidMetadata,
       });
@@ -419,7 +424,7 @@ describe('SettingsController', () => {
           </IDPSSODescriptor>
         </EntityDescriptor>`;
 
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
+      (safeFetch as jest.Mock).mockResolvedValueOnce({
         ok: true,
         text: async () => invalidMetadata,
       });
@@ -435,3 +440,4 @@ describe('SettingsController', () => {
     });
   });
 });
+

@@ -19,7 +19,7 @@ export function ImageUpload({
     onUpload,
     label,
     className,
-    accept = "image/png, image/jpeg, image/svg+xml, image/x-icon"
+    accept = "image/png, image/jpeg, image/x-icon"
 }: ImageUploadProps) {
     const [isUploading, setIsUploading] = useState(false);
     const [preview, setPreview] = useState(value);
@@ -110,7 +110,7 @@ export function ImageUpload({
                         Upload Image
                     </Button>
                     <p className="text-[0.8rem] text-muted-foreground">
-                        Recommended: PNG, JPG, or SVG. Max 2MB.
+                        Recommended: PNG or JPG. Max 2MB.
                     </p>
                 </div>
             </div>

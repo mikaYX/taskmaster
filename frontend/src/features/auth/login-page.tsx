@@ -43,8 +43,7 @@ export function LoginPage() {
         }
 
         if (ssoTicket) {
-            authApi.exchangeSsoTicket(ssoTicket).then((tokens) => {
-                localStorage.setItem('accessToken', tokens.accessToken);
+            authApi.exchangeSsoTicket(ssoTicket).then(() => {
                 window.location.replace('/');
             }).catch(() => {
                 console.error('SSO ticket exchange failed');

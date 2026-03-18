@@ -2,16 +2,21 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import * as fs from 'fs';
 import { VersionService } from './version.service';
+import { safeFetch } from '../common/utils/url-validator.util';
 
 jest.mock('fs', () => ({
   ...jest.requireActual('fs'),
   readFileSync: jest.fn(),
 }));
 
+jest.mock('../common/utils/url-validator.util', () => ({
+  safeFetch: jest.fn(),
+}));
+
 const mockedReadFileSync = fs.readFileSync as jest.Mock;
 
 function mockFetch(impl: (...args: unknown[]) => Promise<unknown>) {
-  global.fetch = jest.fn(impl) as unknown as typeof fetch;
+  (safeFetch as jest.Mock).mockImplementation(impl);
 }
 
 function makeRelease(tagName: string, prerelease = false) {
@@ -46,7 +51,7 @@ describe('VersionService', () => {
   });
 
   afterEach(() => {
-    delete (global as Record<string, unknown>).fetch;
+    jest.clearAllMocks();
   });
 
   describe('resolveCurrentVersion', () => {
@@ -164,7 +169,7 @@ describe('VersionService', () => {
       const second = await service.getVersionStatus();
 
       expect(first).toBe(second);
-      expect(global.fetch).toHaveBeenCalledTimes(1);
+      expect(safeFetch).toHaveBeenCalledTimes(1);
     });
 
     it('should use VERSION_CHECK_REPO when configured', async () => {
@@ -176,8 +181,9 @@ describe('VersionService', () => {
       const result = await service.getVersionStatus();
 
       expect(result.repo).toBe('custom-org/custom-repo');
-      expect(global.fetch).toHaveBeenCalledWith(
+      expect(safeFetch).toHaveBeenCalledWith(
         expect.stringContaining('custom-org/custom-repo'),
+        expect.any(Object),
         expect.any(Object),
       );
     });
@@ -210,7 +216,7 @@ describe('VersionService', () => {
 
       const [r1, r2] = await Promise.all([p1, p2]);
       expect(r1).toBe(r2);
-      expect(global.fetch).toHaveBeenCalledTimes(1);
+      expect(safeFetch).toHaveBeenCalledTimes(1);
     });
   });
 });

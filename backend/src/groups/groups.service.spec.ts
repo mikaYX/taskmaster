@@ -14,7 +14,7 @@ import { NotFoundException, ConflictException } from '@nestjs/common';
 import { GroupsService } from './groups.service';
 import { PrismaService } from '../prisma';
 
-const mockPrismaClient = {
+const mockPrismaClient: any = {
   group: {
     findMany: jest.fn(),
     findFirst: jest.fn(),
@@ -172,7 +172,7 @@ describe('Point 92 — GroupsService soft-delete', () => {
     it('doit autoriser la création d\'un groupe avec le nom d\'un groupe soft-deleted', async () => {
       // findFirst retourne null car le groupe portant ce nom est soft-deleted
       mockPrismaClient.group.findFirst.mockResolvedValue(null);
-      mockPrismaClient.client?.site?.findUnique?.mockResolvedValue(null);
+      mockPrismaClient.site = { findUnique: jest.fn().mockResolvedValue(null) };
 
       const newGroup = makeGroup({ id: 2, name: 'Recycled Group' });
       mockPrismaClient.group.create.mockResolvedValue(newGroup);

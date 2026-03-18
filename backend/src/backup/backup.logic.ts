@@ -16,16 +16,26 @@ import {
   createReadStream,
   rmSync,
   readFileSync,
+  appendFileSync,
+  openSync,
+  readSync,
+  closeSync,
+  cpSync,
+  copyFileSync,
+  renameSync,
 } from 'fs';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import * as archiver from 'archiver';
+import * as crypto from 'crypto';
 import { SettingsService } from '../settings';
 import { EncryptionService } from './encryption.service';
-import { cpSync, copyFileSync, renameSync } from 'fs';
 
 const execAsync = promisify(exec);
 const DEFAULT_BACKUP_DIR = join(process.cwd(), 'backups', 'system');
+const TEMP_UPLOADS_DIR = join(process.cwd(), 'backups', 'temp_uploads');
+
+export type BackupSourceType = 'backup_name' | 'temp_upload_path';
 
 @Injectable()
 export class BackupLogicService {
@@ -127,6 +137,12 @@ export class BackupLogicService {
 
       // 4. Create Archive & Encrypt Stream
       await this.archiveAndEncrypt(tempDir, finalPath);
+
+      // 4.5 Sign Archive with HMAC SHA256
+      const hmacKey = this.configService.get<string>('BACKUP_ENCRYPTION_KEY');
+      if (!hmacKey) throw new InternalServerErrorException('Missing BACKUP_ENCRYPTION_KEY');
+      const signature = await this.signFile(finalPath, hmacKey);
+      appendFileSync(finalPath, Buffer.from(signature + '##HMAC##', 'utf8'));
 
       // 5. Cleanup Temp
       rmSync(tempDir, { recursive: true, force: true });
@@ -354,11 +370,49 @@ export class BackupLogicService {
   }
 
   async getBackupPath(filename: string) {
-    if (filename.includes('..')) throw new BadRequestException('Invalid path');
+    if (
+      filename.includes('..') ||
+      filename.includes('/') ||
+      filename.includes('\\')
+    ) {
+      throw new BadRequestException('Invalid filename');
+    }
     const backupDir = await this.getStoragePath();
     const path = join(backupDir, filename);
     if (!existsSync(path)) throw new BadRequestException('File not found');
     return path;
+  }
+
+  private getTempUploadPath(filename: string): string {
+    if (
+      !filename ||
+      filename.includes('..') ||
+      filename.includes('/') ||
+      filename.includes('\\')
+    ) {
+      throw new BadRequestException('Invalid temp filename');
+    }
+
+    if (!/^[a-zA-Z0-9_.-]+$/.test(filename)) {
+      throw new BadRequestException('Invalid temp filename');
+    }
+
+    const tempPath = join(TEMP_UPLOADS_DIR, filename);
+    if (!existsSync(tempPath)) {
+      throw new BadRequestException('Temp backup file not found');
+    }
+
+    return tempPath;
+  }
+
+  private async resolveSourcePath(
+    sourceRef: string,
+    source: BackupSourceType,
+  ): Promise<string> {
+    if (source === 'temp_upload_path') {
+      return this.getTempUploadPath(sourceRef);
+    }
+    return this.getBackupPath(sourceRef);
   }
 
   async deleteBackup(filename: string) {
@@ -399,7 +453,10 @@ export class BackupLogicService {
     };
   }
 
-  async validateBackup(filename: string): Promise<{
+  async validateBackup(
+    sourceRef: string,
+    source: BackupSourceType = 'backup_name',
+  ): Promise<{
     isValid: boolean;
     needsDecryptionKey: boolean;
     manifest?: any;
@@ -408,11 +465,7 @@ export class BackupLogicService {
   }> {
     let filepath: string;
     try {
-      if (existsSync(filename)) {
-        filepath = filename;
-      } else {
-        filepath = await this.getBackupPath(filename);
-      }
+      filepath = await this.resolveSourcePath(sourceRef, source);
     } catch {
       return {
         isValid: false,
@@ -429,12 +482,33 @@ export class BackupLogicService {
     try {
       mkdirSync(extractDir, { recursive: true });
 
+      const hmacKey = this.configService.get<string>('BACKUP_ENCRYPTION_KEY');
+      if (!hmacKey) throw new InternalServerErrorException('Missing BACKUP_ENCRYPTION_KEY');
+      const sigStatus = await this.verifyFileSignature(filepath, hmacKey);
+
+      if (!sigStatus.hasSignature) {
+        return {
+          isValid: false,
+          needsDecryptionKey: false,
+          error: 'Security Error: Backup signature (.sig or appended) is missing. Cannot verify integrity.',
+        };
+      }
+
+      if (sigStatus.hasSignature && !sigStatus.isValid) {
+        return {
+          isValid: false,
+          needsDecryptionKey: false,
+          error: 'Security Error: Invalid HMAC signature. Backup file is corrupted or tampered with.',
+        };
+      }
+
       try {
         await this.decryptAndExtract(
           filepath,
           extractDir,
           undefined,
           'manifest.json',
+          sigStatus.hasSignature,
         );
       } catch (e: unknown) {
         if (
@@ -474,7 +548,7 @@ export class BackupLogicService {
           : undefined,
       };
     } catch (error: unknown) {
-      this.logger.error(`Validation failed for ${filename}`, error);
+      this.logger.error(`Validation failed for ${sourceRef}`, error);
       return {
         isValid: false,
         needsDecryptionKey: false,
@@ -487,15 +561,11 @@ export class BackupLogicService {
   }
 
   async restoreSystemSnapshot(
-    filename: string,
+    sourceRef: string,
     options: { decryptionKey?: string; force?: boolean } = {},
+    source: BackupSourceType = 'backup_name',
   ): Promise<{ status: string; message: string }> {
-    let filepath = filename;
-    if (existsSync(filename)) {
-      filepath = filename;
-    } else {
-      filepath = await this.getBackupPath(filename);
-    }
+    const filepath = await this.resolveSourcePath(sourceRef, source);
 
     const backupDir = await this.getStoragePath();
     const restoreId = Math.random().toString(36).substring(7);
@@ -504,7 +574,19 @@ export class BackupLogicService {
 
     try {
       mkdirSync(extractDir, { recursive: true });
-      await this.decryptAndExtract(filepath, extractDir, options.decryptionKey);
+
+      const hmacKey = this.configService.get<string>('BACKUP_ENCRYPTION_KEY');
+      if (!hmacKey) throw new InternalServerErrorException('Missing BACKUP_ENCRYPTION_KEY');
+      const sigStatus = await this.verifyFileSignature(filepath, hmacKey);
+
+      if (!sigStatus.hasSignature) {
+        throw new BadRequestException('Security Error: Backup signature is missing. Restoration blocked.');
+      }
+      if (!sigStatus.isValid) {
+        throw new BadRequestException('Security Error: Invalid HMAC signature. Backup file is corrupted or tampered with.');
+      }
+
+      await this.decryptAndExtract(filepath, extractDir, options.decryptionKey, undefined, sigStatus.hasSignature);
 
       const manifestPath = join(extractDir, 'manifest.json');
       if (!existsSync(manifestPath)) {
@@ -542,7 +624,7 @@ export class BackupLogicService {
     } finally {
       if (existsSync(tempDir))
         rmSync(tempDir, { recursive: true, force: true });
-      if (filepath.includes('val_ext_') && existsSync(filepath)) {
+      if (source === 'temp_upload_path' && existsSync(filepath)) {
         try {
           unlinkSync(filepath);
         } catch (e) {
@@ -557,9 +639,13 @@ export class BackupLogicService {
     outputDir: string,
     key?: string,
     fileToExtract?: string,
+    hasSignature: boolean = false,
   ): Promise<void> {
     return new Promise((resolve, reject) => {
-      const input = createReadStream(inputPath);
+      const stats = statSync(inputPath);
+      // Strip the 72 bytes of signature if present, else read the whole file
+      const streamEnd = hasSignature ? Math.max(0, stats.size - 73) : undefined;
+      const input = createReadStream(inputPath, streamEnd !== undefined ? { end: streamEnd } : undefined);
       const isEncrypted = inputPath.endsWith('.enc');
 
       let stream: import('stream').Readable = input;
@@ -634,6 +720,59 @@ export class BackupLogicService {
     } catch (e) {
       this.logger.error('pg_restore failed', e);
       throw new Error('Database restore failed');
+    }
+  }
+
+  private async signFile(filePath: string, key: string): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const hmac = crypto.createHmac('sha256', key);
+      const stream = createReadStream(filePath);
+      stream.on('data', (chunk) => hmac.update(chunk));
+      stream.on('end', () => resolve(hmac.digest('hex')));
+      stream.on('error', reject);
+    });
+  }
+
+  private async verifyFileSignature(filePath: string, key: string): Promise<{ hasSignature: boolean; isValid: boolean }> {
+    try {
+      const stats = statSync(filePath);
+      if (stats.size < 72) return { hasSignature: false, isValid: false };
+
+      const fd = openSync(filePath, 'r');
+      const magicBuffer = Buffer.alloc(8);
+      readSync(fd, magicBuffer, 0, 8, stats.size - 8);
+      
+      const isMagic = magicBuffer.toString('utf8') === '##HMAC##';
+      if (!isMagic) {
+        closeSync(fd);
+        return { hasSignature: false, isValid: false };
+      }
+
+      const sigBuffer = Buffer.alloc(64);
+      readSync(fd, sigBuffer, 0, 64, stats.size - 72);
+      closeSync(fd);
+
+      const expectedSignature = sigBuffer.toString('utf8');
+
+      return await new Promise<{ hasSignature: boolean; isValid: boolean }>((resolve, reject) => {
+        const hmac = crypto.createHmac('sha256', key);
+        const stream = createReadStream(filePath, { start: 0, end: stats.size - 73 });
+        stream.on('data', (chunk) => hmac.update(chunk));
+        stream.on('end', () => {
+          const actualSignature = hmac.digest('hex');
+          try {
+            const actualBuffer = Buffer.from(actualSignature, 'utf8');
+            const expectedBuffer = Buffer.from(expectedSignature, 'utf8');
+            if (actualBuffer.length !== expectedBuffer.length) return resolve({ hasSignature: true, isValid: false });
+            resolve({ hasSignature: true, isValid: crypto.timingSafeEqual(actualBuffer, expectedBuffer) });
+          } catch {
+            resolve({ hasSignature: true, isValid: false });
+          }
+        });
+        stream.on('error', reject);
+      });
+    } catch {
+      return { hasSignature: false, isValid: false };
     }
   }
 }

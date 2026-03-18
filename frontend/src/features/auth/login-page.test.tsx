@@ -1,5 +1,17 @@
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, beforeAll } from 'vitest';
+const { storage } = vi.hoisted(() => {
+    const storage = new Map<string, string>();
+    vi.stubGlobal('localStorage', {
+        getItem: (key: string) => storage.get(key) ?? null,
+        setItem: (key: string, value: string) => { storage.set(key, value); },
+        removeItem: (key: string) => { storage.delete(key); },
+        clear: () => { storage.clear(); },
+        key: (index: number) => Array.from(storage.keys())[index] ?? null,
+        get length() { return storage.size; },
+    } satisfies Storage);
+    return { storage };
+});
 import { LoginPage } from './login-page';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
@@ -31,21 +43,6 @@ vi.mock('react-i18next', () => ({
     useTranslation: () => ({ t: (key: string) => key }),
 }));
 
-const mockStorage: Record<string, string> = {};
-const localStorageMock = {
-    getItem: vi.fn((key: string) => mockStorage[key] || null),
-    setItem: vi.fn((key: string, value: string) => {
-        mockStorage[key] = value;
-    }),
-    removeItem: vi.fn((key: string) => {
-        delete mockStorage[key];
-    }),
-    clear: vi.fn(() => {
-        for (const key in mockStorage) delete mockStorage[key];
-    }),
-};
-vi.stubGlobal('localStorage', localStorageMock);
-
 describe('LoginPage', () => {
     let queryClient: QueryClient;
 
@@ -57,9 +54,8 @@ describe('LoginPage', () => {
         queryClient = new QueryClient({
             defaultOptions: { queries: { retry: false } },
         });
+        storage.clear();
         vi.clearAllMocks();
-        // Reset localStorage mock natively
-        localStorageMock.clear();
     });
 
     const renderWithRouter = (initialEntries: string[] = ['/login']) =>
@@ -79,8 +75,7 @@ describe('LoginPage', () => {
             });
             vi.mocked(webauthn.startAuthentication).mockResolvedValue({ id: 'key-123' } as unknown as webauthn.AuthenticationResponseJSON);
             vi.mocked(authApi.verifyPasskeyAuthentication).mockResolvedValue({
-                accessToken: 'mock-access',
-                refreshToken: 'mock-refresh'
+                expiresIn: 900,
             });
 
             renderWithRouter();
@@ -102,8 +97,6 @@ describe('LoginPage', () => {
     describe('SSO ticket exchange', () => {
         it('should call exchangeSsoTicket when sso_ticket is in URL', async () => {
             vi.mocked(authApi.exchangeSsoTicket).mockResolvedValue({
-                accessToken: 'sso-access',
-                refreshToken: 'sso-refresh',
                 expiresIn: 900,
             });
 
@@ -117,8 +110,8 @@ describe('LoginPage', () => {
             renderWithRouter(['/login?sso_ticket=test-ticket']);
 
             await waitFor(() => {
-                expect(window.localStorage.getItem('accessToken')).toEqual('sso-access');
-                expect(window.localStorage.getItem('refreshToken')).toEqual('sso-refresh');
+                expect(authApi.exchangeSsoTicket).toHaveBeenCalledWith('test-ticket');
+                expect(replaceSpy).toHaveBeenCalledWith('/');
             });
         });
 
@@ -128,9 +121,6 @@ describe('LoginPage', () => {
             // Give effects time to run and wrap in act to avoid warnings
             await waitFor(() => new Promise(r => setTimeout(r, 50)));
 
-            // access_token/refresh_token should NOT be stored
-            expect(window.localStorage.getItem('accessToken')).toBeNull();
-            expect(window.localStorage.getItem('refreshToken')).toBeNull();
             expect(authApi.exchangeSsoTicket).not.toHaveBeenCalled();
         });
     });

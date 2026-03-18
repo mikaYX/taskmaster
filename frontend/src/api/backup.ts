@@ -75,14 +75,19 @@ export const backupApi = {
             manifest?: any;
             error?: string;
             details?: string;
-            tempFilename?: string;
+            tempFilename: string;
         }>('/backup/validate-ext', formData);
     },
 
     /**
      * Restore from a backup file (upload) or server filename.
      */
-    restore: (fileOrFilename: File | string, decryptionKey?: string, force?: boolean) => {
+    restore: (
+        fileOrFilename: File | string,
+        decryptionKey?: string,
+        force?: boolean,
+        source: 'backup' | 'temp' = 'backup',
+    ) => {
         if (fileOrFilename instanceof File) {
             const formData = new FormData();
             formData.append('file', fileOrFilename);
@@ -90,9 +95,11 @@ export const backupApi = {
             if (force) formData.append('force', 'true');
             return http.post<void>('/backup/restore', formData);
         } else {
-            // Restore from server file
+            // Restore from server-stored backup or validated temp upload
             return http.post<void>('/backup/restore', {
-                filename: fileOrFilename,
+                ...(source === 'temp'
+                    ? { tempFilename: fileOrFilename }
+                    : { filename: fileOrFilename }),
                 decryptionKey,
                 force: force ? 'true' : 'false'
             });

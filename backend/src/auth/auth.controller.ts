@@ -32,13 +32,13 @@ import { PasskeyExempt } from './decorators/passkey-exempt.decorator';
 import { Audit } from '../audit/decorators/audit.decorator';
 import { AuditAction, AuditCategory } from '../audit/audit.constants';
 import { JwtPayload } from './strategies/jwt.strategy';
-
-/** @deprecated Body-based refresh token DTO — kept only for backward compatibility */
-class RefreshTokenDto {
-  @IsString()
-  @IsNotEmpty()
-  refreshToken?: string;
-}
+import {
+  REFRESH_COOKIE_NAME,
+  setAccessCookie as applyAccessCookie,
+  setRefreshCookie as applyRefreshCookie,
+  clearAccessCookie as removeAccessCookie,
+  clearRefreshCookie as removeRefreshCookie,
+} from './auth-cookies';
 
 class VerifyMfaLoginDto {
   @IsString()
@@ -56,10 +56,15 @@ class ExchangeSsoTicketDto {
   ssoTicket!: string;
 }
 
+type AuthClientSession = {
+  expiresIn: number;
+  mustChangePassword?: boolean;
+};
+
 @Controller('auth')
 export class AuthController {
   /** Name of the HttpOnly cookie carrying the refresh token. */
-  static readonly REFRESH_COOKIE_NAME = 'refresh_token';
+  static readonly REFRESH_COOKIE_NAME = REFRESH_COOKIE_NAME;
 
   private readonly isProd: boolean;
 
@@ -75,23 +80,37 @@ export class AuthController {
 
   /** Writes the refresh token as a Secure HttpOnly cookie on the response. */
   private setRefreshCookie(res: Response, refreshToken: string): void {
-    res.cookie(AuthController.REFRESH_COOKIE_NAME, refreshToken, {
-      httpOnly: true,
-      secure: this.isProd,
-      sameSite: 'strict',
-      path: '/api/auth',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
+    applyRefreshCookie(res, refreshToken, this.isProd);
+  }
+
+  /** Writes the access token as a Secure HttpOnly cookie on the response. */
+  private setAccessCookie(
+    res: Response,
+    accessToken: string,
+    expiresInSeconds: number,
+  ): void {
+    applyAccessCookie(res, accessToken, expiresInSeconds, this.isProd);
   }
 
   /** Clears the refresh token cookie (logout). */
   private clearRefreshCookie(res: Response): void {
-    res.clearCookie(AuthController.REFRESH_COOKIE_NAME, {
-      httpOnly: true,
-      secure: this.isProd,
-      sameSite: 'strict',
-      path: '/api/auth',
-    });
+    removeRefreshCookie(res, this.isProd);
+  }
+
+  /** Clears the access token cookie (logout / auth failure). */
+  private clearAccessCookie(res: Response): void {
+    removeAccessCookie(res, this.isProd);
+  }
+
+  private toClientSession(
+    data: { expiresIn: number; mustChangePassword?: boolean },
+  ): AuthClientSession {
+    return {
+      expiresIn: data.expiresIn,
+      ...(data.mustChangePassword !== undefined
+        ? { mustChangePassword: data.mustChangePassword }
+        : {}),
+    };
   }
 
   @Post('login')
@@ -126,9 +145,10 @@ export class AuthController {
       return result;
     }
 
-    const { refreshToken, ...rest } = result;
+    const { refreshToken, accessToken, ...rest } = result;
     this.setRefreshCookie(res, refreshToken);
-    return rest;
+    this.setAccessCookie(res, accessToken, rest.expiresIn);
+    return this.toClientSession(rest);
   }
 
   @Post('mfa/verify')
@@ -157,9 +177,10 @@ export class AuthController {
       ipAddress,
     );
 
-    const { refreshToken, ...rest } = result;
+    const { refreshToken, accessToken, ...rest } = result;
     this.setRefreshCookie(res, refreshToken);
-    return rest;
+    this.setAccessCookie(res, accessToken, rest.expiresIn);
+    return this.toClientSession(rest);
   }
 
   @Get('session')
@@ -228,13 +249,15 @@ export class AuthController {
     );
 
     if (!result) {
+      this.clearAccessCookie(res);
       this.clearRefreshCookie(res);
       throw new UnauthorizedException('Refresh token invalid or revoked');
     }
 
-    const { refreshToken, ...rest } = result;
+    const { refreshToken, accessToken, ...rest } = result;
     this.setRefreshCookie(res, refreshToken);
-    return rest;
+    this.setAccessCookie(res, accessToken, rest.expiresIn);
+    return this.toClientSession(rest);
   }
 
   @Post('password')
@@ -265,6 +288,7 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     await this.authService.logout(userId);
+    this.clearAccessCookie(res);
     this.clearRefreshCookie(res);
     return { ok: true };
   }
@@ -408,8 +432,9 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     const result = await this.oidcService.consumeSsoTicket(dto.ssoTicket);
-    const { refreshToken, ...rest } = result;
+    const { refreshToken, accessToken, ...rest } = result;
     this.setRefreshCookie(res, refreshToken);
-    return rest;
+    this.setAccessCookie(res, accessToken, rest.expiresIn);
+    return this.toClientSession(rest);
   }
 }

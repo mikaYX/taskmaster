@@ -11,6 +11,7 @@ import {
 } from './settings.registry';
 import { SettingResponseDto } from './dto';
 import parser from 'cron-parser';
+import { safeFetch } from '../common/utils/url-validator.util';
 
 const SENSITIVE_PLACEHOLDER = '••••••••';
 
@@ -526,7 +527,10 @@ export class SettingsService {
     }
 
     try {
-      const response = await fetch(
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      
+      const response = await safeFetch(
         `https://api.github.com/repos/${repo}/issues`,
         {
           method: 'POST',
@@ -540,8 +544,11 @@ export class SettingsService {
             body: `**From User:** ${user.username}\n\n**Type:** ${dto.type}\n\n**Description:**\n${dto.description}`,
             labels: [dto.type, 'user-feedback'],
           }),
+          signal: controller.signal as RequestInit["signal"],
         },
+        { timeoutMs: 10000, allowHttp: false }
       );
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         throw new Error(`GitHub API returned ${response.status}`);

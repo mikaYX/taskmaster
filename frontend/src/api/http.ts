@@ -61,15 +61,7 @@ async function refreshAccessToken(): Promise<RefreshResult> {
             }
             return 'transient_error';
         }
-
-        const data = await response.json();
-
-        if (data.accessToken) {
-            localStorage.setItem('accessToken', data.accessToken);
-            return 'success';
-        }
-
-        return 'auth_invalid';
+        return 'success';
     } catch {
         return 'transient_error';
     }
@@ -113,8 +105,6 @@ async function handleTokenRefresh(): Promise<RefreshResult> {
  * Clear auth state and redirect to login.
  */
 function handleAuthFailure(): void {
-    localStorage.removeItem('accessToken');
-
     // Only redirect if not already on login page
     if (!window.location.pathname.includes('/login')) {
         window.location.href = '/login';
@@ -154,13 +144,11 @@ async function request<T>(
         }
     }
 
-    const token = localStorage.getItem('accessToken');
     const isFormData = fetchOptions.body instanceof FormData;
 
     const currentSiteId = useSiteStore.getState().currentSiteId;
 
     const headers: HeadersInit = {
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...(currentSiteId != null ? { 'X-Site-Id': String(currentSiteId) } : {}),
         ...fetchOptions.headers,
     };

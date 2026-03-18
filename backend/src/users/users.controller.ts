@@ -83,8 +83,15 @@ export class UsersController {
   })
   @RequirePermission(Permission.USER_WRITE)
   @HttpCode(HttpStatus.CREATED)
-  async create(@Body() dto: CreateUserDto) {
-    return this.usersService.create(dto);
+  async create(
+    @Body() dto: CreateUserDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.usersService.create(dto, {
+      id: user.sub,
+      username: user.username,
+      role: user.role,
+    });
   }
 
   /**
@@ -100,6 +107,7 @@ export class UsersController {
     return this.usersService.update(id, dto, {
       id: user.sub,
       username: user.username,
+      role: user.role,
     });
   }
 

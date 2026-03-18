@@ -8,11 +8,12 @@ import { ConfigService } from '@nestjs/config';
 import type { Request } from 'express';
 
 /**
- * CSRF protection guard — three-layer defense in depth:
+ * CSRF protection guard — trusted-origin enforcement:
  *
- *  Layer 1 (X-Requested-With): Classic AJAX header, always accepted.
- *  Layer 2 (Origin): OWASP-recommended primary check.
- *  Layer 3 (Referer): Fallback for browsers that omit Origin on same-origin POST.
+ *  Primary: Origin header must be trusted.
+ *  Fallback: Referer origin must be trusted when Origin is absent.
+ *
+ * X-Requested-With can still be sent by the frontend but is not sufficient on its own.
  *
  * Allowed origins are computed from environment configuration so that
  * dev, staging, and production can all be handled without code changes.
@@ -49,19 +50,11 @@ export class CsrfTokenGuard implements CanActivate {
 
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest<Request>();
-
-    // Layer 1: X-Requested-With — always accepted
-    if (request.headers['x-requested-with'] === 'XMLHttpRequest') {
-      return true;
-    }
-
-    // Layer 2: Origin header (preferred by OWASP)
     const origin = request.headers['origin'];
     if (origin && this.allowedOrigins.has(origin)) {
       return true;
     }
 
-    // Layer 3: Referer header (some browsers omit Origin on same-origin POST)
     const referer = request.headers['referer'];
     if (referer) {
       try {
@@ -75,7 +68,7 @@ export class CsrfTokenGuard implements CanActivate {
     }
 
     throw new ForbiddenException(
-      'CSRF validation failed: request must include a valid X-Requested-With header or originate from a trusted Origin',
+      'CSRF validation failed: request must originate from a trusted Origin or Referer',
     );
   }
 }

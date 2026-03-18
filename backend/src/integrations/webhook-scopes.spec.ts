@@ -190,7 +190,7 @@ describe('IntegrationsService — scope & tenant validation', () => {
 
     mockTasksService.create.mockResolvedValue({ id: 42 });
 
-    const result = await service.processIncomingWebhook(dto as any, user);
+    const result = (await service.processIncomingWebhook(dto as any, user)) as { success: boolean; taskId: number };
     expect(result.success).toBe(true);
     expect(result.taskId).toBe(42);
   });

@@ -353,13 +353,13 @@ export interface LoginDto {
   password: string;
 }
 
-export interface AuthTokens {
-  accessToken: string;
-  refreshToken: string;
+export interface AuthSessionResponse {
+  expiresIn: number;
+  mustChangePassword?: boolean;
 }
 
 export type LoginResponse =
-  | AuthTokens
+  | AuthSessionResponse
   | { requiresMfa: true; mfaToken: string };
 
 export interface VerifyMfaLoginDto {

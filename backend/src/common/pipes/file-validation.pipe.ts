@@ -37,11 +37,11 @@ export class FileValidationPipe implements PipeTransform {
 
     // Buffer is available (memory storage)
     if (value.buffer) {
-      detectedType = await fileType.fromBuffer(value.buffer);
+      detectedType = await fileType.fileTypeFromBuffer(value.buffer);
     } 
     // File is on disk (disk storage)
     else if (value.path) {
-      detectedType = await fileType.fromFile(value.path);
+      detectedType = await fileType.fileTypeFromFile(value.path);
     } else {
       throw new BadRequestException('Invalid file object structure');
     }

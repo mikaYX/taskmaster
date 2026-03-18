@@ -639,7 +639,7 @@ export function GeneralSettingsPage() {
                                         <input
                                             type="file"
                                             className="hidden"
-                                            accept="image/x-icon,image/png,image/svg+xml"
+                                            accept="image/x-icon,image/png"
                                             onChange={handleFaviconFileChange}
                                         />
                                     </label>

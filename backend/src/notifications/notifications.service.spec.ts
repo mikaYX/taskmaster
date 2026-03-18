@@ -4,6 +4,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { EncryptionService } from '../settings/encryption.service';
 import { EmailService } from '../email/email.service';
 import { SettingsService } from '../settings/settings.service';
+import { PushService } from './push.service';
 
 describe('NotificationsService', () => {
   let service: NotificationsService;
@@ -15,7 +16,14 @@ describe('NotificationsService', () => {
         { provide: PrismaService, useValue: {} },
         { provide: EncryptionService, useValue: {} },
         { provide: EmailService, useValue: {} },
-        { provide: SettingsService, useValue: {} },
+        {
+          provide: SettingsService,
+          useValue: { getRawValue: jest.fn() },
+        },
+        {
+          provide: PushService,
+          useValue: { sendViaChannelConfig: jest.fn() },
+        },
       ],
     }).compile();
 

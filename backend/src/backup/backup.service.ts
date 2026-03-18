@@ -8,17 +8,25 @@ import {
 } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
-import { ConfigService } from '@nestjs/config';
-import { BackupLogicService } from './backup.logic';
+import { BackupLogicService, type BackupSourceType } from './backup.logic';
 
 @Injectable()
-export class BackupService {
+export class BackupService implements OnModuleInit {
   private readonly logger = new Logger(BackupService.name);
 
   constructor(
     @InjectQueue('backup') private readonly backupQueue: Queue,
     private readonly backupLogic: BackupLogicService,
   ) { }
+
+  async onModuleInit() {
+    if (!this.backupLogic.isEncryptionKeyPresent() || this.backupLogic.isEncryptionKeyDefault()) {
+      throw new InternalServerErrorException(
+        'CRITICAL SECURITY ERROR: BACKUP_ENCRYPTION_KEY is missing or set to a default insecure value. ' +
+        'A secure, unique key MUST be defined to sign backups.',
+      );
+    }
+  }
 
   /**
    * Dispatch Backup Job (Async)
@@ -36,8 +44,9 @@ export class BackupService {
   async restoreSystemSnapshot(
     filename: string,
     options: { decryptionKey?: string; force?: boolean } = {},
+    source: BackupSourceType = 'backup_name',
   ): Promise<{ jobId: string; status: string }> {
-    const job = await this.backupQueue.add('restore', { filename, options });
+    const job = await this.backupQueue.add('restore', { filename, options, source });
     return { jobId: job.id!, status: 'queued' };
   }
 
@@ -109,8 +118,11 @@ export class BackupService {
     return await this.backupLogic.deleteBackup(filename);
   }
 
-  async validateBackup(filename: string) {
-    return this.backupLogic.validateBackup(filename);
+  async validateBackup(
+    filename: string,
+    source: BackupSourceType = 'backup_name',
+  ) {
+    return this.backupLogic.validateBackup(filename, source);
   }
 
   isEncryptionKeyPresent(): boolean {

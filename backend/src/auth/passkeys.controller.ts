@@ -14,13 +14,13 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { PasskeysService } from './passkeys.service';
 import { AuthService } from './auth.service';
-import { AuthController } from './auth.controller';
 import { JwtAuthGuard } from './guards';
 import { CurrentUser } from './decorators';
 import { PasskeyExempt } from './decorators/passkey-exempt.decorator';
 import { User } from '@prisma/client';
 import { RegistrationResponseDto, AuthenticationResponseDto } from './dto';
 import { Request, Response } from 'express';
+import { setAccessCookie, setRefreshCookie } from './auth-cookies';
 
 @Controller('auth/passkeys')
 export class PasskeysController {
@@ -76,15 +76,13 @@ export class PasskeysController {
     );
     // Complete login, skipping TOTP MFA since Passkey provides strong authentication
     const result = await this.authService.completeLogin(user.id);
-    const { refreshToken, ...rest } = result;
-    res.cookie(AuthController.REFRESH_COOKIE_NAME, refreshToken, {
-      httpOnly: true,
-      secure: this.isProd,
-      sameSite: 'strict',
-      path: '/api/auth',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
-    return rest;
+    const { refreshToken, accessToken, expiresIn, mustChangePassword } = result;
+    setRefreshCookie(res, refreshToken, this.isProd);
+    setAccessCookie(res, accessToken, expiresIn, this.isProd);
+    return {
+      expiresIn,
+      ...(mustChangePassword !== undefined ? { mustChangePassword } : {}),
+    };
   }
 
   @UseGuards(JwtAuthGuard)

@@ -3,6 +3,7 @@ import {
   NotFoundException,
   ConflictException,
   BadRequestException,
+  ForbiddenException,
   Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma';
@@ -14,7 +15,7 @@ import {
   toUserResponse,
 } from './dto';
 import { AuditService } from '../audit/audit.service';
-import { AuditAction, AuditCategory } from '../audit/audit.constants';
+import { AuditAction, AuditCategory, AuditSeverity } from '../audit/audit.constants';
 
 /**
  * Users Service.
@@ -101,7 +102,7 @@ export class UsersService {
   /**
    * Create a new user.
    */
-  async create(dto: CreateUserDto): Promise<UserResponseDto> {
+  async create(dto: CreateUserDto, actor?: { id: number; username: string; role: string }): Promise<UserResponseDto> {
     // Check username uniqueness
     const existing = await this.prisma.client.user.findUnique({
       where: { username: dto.username },
@@ -116,6 +117,11 @@ export class UsersService {
       throw new ConflictException(
         'Guest users cannot be created via the standard user endpoint. Use the dedicated Guest TV Link flow.',
       );
+    }
+
+    if (dto.role === 'SUPER_ADMIN' && actor && actor.role !== 'SUPER_ADMIN') {
+      this.logger.warn(`Privilege escalation attempt: User ${actor.username} tried to create a SUPER_ADMIN`);
+      throw new ForbiddenException('Only administrators can create SUPER_ADMIN users.');
     }
 
     const passwordHash = await this.authService.hashPassword(dto.password);
@@ -161,7 +167,7 @@ export class UsersService {
   async update(
     id: number,
     dto: UpdateUserDto,
-    actor?: { id: number; username: string },
+    actor?: { id: number; username: string; role: string },
   ): Promise<UserResponseDto> {
     // Verify user exists and is active
     const existing = await this.prisma.client.user.findFirst({
@@ -176,6 +182,13 @@ export class UsersService {
       throw new ConflictException(
         'Guest users cannot be managed via the standard user endpoint. Use the dedicated Guest TV Link flow.',
       );
+    }
+
+    if (dto.role && dto.role !== existing.role) {
+      if ((dto.role === 'SUPER_ADMIN' || existing.role === 'SUPER_ADMIN') && actor && actor.role !== 'SUPER_ADMIN') {
+        this.logger.warn(`Privilege escalation attempt: User ${actor.username} tried to change role from ${existing.role} to ${dto.role}`);
+        throw new ForbiddenException('Only administrators can grant or revoke the SUPER_ADMIN role.');
+      }
     }
 
     const user = await this.prisma.client.user.update({
@@ -204,6 +217,18 @@ export class UsersService {
         before: existing,
         after: user,
       });
+
+      if (dto.role && dto.role !== existing.role) {
+        await this.auditService.log({
+          action: AuditAction.USER_ROLE_CHANGED,
+          actorId: actor.id,
+          actorName: actor.username,
+          target: `User:${id}`,
+          category: AuditCategory.USER,
+          severity: AuditSeverity.WARN,
+          details: { from: existing.role, to: dto.role },
+        });
+      }
     }
 
     this.logger.log(`Updated user: ${user.username} (ID: ${user.id})`);

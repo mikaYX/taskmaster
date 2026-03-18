@@ -5,6 +5,8 @@ import { OidcService } from './oidc.service';
 import { UnauthorizedException } from '@nestjs/common';
 import { AzureAdService } from './azure-ad.service';
 import { SamlService } from './saml.service';
+import { ConfigService } from '@nestjs/config';
+import { REDIS_CLIENT } from '../common/redis/redis.module';
 
 describe('AuthController OIDC endpoints', () => {
   let controller: AuthController;
@@ -30,6 +32,8 @@ describe('AuthController OIDC endpoints', () => {
         { provide: OidcService, useValue: mockOidcService },
         { provide: AzureAdService, useValue: {} },
         { provide: SamlService, useValue: {} },
+        { provide: ConfigService, useValue: { get: jest.fn().mockReturnValue('test') } },
+        { provide: REDIS_CLIENT, useValue: {} },
       ],
     }).compile();
 
@@ -123,12 +127,16 @@ describe('AuthController OIDC endpoints', () => {
       };
       oidcService.consumeSsoTicket.mockResolvedValue(tokenData);
 
+      const res = { cookie: jest.fn() } as any;
       const result = await controller.exchangeSsoTicket({
         ssoTicket: 'ticket-abc',
-      });
+      }, res);
 
       expect(oidcService.consumeSsoTicket).toHaveBeenCalledWith('ticket-abc');
-      expect(result).toEqual(tokenData);
+      expect(res.cookie).toHaveBeenCalledTimes(2);
+      expect(result).toEqual({
+        expiresIn: 900,
+      });
     });
 
     it('should throw if ticket is invalid', async () => {
@@ -136,8 +144,9 @@ describe('AuthController OIDC endpoints', () => {
         new UnauthorizedException('Invalid or expired SSO ticket'),
       );
 
+      const res = { cookie: jest.fn() } as any;
       await expect(
-        controller.exchangeSsoTicket({ ssoTicket: 'bad-ticket' }),
+        controller.exchangeSsoTicket({ ssoTicket: 'bad-ticket' }, res),
       ).rejects.toThrow(UnauthorizedException);
     });
   });

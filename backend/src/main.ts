@@ -41,6 +41,19 @@ async function bootstrap(): Promise<void> {
   const port = configService.get<number>('PORT', 3000);
   const nodeEnv = configService.get<string>('NODE_ENV', 'development');
 
+  // Sécurisation du Proxy inverse pour lire les vraies IP (X-Forwarded-For) derrière Nginx/LoadBalancer
+  const trustProxy = configService.get<string>('TRUST_PROXY', 'loopback');
+  if (trustProxy === 'true') {
+    app.set('trust proxy', true);
+  } else if (trustProxy === 'false') {
+    app.set('trust proxy', false);
+  } else if (!isNaN(Number(trustProxy))) {
+    app.set('trust proxy', Number(trustProxy));
+  } else {
+    // e.g 'loopback', 'linklocal', ou une IP spécifique
+    app.set('trust proxy', trustProxy);
+  }
+
   // Parse cookies (required for HttpOnly refresh token cookie)
   app.use(cookieParser());
 

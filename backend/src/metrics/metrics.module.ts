@@ -9,8 +9,8 @@ import { MetricsController } from './metrics.controller';
       defaultMetrics: {
         enabled: true,
       },
+      controller: MetricsController,
     }),
   ],
-  controllers: [MetricsController],
 })
 export class MetricsModule {}

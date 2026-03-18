@@ -70,7 +70,7 @@ describe('SchedulerService (Pause/Resume)', () => {
         const service = new SchedulerService(
             { getCronJobs: jest.fn().mockReturnValue(new Map([['j', job]])), getCronJob: jest.fn().mockReturnValue(job) } as any,
             { getRawValue: jest.fn().mockResolvedValue(true) } as any,
-            {} as any, {} as any, {} as any, {} as any, {} as any, {} as any, {} as any,
+            {} as any, {} as any, {} as any, {} as any, {} as any, {} as any, {} as any, {} as any,
         );
 
         // First toggle: should stop
@@ -92,7 +92,7 @@ describe('SchedulerService (Pause/Resume)', () => {
         const service = new SchedulerService(
             { getCronJobs: jest.fn().mockReturnValue(new Map([['j', job]])) } as any,
             { getRawValue: jest.fn().mockResolvedValue(true) } as any,
-            {} as any, {} as any, {} as any, {} as any, {} as any, {} as any, {} as any,
+            {} as any, {} as any, {} as any, {} as any, {} as any, {} as any, {} as any, {} as any,
         );
 
         // Manually mark job as disabled

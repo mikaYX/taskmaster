@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { authApi } from '@/api';
 import { useAuthStore } from '@/stores';
-import type { LoginDto, UserRole, UserSite, VerifyMfaLoginDto, AuthTokens } from '@/api/types';
+import type { LoginDto, UserRole, UserSite, VerifyMfaLoginDto } from '@/api/types';
 
 /**
  * Query keys for auth.
@@ -117,10 +117,6 @@ export function useLogin() {
             if ('requiresMfa' in data && data.requiresMfa) {
                 return; // Let the component handle MFA flow
             }
-            // Store access token — refresh token is set as HttpOnly cookie by the backend
-            if ('accessToken' in data && data.accessToken) {
-                localStorage.setItem('accessToken', data.accessToken);
-            }
 
             // Refetch session after login
             const session = await authApi.getSession();
@@ -144,12 +140,7 @@ export function useVerifyMfaLogin() {
 
     return useMutation({
         mutationFn: (dto: VerifyMfaLoginDto) => authApi.verifyMfa(dto),
-        onSuccess: async (data: AuthTokens) => {
-            // Store access token — refresh token is set as HttpOnly cookie by the backend
-            if (data.accessToken) {
-                localStorage.setItem('accessToken', data.accessToken);
-            }
-
+        onSuccess: async () => {
             const session = await authApi.getSession();
             const normalized = normalizeSession(session);
 
@@ -176,12 +167,7 @@ export function usePasskeyLogin() {
             const attResp = await startAuthentication(options);
             return authApi.verifyPasskeyAuthentication(attResp, sessionId);
         },
-        onSuccess: async (data: AuthTokens) => {
-            // Store access token — refresh token is set as HttpOnly cookie by the backend
-            if (data.accessToken) {
-                localStorage.setItem('accessToken', data.accessToken);
-            }
-
+        onSuccess: async () => {
             const session = await authApi.getSession();
             const normalized = normalizeSession(session);
 
@@ -204,13 +190,11 @@ export function useLogout() {
     return useMutation({
         mutationFn: () => authApi.logout(),
         onSuccess: () => {
-            localStorage.removeItem('accessToken');
             clearSession();
             queryClient.clear();
         },
         onError: () => {
             // Clear session even on error
-            localStorage.removeItem('accessToken');
             clearSession();
             queryClient.clear();
         },

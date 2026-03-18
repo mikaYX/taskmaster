@@ -3,6 +3,10 @@ import { ConfigService } from '@nestjs/config';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import * as semver from 'semver';
+import { safeFetch } from '../common/utils/url-validator.util';
+import { Response } from 'node-fetch';
+
+const GITHUB_API_BASE = 'https://api.github.com/repos';
 
 export interface VersionStatusDto {
   currentVersion: string;
@@ -124,20 +128,27 @@ export class VersionService {
     return version.replace(/^v/, '');
   }
 
+  /**
+   * Fetch with a fixed timeout of 5 seconds via safeFetch (SSRF Protection)
+   */
   private async fetchWithTimeout(url: string): Promise<Response> {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
-
     try {
-      return await fetch(url, {
-        signal: controller.signal,
+      const response = await safeFetch(url, {
         headers: {
           Accept: 'application/vnd.github.v3+json',
-          'User-Agent': 'Taskmaster-VersionCheck',
+          'User-Agent': 'Taskmaster-System',
         },
-      });
-    } finally {
-      clearTimeout(timeout);
+      }, { timeoutMs: FETCH_TIMEOUT_MS, allowHttp: false });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP Error ${response.status}`);
+      }
+      return response;
+    } catch (err: any) {
+      if (err.name === 'AbortError' || err.message.includes('timeout')) {
+        throw new Error('Request timed out');
+      }
+      throw err;
     }
   }
 
@@ -145,7 +156,7 @@ export class VersionService {
     repo: string,
   ): Promise<{ version: string; url: string }> {
     const response = await this.fetchWithTimeout(
-      `https://api.github.com/repos/${repo}/releases/latest`,
+      `${GITHUB_API_BASE}/${repo}/releases/latest`,
     );
 
     if (!response.ok) {

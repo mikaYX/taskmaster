@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
-import * as request from 'supertest';
+import request from 'supertest';
 import { AppModule } from '../../app.module';
 import { PrismaService } from '../../prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
@@ -38,7 +38,7 @@ describe('Guest Read-Only Authorization (e2e smoke)', () => {
       return request(app.getHttpServer())
         .get('/api/tasks/board')
         .set('Authorization', `Bearer ${guestToken}`)
-        .expect((res) => {
+        .expect((res: any) => {
           expect([200, 404]).toContain(res.status);
         });
     });

@@ -14,7 +14,7 @@ import {
   StreamableFile,
   BadRequestException,
 } from '@nestjs/common';
-import type { Response, Request } from 'express';
+import type { Response } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
@@ -94,22 +94,38 @@ export class BackupController {
         maxSizeBytes: 5 * 1024 * 1024 * 1024, // 5GB
       }),
     ) file: MulterFile,
-    @Body() body: { decryptionKey?: string; force?: string; filename?: string },
+    @Body()
+    body: {
+      decryptionKey?: string;
+      force?: string;
+      filename?: string;
+      tempFilename?: string;
+    },
   ) {
-    let path = '';
+    let sourceRef = '';
+    let source: 'backup_name' | 'temp_upload_path' = 'backup_name';
+
     if (file) {
-      path = file.path;
+      sourceRef = file.filename;
+      source = 'temp_upload_path';
+    } else if (body.tempFilename) {
+      sourceRef = body.tempFilename;
+      source = 'temp_upload_path';
     } else if (body.filename) {
-      path = body.filename;
+      sourceRef = body.filename;
     } else {
-      throw new Error('No file provided');
+      throw new BadRequestException('No backup source provided');
     }
 
     const force = body.force === 'true';
-    return this.backupService.restoreSystemSnapshot(path, {
-      decryptionKey: body.decryptionKey,
-      force,
-    });
+    return this.backupService.restoreSystemSnapshot(
+      sourceRef,
+      {
+        decryptionKey: body.decryptionKey,
+        force,
+      },
+      source,
+    );
   }
 
   @Post('validate-ext')
@@ -140,12 +156,15 @@ export class BackupController {
   ) {
     if (!file) throw new Error('No file uploaded');
 
-    const result = await this.backupService.validateBackup(file.path);
+    const result = await this.backupService.validateBackup(
+      file.filename,
+      'temp_upload_path',
+    );
 
     // Return result + temp filename so frontend can reference it for restore
     return {
       ...result,
-      tempFilename: file.path, // Return absolute path or relative? Absolute is better for service.
+      tempFilename: file.filename,
     };
   }
 

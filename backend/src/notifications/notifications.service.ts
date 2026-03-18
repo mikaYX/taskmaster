@@ -15,6 +15,7 @@ import {
 } from './dto/channel.dto';
 import { SaveTaskNotificationsDto } from './dto/task-notification.dto';
 import { Prisma } from '@prisma/client';
+import { safeFetch } from '../common/utils/url-validator.util';
 
 @Injectable()
 export class NotificationsService {
@@ -321,26 +322,26 @@ export class NotificationsService {
 
   private async sendSlack(config: any, text: string) {
     if (!config.webhookUrl) return;
-    await fetch(config.webhookUrl, {
+    await safeFetch(config.webhookUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text }),
-    });
+    }, { timeoutMs: 5000, allowHttp: false });
   }
 
   private async sendTeams(config: any, text: string) {
     if (!config.webhookUrl) return;
-    await fetch(config.webhookUrl, {
+    await safeFetch(config.webhookUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text }),
-    });
+    }, { timeoutMs: 5000, allowHttp: false });
   }
 
   private async sendTelegram(config: any, text: string) {
     if (!config.botToken || !config.chatId) return;
     const url = `https://api.telegram.org/bot${config.botToken}/sendMessage`;
-    await fetch(url, {
+    await safeFetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -348,16 +349,16 @@ export class NotificationsService {
         text,
         parse_mode: 'Markdown',
       }),
-    });
+    }, { timeoutMs: 5000, allowHttp: false });
   }
 
   private async sendDiscord(config: any, text: string) {
     if (!config.webhookUrl) return;
-    await fetch(config.webhookUrl, {
+    await safeFetch(config.webhookUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ content: text }),
-    });
+    }, { timeoutMs: 5000, allowHttp: false });
   }
 
   private async sendWebhook(
@@ -391,7 +392,7 @@ export class NotificationsService {
       body = JSON.stringify({ message: text });
     }
 
-    await fetch(config.webhookUrl, { method, headers, body });
+    await safeFetch(config.webhookUrl, { method, headers, body }, { timeoutMs: 10000, allowHttp: false });
   }
 
   private async sendEmail(notif: any, subject: string, message: string) {

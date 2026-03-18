@@ -2,10 +2,10 @@
  * Auth Cookie Contract — E2E test suite
  *
  * Verifies that the HttpOnly cookie contract is enforced end-to-end:
- *  - Login: accessToken in body, refreshToken in HttpOnly cookie only
- *  - Refresh: reads cookie, rotates it, returns new accessToken
+ *  - Login: tokens are only in HttpOnly cookies (no accessToken in body)
+ *  - Refresh: reads cookie, rotates it, returns session metadata only
  *  - Logout: clears the cookie
- *  - CSRF guard: blocks requests without X-Requested-With or valid Origin
+ *  - CSRF guard: blocks requests without trusted Origin/Referer
  *  - Security: refreshToken MUST NOT appear in JSON body
  */
 
@@ -58,29 +58,39 @@ describe('Auth Cookie Contract (e2e)', () => {
   });
 
   afterAll(async () => {
-    await prisma.client.refreshToken.deleteMany({ where: { userId } });
-    await prisma.client.user.delete({ where: { id: userId } });
-    await app.close();
+    if (prisma && userId) {
+      await prisma.client.refreshToken.deleteMany({ where: { userId } });
+      await prisma.client.user.delete({ where: { id: userId } });
+    }
+    if (app) {
+      await app.close();
+    }
   });
 
   // ─────────────────────────────────────────────────────────────────────────
 
   describe('POST /api/auth/login', () => {
-    it('returns accessToken in body and sets HttpOnly refresh_token cookie', async () => {
+    it('does not expose tokens in body and sets HttpOnly auth cookies', async () => {
       const res = await request(app.getHttpServer())
         .post('/api/auth/login')
         .set('X-Requested-With', 'XMLHttpRequest')
         .send(TEST_USER)
         .expect(200);
 
-      expect(res.body.accessToken).toBeDefined();
-      expect(typeof res.body.accessToken).toBe('string');
+      expect(res.body.expiresIn).toBeDefined();
+      expect(res.body.accessToken).toBeUndefined();
       expect(res.body.refreshToken).toBeUndefined();
 
-      const setCookie: string = res.headers['set-cookie']?.[0] ?? '';
-      expect(setCookie).toContain('refresh_token=');
-      expect(setCookie.toLowerCase()).toContain('httponly');
-      expect(setCookie.toLowerCase()).toContain('samesite=strict');
+      const setCookies: string[] = res.headers['set-cookie'] ?? [];
+      const refreshCookie = setCookies.find((c) => c.startsWith('refresh_token='));
+      const accessCookie = setCookies.find((c) => c.startsWith('access_token='));
+
+      expect(refreshCookie).toBeDefined();
+      expect(accessCookie).toBeDefined();
+      expect(refreshCookie?.toLowerCase()).toContain('httponly');
+      expect(refreshCookie?.toLowerCase()).toContain('samesite=strict');
+      expect(accessCookie?.toLowerCase()).toContain('httponly');
+      expect(accessCookie?.toLowerCase()).toContain('samesite=strict');
     });
   });
 
@@ -96,35 +106,49 @@ describe('Auth Cookie Contract (e2e)', () => {
         .send(TEST_USER)
         .expect(200);
 
-      refreshCookie = loginRes.headers['set-cookie']?.[0] ?? '';
+      const setCookies: string[] = loginRes.headers['set-cookie'] ?? [];
+      refreshCookie =
+        setCookies.find((c) => c.startsWith('refresh_token=')) ?? '';
     });
 
-    it('accepts request with X-Requested-With header and rotates cookie', async () => {
+    it('accepts request with valid Origin header and rotates cookie', async () => {
       const res = await request(app.getHttpServer())
-        .post('/api/auth/refresh')
-        .set('X-Requested-With', 'XMLHttpRequest')
-        .set('Cookie', refreshCookie)
-        .expect(200);
-
-      expect(res.body.accessToken).toBeDefined();
-      expect(res.body.refreshToken).toBeUndefined();
-
-      const newCookie: string = res.headers['set-cookie']?.[0] ?? '';
-      expect(newCookie).toContain('refresh_token=');
-      expect(newCookie).not.toBe(refreshCookie); // Cookie must be rotated
-    });
-
-    it('accepts request with valid Origin header (no X-Requested-With)', async () => {
-      await request(app.getHttpServer())
         .post('/api/auth/refresh')
         .set('Origin', 'http://localhost:5173')
         .set('Cookie', refreshCookie)
         .expect(200);
+
+      expect(res.body.expiresIn).toBeDefined();
+      expect(res.body.accessToken).toBeUndefined();
+      expect(res.body.refreshToken).toBeUndefined();
+
+      const rotatedRefreshCookie =
+        (res.headers['set-cookie'] as string[] | undefined)?.find((c) =>
+          c.startsWith('refresh_token='),
+        ) ?? '';
+      expect(rotatedRefreshCookie).toContain('refresh_token=');
+      expect(rotatedRefreshCookie).not.toBe(refreshCookie); // Cookie must be rotated
     });
 
-    it('blocks request with no X-Requested-With and no valid Origin (CSRF)', async () => {
+    it('accepts request with valid Referer header (no Origin)', async () => {
       await request(app.getHttpServer())
         .post('/api/auth/refresh')
+        .set('Referer', 'http://localhost:5173/login')
+        .set('Cookie', refreshCookie)
+        .expect(200);
+    });
+
+    it('blocks request with no trusted Origin/Referer (CSRF)', async () => {
+      await request(app.getHttpServer())
+        .post('/api/auth/refresh')
+        .set('Cookie', refreshCookie)
+        .expect(403);
+    });
+
+    it('blocks request when only X-Requested-With is provided', async () => {
+      await request(app.getHttpServer())
+        .post('/api/auth/refresh')
+        .set('X-Requested-With', 'XMLHttpRequest')
         .set('Cookie', refreshCookie)
         .expect(403);
     });
@@ -140,7 +164,7 @@ describe('Auth Cookie Contract (e2e)', () => {
     it('returns 401 when refresh_token cookie is missing', async () => {
       await request(app.getHttpServer())
         .post('/api/auth/refresh')
-        .set('X-Requested-With', 'XMLHttpRequest')
+        .set('Origin', 'http://localhost:5173')
         .expect(401);
     });
   });
@@ -155,14 +179,16 @@ describe('Auth Cookie Contract (e2e)', () => {
         .send(TEST_USER)
         .expect(200);
 
-      const refreshCookie = loginRes.headers['set-cookie']?.[0] ?? '';
-      const accessToken: string = loginRes.body.accessToken;
+      const setCookies: string[] = loginRes.headers['set-cookie'] ?? [];
+      const refreshCookie =
+        setCookies.find((c) => c.startsWith('refresh_token=')) ?? '';
+      const accessCookie =
+        setCookies.find((c) => c.startsWith('access_token=')) ?? '';
 
       const logoutRes = await request(app.getHttpServer())
         .post('/api/auth/logout')
-        .set('Authorization', `Bearer ${accessToken}`)
-        .set('X-Requested-With', 'XMLHttpRequest')
-        .set('Cookie', refreshCookie)
+        .set('Origin', 'http://localhost:5173')
+        .set('Cookie', [accessCookie, refreshCookie])
         .expect(200);
 
       expect(logoutRes.body.ok).toBe(true);
@@ -181,9 +207,15 @@ describe('Auth Cookie Contract (e2e)', () => {
         .send(TEST_USER)
         .expect(200);
 
+      const setCookies: string[] = loginRes.headers['set-cookie'] ?? [];
+      const refreshCookie =
+        setCookies.find((c) => c.startsWith('refresh_token=')) ?? '';
+      const accessCookie =
+        setCookies.find((c) => c.startsWith('access_token=')) ?? '';
+
       await request(app.getHttpServer())
         .post('/api/auth/logout')
-        .set('Authorization', `Bearer ${loginRes.body.accessToken}`)
+        .set('Cookie', [accessCookie, refreshCookie])
         .expect(403);
     });
   });
@@ -198,20 +230,22 @@ describe('Auth Cookie Contract (e2e)', () => {
         .send(TEST_USER)
         .expect(200);
 
-      const staleCookie = loginRes.headers['set-cookie']?.[0] ?? '';
+      const setCookies: string[] = loginRes.headers['set-cookie'] ?? [];
+      const staleRefreshCookie =
+        setCookies.find((c) => c.startsWith('refresh_token=')) ?? '';
 
       // Rotate once — stale cookie is now invalid
       await request(app.getHttpServer())
         .post('/api/auth/refresh')
-        .set('X-Requested-With', 'XMLHttpRequest')
-        .set('Cookie', staleCookie)
+        .set('Origin', 'http://localhost:5173')
+        .set('Cookie', staleRefreshCookie)
         .expect(200);
 
       // Reuse stale cookie — should trigger theft detection (401 or 403)
       const replayRes = await request(app.getHttpServer())
         .post('/api/auth/refresh')
-        .set('X-Requested-With', 'XMLHttpRequest')
-        .set('Cookie', staleCookie);
+        .set('Origin', 'http://localhost:5173')
+        .set('Cookie', staleRefreshCookie);
 
       expect([401, 403]).toContain(replayRes.status);
     });

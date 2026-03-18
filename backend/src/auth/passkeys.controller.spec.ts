@@ -114,11 +114,15 @@ describe('PasskeysController', () => {
     passkeysService.verifyAuthentication.mockResolvedValue(mockUser);
     authService.completeLogin.mockResolvedValue({
       accessToken: 'token',
+      refreshToken: 'refresh-token',
+      expiresIn: 900,
     } as any);
 
+    const res = { cookie: jest.fn() } as any;
     const result = await controller.verifyAuthentication(
       { response: { data: 'auth' }, sessionId: 'session123' },
       req,
+      res,
     );
     expect(passkeysService.verifyAuthentication).toHaveBeenCalledWith(
       { data: 'auth' },
@@ -126,7 +130,8 @@ describe('PasskeysController', () => {
       req,
     );
     expect(authService.completeLogin).toHaveBeenCalledWith(mockUser.id);
-    expect(result).toEqual({ accessToken: 'token' });
+    expect(res.cookie).toHaveBeenCalledTimes(2);
+    expect(result).toEqual({ expiresIn: 900 });
   });
 
   it('should list passkeys', async () => {

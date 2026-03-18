@@ -1,7 +1,7 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import { Logger } from '@nestjs/common';
-import { BackupLogicService } from './backup.logic';
+import { BackupLogicService, type BackupSourceType } from './backup.logic';
 import { ExportService } from './export.service';
 
 @Processor('backup')
@@ -50,6 +50,7 @@ export class BackupProcessor extends WorkerHost {
     job: Job<{
       filename: string;
       options: { decryptionKey?: string; force?: boolean };
+      source?: BackupSourceType;
     }>,
   ) {
     this.logger.log(
@@ -59,6 +60,7 @@ export class BackupProcessor extends WorkerHost {
       const result = await this.backupLogic.restoreSystemSnapshot(
         job.data.filename,
         job.data.options,
+        job.data.source ?? 'backup_name',
       );
       this.logger.log(`Restore job ${job.id} completed`);
       return result;

@@ -1,4 +1,4 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, UseGuards } from '@nestjs/common';
 import {
   HealthCheck,
   HealthCheckService,
@@ -8,8 +8,10 @@ import { PrismaHealthIndicator } from './prisma.health';
 import { RedisHealthIndicator } from './redis.health';
 
 import { ConfigService } from '@nestjs/config';
+import { LocalNetworkGuard } from '../common/guards/local-network.guard';
 
 @Controller('health')
+@UseGuards(LocalNetworkGuard)
 export class HealthController {
   constructor(
     private health: HealthCheckService,
