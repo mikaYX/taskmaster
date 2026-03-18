@@ -23,6 +23,7 @@ cp backend/.env.example backend/.env
 # Edit backend/.env and set:
 # - AUTH_SECRET (generate with: openssl rand -base64 32)
 # - DATABASE_URL (if using external database)
+# - Change everything as by default it's not secure
 ```
 
 ### 2. Start Services
