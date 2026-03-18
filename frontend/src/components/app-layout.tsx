@@ -51,7 +51,7 @@ export function AppLayout({ titleKey = 'nav.taskBoard', subtitleKey }: AppLayout
     };
 
     return (
-        <SidebarProvider defaultOpen={!isTvMode} open={!isTvMode} className="h-full overflow-hidden">
+        <SidebarProvider defaultOpen={!isTvMode} className="h-full overflow-hidden">
             {!isTvMode && <AppSidebar />}
             <SidebarInset className="overflow-hidden">
                 {!isTvMode && <AppHeader titleKey={titleKey} subtitleKey={subtitleKey} />}
