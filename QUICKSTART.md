@@ -24,6 +24,18 @@ npm install
 cd ..
 ```
 
+## 🐳 Docker (stack complète `docker-compose.yml`)
+
+Avant le premier `docker compose up`, créez les dossiers persistés sous `./data` et, sur **Linux / WSL**, donnez la propriété à l’utilisateur `node` du conteneur (UID **1000**) :
+
+```bash
+mkdir -p data/node_modules data/app/backups data/app/public/uploads data/app/storage/procedures
+# Linux / WSL uniquement si erreurs d’accès en écriture :
+# sudo chown -R 1000:1000 data
+```
+
+Voir le détail dans [`SETUP.md`](SETUP.md) (section *Dossiers de données*).
+
 ## 🗄️ Base de Données
 
 ```bash

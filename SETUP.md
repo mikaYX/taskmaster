@@ -26,13 +26,36 @@ cp backend/.env.example backend/.env
 # - Change everything as by default it's not secure
 ```
 
-### 2. Start Services
+### 2. Dossiers de données (`docker-compose.yml`)
+
+Les volumes bind-mount du service `app` pointent sous `./data` à la racine du dépôt. **Créez ces dossiers avant le premier `docker compose up`**, sinon Docker peut créer des répertoires avec des propriétaires inadaptés (surtout sur Linux / WSL).
 
 ```bash
-docker-compose up -d
+# À la racine du dépôt (à côté de docker-compose.yml)
+mkdir -p data/node_modules \
+  data/app/backups \
+  data/app/public/uploads \
+  data/app/storage/procedures
 ```
 
-### 3. Apply Database Migrations
+**Linux / WSL / macOS** : l’entrypoint installe les deps en root puis l’application s’exécute en **`node` (UID 1000 dans l’image)**. Pour que les écritures (backups, uploads, etc.) ne tombent pas en « Permission denied » sur les volumes hôtes :
+
+```bash
+sudo chown -R 1000:1000 data
+chmod -R u+rwX,g+rX,o-rwx data   # optionnel : restreindre aux autres utilisateurs
+```
+
+*(Si votre utilisateur hôte est déjà l’UID 1000, `chown` peut être inutile ; en cas de doute, `sudo chown -R 1000:1000 data` reste le réglage attendu pour l’image `node` officielle.)*
+
+**Windows (Docker Desktop)** : le `mkdir` suffit le plus souvent ; pas de `chown`/`chmod` équivalent en natif.
+
+### 3. Start Services
+
+```bash
+docker compose up -d
+```
+
+### 4. Apply Database Migrations
 
 ```bash
 cd backend
@@ -40,7 +63,7 @@ npx prisma migrate deploy
 npx prisma db seed  # Optional: seed initial data
 ```
 
-### 4. Access Application
+### 5. Access Application
 
 - **Frontend**: <http://localhost:5173>
 - **Backend API**: <http://localhost:3000>

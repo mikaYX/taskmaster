@@ -3,8 +3,33 @@ import {
   Injectable,
   BadRequestException,
 } from '@nestjs/common';
-import * as fileType from 'file-type';
+import type { FileTypeResult } from 'file-type';
 import * as fs from 'fs';
+
+/** file-type v16 : fromBuffer / fromFile ; v21+ : fileTypeFromBuffer / fileTypeFromFile (résolution npm différente selon contexte). */
+type FileTypeModuleLike = {
+  fromBuffer?: (
+    buffer: Buffer | Uint8Array | ArrayBuffer,
+  ) => Promise<FileTypeResult | undefined>;
+  fromFile?: (path: string) => Promise<FileTypeResult | undefined>;
+  fileTypeFromBuffer?: (
+    buffer: Buffer | Uint8Array | ArrayBuffer,
+  ) => Promise<FileTypeResult | undefined>;
+  fileTypeFromFile?: (path: string) => Promise<FileTypeResult | undefined>;
+};
+
+function resolveFileTypeDetectors(mod: FileTypeModuleLike) {
+  const fromBuffer =
+    mod.fileTypeFromBuffer ?? mod.fromBuffer;
+  const fromFile =
+    mod.fileTypeFromFile ?? mod.fromFile;
+  if (!fromBuffer || !fromFile) {
+    throw new Error(
+      'file-type: aucune API reconnue (fromBuffer/fromFile ou fileTypeFromBuffer/fileTypeFromFile)',
+    );
+  }
+  return { fromBuffer, fromFile };
+}
 
 export interface FileValidationOptions {
   allowedMimeTypes: string[];
@@ -33,15 +58,21 @@ export class FileValidationPipe implements PipeTransform {
       );
     }
 
-    let detectedType: fileType.FileTypeResult | undefined;
+    // ESM-only selon version : import dynamique + support v16 et v21 (Docker vs workspace)
+    const ft = (await import(
+      'file-type'
+    )) as unknown as FileTypeModuleLike;
+    const { fromBuffer, fromFile } = resolveFileTypeDetectors(ft);
+
+    let detectedType: FileTypeResult | undefined;
 
     // Buffer is available (memory storage)
     if (value.buffer) {
-      detectedType = await fileType.fileTypeFromBuffer(value.buffer);
-    } 
+      detectedType = await fromBuffer(value.buffer);
+    }
     // File is on disk (disk storage)
     else if (value.path) {
-      detectedType = await fileType.fileTypeFromFile(value.path);
+      detectedType = await fromFile(value.path);
     } else {
       throw new BadRequestException('Invalid file object structure');
     }

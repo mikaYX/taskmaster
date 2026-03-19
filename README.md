@@ -111,9 +111,18 @@ Monorepo npm workspaces. TypeScript end-to-end. Tests unitaires sur backend et f
 
 ```bash
 cp .env.docker.example .env
-# Éditer .env pour définir les secrets
+# Éditer .env pour définir les secrets (dont TASKMASTER_IMAGE si besoin)
+
+# Dossiers de persistance montés par docker-compose.yml — les créer avant le premier up
+mkdir -p data/node_modules data/app/backups data/app/public/uploads data/app/storage/procedures
+# Linux / WSL : l’app tourne ensuite en utilisateur node (UID 1000) — droits d’écriture sur les volumes
+sudo chown -R 1000:1000 data
+# (alternative rapide mais moins stricte : chmod -R a+rwX data)
+
 docker compose up -d
 ```
+
+Sous **Windows (Docker Desktop)**, le `mkdir` suffit en général ; le `chown` est surtout nécessaire sur **Linux / WSL** pour éviter les erreurs d’accès (backups, uploads, procédures, `node_modules` dans le volume).
 
 L'application sera disponible sur `http://localhost:3000`. Un assistant de configuration guidera la création du premier compte administrateur.
 
