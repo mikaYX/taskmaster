@@ -32,7 +32,10 @@ describe('AuthController OIDC endpoints', () => {
         { provide: OidcService, useValue: mockOidcService },
         { provide: AzureAdService, useValue: {} },
         { provide: SamlService, useValue: {} },
-        { provide: ConfigService, useValue: { get: jest.fn().mockReturnValue('test') } },
+        {
+          provide: ConfigService,
+          useValue: { get: jest.fn().mockReturnValue('test') },
+        },
         { provide: REDIS_CLIENT, useValue: {} },
       ],
     }).compile();
@@ -128,9 +131,12 @@ describe('AuthController OIDC endpoints', () => {
       oidcService.consumeSsoTicket.mockResolvedValue(tokenData);
 
       const res = { cookie: jest.fn() } as any;
-      const result = await controller.exchangeSsoTicket({
-        ssoTicket: 'ticket-abc',
-      }, res);
+      const result = await controller.exchangeSsoTicket(
+        {
+          ssoTicket: 'ticket-abc',
+        },
+        res,
+      );
 
       expect(oidcService.consumeSsoTicket).toHaveBeenCalledWith('ticket-abc');
       expect(res.cookie).toHaveBeenCalledTimes(2);

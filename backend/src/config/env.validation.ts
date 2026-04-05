@@ -133,8 +133,7 @@ export function validate(
     if (!validatedConfig.CORS_ORIGIN) missing.push('CORS_ORIGIN');
     if (!validatedConfig.BACKUP_ENCRYPTION_KEY)
       missing.push('BACKUP_ENCRYPTION_KEY');
-    if (!validatedConfig.BOOTSTRAP_SECRET)
-      missing.push('BOOTSTRAP_SECRET');
+    if (!validatedConfig.BOOTSTRAP_SECRET) missing.push('BOOTSTRAP_SECRET');
 
     if (missing.length > 0) {
       throw new Error(`Running in PRODUCTION requires: ${missing.join(', ')}`);

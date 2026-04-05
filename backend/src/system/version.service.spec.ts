@@ -190,7 +190,10 @@ describe('VersionService', () => {
 
     it('should handle GitHub timeout gracefully', async () => {
       mockFetch(async () => {
-        const error = new DOMException('The operation was aborted', 'AbortError');
+        const error = new DOMException(
+          'The operation was aborted',
+          'AbortError',
+        );
         throw error;
       });
 

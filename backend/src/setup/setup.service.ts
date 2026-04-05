@@ -46,9 +46,7 @@ export class SetupService {
   ): Promise<{ success: boolean; message: string }> {
     const ip = preferences?.ip || 'unknown';
 
-    this.logger.log(
-      `[SECURITY] Setup initialization attempt — IP: ${ip}`,
-    );
+    this.logger.log(`[SECURITY] Setup initialization attempt — IP: ${ip}`);
 
     const passwordHash = await bcrypt.hash(password, 10);
 
@@ -68,7 +66,9 @@ export class SetupService {
           this.logger.warn(
             `[SECURITY] Setup attempt REJECTED (already initialized) — IP: ${ip}`,
           );
-          throw new ConflictException('Setup already completed. Instance is already initialized.');
+          throw new ConflictException(
+            'Setup already completed. Instance is already initialized.',
+          );
         }
 
         // Create admin user
@@ -88,7 +88,8 @@ export class SetupService {
           data: {
             name: 'Default',
             code: 'default',
-            description: 'Site créé automatiquement lors du premier paramétrage.',
+            description:
+              'Site créé automatiquement lors du premier paramétrage.',
           },
           select: { id: true },
         });
@@ -127,4 +128,3 @@ export class SetupService {
     return { success: true, message: 'Admin user created successfully' };
   }
 }
-

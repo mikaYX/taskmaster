@@ -68,14 +68,14 @@ describe('LocalNetworkGuard', () => {
     it('should allow extra IPs provided via MONITORING_ALLOW_IPS', () => {
       mockRequest.ip = '10.0.0.50';
       mockConfigService.get.mockReturnValue('192.168.1.1, 10.0.0.50');
-      
+
       expect(guard.canActivate(mockExecutionContext)).toBe(true);
     });
 
     it('should still deny IPs not present in MONITORING_ALLOW_IPS', () => {
       mockRequest.ip = '10.0.0.51';
       mockConfigService.get.mockReturnValue('192.168.1.1, 10.0.0.50');
-      
+
       expect(() => guard.canActivate(mockExecutionContext)).toThrow(
         ForbiddenException,
       );

@@ -7,13 +7,13 @@ import {
 import { Reflector } from '@nestjs/core';
 import { ROLES_KEY } from '../decorators/roles.decorator';
 import { PERMISSIONS_KEY } from '../decorators/require-permission.decorator';
-import { Role } from 'src/enums/role.enum';
+import { Role } from '../../enums/role.enum';
 import { Permission } from '../permissions.enum';
 import { ROLE_PERMISSIONS } from '../role-permissions.config';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
-  constructor(private reflector: Reflector) { }
+  constructor(private reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest();

@@ -31,10 +31,10 @@ export function isPrivateIp(ip: string): boolean {
   // IPv4 ranges
   if (
     ip.startsWith('127.') || // Loopback (127.0.0.0/8)
-    ip.startsWith('10.') ||  // Private (10.0.0.0/8)
+    ip.startsWith('10.') || // Private (10.0.0.0/8)
     ip.startsWith('192.168.') || // Private (192.168.0.0/16)
     ip.startsWith('169.254.') || // Link-local (AWS Metadata) (169.254.0.0/16)
-    ip === '0.0.0.0'         // Unspecified
+    ip === '0.0.0.0' // Unspecified
   ) {
     return true;
   }
@@ -53,7 +53,7 @@ export function isPrivateIp(ip: string): boolean {
     ip === '::' || // Unspecified
     ip.toLowerCase().startsWith('fc00:') || // Unique local
     ip.toLowerCase().startsWith('fd00:') || // Unique local
-    ip.toLowerCase().startsWith('fe80:')    // Link-local
+    ip.toLowerCase().startsWith('fe80:') // Link-local
   ) {
     return true;
   }
@@ -79,13 +79,16 @@ function lookupPromise(hostname: string): Promise<string> {
  * 1. Checks protocol (HTTPS enforced by default)
  * 2. Resolves DNS to check real IP address
  * 3. Blocks Private/Internal IPs (by default)
- * 
+ *
  * @throws Error if validation fails
  * @returns { parsedUrl: URL, ipAddress: string }
  */
-export async function validateUrl(targetUrl: string, options: UrlValidationOptions = DEFAULT_OPTIONS): Promise<{ parsedUrl: URL, ipAddress: string }> {
+export async function validateUrl(
+  targetUrl: string,
+  options: UrlValidationOptions = DEFAULT_OPTIONS,
+): Promise<{ parsedUrl: URL; ipAddress: string }> {
   const opts = { ...DEFAULT_OPTIONS, ...options };
-  
+
   let parsedUrl: URL;
   try {
     parsedUrl = new URL(targetUrl);
@@ -95,7 +98,9 @@ export async function validateUrl(targetUrl: string, options: UrlValidationOptio
 
   // Protocol Check
   if (parsedUrl.protocol !== 'https:' && parsedUrl.protocol !== 'http:') {
-    throw new Error(`Unsupported protocol: ${parsedUrl.protocol}. Only http and https are allowed.`);
+    throw new Error(
+      `Unsupported protocol: ${parsedUrl.protocol}. Only http and https are allowed.`,
+    );
   }
 
   if (!opts.allowHttp && parsedUrl.protocol === 'http:') {
@@ -111,16 +116,20 @@ export async function validateUrl(targetUrl: string, options: UrlValidationOptio
   let address: string;
   try {
     address = await lookupPromise(parsedUrl.hostname);
-    
+
     // Check against Private IP ranges
     if (!opts.allowPrivateIps && isPrivateIp(address)) {
-      throw new Error(`URL resolves to a private or reserved IP address (${address}), which is forbidden.`);
+      throw new Error(
+        `URL resolves to a private or reserved IP address (${address}), which is forbidden.`,
+      );
     }
   } catch (error: any) {
     if (error.message && error.message.includes('private or reserved IP')) {
       throw error;
     }
-    throw new Error(`DNS resolution failed for hostname: ${parsedUrl.hostname}`);
+    throw new Error(
+      `DNS resolution failed for hostname: ${parsedUrl.hostname}`,
+    );
   }
 
   return { parsedUrl, ipAddress: address };
@@ -130,9 +139,13 @@ export async function validateUrl(targetUrl: string, options: UrlValidationOptio
  * A safe fetch wrapper that validates the URL against SSRF before execution,
  * and enforces a request timeout.
  */
-export async function safeFetch(url: string, init?: RequestInit, options?: UrlValidationOptions): Promise<Response> {
+export async function safeFetch(
+  url: string,
+  init?: RequestInit,
+  options?: UrlValidationOptions,
+): Promise<Response> {
   const opts = { ...DEFAULT_OPTIONS, ...options };
-  
+
   // 1. Validate the URL (DNS lookup & private IP check)
   const { parsedUrl, ipAddress } = await validateUrl(url, opts);
 
@@ -142,11 +155,12 @@ export async function safeFetch(url: string, init?: RequestInit, options?: UrlVa
       // Force resolution to the IP we already checked (Prevent DNS Rebinding)
       const family = net.isIPv6(ipAddress) ? 6 : 4;
       callback(null, ipAddress, family);
-    }
+    },
   };
-  const agent = parsedUrl.protocol === 'https:' 
-    ? new https.Agent(agentOpts) 
-    : new http.Agent(agentOpts);
+  const agent =
+    parsedUrl.protocol === 'https:'
+      ? new https.Agent(agentOpts)
+      : new http.Agent(agentOpts);
 
   // 3. Setup Timeout Controller
   const controller = new AbortController();

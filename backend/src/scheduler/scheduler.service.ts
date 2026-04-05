@@ -29,14 +29,16 @@ export class SchedulerService implements OnApplicationBootstrap {
     private readonly missingTasksNotificationJob: MissingTasksNotificationJob,
     private readonly reminderNotificationJob: ReminderNotificationJob,
     private readonly auditScheduler: AuditScheduler,
-  ) { }
+  ) {}
 
   async onApplicationBootstrap(): Promise<void> {
     const enabled =
       await this.settings.getRawValue<boolean>('scheduler.enabled');
 
     if (enabled === false || String(enabled) === 'false') {
-      this.logger.warn('Scheduler is disabled via settings - suspending all jobs');
+      this.logger.warn(
+        'Scheduler is disabled via settings - suspending all jobs',
+      );
       this.disableAllJobs();
     } else {
       this.logger.log('Scheduler initialized (Active)');
@@ -76,7 +78,8 @@ export class SchedulerService implements OnApplicationBootstrap {
       'cleanup-exports': 'Removes expired export files',
       'cleanup-backups': 'Removes old backups',
       'health-check': 'System health monitoring',
-      'audit-producer': 'Detects past task occurrences with no status and marks them MISSING (runs every 5 min + at startup)',
+      'audit-producer':
+        'Detects past task occurrences with no status and marks them MISSING (runs every 5 min + at startup)',
       'delegation-expiry': 'Notify users about expired delegations',
       'email-alerts': 'Missing task alerts',
       'email-reminders': 'Task due reminders',
@@ -84,8 +87,10 @@ export class SchedulerService implements OnApplicationBootstrap {
       'auto-backup': 'Scheduled system backup',
     };
 
-    const schedulerEnabled = await this.settings.getRawValue<boolean>('scheduler.enabled');
-    const isGlobalActive = schedulerEnabled === true || String(schedulerEnabled) === 'true';
+    const schedulerEnabled =
+      await this.settings.getRawValue<boolean>('scheduler.enabled');
+    const isGlobalActive =
+      schedulerEnabled === true || String(schedulerEnabled) === 'true';
 
     jobs.forEach((job, name) => {
       let nextRun: Date | null = null;

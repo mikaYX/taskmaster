@@ -4,6 +4,8 @@ import { DelegationsService } from './delegations.service';
 import { CreateDelegationDto } from './dto/create-delegation.dto';
 import { UpdateDelegationDto } from './dto/update-delegation.dto';
 import { ConflictException } from '@nestjs/common';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../../auth/guards/roles.guard';
 
 describe('DelegationsController', () => {
   let controller: DelegationsController;
@@ -22,7 +24,12 @@ describe('DelegationsController', () => {
       providers: [
         { provide: DelegationsService, useValue: mockDelegationsService },
       ],
-    }).compile();
+    })
+      .overrideGuard(JwtAuthGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(RolesGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get<DelegationsController>(DelegationsController);
     service = module.get<DelegationsService>(DelegationsService);

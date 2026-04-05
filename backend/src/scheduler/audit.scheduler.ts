@@ -3,7 +3,14 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma';
 import { InstanceService } from '../tasks/instance.service';
 import { TasksService } from '../tasks/tasks.service'; // IDE Sync
-import { addDays, subDays, startOfDay, endOfDay, isBefore, format } from 'date-fns';
+import {
+  addDays,
+  subDays,
+  startOfDay,
+  endOfDay,
+  isBefore,
+  format,
+} from 'date-fns';
 import { ConfigService } from '@nestjs/config';
 import { SettingsService } from '../settings/settings.service';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -18,7 +25,7 @@ export class AuditScheduler {
     private readonly config: ConfigService,
     private readonly settings: SettingsService,
     private readonly notificationsService: NotificationsService,
-  ) { }
+  ) {}
 
   @Cron(CronExpression.EVERY_5_MINUTES, { name: 'audit-producer' })
   async auditMissedInstances() {

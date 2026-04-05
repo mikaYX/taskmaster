@@ -50,7 +50,12 @@ import { Reflector } from '@nestjs/core';
     }),
     forwardRef(() => SettingsModule),
   ],
-  controllers: [AuthController, MfaController, PasskeysController, ApiKeysController],
+  controllers: [
+    AuthController,
+    MfaController,
+    PasskeysController,
+    ApiKeysController,
+  ],
   providers: [
     AuthService,
     LdapService,
@@ -99,4 +104,4 @@ import { Reflector } from '@nestjs/core';
     SamlService,
   ],
 })
-export class AuthModule { }
+export class AuthModule {}

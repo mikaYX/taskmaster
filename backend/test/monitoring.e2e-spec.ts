@@ -26,7 +26,7 @@ describe('Monitoring (e2e)', () => {
         PrismaModule,
         RedisModule,
         MetricsModule,
-        HealthModule
+        HealthModule,
       ],
     }).compile();
 
@@ -46,9 +46,7 @@ describe('Monitoring (e2e)', () => {
 
   describe('Prometheus /api/metrics', () => {
     it('should ALLOW access from direct loopback (supertest default)', () => {
-      return request(app.getHttpServer())
-        .get('/api/metrics')
-        .expect(200);
+      return request(app.getHttpServer()).get('/api/metrics').expect(200);
     });
 
     it('should REJECT an external IP coming through our trusted loopback proxy', () => {
@@ -70,9 +68,7 @@ describe('Monitoring (e2e)', () => {
     it('should REJECT the WillSoto default /metrics (proving no duplicate unprotected route)', () => {
       // The module Prometheus should no longer expose its internal duplicate
       // because we re-routed the Controller natively in its Module registration.
-      return request(app.getHttpServer())
-        .get('/metrics')
-        .expect(404);
+      return request(app.getHttpServer()).get('/metrics').expect(404);
     });
   });
 
@@ -83,7 +79,8 @@ describe('Monitoring (e2e)', () => {
       return request(app.getHttpServer())
         .get('/api/health')
         .expect((res) => {
-          if (res.status === 403) throw new Error('Expected NOT 403 (Guard bypassed incorrectly)');
+          if (res.status === 403)
+            throw new Error('Expected NOT 403 (Guard bypassed incorrectly)');
         });
     });
 

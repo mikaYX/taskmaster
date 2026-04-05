@@ -1,4 +1,8 @@
-import { Injectable, ExecutionContext, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  ExecutionContext,
+  ForbiddenException,
+} from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ClsService } from 'nestjs-cls';
 import { Reflector } from '@nestjs/core';
@@ -31,17 +35,22 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
       }
 
       // Enforcement Passkey "Hard" Backend
-      const isExempt = this.reflector.getAllAndOverride<boolean>(IS_PASSKEY_EXEMPT_KEY, [
-        context.getHandler(),
-        context.getClass(),
-      ]);
+      const isExempt = this.reflector.getAllAndOverride<boolean>(
+        IS_PASSKEY_EXEMPT_KEY,
+        [context.getHandler(), context.getClass()],
+      );
 
       if (!isExempt && req.user && req.user.sub) {
         const sessionInfos = await this.authService.getSession(req.user.sub);
-        if (sessionInfos && sessionInfos.passkeyPolicy === 'required' && !sessionInfos.hasPasskey) {
+        if (
+          sessionInfos &&
+          sessionInfos.passkeyPolicy === 'required' &&
+          !sessionInfos.hasPasskey
+        ) {
           throw new ForbiddenException({
             statusCode: 403,
-            message: 'Passkey configuration is required to access this resource.',
+            message:
+              'Passkey configuration is required to access this resource.',
             code: 'PASSKEY_REQUIRED',
           });
         }

@@ -1,6 +1,6 @@
 {
   "name": "backend",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "",
   "author": "",
   "private": true,
@@ -80,7 +80,7 @@
     "nestjs-pino": "^4.6.0",
     "node-fetch": "^2.7.0",
     "node-mailjet": "^6.0.11",
-    "nodemailer": "^7.0.13",
+    "nodemailer": "^8.0.4",
     "openid-client": "^5.7.1",
     "opossum": "^9.0.0",
     "otplib": "^13.3.0",

@@ -102,9 +102,10 @@ export class AuthController {
     removeAccessCookie(res, this.isProd);
   }
 
-  private toClientSession(
-    data: { expiresIn: number; mustChangePassword?: boolean },
-  ): AuthClientSession {
+  private toClientSession(data: {
+    expiresIn: number;
+    mustChangePassword?: boolean;
+  }): AuthClientSession {
     return {
       expiresIn: data.expiresIn,
       ...(data.mustChangePassword !== undefined

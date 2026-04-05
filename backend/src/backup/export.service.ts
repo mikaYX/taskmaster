@@ -116,7 +116,7 @@ export class ExportService {
           if (typeof val === 'object') str = JSON.stringify(val);
 
           // Prevent CSV Injection (M3)
-          if (/^[=\-+\@]/.test(str)) {
+          if (/^[=\-+@]/.test(str)) {
             str = "'" + str;
           }
 

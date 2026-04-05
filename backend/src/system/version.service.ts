@@ -69,9 +69,7 @@ export class VersionService {
       latestVersion = release.version;
       releaseUrl = release.url;
     } catch (releaseErr) {
-      this.logger.warn(
-        `GitHub Releases API failed for ${repo}: ${releaseErr}`,
-      );
+      this.logger.warn(`GitHub Releases API failed for ${repo}: ${releaseErr}`);
       try {
         latestVersion = await this.fetchPackageJsonVersion(repo);
         sourceStatus = 'degraded';
@@ -111,17 +109,14 @@ export class VersionService {
       error,
     };
 
-    const ttl =
-      sourceStatus === 'ok' ? CACHE_TTL_OK_MS : CACHE_TTL_DEGRADED_MS;
+    const ttl = sourceStatus === 'ok' ? CACHE_TTL_OK_MS : CACHE_TTL_DEGRADED_MS;
     this.cache = { data: dto, expiresAt: Date.now() + ttl };
 
     return dto;
   }
 
   private getRepo(): string {
-    return (
-      this.config.get<string>('VERSION_CHECK_REPO') || DEFAULT_REPO
-    );
+    return this.config.get<string>('VERSION_CHECK_REPO') || DEFAULT_REPO;
   }
 
   private cleanVersion(version: string): string {
@@ -133,13 +128,17 @@ export class VersionService {
    */
   private async fetchWithTimeout(url: string): Promise<Response> {
     try {
-      const response = await safeFetch(url, {
-        headers: {
-          Accept: 'application/vnd.github.v3+json',
-          'User-Agent': 'Taskmaster-System',
+      const response = await safeFetch(
+        url,
+        {
+          headers: {
+            Accept: 'application/vnd.github.v3+json',
+            'User-Agent': 'Taskmaster-System',
+          },
         },
-      }, { timeoutMs: FETCH_TIMEOUT_MS, allowHttp: false });
-      
+        { timeoutMs: FETCH_TIMEOUT_MS, allowHttp: false },
+      );
+
       if (!response.ok) {
         throw new Error(`HTTP Error ${response.status}`);
       }

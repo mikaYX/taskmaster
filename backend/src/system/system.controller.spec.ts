@@ -24,9 +24,7 @@ describe('SystemController', () => {
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [SystemController],
-      providers: [
-        { provide: VersionService, useValue: versionService },
-      ],
+      providers: [{ provide: VersionService, useValue: versionService }],
     }).compile();
 
     controller = module.get<SystemController>(SystemController);

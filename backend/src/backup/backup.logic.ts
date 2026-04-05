@@ -45,7 +45,7 @@ export class BackupLogicService {
     private readonly configService: ConfigService,
     private readonly settings: SettingsService,
     private readonly encryptionService: EncryptionService,
-  ) { }
+  ) {}
 
   /**
    * Check if the current encryption key is the default one from .env.example
@@ -140,7 +140,8 @@ export class BackupLogicService {
 
       // 4.5 Sign Archive with HMAC SHA256
       const hmacKey = this.configService.get<string>('BACKUP_ENCRYPTION_KEY');
-      if (!hmacKey) throw new InternalServerErrorException('Missing BACKUP_ENCRYPTION_KEY');
+      if (!hmacKey)
+        throw new InternalServerErrorException('Missing BACKUP_ENCRYPTION_KEY');
       const signature = await this.signFile(finalPath, hmacKey);
       appendFileSync(finalPath, Buffer.from(signature + '##HMAC##', 'utf8'));
 
@@ -181,7 +182,7 @@ export class BackupLogicService {
       if (existsSync(finalPath)) unlinkSync(finalPath);
       throw new InternalServerErrorException(
         'Backup creation failed: ' +
-        (error instanceof Error ? error.message : String(error)),
+          (error instanceof Error ? error.message : String(error)),
       );
     }
   }
@@ -223,7 +224,9 @@ export class BackupLogicService {
       const execError = e as { message?: string; stderr?: string };
       const fullError = (execError.message || '') + (execError.stderr || '');
 
-      this.logger.warn(`Primary pg_dump failed. Error preview: ${fullError.substring(0, 150)}...`);
+      this.logger.warn(
+        `Primary pg_dump failed. Error preview: ${fullError.substring(0, 150)}...`,
+      );
 
       if (
         fullError.includes('server version mismatch') ||
@@ -232,9 +235,7 @@ export class BackupLogicService {
         fullError.includes('ENOENT') ||
         fullError.includes('command not found')
       ) {
-        this.logger.warn(
-          'Attempting fallback using Docker container...',
-        );
+        this.logger.warn('Attempting fallback using Docker container...');
 
         try {
           const containerName =
@@ -245,14 +246,18 @@ export class BackupLogicService {
             : '';
           const dockerCmd = `docker exec ${passwordEnv} ${containerName} pg_dump -U ${env.PGUSER || 'taskmaster'} --format=c ${env.PGDATABASE || 'taskmaster'} > "${dumpPath}"`;
 
-          this.logger.log(`Executing Docker fallback on container: ${containerName}`);
+          this.logger.log(
+            `Executing Docker fallback on container: ${containerName}`,
+          );
           await execAsync(dockerCmd, { timeout: 300000 });
           this.logger.log(`Fallback to Docker pg_dump succeeded`);
           return;
         } catch (dockerError: any) {
           const msg = dockerError.stderr || dockerError.message || '';
           this.logger.error(`Docker fallback failed: ${msg}`);
-          throw new Error(`Database dump failed (pg_dump mismatch + Docker fallback failed: ${msg})`);
+          throw new Error(
+            `Database dump failed (pg_dump mismatch + Docker fallback failed: ${msg})`,
+          );
         }
       }
 
@@ -483,14 +488,16 @@ export class BackupLogicService {
       mkdirSync(extractDir, { recursive: true });
 
       const hmacKey = this.configService.get<string>('BACKUP_ENCRYPTION_KEY');
-      if (!hmacKey) throw new InternalServerErrorException('Missing BACKUP_ENCRYPTION_KEY');
+      if (!hmacKey)
+        throw new InternalServerErrorException('Missing BACKUP_ENCRYPTION_KEY');
       const sigStatus = await this.verifyFileSignature(filepath, hmacKey);
 
       if (!sigStatus.hasSignature) {
         return {
           isValid: false,
           needsDecryptionKey: false,
-          error: 'Security Error: Backup signature (.sig or appended) is missing. Cannot verify integrity.',
+          error:
+            'Security Error: Backup signature (.sig or appended) is missing. Cannot verify integrity.',
         };
       }
 
@@ -498,7 +505,8 @@ export class BackupLogicService {
         return {
           isValid: false,
           needsDecryptionKey: false,
-          error: 'Security Error: Invalid HMAC signature. Backup file is corrupted or tampered with.',
+          error:
+            'Security Error: Invalid HMAC signature. Backup file is corrupted or tampered with.',
         };
       }
 
@@ -576,17 +584,28 @@ export class BackupLogicService {
       mkdirSync(extractDir, { recursive: true });
 
       const hmacKey = this.configService.get<string>('BACKUP_ENCRYPTION_KEY');
-      if (!hmacKey) throw new InternalServerErrorException('Missing BACKUP_ENCRYPTION_KEY');
+      if (!hmacKey)
+        throw new InternalServerErrorException('Missing BACKUP_ENCRYPTION_KEY');
       const sigStatus = await this.verifyFileSignature(filepath, hmacKey);
 
       if (!sigStatus.hasSignature) {
-        throw new BadRequestException('Security Error: Backup signature is missing. Restoration blocked.');
+        throw new BadRequestException(
+          'Security Error: Backup signature is missing. Restoration blocked.',
+        );
       }
       if (!sigStatus.isValid) {
-        throw new BadRequestException('Security Error: Invalid HMAC signature. Backup file is corrupted or tampered with.');
+        throw new BadRequestException(
+          'Security Error: Invalid HMAC signature. Backup file is corrupted or tampered with.',
+        );
       }
 
-      await this.decryptAndExtract(filepath, extractDir, options.decryptionKey, undefined, sigStatus.hasSignature);
+      await this.decryptAndExtract(
+        filepath,
+        extractDir,
+        options.decryptionKey,
+        undefined,
+        sigStatus.hasSignature,
+      );
 
       const manifestPath = join(extractDir, 'manifest.json');
       if (!existsSync(manifestPath)) {
@@ -645,7 +664,10 @@ export class BackupLogicService {
       const stats = statSync(inputPath);
       // Strip the 72 bytes of signature if present, else read the whole file
       const streamEnd = hasSignature ? Math.max(0, stats.size - 73) : undefined;
-      const input = createReadStream(inputPath, streamEnd !== undefined ? { end: streamEnd } : undefined);
+      const input = createReadStream(
+        inputPath,
+        streamEnd !== undefined ? { end: streamEnd } : undefined,
+      );
       const isEncrypted = inputPath.endsWith('.enc');
 
       let stream: import('stream').Readable = input;
@@ -733,7 +755,10 @@ export class BackupLogicService {
     });
   }
 
-  private async verifyFileSignature(filePath: string, key: string): Promise<{ hasSignature: boolean; isValid: boolean }> {
+  private async verifyFileSignature(
+    filePath: string,
+    key: string,
+  ): Promise<{ hasSignature: boolean; isValid: boolean }> {
     try {
       const stats = statSync(filePath);
       if (stats.size < 72) return { hasSignature: false, isValid: false };
@@ -741,7 +766,7 @@ export class BackupLogicService {
       const fd = openSync(filePath, 'r');
       const magicBuffer = Buffer.alloc(8);
       readSync(fd, magicBuffer, 0, 8, stats.size - 8);
-      
+
       const isMagic = magicBuffer.toString('utf8') === '##HMAC##';
       if (!isMagic) {
         closeSync(fd);
@@ -754,23 +779,32 @@ export class BackupLogicService {
 
       const expectedSignature = sigBuffer.toString('utf8');
 
-      return await new Promise<{ hasSignature: boolean; isValid: boolean }>((resolve, reject) => {
-        const hmac = crypto.createHmac('sha256', key);
-        const stream = createReadStream(filePath, { start: 0, end: stats.size - 73 });
-        stream.on('data', (chunk) => hmac.update(chunk));
-        stream.on('end', () => {
-          const actualSignature = hmac.digest('hex');
-          try {
-            const actualBuffer = Buffer.from(actualSignature, 'utf8');
-            const expectedBuffer = Buffer.from(expectedSignature, 'utf8');
-            if (actualBuffer.length !== expectedBuffer.length) return resolve({ hasSignature: true, isValid: false });
-            resolve({ hasSignature: true, isValid: crypto.timingSafeEqual(actualBuffer, expectedBuffer) });
-          } catch {
-            resolve({ hasSignature: true, isValid: false });
-          }
-        });
-        stream.on('error', reject);
-      });
+      return await new Promise<{ hasSignature: boolean; isValid: boolean }>(
+        (resolve, reject) => {
+          const hmac = crypto.createHmac('sha256', key);
+          const stream = createReadStream(filePath, {
+            start: 0,
+            end: stats.size - 73,
+          });
+          stream.on('data', (chunk) => hmac.update(chunk));
+          stream.on('end', () => {
+            const actualSignature = hmac.digest('hex');
+            try {
+              const actualBuffer = Buffer.from(actualSignature, 'utf8');
+              const expectedBuffer = Buffer.from(expectedSignature, 'utf8');
+              if (actualBuffer.length !== expectedBuffer.length)
+                return resolve({ hasSignature: true, isValid: false });
+              resolve({
+                hasSignature: true,
+                isValid: crypto.timingSafeEqual(actualBuffer, expectedBuffer),
+              });
+            } catch {
+              resolve({ hasSignature: true, isValid: false });
+            }
+          });
+          stream.on('error', reject);
+        },
+      );
     } catch {
       return { hasSignature: false, isValid: false };
     }

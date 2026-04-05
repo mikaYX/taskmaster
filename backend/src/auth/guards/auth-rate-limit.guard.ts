@@ -119,14 +119,15 @@ export class AuthRateLimitGuard implements CanActivate {
     const ip = this.extractIp(req);
     const username =
       type === AuthRateLimitType.LOGIN
-        ? String(req.body?.username ?? '').toLowerCase().trim()
+        ? String(req.body?.username ?? '')
+            .toLowerCase()
+            .trim()
         : '';
 
     const windows = RATE_LIMIT_CONFIG[type];
 
     for (const win of windows) {
-      const discriminant =
-        win.useUsername && username ? username : ip;
+      const discriminant = win.useUsername && username ? username : ip;
       const key = `${win.prefix}:${discriminant}`;
 
       const count = await this.atomicIncrement(key, win.windowSeconds);
@@ -136,10 +137,7 @@ export class AuthRateLimitGuard implements CanActivate {
       // Headers informatifs pour le client et les load-balancers
       res.setHeader(`X-RateLimit-${win.label}-Limit`, win.maxRequests);
       res.setHeader(`X-RateLimit-${win.label}-Remaining`, remaining);
-      res.setHeader(
-        `X-RateLimit-${win.label}-Reset`,
-        win.windowSeconds,
-      );
+      res.setHeader(`X-RateLimit-${win.label}-Reset`, win.windowSeconds);
 
       if (count > win.maxRequests) {
         this.logger.warn(

@@ -51,7 +51,7 @@ describe('ApiKeys (E2E)', () => {
         .send({
           name: 'Test Key',
           description: 'Key for E2E testing',
-          scopes: ['task:read']
+          scopes: ['task:read'],
         });
 
       apiKey = keyRes.body.apiKey;
@@ -87,7 +87,7 @@ describe('ApiKeys (E2E)', () => {
       .set('Authorization', `Bearer ${adminToken}`)
       .send({
         name: 'Invalid Key',
-        scopes: ['INVALID_SCOPE']
+        scopes: ['INVALID_SCOPE'],
       })
       .expect(400);
   });

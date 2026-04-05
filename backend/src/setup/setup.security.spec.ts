@@ -1,6 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
-import { ConflictException, ForbiddenException, HttpException } from '@nestjs/common';
+import {
+  ConflictException,
+  ForbiddenException,
+  HttpException,
+} from '@nestjs/common';
 import { SetupGuard } from './setup.guard';
 import { SetupService } from './setup.service';
 import { PrismaService } from '../prisma';

@@ -169,10 +169,13 @@ describe('Point 92 — GroupsService soft-delete', () => {
   // ─── create() ────────────────────────────────────────────────────────────
 
   describe('create()', () => {
-    it('doit autoriser la création d\'un groupe avec le nom d\'un groupe soft-deleted', async () => {
+    it("doit autoriser la création d'un groupe avec le nom d'un groupe soft-deleted", async () => {
       // findFirst retourne null car le groupe portant ce nom est soft-deleted
       mockPrismaClient.group.findFirst.mockResolvedValue(null);
-      mockPrismaClient.site = { findUnique: jest.fn().mockResolvedValue(null) };
+      mockPrismaClient.site = {
+        findUnique: jest.fn().mockResolvedValue(null),
+        findFirst: jest.fn().mockResolvedValue({ id: 1 }),
+      };
 
       const newGroup = makeGroup({ id: 2, name: 'Recycled Group' });
       mockPrismaClient.group.create.mockResolvedValue(newGroup);

@@ -45,10 +45,7 @@ export function setRefreshCookie(
 }
 
 export function clearAccessCookie(res: Response, isProd: boolean): void {
-  res.clearCookie(
-    ACCESS_COOKIE_NAME,
-    buildCookieOptions(isProd, '/api', 0),
-  );
+  res.clearCookie(ACCESS_COOKIE_NAME, buildCookieOptions(isProd, '/api', 0));
 }
 
 export function clearRefreshCookie(res: Response, isProd: boolean): void {

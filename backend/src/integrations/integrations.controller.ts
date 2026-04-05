@@ -48,4 +48,3 @@ export class IntegrationsController {
     return this.integrationsService.processIncomingWebhook(dto, user);
   }
 }
-

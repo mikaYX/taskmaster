@@ -19,7 +19,7 @@ import { JwtAuthGuard, RolesGuard, Roles } from '../auth';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('SUPER_ADMIN')
 export class JobsController {
-  constructor(private readonly schedulerService: SchedulerService) { }
+  constructor(private readonly schedulerService: SchedulerService) {}
 
   /**
    * Get status of all system jobs.

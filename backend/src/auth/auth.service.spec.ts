@@ -82,10 +82,10 @@ describe('AuthService', () => {
     ldapService = module.get(LdapService);
     jwtService = module.get(JwtService);
 
-    jest.spyOn(Logger.prototype, 'error').mockImplementation(() => { });
-    jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => { });
-    jest.spyOn(Logger.prototype, 'log').mockImplementation(() => { });
-    jest.spyOn(Logger.prototype, 'debug').mockImplementation(() => { });
+    jest.spyOn(Logger.prototype, 'error').mockImplementation(() => {});
+    jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => {});
+    jest.spyOn(Logger.prototype, 'log').mockImplementation(() => {});
+    jest.spyOn(Logger.prototype, 'debug').mockImplementation(() => {});
   });
 
   describe('login() with LDAP and JIT', () => {
@@ -380,7 +380,8 @@ describe('AuthService', () => {
       prismaClient.user.findFirst.mockResolvedValue(mockUserBase);
       mockSettingsService.get.mockImplementation(async (key: string) => {
         if (key === 'auth.passkeys.enabled') return { value: 'true' };
-        if (key === 'security.enforcement.passkeys.user') return { value: 'true' };
+        if (key === 'security.enforcement.passkeys.user')
+          return { value: 'true' };
         return { value: 'false' };
       });
 
@@ -414,7 +415,8 @@ describe('AuthService', () => {
       });
       mockSettingsService.get.mockImplementation(async (key: string) => {
         if (key === 'auth.passkeys.enabled') return { value: 'true' };
-        if (key === 'auth.requirements.guest.passkeys') return { value: 'true' };
+        if (key === 'auth.requirements.guest.passkeys')
+          return { value: 'true' };
         return { value: 'false' };
       });
 

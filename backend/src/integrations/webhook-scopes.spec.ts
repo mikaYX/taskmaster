@@ -1,4 +1,8 @@
-import { ForbiddenException, BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { Reflector } from '@nestjs/core';
 import { ScopesGuard } from '../auth/guards/scopes.guard';
@@ -169,7 +173,11 @@ describe('IntegrationsService — scope & tenant validation', () => {
 
   it('should reject DELETE_TASK for API key without task:delete scope', async () => {
     const user = { role: 'API_KEY', permissions: [Permission.TASK_CREATE] };
-    const dto = { source: 'test', action: 'DELETE_TASK', payload: { taskId: 1 } };
+    const dto = {
+      source: 'test',
+      action: 'DELETE_TASK',
+      payload: { taskId: 1 },
+    };
 
     await expect(
       service.processIncomingWebhook(dto as any, user),
@@ -190,7 +198,10 @@ describe('IntegrationsService — scope & tenant validation', () => {
 
     mockTasksService.create.mockResolvedValue({ id: 42 });
 
-    const result = (await service.processIncomingWebhook(dto as any, user)) as { success: boolean; taskId: number };
+    const result = (await service.processIncomingWebhook(dto as any, user)) as {
+      success: boolean;
+      taskId: number;
+    };
     expect(result.success).toBe(true);
     expect(result.taskId).toBe(42);
   });
@@ -306,4 +317,3 @@ describe('IntegrationsService — scope & tenant validation', () => {
     );
   });
 });
-

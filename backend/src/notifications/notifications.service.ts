@@ -27,7 +27,7 @@ export class NotificationsService {
     private readonly emailService: EmailService,
     private readonly settingsService: SettingsService,
     private readonly pushService: PushService,
-  ) { }
+  ) {}
 
   async getChannels(enabled?: boolean) {
     const whereClause = enabled !== undefined ? { enabled } : {};
@@ -322,43 +322,59 @@ export class NotificationsService {
 
   private async sendSlack(config: any, text: string) {
     if (!config.webhookUrl) return;
-    await safeFetch(config.webhookUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text }),
-    }, { timeoutMs: 5000, allowHttp: false });
+    await safeFetch(
+      config.webhookUrl,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text }),
+      },
+      { timeoutMs: 5000, allowHttp: false },
+    );
   }
 
   private async sendTeams(config: any, text: string) {
     if (!config.webhookUrl) return;
-    await safeFetch(config.webhookUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text }),
-    }, { timeoutMs: 5000, allowHttp: false });
+    await safeFetch(
+      config.webhookUrl,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text }),
+      },
+      { timeoutMs: 5000, allowHttp: false },
+    );
   }
 
   private async sendTelegram(config: any, text: string) {
     if (!config.botToken || !config.chatId) return;
     const url = `https://api.telegram.org/bot${config.botToken}/sendMessage`;
-    await safeFetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chat_id: config.chatId,
-        text,
-        parse_mode: 'Markdown',
-      }),
-    }, { timeoutMs: 5000, allowHttp: false });
+    await safeFetch(
+      url,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: config.chatId,
+          text,
+          parse_mode: 'Markdown',
+        }),
+      },
+      { timeoutMs: 5000, allowHttp: false },
+    );
   }
 
   private async sendDiscord(config: any, text: string) {
     if (!config.webhookUrl) return;
-    await safeFetch(config.webhookUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ content: text }),
-    }, { timeoutMs: 5000, allowHttp: false });
+    await safeFetch(
+      config.webhookUrl,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: text }),
+      },
+      { timeoutMs: 5000, allowHttp: false },
+    );
   }
 
   private async sendWebhook(
@@ -392,7 +408,11 @@ export class NotificationsService {
       body = JSON.stringify({ message: text });
     }
 
-    await safeFetch(config.webhookUrl, { method, headers, body }, { timeoutMs: 10000, allowHttp: false });
+    await safeFetch(
+      config.webhookUrl,
+      { method, headers, body },
+      { timeoutMs: 10000, allowHttp: false },
+    );
   }
 
   private async sendEmail(notif: any, subject: string, message: string) {

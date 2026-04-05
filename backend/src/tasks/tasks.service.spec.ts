@@ -220,7 +220,11 @@ describe('TasksService', () => {
     });
 
     it('should throw BadRequestException when deleted more than 30 days ago', async () => {
-      const oldDeleteDate = mockDate(31); // 31 days ago
+      const thirtyOneDaysMs = 31 * 24 * 60 * 60 * 1000;
+      const now = Date.now();
+      jest.spyOn(Date, 'now').mockReturnValue(now);
+
+      const oldDeleteDate = new Date(now - thirtyOneDaysMs);
 
       mockPrismaService.client.task.findUnique.mockResolvedValue(
         createMockTask({ deletedAt: oldDeleteDate }),

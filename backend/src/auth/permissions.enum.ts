@@ -24,8 +24,6 @@ export enum Permission {
   SCHEDULE_UPDATE = 'schedule:update',
   SCHEDULE_DELETE = 'schedule:delete',
 
-
-
   // Sites
   SITE_READ = 'site:read',
   SITE_WRITE = 'site:write',

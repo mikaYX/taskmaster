@@ -9,7 +9,7 @@ import { Permission } from './permissions.enum';
 
 @Injectable()
 export class ApiKeysService {
-  constructor(private prisma: PrismaService) { }
+  constructor(private prisma: PrismaService) {}
 
   /**
    * Create a new API Key.

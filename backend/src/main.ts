@@ -105,10 +105,7 @@ async function bootstrap(): Promise<void> {
   await app.listen(port);
 
   const logger = app.get(Logger);
-  logger.log(
-    `Application running on port ${port} [${nodeEnv}]`,
-    'Bootstrap',
-  );
+  logger.log(`Application running on port ${port} [${nodeEnv}]`, 'Bootstrap');
   logger.log(`API available at http://localhost:${port}/api`, 'Bootstrap');
 }
 

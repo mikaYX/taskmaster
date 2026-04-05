@@ -11,11 +11,13 @@ import { REDIS_CLIENT } from '../../common/redis/redis.module';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function buildContext(overrides: {
-  type?: AuthRateLimitType;
-  ip?: string;
-  username?: string;
-} = {}): ExecutionContext {
+function buildContext(
+  overrides: {
+    type?: AuthRateLimitType;
+    ip?: string;
+    username?: string;
+  } = {},
+): ExecutionContext {
   const { type, ip = '1.2.3.4', username = 'alice' } = overrides;
 
   const mockReflector = {
@@ -68,9 +70,7 @@ describe('AuthRateLimitGuard', () => {
   it('laisse passer si aucun AUTH_RATE_LIMIT_KEY sur le handler', async () => {
     const ctx = buildContext(); // type = undefined
     // Override le reflector injecté pour retourner undefined
-    jest
-      .spyOn((guard as any).reflector, 'get')
-      .mockReturnValue(undefined);
+    jest.spyOn((guard as any).reflector, 'get').mockReturnValue(undefined);
 
     await expect(guard.canActivate(ctx)).resolves.toBe(true);
     expect(redisMock.eval).not.toHaveBeenCalled();
@@ -83,8 +83,8 @@ describe('AuthRateLimitGuard', () => {
       .mockReturnValue(AuthRateLimitType.LOGIN);
     // 3 fenêtres pour LOGIN — toutes sous le seuil
     redisMock.eval
-      .mockResolvedValueOnce(1)  // rl:login:ip:60 → 1/5
-      .mockResolvedValueOnce(1)  // rl:login:ip:900 → 1/10
+      .mockResolvedValueOnce(1) // rl:login:ip:60 → 1/5
+      .mockResolvedValueOnce(1) // rl:login:ip:900 → 1/10
       .mockResolvedValueOnce(1); // rl:login:user:900 → 1/10
 
     const ctx = buildContext({ type: AuthRateLimitType.LOGIN });
@@ -119,8 +119,8 @@ describe('AuthRateLimitGuard', () => {
       .spyOn((guard as any).reflector, 'get')
       .mockReturnValue(AuthRateLimitType.LOGIN);
     redisMock.eval
-      .mockResolvedValueOnce(1)  // ip court → OK
-      .mockResolvedValueOnce(3)  // ip soutenu → OK
+      .mockResolvedValueOnce(1) // ip court → OK
+      .mockResolvedValueOnce(3) // ip soutenu → OK
       .mockResolvedValueOnce(11); // user → 11/10 → KO
 
     const ctx = buildContext({ type: AuthRateLimitType.LOGIN });
@@ -135,7 +135,7 @@ describe('AuthRateLimitGuard', () => {
       .spyOn((guard as any).reflector, 'get')
       .mockReturnValue(AuthRateLimitType.REFRESH);
     redisMock.eval
-      .mockResolvedValueOnce(5)  // rl:refresh:ip:60 → 5/30
+      .mockResolvedValueOnce(5) // rl:refresh:ip:60 → 5/30
       .mockResolvedValueOnce(10); // rl:refresh:ip:300 → 10/60
 
     const ctx = buildContext({ type: AuthRateLimitType.REFRESH });
@@ -160,7 +160,10 @@ describe('AuthRateLimitGuard', () => {
       .mockReturnValue(AuthRateLimitType.LOGIN);
     redisMock.eval.mockResolvedValue(1);
 
-    const ctx = buildContext({ type: AuthRateLimitType.LOGIN, username: 'Alice' });
+    const ctx = buildContext({
+      type: AuthRateLimitType.LOGIN,
+      username: 'Alice',
+    });
     await guard.canActivate(ctx);
 
     // 3e appel eval → clé de la fenêtre user
@@ -190,8 +193,17 @@ describe('AuthRateLimitGuard', () => {
     redisMock.eval.mockResolvedValueOnce(31);
 
     const headers: Record<string, string> = {};
-    const req = { headers: {}, ip: '5.5.5.5', socket: { remoteAddress: '5.5.5.5' }, body: {} };
-    const res = { setHeader: (k: string, v: string) => { headers[k] = v; } };
+    const req = {
+      headers: {},
+      ip: '5.5.5.5',
+      socket: { remoteAddress: '5.5.5.5' },
+      body: {},
+    };
+    const res = {
+      setHeader: (k: string, v: string) => {
+        headers[k] = v;
+      },
+    };
     const ctx = {
       getHandler: jest.fn(),
       switchToHttp: () => ({ getRequest: () => req, getResponse: () => res }),

@@ -1,6 +1,6 @@
 {
   "name": "taskmaster",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "Taskmaster — Task management monorepo (NestJS + React)",
   "private": true,
   "workspaces": [
@@ -33,7 +33,9 @@
     "concurrently": "^9.2.1"
   },
   "overrides": {
-    "lodash": "4.17.23",
+    "lodash": "4.18.1",
+    "path-to-regexp": "^8.4.0",
+    "picomatch": "^4.0.4",
     "hono": "^4.12.8",
     "@hono/node-server": "^1.19.11",
     "@prisma/dev": {
@@ -41,9 +43,8 @@
       "@hono/node-server": "^1.19.11"
     },
     "@types/pg": "^8.18.0",
-    "ajv": "^8.18.0",
     "qs": "^6.15.0",
-    "flatted": "^3.4.1",
+    "flatted": "^3.4.2",
     "file-type": "^21.3.2",
     "@nestjs/common": {
       "file-type": "^21.3.2"

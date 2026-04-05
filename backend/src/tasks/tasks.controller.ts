@@ -65,7 +65,7 @@ export class TasksController {
 
     private readonly procedureStorage: ProcedureStorageService,
     private readonly config: ConfigService,
-  ) { }
+  ) {}
 
   @Get()
   @RequirePermission(Permission.TASK_READ)
@@ -110,13 +110,21 @@ export class TasksController {
       user!.sub,
       user!.groupIds || [],
       isAdmin,
-      isGuest ? undefined : (filterUserId ? parseInt(filterUserId, 10) : undefined),
-      isGuest ? undefined : (filterGroupId ? parseInt(filterGroupId, 10) : undefined),
+      isGuest
+        ? undefined
+        : filterUserId
+          ? parseInt(filterUserId, 10)
+          : undefined,
+      isGuest
+        ? undefined
+        : filterGroupId
+          ? parseInt(filterGroupId, 10)
+          : undefined,
       {
         sortBy: isGuest ? undefined : sortBy,
         sortDesc: isSortDesc,
-        page: isGuest ? undefined : (page ? parseInt(page, 10) : undefined),
-        limit: isGuest ? undefined : (limit ? parseInt(limit, 10) : undefined),
+        page: isGuest ? undefined : page ? parseInt(page, 10) : undefined,
+        limit: isGuest ? undefined : limit ? parseInt(limit, 10) : undefined,
         status: safeStatus,
         priority: isGuest ? undefined : priority,
         project: isGuest ? undefined : project,
@@ -137,7 +145,6 @@ export class TasksController {
   getArchivedTasks() {
     return this.tasksService.getArchivedTasks();
   }
-
 
   @Get(':id')
   @Roles('SUPER_ADMIN', 'MANAGER', 'USER', 'GUEST')
@@ -218,7 +225,8 @@ export class TasksController {
           'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         ],
       }),
-    ) file: Express.Multer.File,
+    )
+    file: Express.Multer.File,
     @CurrentUser() user: JwtPayload,
   ) {
     if (!file) throw new BadRequestException('File is required');

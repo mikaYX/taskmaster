@@ -662,7 +662,6 @@ export const SETTINGS_REGISTRY = {
     description: 'Enable FROM_COMPLETION recurrence mode',
   },
 
-
   SCHEDULE_BULK_ENABLED: {
     schema: z.preprocess(
       (v) => (v === 'true' ? true : v === 'false' ? false : v),

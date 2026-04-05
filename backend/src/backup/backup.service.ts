@@ -17,13 +17,16 @@ export class BackupService implements OnModuleInit {
   constructor(
     @InjectQueue('backup') private readonly backupQueue: Queue,
     private readonly backupLogic: BackupLogicService,
-  ) { }
+  ) {}
 
   async onModuleInit() {
-    if (!this.backupLogic.isEncryptionKeyPresent() || this.backupLogic.isEncryptionKeyDefault()) {
+    if (
+      !this.backupLogic.isEncryptionKeyPresent() ||
+      this.backupLogic.isEncryptionKeyDefault()
+    ) {
       throw new InternalServerErrorException(
         'CRITICAL SECURITY ERROR: BACKUP_ENCRYPTION_KEY is missing or set to a default insecure value. ' +
-        'A secure, unique key MUST be defined to sign backups.',
+          'A secure, unique key MUST be defined to sign backups.',
       );
     }
   }
@@ -46,7 +49,11 @@ export class BackupService implements OnModuleInit {
     options: { decryptionKey?: string; force?: boolean } = {},
     source: BackupSourceType = 'backup_name',
   ): Promise<{ jobId: string; status: string }> {
-    const job = await this.backupQueue.add('restore', { filename, options, source });
+    const job = await this.backupQueue.add('restore', {
+      filename,
+      options,
+      source,
+    });
     return { jobId: job.id!, status: 'queued' };
   }
 

@@ -38,10 +38,7 @@ export class SetupGuard implements CanActivate {
     const lastAttempt = this.attemptMap.get(ip);
     const now = Date.now();
 
-    if (
-      lastAttempt &&
-      now - lastAttempt < SetupGuard.RATE_LIMIT_WINDOW_MS
-    ) {
+    if (lastAttempt && now - lastAttempt < SetupGuard.RATE_LIMIT_WINDOW_MS) {
       const retryAfterSec = Math.ceil(
         (SetupGuard.RATE_LIMIT_WINDOW_MS - (now - lastAttempt)) / 1000,
       );

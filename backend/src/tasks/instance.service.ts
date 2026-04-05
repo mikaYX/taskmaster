@@ -44,7 +44,7 @@ export interface WindowSettings {
 
 @Injectable()
 export class InstanceService {
-  constructor(private readonly recurrenceService: RecurrenceService) { }
+  constructor(private readonly recurrenceService: RecurrenceService) {}
 
   /**
    * computeInstances (Lazy)

@@ -43,8 +43,6 @@ export function GroupMembersSheet({ group, open, onOpenChange }: GroupMembersShe
     const addMembers = useAddGroupMembers();
     const removeMembers = useRemoveGroupMembers();
 
-    if (!group) return null;
-
     // Available users (not in group, not deleted)
     const availableUsers = useMemo(
         () => allUsers?.filter(
@@ -64,6 +62,8 @@ export function GroupMembersSheet({ group, open, onOpenChange }: GroupMembersShe
                 normalize(user.email ?? '').includes(q)
         );
     }, [availableUsers, searchQuery]);
+
+    if (!group) return null;
 
     const handleAddMember = (userId: number) => {
         addMembers.mutate(

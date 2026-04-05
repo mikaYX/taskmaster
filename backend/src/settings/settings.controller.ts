@@ -225,7 +225,7 @@ export class SettingsController {
       const response = await safeFetch(
         'https://accounts.google.com/.well-known/openid-configuration',
         { signal: controller.signal },
-        { timeoutMs: 5000, allowHttp: false }
+        { timeoutMs: 5000, allowHttp: false },
       );
       clearTimeout(timeoutId);
 
@@ -240,7 +240,10 @@ export class SettingsController {
 
       return { success: true, message: 'Google OAuth configuration is valid' };
     } catch (error) {
-      if (error instanceof Error && (error.name === 'AbortError' || error.message.includes('timeout'))) {
+      if (
+        error instanceof Error &&
+        (error.name === 'AbortError' || error.message.includes('timeout'))
+      ) {
         return {
           success: false,
           message: 'Failed to connect to Google: Timeout',
@@ -280,7 +283,11 @@ export class SettingsController {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000);
 
-      const response = await safeFetch(url, { signal: controller.signal }, { timeoutMs: 5000, allowHttp: false });
+      const response = await safeFetch(
+        url,
+        { signal: controller.signal },
+        { timeoutMs: 5000, allowHttp: false },
+      );
       clearTimeout(timeoutId);
 
       if (!response.ok) {
@@ -349,9 +356,13 @@ export class SettingsController {
         try {
           const controller = new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), 5000);
-          const response = await safeFetch(dto.metadataUrl, {
-            signal: controller.signal,
-          }, { timeoutMs: 5000, allowHttp: false });
+          const response = await safeFetch(
+            dto.metadataUrl,
+            {
+              signal: controller.signal,
+            },
+            { timeoutMs: 5000, allowHttp: false },
+          );
           clearTimeout(timeoutId);
 
           if (!response.ok) {
@@ -414,10 +425,14 @@ export class SettingsController {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000);
 
-      const response = await safeFetch(discoveryUrl, {
-        signal: controller.signal,
-        headers: { Accept: 'application/json' },
-      }, { timeoutMs: 5000, allowHttp: false });
+      const response = await safeFetch(
+        discoveryUrl,
+        {
+          signal: controller.signal,
+          headers: { Accept: 'application/json' },
+        },
+        { timeoutMs: 5000, allowHttp: false },
+      );
 
       clearTimeout(timeoutId);
 
@@ -471,7 +486,12 @@ export class SettingsController {
   uploadLogo(
     @UploadedFile(
       new FileValidationPipe({
-        allowedMimeTypes: ['image/png', 'image/jpeg', 'image/webp', 'image/x-icon'],
+        allowedMimeTypes: [
+          'image/png',
+          'image/jpeg',
+          'image/webp',
+          'image/x-icon',
+        ],
         maxSizeBytes: 5 * 1024 * 1024,
       }),
     )
@@ -495,7 +515,12 @@ export class SettingsController {
   uploadFavicon(
     @UploadedFile(
       new FileValidationPipe({
-        allowedMimeTypes: ['image/png', 'image/jpeg', 'image/webp', 'image/x-icon'],
+        allowedMimeTypes: [
+          'image/png',
+          'image/jpeg',
+          'image/webp',
+          'image/x-icon',
+        ],
         maxSizeBytes: 5 * 1024 * 1024,
       }),
     )

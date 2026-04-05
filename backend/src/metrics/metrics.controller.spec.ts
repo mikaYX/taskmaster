@@ -32,10 +32,10 @@ describe('MetricsController', () => {
 
   it('should return metrics when LocalNetworkGuard allows', async () => {
     mockGuardCanActivate.mockReturnValue(true);
-    
+
     const mockReponse = {
-       header: jest.fn(),
-       send: jest.fn(),
+      header: jest.fn(),
+      send: jest.fn(),
     } as unknown as Response;
 
     // Metrics returning Prometheus format string

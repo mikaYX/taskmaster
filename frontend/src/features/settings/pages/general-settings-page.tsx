@@ -240,23 +240,21 @@ export function GeneralSettingsPage() {
 
     // Preview des fichiers sélectionnés en data URL (fiable avant save, pas de blob à révoquer)
     useEffect(() => {
-        if (!logoFile) {
-            setLogoPreviewDataUrl(null);
-            return;
-        }
+        if (!logoFile) return;
+        let cancelled = false;
         const reader = new FileReader();
-        reader.onload = () => setLogoPreviewDataUrl(reader.result as string);
+        reader.onload = () => { if (!cancelled) setLogoPreviewDataUrl(reader.result as string); };
         reader.readAsDataURL(logoFile);
+        return () => { cancelled = true; };
     }, [logoFile]);
 
     useEffect(() => {
-        if (!faviconFile) {
-            setFaviconPreviewDataUrl(null);
-            return;
-        }
+        if (!faviconFile) return;
+        let cancelled = false;
         const reader = new FileReader();
-        reader.onload = () => setFaviconPreviewDataUrl(reader.result as string);
+        reader.onload = () => { if (!cancelled) setFaviconPreviewDataUrl(reader.result as string); };
         reader.readAsDataURL(faviconFile);
+        return () => { cancelled = true; };
     }, [faviconFile]);
 
     const handleLogoFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {

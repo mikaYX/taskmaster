@@ -52,10 +52,12 @@ describe('Point 91 — Logger structuré Pino', () => {
     expect(typeof logger.debug).toBe('function');
   });
 
-  it('ne doit pas lever d\'exception sur un log normal', () => {
+  it("ne doit pas lever d'exception sur un log normal", () => {
     expect(() => logger.log('test message', 'TestContext')).not.toThrow();
     expect(() => logger.warn('test warning', 'TestContext')).not.toThrow();
-    expect(() => logger.error('test error', undefined, 'TestContext')).not.toThrow();
+    expect(() =>
+      logger.error('test error', undefined, 'TestContext'),
+    ).not.toThrow();
   });
 });
 
@@ -68,7 +70,10 @@ describe('Point 91 — Configuration Pino selon NODE_ENV', () => {
     // En dev : transport pino-pretty configuré
     const transport = isProd
       ? undefined
-      : { target: 'pino-pretty', options: { singleLine: true, colorize: true } };
+      : {
+          target: 'pino-pretty',
+          options: { singleLine: true, colorize: true },
+        };
 
     expect(transport).toBeDefined();
     expect(transport!.target).toBe('pino-pretty');
@@ -100,8 +105,10 @@ describe('Point 91 — Configuration Pino selon NODE_ENV', () => {
     const devConfig = new ConfigService({ NODE_ENV: 'development' });
     const prodConfig = new ConfigService({ NODE_ENV: 'production' });
 
-    const devLevel = devConfig.get<string>('NODE_ENV') === 'production' ? 'info' : 'debug';
-    const prodLevel = prodConfig.get<string>('NODE_ENV') === 'production' ? 'info' : 'debug';
+    const devLevel =
+      devConfig.get<string>('NODE_ENV') === 'production' ? 'info' : 'debug';
+    const prodLevel =
+      prodConfig.get<string>('NODE_ENV') === 'production' ? 'info' : 'debug';
 
     expect(devLevel).toBe('debug');
     expect(prodLevel).toBe('info');

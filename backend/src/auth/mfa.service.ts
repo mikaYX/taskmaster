@@ -46,7 +46,11 @@ export class MfaService {
       }
 
       const secret = this.totp.generateSecret();
-      const uri = this.totp.toURI({ label: email, issuer: 'Taskmaster', secret });
+      const uri = this.totp.toURI({
+        label: email,
+        issuer: 'Taskmaster',
+        secret,
+      });
 
       // Store the encrypted secret provisionally (fits in VARCHAR(255): iv:tag:cipher ~90 chars)
       const encryptedSecret = this.encryption.encrypt(secret);
@@ -129,7 +133,8 @@ export class MfaService {
 
     // Check TOTP first
     const totpResult = await this.totp.verify(token, { secret });
-    const totpValid = typeof totpResult === 'object' ? totpResult.valid : totpResult;
+    const totpValid =
+      typeof totpResult === 'object' ? totpResult.valid : totpResult;
     if (totpValid) {
       return true;
     }

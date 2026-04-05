@@ -56,11 +56,12 @@ export class CompositeAuthGuard extends AuthGuard(['jwt', 'api-key']) {
 
     // Parse X-Site-Id header
     const siteHeader = req.headers['x-site-id'];
-    const parsed = siteHeader
-      ? parseInt(String(siteHeader), 10)
-      : undefined;
+    const parsed = siteHeader ? parseInt(String(siteHeader), 10) : undefined;
 
-    if (siteHeader !== undefined && (parsed === undefined || isNaN(parsed) || parsed <= 0)) {
+    if (
+      siteHeader !== undefined &&
+      (parsed === undefined || isNaN(parsed) || parsed <= 0)
+    ) {
       throw new BadRequestException(
         'Invalid X-Site-Id header: must be a positive integer.',
       );
@@ -80,13 +81,12 @@ export class CompositeAuthGuard extends AuthGuard(['jwt', 'api-key']) {
 
     // === Regular users: validate X-Site-Id against assignments ===
     if (parsed && user.role !== 'SUPER_ADMIN' && user.role !== 'API_KEY') {
-      const userSiteIds: number[] =
-        user.sites?.map((s: any) => s.siteId) || [];
+      const userSiteIds: number[] = user.sites?.map((s: any) => s.siteId) || [];
 
       if (!userSiteIds.includes(parsed)) {
         this.logger.warn(
           `[SECURITY] X-Site-Id access denied — userId: ${user.sub}, ` +
-          `requestedSite: ${parsed}, allowedSites: [${userSiteIds.join(', ')}]`,
+            `requestedSite: ${parsed}, allowedSites: [${userSiteIds.join(', ')}]`,
         );
         throw new ForbiddenException(
           `Access denied: you are not assigned to site ${parsed}.`,
@@ -103,5 +103,3 @@ export class CompositeAuthGuard extends AuthGuard(['jwt', 'api-key']) {
     return true;
   }
 }
-
-

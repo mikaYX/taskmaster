@@ -58,8 +58,8 @@ export class ScopesGuard implements CanActivate {
     if (missingScopes.length > 0) {
       this.logger.warn(
         `[SECURITY] Scope check FAILED — apiKeyId: ${user.id}, ` +
-        `required: [${requiredScopes.join(', ')}], ` +
-        `missing: [${missingScopes.join(', ')}]`,
+          `required: [${requiredScopes.join(', ')}], ` +
+          `missing: [${missingScopes.join(', ')}]`,
       );
 
       throw new ForbiddenException(

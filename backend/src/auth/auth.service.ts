@@ -885,8 +885,8 @@ export class AuthService {
         passkeys: {
           select: {
             id: true,
-          }
-        }
+          },
+        },
       },
     });
 
@@ -914,7 +914,9 @@ export class AuthService {
       }));
     }
 
-    const passkeysEnabledDto = await this.settingsService.get('auth.passkeys.enabled');
+    const passkeysEnabledDto = await this.settingsService.get(
+      'auth.passkeys.enabled',
+    );
     const passkeysEnabled = String(passkeysEnabledDto.value) === 'true';
 
     let passkeyPolicy: 'disabled' | 'optional' | 'required' = 'disabled';
@@ -923,21 +925,44 @@ export class AuthService {
       passkeyPolicy = 'optional';
       let isRequired = false;
       if (user.role === 'SUPER_ADMIN') {
-        const adminReq = await this.settingsService.get('auth.requirements.admin.passkeys');
-        const adminEnf = await this.settingsService.get('security.enforcement.passkeys.admin');
-        isRequired = String(adminReq.value) === 'true' || String(adminEnf.value) === 'true';
+        const adminReq = await this.settingsService.get(
+          'auth.requirements.admin.passkeys',
+        );
+        const adminEnf = await this.settingsService.get(
+          'security.enforcement.passkeys.admin',
+        );
+        isRequired =
+          String(adminReq.value) === 'true' ||
+          String(adminEnf.value) === 'true';
       } else if (user.role === 'MANAGER') {
-        const managerEnf = await this.settingsService.get('security.enforcement.passkeys.manager');
-        const userReq = await this.settingsService.get('auth.requirements.user.passkeys');
-        isRequired = String(managerEnf.value) === 'true' || String(userReq.value) === 'true';
+        const managerEnf = await this.settingsService.get(
+          'security.enforcement.passkeys.manager',
+        );
+        const userReq = await this.settingsService.get(
+          'auth.requirements.user.passkeys',
+        );
+        isRequired =
+          String(managerEnf.value) === 'true' ||
+          String(userReq.value) === 'true';
       } else if (user.role === 'GUEST') {
-        const guestReq = await this.settingsService.get('auth.requirements.guest.passkeys');
-        const guestEnf = await this.settingsService.get('security.enforcement.passkeys.guest');
-        isRequired = String(guestReq.value) === 'true' || String(guestEnf.value) === 'true';
+        const guestReq = await this.settingsService.get(
+          'auth.requirements.guest.passkeys',
+        );
+        const guestEnf = await this.settingsService.get(
+          'security.enforcement.passkeys.guest',
+        );
+        isRequired =
+          String(guestReq.value) === 'true' ||
+          String(guestEnf.value) === 'true';
       } else {
-        const userReq = await this.settingsService.get('auth.requirements.user.passkeys');
-        const userEnf = await this.settingsService.get('security.enforcement.passkeys.user');
-        isRequired = String(userReq.value) === 'true' || String(userEnf.value) === 'true';
+        const userReq = await this.settingsService.get(
+          'auth.requirements.user.passkeys',
+        );
+        const userEnf = await this.settingsService.get(
+          'security.enforcement.passkeys.user',
+        );
+        isRequired =
+          String(userReq.value) === 'true' || String(userEnf.value) === 'true';
       }
 
       if (isRequired) {

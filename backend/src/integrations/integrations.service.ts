@@ -75,8 +75,8 @@ export class IntegrationsService {
     if (!userScopes.includes(requiredScope)) {
       this.logger.warn(
         `[SECURITY] Webhook scope denied — apiKeyId: ${user.id}, ` +
-        `action: ${action}, required: ${requiredScope}, ` +
-        `granted: [${userScopes.join(', ')}]`,
+          `action: ${action}, required: ${requiredScope}, ` +
+          `granted: [${userScopes.join(', ')}]`,
       );
       throw new ForbiddenException(
         `API key does not have required scope '${requiredScope}' for action '${action}'.`,
@@ -192,5 +192,3 @@ export class IntegrationsService {
     }
   }
 }
-
-

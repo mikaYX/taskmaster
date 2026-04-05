@@ -34,29 +34,43 @@ describe('UrlValidator', () => {
 
   describe('validateUrl', () => {
     it('should reject invalid URL strings', async () => {
-      await expect(validateUrl('not-a-url')).rejects.toThrow('Invalid URL format');
+      await expect(validateUrl('not-a-url')).rejects.toThrow(
+        'Invalid URL format',
+      );
     });
 
     it('should reject file:// or ftp:// protocols', async () => {
-      await expect(validateUrl('ftp://test.com')).rejects.toThrow('Unsupported protocol');
-      await expect(validateUrl('file:///etc/passwd')).rejects.toThrow('Unsupported protocol');
+      await expect(validateUrl('ftp://test.com')).rejects.toThrow(
+        'Unsupported protocol',
+      );
+      await expect(validateUrl('file:///etc/passwd')).rejects.toThrow(
+        'Unsupported protocol',
+      );
     });
 
     it('should reject HTTP by default', async () => {
-      await expect(validateUrl('http://google.com')).rejects.toThrow('HTTP protocol is not allowed');
+      await expect(validateUrl('http://google.com')).rejects.toThrow(
+        'HTTP protocol is not allowed',
+      );
     });
 
     it('should allow HTTP if explicitly enabled', async () => {
-      const { parsedUrl } = await validateUrl('http://google.com', { allowHttp: true });
+      const { parsedUrl } = await validateUrl('http://google.com', {
+        allowHttp: true,
+      });
       expect(parsedUrl.protocol).toBe('http:');
     });
 
     it('should reject URLs with embedded credentials', async () => {
-      await expect(validateUrl('https://admin:password@google.com')).rejects.toThrow('URL credentials are not allowed');
+      await expect(
+        validateUrl('https://admin:password@google.com'),
+      ).rejects.toThrow('URL credentials are not allowed');
     });
 
     it('should reject URLs resolving to localhost', async () => {
-      await expect(validateUrl('https://localhost')).rejects.toThrow(/private or reserved IP/);
+      await expect(validateUrl('https://localhost')).rejects.toThrow(
+        /private or reserved IP/,
+      );
     });
 
     it('should allow public URLs', async () => {
@@ -71,8 +85,11 @@ describe('UrlValidator', () => {
     });
 
     it('should execute fetch successfully for an allowed URL', async () => {
-      (fetch as unknown as jest.Mock).mockResolvedValueOnce({ status: 200, ok: true });
-      
+      (fetch as unknown as jest.Mock).mockResolvedValueOnce({
+        status: 200,
+        ok: true,
+      });
+
       const res = await safeFetch('https://google.com');
       expect(res.status).toBe(200);
       expect(fetch).toHaveBeenCalledTimes(1);
@@ -81,18 +98,26 @@ describe('UrlValidator', () => {
     it('should timeout if the request takes too long', async () => {
       (fetch as unknown as jest.Mock).mockImplementationOnce(() => {
         return new Promise((resolve, reject) => {
-          setTimeout(() => reject(new DOMException('The operation was aborted', 'AbortError')), 200);
+          setTimeout(
+            () =>
+              reject(
+                new DOMException('The operation was aborted', 'AbortError'),
+              ),
+            200,
+          );
         });
       });
 
-      await expect(safeFetch('https://google.com', undefined, { timeoutMs: 100 }))
-        .rejects.toThrow('Request timeout after 100ms');
+      await expect(
+        safeFetch('https://google.com', undefined, { timeoutMs: 100 }),
+      ).rejects.toThrow('Request timeout after 100ms');
     });
 
     it('should reject SSRF attempt before calling fetch', async () => {
-      await expect(safeFetch('https://169.254.169.254/latest/meta-data/'))
-        .rejects.toThrow(/private or reserved IP/);
-      
+      await expect(
+        safeFetch('https://169.254.169.254/latest/meta-data/'),
+      ).rejects.toThrow(/private or reserved IP/);
+
       expect(fetch).not.toHaveBeenCalled();
     });
   });

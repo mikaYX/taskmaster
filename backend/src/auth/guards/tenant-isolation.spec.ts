@@ -32,7 +32,10 @@ describe('CompositeAuthGuard — tenant isolation', () => {
     },
   };
 
-  const createMockContext = (user: any, headers: Record<string, string> = {}) => ({
+  const createMockContext = (
+    user: any,
+    headers: Record<string, string> = {},
+  ) => ({
     switchToHttp: () => ({
       getRequest: () => ({
         user,
@@ -94,9 +97,7 @@ describe('CompositeAuthGuard — tenant isolation', () => {
   });
 
   it('should REJECT API_KEY without X-Site-Id header', async () => {
-    const ctx = createMockContext(
-      { id: 'apikey:1', role: 'API_KEY' },
-    );
+    const ctx = createMockContext({ id: 'apikey:1', role: 'API_KEY' });
     await expect(guard.canActivate(ctx as any)).rejects.toThrow(
       ForbiddenException,
     );

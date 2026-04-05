@@ -50,12 +50,15 @@ export class PushService implements OnModuleInit {
   onModuleInit(): void {
     const publicKey = this.config.get<string>('VAPID_PUBLIC_KEY');
     const privateKey = this.config.get<string>('VAPID_PRIVATE_KEY');
-    const contact = this.config.get<string>('VAPID_CONTACT', 'mailto:admin@taskmaster.local');
+    const contact = this.config.get<string>(
+      'VAPID_CONTACT',
+      'mailto:admin@taskmaster.local',
+    );
 
     if (!publicKey || !privateKey) {
       this.logger.warn(
         'VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY non configurées — Push désactivé. ' +
-        'Générer avec : npx web-push generate-vapid-keys',
+          'Générer avec : npx web-push generate-vapid-keys',
       );
       return;
     }
@@ -81,7 +84,9 @@ export class PushService implements OnModuleInit {
   /** Supprime l'abonnement correspondant à cet endpoint. */
   unsubscribe(endpoint: string): void {
     this.subscriptions.delete(endpoint);
-    this.logger.log(`Push subscription supprimée (endpoint: ${endpoint.slice(0, 40)}...)`);
+    this.logger.log(
+      `Push subscription supprimée (endpoint: ${endpoint.slice(0, 40)}...)`,
+    );
   }
 
   /** Envoie un message push à tous les abonnés d'un utilisateur. */
@@ -99,15 +104,14 @@ export class PushService implements OnModuleInit {
     await Promise.allSettled(
       userSubs.map((sub) =>
         webpush
-          .sendNotification(
-            { endpoint: sub.endpoint, keys: sub.keys },
-            payload,
-          )
+          .sendNotification({ endpoint: sub.endpoint, keys: sub.keys }, payload)
           .catch((err: Error & { statusCode?: number }) => {
             if (err.statusCode === 410) {
               // Abonnement expiré — on le supprime
               this.subscriptions.delete(sub.endpoint);
-              this.logger.debug(`Abonnement expiré supprimé pour userId=${userId}`);
+              this.logger.debug(
+                `Abonnement expiré supprimé pour userId=${userId}`,
+              );
             } else {
               this.logger.error(`Erreur push userId=${userId}: ${err.message}`);
             }
@@ -117,7 +121,10 @@ export class PushService implements OnModuleInit {
   }
 
   /** Envoie un message push via la config d'un canal (utilisé par NotificationsService). */
-  async sendViaChannelConfig(config: Record<string, unknown>, text: string): Promise<void> {
+  async sendViaChannelConfig(
+    config: Record<string, unknown>,
+    text: string,
+  ): Promise<void> {
     if (!this.isConfigured) {
       this.logger.debug('Push désactivé (VAPID non configuré)');
       return;

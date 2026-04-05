@@ -50,7 +50,7 @@ export class BackupController {
     private readonly settingsService: SettingsService,
     @Inject(forwardRef(() => EmailService))
     private readonly emailService: EmailService,
-  ) { }
+  ) {}
 
   @Get('status')
   status() {
@@ -93,7 +93,8 @@ export class BackupController {
         allowedExtensionsWhenUndefined: ['.enc'],
         maxSizeBytes: 5 * 1024 * 1024 * 1024, // 5GB
       }),
-    ) file: MulterFile,
+    )
+    file: MulterFile,
     @Body()
     body: {
       decryptionKey?: string;
@@ -152,7 +153,8 @@ export class BackupController {
         allowedExtensionsWhenUndefined: ['.enc'],
         maxSizeBytes: 1024 * 1024 * 1024, // 1GB limit for validation
       }),
-    ) file: MulterFile,
+    )
+    file: MulterFile,
   ) {
     if (!file) throw new Error('No file uploaded');
 
@@ -212,7 +214,8 @@ export class BackupController {
         allowedExtensionsWhenUndefined: ['.enc'],
         maxSizeBytes: 5 * 1024 * 1024 * 1024, // 5GB limit
       }),
-    ) file: MulterFile,
+    )
+    file: MulterFile,
   ) {
     if (!file) throw new Error('No file uploaded');
     // We pass the temp path and original name (stripped of prefix)

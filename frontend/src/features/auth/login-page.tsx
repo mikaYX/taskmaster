@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
@@ -13,26 +13,14 @@ import { authApi } from '@/api/auth';
 
 export function LoginPage() {
     const { t } = useTranslation();
-    const [username, setUsername] = useState('');
-    const [password, setPassword] = useState('');
-    const [mfaCode, setMfaCode] = useState('');
-    const [requiresMfa, setRequiresMfa] = useState(false);
-    const [mfaToken, setMfaToken] = useState('');
-
     const location = useLocation();
 
-    const { mutate: login, isPending: isLoginPending } = useLogin();
-    const { mutate: verifyMfa, isPending: isVerifyPending } = useVerifyMfaLogin();
-    const { mutate: passkeyLogin, isPending: isPasskeyPending } = usePasskeyLogin();
-
-    // URL-based auto-login (for TV Links / Guest) and SSO ticket exchange
-    useEffect(() => {
+    // Extract auto-login params from URL (SSO ticket, user, password)
+    const { autoUser, autoPass, ssoTicket } = useMemo(() => {
         const params = new URLSearchParams(location.search);
         const ssoTicket = params.get('sso_ticket');
         let autoUser = params.get('u');
         let autoPass = params.get('p');
-
-        // Fallback: some clients mangle the URL (e.g. u= becomes u-). Try to recover u/p from search string.
         if (!autoUser && location.search) {
             const match = location.search.match(/[?&]u=([^&]+)/) ?? location.search.match(/[?&]u-([^&/]+)/);
             if (match) autoUser = decodeURIComponent(match[1].replace(/%2F/g, '/'));
@@ -41,7 +29,21 @@ export function LoginPage() {
             const match = location.search.match(/[?&]p=([^&]+)/) ?? location.search.match(/[?&]p-([^&/]+)/);
             if (match) autoPass = decodeURIComponent(match[1]);
         }
+        return { autoUser, autoPass, ssoTicket };
+    }, [location.search]);
 
+    const [username, setUsername] = useState(() => (autoUser && !autoPass) ? autoUser : '');
+    const [password, setPassword] = useState('');
+    const [mfaCode, setMfaCode] = useState('');
+    const [requiresMfa, setRequiresMfa] = useState(false);
+    const [mfaToken, setMfaToken] = useState('');
+
+    const { mutate: login, isPending: isLoginPending } = useLogin();
+    const { mutate: verifyMfa, isPending: isVerifyPending } = useVerifyMfaLogin();
+    const { mutate: passkeyLogin, isPending: isPasskeyPending } = usePasskeyLogin();
+
+    // URL-based auto-login (for TV Links / Guest) and SSO ticket exchange
+    useEffect(() => {
         if (ssoTicket) {
             authApi.exchangeSsoTicket(ssoTicket).then(() => {
                 window.location.replace('/');
@@ -58,11 +60,8 @@ export function LoginPage() {
                     console.error('Auto-login failed');
                 }
             });
-        } else if (autoUser) {
-            // Only u in URL: pre-fill username so user just enters password
-            setUsername(autoUser);
         }
-    }, [location.search, login, requiresMfa]);
+    }, [ssoTicket, autoUser, autoPass, login, requiresMfa]);
 
     // Public branding settings (no auth required)
     const { data: branding } = useQuery({

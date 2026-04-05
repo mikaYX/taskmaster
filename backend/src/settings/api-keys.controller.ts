@@ -21,17 +21,13 @@ import { CreateApiKeyDto } from './dto/create-api-key.dto';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('SUPER_ADMIN')
 export class ApiKeysController {
-  constructor(private apiKeysService: ApiKeysService) { }
+  constructor(private apiKeysService: ApiKeysService) {}
 
   @Post()
   @RequirePermission(Permission.SETTINGS_WRITE)
   @HttpCode(HttpStatus.CREATED)
   async create(@Body() dto: CreateApiKeyDto) {
-    return this.apiKeysService.createKey(
-      dto.name,
-      dto.description,
-      dto.scopes
-    );
+    return this.apiKeysService.createKey(dto.name, dto.description, dto.scopes);
   }
 
   @Get()

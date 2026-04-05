@@ -83,10 +83,7 @@ export class UsersController {
   })
   @RequirePermission(Permission.USER_WRITE)
   @HttpCode(HttpStatus.CREATED)
-  async create(
-    @Body() dto: CreateUserDto,
-    @CurrentUser() user: JwtPayload,
-  ) {
+  async create(@Body() dto: CreateUserDto, @CurrentUser() user: JwtPayload) {
     return this.usersService.create(dto, {
       id: user.sub,
       username: user.username,

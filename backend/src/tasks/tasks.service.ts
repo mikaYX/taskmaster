@@ -49,7 +49,7 @@ export class TasksService {
     private readonly auditService: AuditService,
     private readonly procedureStorage: ProcedureStorageService,
     private readonly beneficiaryResolver: BeneficiaryResolverService,
-  ) { }
+  ) {}
 
   private readonly includeRelations = {
     userAssignments: {
@@ -151,10 +151,11 @@ export class TasksService {
       if (err instanceof BadRequestException) throw err;
       const message =
         err instanceof Error ? err.message : 'Preview failed (see server logs)';
-      this.logger.warn(`Task preview failed: ${message}`, err instanceof Error ? err.stack : undefined);
-      throw new BadRequestException(
-        `Could not generate preview: ${message}`,
+      this.logger.warn(
+        `Task preview failed: ${message}`,
+        err instanceof Error ? err.stack : undefined,
       );
+      throw new BadRequestException(`Could not generate preview: ${message}`);
     }
   }
 
@@ -404,7 +405,11 @@ export class TasksService {
         const tz = task.timezone || 'UTC';
         // Format the date using task's timezone instead of applying UTC `.toISOString()` blindly
         const instanceDateStr = formatInTimeZone(inst.date, tz, 'yyyy-MM-dd');
-        const originalDateStr = formatInTimeZone(inst.originalDate, tz, 'yyyy-MM-dd');
+        const originalDateStr = formatInTimeZone(
+          inst.originalDate,
+          tz,
+          'yyyy-MM-dd',
+        );
 
         const key = `${task.id}_${instanceDateStr}`;
         const status = statusMap.get(key);
@@ -425,20 +430,23 @@ export class TasksService {
           procedureUrl: task.procedureUrl ?? undefined,
           instanceDate: instanceDateStr,
           originalDate: originalDateStr,
-          periodStart: inst.periodStart?.toISOString() || inst.date.toISOString(),
+          periodStart:
+            inst.periodStart?.toISOString() || inst.date.toISOString(),
           periodEnd: inst.periodEnd?.toISOString() || inst.date.toISOString(),
-          isShifted: instanceDateStr !== originalDateStr || inst.date.getTime() !== inst.originalDate.getTime(),
+          isShifted:
+            instanceDateStr !== originalDateStr ||
+            inst.date.getTime() !== inst.originalDate.getTime(),
           status: status ? status.status : 'RUNNING',
           validation: status
             ? {
-              byUserId: status.updatedByUserId ?? 0,
-              byUsername:
-                status.updatedBy?.username ??
-                status.updatedByUsername ??
-                'unknown',
-              validatedAt: status.updatedAt.toISOString(),
-              comment: status.comment ?? undefined,
-            }
+                byUserId: status.updatedByUserId ?? 0,
+                byUsername:
+                  status.updatedBy?.username ??
+                  status.updatedByUsername ??
+                  'unknown',
+                validatedAt: status.updatedAt.toISOString(),
+                comment: status.comment ?? undefined,
+              }
             : undefined,
           isException: inst.isException,
           originalInstanceDate: inst.isException ? originalDateStr : undefined,
@@ -735,10 +743,10 @@ export class TasksService {
           : undefined,
         groupAssignments: dto.groupIds?.length
           ? {
-            createMany: {
-              data: dto.groupIds.map((groupId) => ({ groupId })),
-            },
-          }
+              createMany: {
+                data: dto.groupIds.map((groupId) => ({ groupId })),
+              },
+            }
           : undefined,
         recurrenceMode: dto.recurrenceMode ?? 'ON_SCHEDULE', // Default to ON_SCHEDULE
         rrule: dto.rrule,
@@ -1294,7 +1302,8 @@ export class TasksService {
         new Date(new Date(date).setHours(23, 59, 59, 999));
 
       // Seuls ADMIN et MANAGER peuvent modifier le statut après expiration de la fenêtre
-      const canBypassExpiredWindow = userRole === 'ADMIN' || userRole === 'MANAGER';
+      const canBypassExpiredWindow =
+        userRole === 'ADMIN' || userRole === 'MANAGER';
       if (!canBypassExpiredWindow && new Date() > periodEnd) {
         throw new BadRequestException(
           'The scheduling window for this task has expired.',

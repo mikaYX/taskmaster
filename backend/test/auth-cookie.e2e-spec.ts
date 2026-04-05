@@ -82,8 +82,12 @@ describe('Auth Cookie Contract (e2e)', () => {
       expect(res.body.refreshToken).toBeUndefined();
 
       const setCookies: string[] = res.headers['set-cookie'] ?? [];
-      const refreshCookie = setCookies.find((c) => c.startsWith('refresh_token='));
-      const accessCookie = setCookies.find((c) => c.startsWith('access_token='));
+      const refreshCookie = setCookies.find((c) =>
+        c.startsWith('refresh_token='),
+      );
+      const accessCookie = setCookies.find((c) =>
+        c.startsWith('access_token='),
+      );
 
       expect(refreshCookie).toBeDefined();
       expect(accessCookie).toBeDefined();

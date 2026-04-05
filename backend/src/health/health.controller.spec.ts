@@ -1,9 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { HealthController } from './health.controller';
-import {
-  HealthCheckService,
-  MemoryHealthIndicator,
-} from '@nestjs/terminus';
+import { HealthCheckService, MemoryHealthIndicator } from '@nestjs/terminus';
 import { PrismaHealthIndicator } from './prisma.health';
 import { RedisHealthIndicator } from './redis.health';
 import { ConfigService } from '@nestjs/config';
@@ -24,7 +21,13 @@ describe('HealthController', () => {
       providers: [
         {
           provide: HealthCheckService,
-          useValue: { check: jest.fn().mockImplementation((checks) => Promise.all(checks.map((c: any) => c()))) },
+          useValue: {
+            check: jest
+              .fn()
+              .mockImplementation((checks) =>
+                Promise.all(checks.map((c: any) => c())),
+              ),
+          },
         },
         { provide: PrismaHealthIndicator, useValue: { isHealthy: jest.fn() } },
         { provide: RedisHealthIndicator, useValue: { isHealthy: jest.fn() } },

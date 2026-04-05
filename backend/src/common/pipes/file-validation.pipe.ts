@@ -1,8 +1,4 @@
-import {
-  PipeTransform,
-  Injectable,
-  BadRequestException,
-} from '@nestjs/common';
+import { PipeTransform, Injectable, BadRequestException } from '@nestjs/common';
 import type { FileTypeResult } from 'file-type';
 import * as fs from 'fs';
 
@@ -19,10 +15,8 @@ type FileTypeModuleLike = {
 };
 
 function resolveFileTypeDetectors(mod: FileTypeModuleLike) {
-  const fromBuffer =
-    mod.fileTypeFromBuffer ?? mod.fromBuffer;
-  const fromFile =
-    mod.fileTypeFromFile ?? mod.fromFile;
+  const fromBuffer = mod.fileTypeFromBuffer ?? mod.fromBuffer;
+  const fromFile = mod.fileTypeFromFile ?? mod.fromFile;
   if (!fromBuffer || !fromFile) {
     throw new Error(
       'file-type: aucune API reconnue (fromBuffer/fromFile ou fileTypeFromBuffer/fileTypeFromFile)',
@@ -59,9 +53,7 @@ export class FileValidationPipe implements PipeTransform {
     }
 
     // ESM-only selon version : import dynamique + support v16 et v21 (Docker vs workspace)
-    const ft = (await import(
-      'file-type'
-    )) as unknown as FileTypeModuleLike;
+    const ft = (await import('file-type')) as unknown as FileTypeModuleLike;
     const { fromBuffer, fromFile } = resolveFileTypeDetectors(ft);
 
     let detectedType: FileTypeResult | undefined;
@@ -89,7 +81,8 @@ export class FileValidationPipe implements PipeTransform {
         const path = require('path');
         const ext = path.extname(value.originalname).toLowerCase();
         if (!this.options.allowedExtensionsWhenUndefined.includes(ext)) {
-          if (value.path && fs.existsSync(value.path)) fs.unlinkSync(value.path);
+          if (value.path && fs.existsSync(value.path))
+            fs.unlinkSync(value.path);
           throw new BadRequestException(
             `File type is unknown, and extension ${ext} is not allowed.`,
           );
@@ -109,4 +102,3 @@ export class FileValidationPipe implements PipeTransform {
     return value;
   }
 }
-

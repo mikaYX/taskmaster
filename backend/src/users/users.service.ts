@@ -15,7 +15,11 @@ import {
   toUserResponse,
 } from './dto';
 import { AuditService } from '../audit/audit.service';
-import { AuditAction, AuditCategory, AuditSeverity } from '../audit/audit.constants';
+import {
+  AuditAction,
+  AuditCategory,
+  AuditSeverity,
+} from '../audit/audit.constants';
 
 /**
  * Users Service.
@@ -38,7 +42,7 @@ export class UsersService {
     private readonly prisma: PrismaService,
     private readonly authService: AuthService,
     private readonly auditService: AuditService,
-  ) { }
+  ) {}
 
   /**
    * Get all active users (excludes soft-deleted).
@@ -102,7 +106,10 @@ export class UsersService {
   /**
    * Create a new user.
    */
-  async create(dto: CreateUserDto, actor?: { id: number; username: string; role: string }): Promise<UserResponseDto> {
+  async create(
+    dto: CreateUserDto,
+    actor?: { id: number; username: string; role: string },
+  ): Promise<UserResponseDto> {
     // Check username uniqueness
     const existing = await this.prisma.client.user.findUnique({
       where: { username: dto.username },
@@ -120,8 +127,12 @@ export class UsersService {
     }
 
     if (dto.role === 'SUPER_ADMIN' && actor && actor.role !== 'SUPER_ADMIN') {
-      this.logger.warn(`Privilege escalation attempt: User ${actor.username} tried to create a SUPER_ADMIN`);
-      throw new ForbiddenException('Only administrators can create SUPER_ADMIN users.');
+      this.logger.warn(
+        `Privilege escalation attempt: User ${actor.username} tried to create a SUPER_ADMIN`,
+      );
+      throw new ForbiddenException(
+        'Only administrators can create SUPER_ADMIN users.',
+      );
     }
 
     const passwordHash = await this.authService.hashPassword(dto.password);
@@ -185,9 +196,17 @@ export class UsersService {
     }
 
     if (dto.role && dto.role !== existing.role) {
-      if ((dto.role === 'SUPER_ADMIN' || existing.role === 'SUPER_ADMIN') && actor && actor.role !== 'SUPER_ADMIN') {
-        this.logger.warn(`Privilege escalation attempt: User ${actor.username} tried to change role from ${existing.role} to ${dto.role}`);
-        throw new ForbiddenException('Only administrators can grant or revoke the SUPER_ADMIN role.');
+      if (
+        (dto.role === 'SUPER_ADMIN' || existing.role === 'SUPER_ADMIN') &&
+        actor &&
+        actor.role !== 'SUPER_ADMIN'
+      ) {
+        this.logger.warn(
+          `Privilege escalation attempt: User ${actor.username} tried to change role from ${existing.role} to ${dto.role}`,
+        );
+        throw new ForbiddenException(
+          'Only administrators can grant or revoke the SUPER_ADMIN role.',
+        );
       }
     }
 

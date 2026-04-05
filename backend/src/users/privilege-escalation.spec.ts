@@ -49,43 +49,56 @@ describe('UsersService - Privilege Escalation', () => {
 
   describe('update()', () => {
     it('should throw ForbiddenException if a non-SUPER_ADMIN tries to grant SUPER_ADMIN role', async () => {
-      mockPrisma.client.user.findFirst.mockResolvedValue({ id: 2, role: 'USER' });
+      mockPrisma.client.user.findFirst.mockResolvedValue({
+        id: 2,
+        role: 'USER',
+      });
 
       await expect(
-        service.update(
-          2,
-          { role: 'SUPER_ADMIN' } as any,
-          { id: 1, username: 'manager1', role: 'MANAGER' }
-        )
+        service.update(2, { role: 'SUPER_ADMIN' } as any, {
+          id: 1,
+          username: 'manager1',
+          role: 'MANAGER',
+        }),
       ).rejects.toThrow(ForbiddenException);
     });
 
     it('should allow a SUPER_ADMIN to grant SUPER_ADMIN role', async () => {
-      mockPrisma.client.user.findFirst.mockResolvedValue({ id: 2, role: 'USER' });
-      mockPrisma.client.user.update.mockResolvedValue({ id: 2, role: 'SUPER_ADMIN', groupMemberships: [] });
+      mockPrisma.client.user.findFirst.mockResolvedValue({
+        id: 2,
+        role: 'USER',
+      });
+      mockPrisma.client.user.update.mockResolvedValue({
+        id: 2,
+        role: 'SUPER_ADMIN',
+        groupMemberships: [],
+      });
 
-      const result = await service.update(
-        2,
-        { role: 'SUPER_ADMIN' } as any,
-        { id: 1, username: 'superadmin1', role: 'SUPER_ADMIN' }
-      );
+      const result = await service.update(2, { role: 'SUPER_ADMIN' } as any, {
+        id: 1,
+        username: 'superadmin1',
+        role: 'SUPER_ADMIN',
+      });
 
       expect(result.role).toBe('SUPER_ADMIN');
       expect(mockPrisma.client.user.update).toHaveBeenCalled();
       expect(mockAuditService.log).toHaveBeenCalledWith(
-        expect.objectContaining({ action: 'USER_ROLE_CHANGED' })
+        expect.objectContaining({ action: 'USER_ROLE_CHANGED' }),
       );
     });
 
     it('should throw ForbiddenException if a non-SUPER_ADMIN tries to revoke SUPER_ADMIN role', async () => {
-      mockPrisma.client.user.findFirst.mockResolvedValue({ id: 2, role: 'SUPER_ADMIN' });
+      mockPrisma.client.user.findFirst.mockResolvedValue({
+        id: 2,
+        role: 'SUPER_ADMIN',
+      });
 
       await expect(
-        service.update(
-          2,
-          { role: 'USER' } as any,
-          { id: 1, username: 'manager1', role: 'MANAGER' }
-        )
+        service.update(2, { role: 'USER' } as any, {
+          id: 1,
+          username: 'manager1',
+          role: 'MANAGER',
+        }),
       ).rejects.toThrow(ForbiddenException);
     });
   });
@@ -93,22 +106,39 @@ describe('UsersService - Privilege Escalation', () => {
   describe('create()', () => {
     it('should throw ForbiddenException if a non-SUPER_ADMIN tries to create a SUPER_ADMIN', async () => {
       mockPrisma.getDefaultSiteId.mockReturnValue(1);
-      
+
       await expect(
         service.create(
-          { username: 'newadmin', password: 'pwd', role: 'SUPER_ADMIN', fullname: 'New', email: 'a@a.com' } as any,
-          { id: 1, username: 'manager1', role: 'MANAGER' }
-        )
+          {
+            username: 'newadmin',
+            password: 'pwd',
+            role: 'SUPER_ADMIN',
+            fullname: 'New',
+            email: 'a@a.com',
+          } as any,
+          { id: 1, username: 'manager1', role: 'MANAGER' },
+        ),
       ).rejects.toThrow(ForbiddenException);
     });
 
     it('should allow a SUPER_ADMIN to create a SUPER_ADMIN', async () => {
       mockPrisma.getDefaultSiteId.mockReturnValue(1);
-      mockPrisma.client.user.create.mockResolvedValue({ id: 3, username: 'newadmin', role: 'SUPER_ADMIN', groupMemberships: [] });
+      mockPrisma.client.user.create.mockResolvedValue({
+        id: 3,
+        username: 'newadmin',
+        role: 'SUPER_ADMIN',
+        groupMemberships: [],
+      });
 
       await service.create(
-        { username: 'newadmin', password: 'pwd', role: 'SUPER_ADMIN', fullname: 'New', email: 'a@a.com' } as any,
-        { id: 1, username: 'superadmin1', role: 'SUPER_ADMIN' }
+        {
+          username: 'newadmin',
+          password: 'pwd',
+          role: 'SUPER_ADMIN',
+          fullname: 'New',
+          email: 'a@a.com',
+        } as any,
+        { id: 1, username: 'superadmin1', role: 'SUPER_ADMIN' },
       );
 
       expect(mockPrisma.client.user.create).toHaveBeenCalled();

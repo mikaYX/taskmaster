@@ -47,7 +47,8 @@ export class UsersMeController {
         allowedMimeTypes: ['image/png', 'image/jpeg', 'image/webp'],
         maxSizeBytes: 5 * 1024 * 1024,
       }),
-    ) file: Express.Multer.File | undefined,
+    )
+    file: Express.Multer.File | undefined,
   ) {
     try {
       if (!file?.buffer) {

@@ -30,7 +30,7 @@ export class PasskeysService {
   constructor(
     private readonly prisma: PrismaService,
     @Inject(REDIS_CLIENT) private readonly redis: Redis,
-  ) { }
+  ) {}
 
   /**
    * Generates options for the frontend to create a new Passkey

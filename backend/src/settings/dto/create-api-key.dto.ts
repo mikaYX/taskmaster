@@ -1,4 +1,10 @@
-import { IsArray, ArrayNotEmpty, IsEnum, IsString, IsOptional } from 'class-validator';
+import {
+  IsArray,
+  ArrayNotEmpty,
+  IsEnum,
+  IsString,
+  IsOptional,
+} from 'class-validator';
 import { Permission } from '../../auth/permissions.enum';
 
 export class CreateApiKeyDto {
