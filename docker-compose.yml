@@ -42,8 +42,6 @@ services:
     image: ${TASKMASTER_IMAGE}
     container_name: taskmaster_app
     restart: unless-stopped
-    # Démarrage en root pour que l'entrypoint puisse installer node_modules dans le volume
-    user: "0:0"
     ports:
       - "${PORT:-3000}:3000"
     env_file:
@@ -52,11 +50,9 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       REDIS_URL: redis://redis:6379
     volumes:
-      - ./data/node_modules:/app/node_modules
-      # Données persistantes dans ./app (créé automatiquement sur la machine hôte, ex. Windows)
-      - ./data/app/backups:/app/backups
-      - ./data/app/public/uploads:/app/public/uploads
-      - ./data/app/storage/procedures:/app/storage/procedures
+      - app_backups:/app/backups
+      - app_uploads:/app/public/uploads
+      - app_procedures:/app/storage/procedures
     depends_on:
       postgres:
         condition: service_healthy
@@ -66,4 +62,6 @@ services:
 volumes:
   postgres_data:
   redis_data:
-  taskmaster_node_modules:
+  app_backups:
+  app_uploads:
+  app_procedures:

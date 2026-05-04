@@ -4,18 +4,20 @@ Ce guide explique comment construire les images Docker de production de Taskmast
 
 ## Contexte
 
-Le build s'appuie sur :
+Le build s'appuie sur une seule image fullstack :
 
-- `../backend/Dockerfile`
-- `../frontend/Dockerfile`
-- `../docker-compose.prod.yml`
+- `../Dockerfile`
+- `../docker-compose.yml`
+- `../docker-compose.build.yml`
+- `../docker-compose.dockerhub.yml`
 
-Les ordres de grandeur actuellement documentés restent :
+Les ordres de grandeur actuellement observés restent :
 
 | Image | Taille observée | Statut |
 | --- | --- | --- |
-| `taskmaster-backend:latest` | ~1.07 GB | valide |
-| `taskmaster-frontend:latest` | ~95 MB | valide |
+| `taskmaster:secure-local` | ~2.32 GB | valide |
+
+La taille vient surtout de Chromium/Puppeteer, nécessaire à l'export PDF, et des dépendances backend Prisma/OpenTelemetry.
 
 ## Pré-requis
 
@@ -28,34 +30,43 @@ Les ordres de grandeur actuellement documentés restent :
 ### Construire les images
 
 ```bash
-DOCKER_BUILDKIT=1 docker compose -f docker-compose.prod.yml build backend frontend
+DOCKER_BUILDKIT=1 docker build -t taskmaster:secure-local -f Dockerfile .
+```
+
+Ou via Compose local :
+
+```bash
+DOCKER_BUILDKIT=1 docker compose -f docker-compose.build.yml build
 ```
 
 ### Démarrer la stack de production
 
 ```bash
-docker compose -f docker-compose.prod.yml --env-file .env up -d
+TASKMASTER_IMAGE=taskmaster:secure-local docker compose --env-file .env up -d
 ```
 
 ### Relire les choix techniques
 
 1. Le backend et le frontend utilisent un build multi-stage.
-2. Le backend reste exécutable avec un utilisateur non root.
-3. Les fichiers `.dockerignore` limitent le contexte de build.
-4. Le `migrator` repose sur le stage builder pour disposer de Prisma.
+2. L'image finale démarre en utilisateur non-root (`node`).
+3. Les dépendances runtime sont installées au build via `npm ci` et le lockfile.
+4. Le conteneur ne fait plus d'installation npm au démarrage.
+5. Les fichiers `.dockerignore` limitent le contexte de build.
+6. Les migrations Prisma restent exécutées au démarrage par l'entrypoint.
 
 ### Relever les limites connues
 
-1. La reproductibilité dépend encore de la stratégie de lockfiles par application.
-2. Le `migrator` reste plus lourd qu'un conteneur dédié minimal.
+1. Chromium est embarqué pour préserver l'export PDF, ce qui augmente fortement la taille.
+2. Prisma CLI reste présent dans l'image pour `migrate deploy`.
 3. Les vulnérabilités npm doivent être corrigées dans les dépendances, pas dans les Dockerfiles.
 
 ## Vérifications
 
-- `docker compose -f docker-compose.prod.yml build backend frontend` se termine sans erreur.
-- `docker compose -f docker-compose.prod.yml --env-file .env up -d` démarre les services attendus.
-- `docker compose -f docker-compose.prod.yml --env-file .env ps` montre le backend et le frontend actifs.
-- `curl http://localhost:3000/api/health` et `wget --spider http://localhost:80` répondent correctement.
+- `docker build -t taskmaster:secure-local -f Dockerfile .` se termine sans erreur.
+- `docker image inspect taskmaster:secure-local --format '{{.Config.User}}'` retourne `node`.
+- `TASKMASTER_IMAGE=taskmaster:secure-local docker compose --env-file .env up -d` démarre les services attendus.
+- `docker compose --env-file .env ps` montre les services actifs.
+- `curl http://localhost:3000/api/health` répond correctement.
 
 ## Ressources
 
