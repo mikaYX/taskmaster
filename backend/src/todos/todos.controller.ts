@@ -16,7 +16,7 @@ import { UpdateTodoDto } from './dto/update-todo.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
+import type { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 import { PrismaService } from '../prisma/prisma.service';
 import { TodoScope } from '@prisma/client';
 

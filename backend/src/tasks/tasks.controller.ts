@@ -19,7 +19,7 @@ import {
   StreamableFile,
 } from '@nestjs/common';
 import * as fs from 'fs';
-import { Response } from 'express';
+import type { Response } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { extname } from 'path';
 import { ConfigService } from '@nestjs/config';

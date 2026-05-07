@@ -15,7 +15,7 @@ import {
 import { UsersService } from './users.service';
 import { CreateUserDto, UpdateUserDto, ResetPasswordDto } from './dto';
 import { JwtAuthGuard, RolesGuard, Roles, CurrentUser } from '../auth';
-import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
+import type { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 import { RequirePermission } from '../auth/decorators/require-permission.decorator';
 import { Permission } from '../auth/permissions.enum';
 import { Audit } from '../audit/decorators/audit.decorator';

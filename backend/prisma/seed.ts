@@ -16,7 +16,7 @@ async function main() {
 
     try {
         // Default site required for groups (FK groups_site_id_fkey)
-        await prisma.site.upsert({
+        const defaultSite = await prisma.site.upsert({
             where: { id: 1 },
             update: {},
             create: {
@@ -25,7 +25,13 @@ async function main() {
                 code: 'DEFAULT',
             },
         });
-        console.log('✓ Default site ensured');
+
+        // Explicitly creating id=1 does not advance the sequence; resync it for later inserts.
+        await prisma.$executeRawUnsafe(
+            `SELECT setval('sites_id_seq', (SELECT COALESCE(MAX(id), 1) FROM "sites"), true)`,
+        );
+
+        console.log(`✓ Default site ensured (id: ${defaultSite.id})`);
 
         const seedGroups = [
             { name: 'SysAdmins', isSystem: true },

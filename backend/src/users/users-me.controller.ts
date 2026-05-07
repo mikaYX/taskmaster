@@ -18,7 +18,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { UsersService } from './users.service';
 import { JwtAuthGuard, RolesGuard, Roles, CurrentUser } from '../auth';
-import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
+import type { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 
 /**
  * Controller for "current user" (me) routes.

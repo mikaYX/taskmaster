@@ -103,6 +103,7 @@ describe('SetupService', () => {
       create: jest.fn(),
     },
     site: {
+      findFirst: jest.fn(),
       create: jest.fn(),
     },
     userSiteAssignment: {
@@ -123,6 +124,7 @@ describe('SetupService', () => {
 
     mockTx.user.count.mockResolvedValue(0);
     mockTx.user.create.mockResolvedValue({ id: 1 });
+    mockTx.site.findFirst.mockResolvedValue(null);
     mockTx.site.create.mockResolvedValue({ id: 1 });
     mockTx.userSiteAssignment.create.mockResolvedValue({});
     mockPrisma.client.config.upsert.mockResolvedValue({});
@@ -142,6 +144,23 @@ describe('SetupService', () => {
     const result = await service.initializeAdmin('admin', 'StrongP@ss123!');
     expect(result.success).toBe(true);
     expect(mockTx.user.create).toHaveBeenCalledTimes(1);
+    expect(mockTx.site.create).toHaveBeenCalledTimes(1);
+  });
+
+  it('should reuse the existing default site when already seeded', async () => {
+    mockTx.site.findFirst.mockResolvedValue({ id: 1 });
+
+    const result = await service.initializeAdmin('admin', 'StrongP@ss123!');
+
+    expect(result.success).toBe(true);
+    expect(mockTx.site.create).not.toHaveBeenCalled();
+    expect(mockTx.userSiteAssignment.create).toHaveBeenCalledWith({
+      data: {
+        userId: 1,
+        siteId: 1,
+        isDefault: true,
+      },
+    });
   });
 
   it('should throw ConflictException if admin already exists', async () => {

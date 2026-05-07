@@ -2,12 +2,33 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { ApiError } from '@/api/http';
 import { useSetupStore } from '@/stores';
 import { Shield, Eye, EyeOff, Mail } from 'lucide-react';
 
 interface SecurityStepProps {
     onNext: () => void;
     onBack: () => void;
+}
+
+function getApiErrorMessage(error: ApiError): string | null {
+    const data = error.data;
+
+    if (!data || typeof data !== 'object') {
+        return null;
+    }
+
+    const message = 'message' in data ? data.message : undefined;
+
+    if (typeof message === 'string') {
+        return message;
+    }
+
+    if (Array.isArray(message) && message.every((item) => typeof item === 'string')) {
+        return message.join(' ');
+    }
+
+    return null;
 }
 
 /**
@@ -70,7 +91,21 @@ export function SecurityStep({ onNext, onBack }: SecurityStepProps) {
             // Do not invalidate setup status here: refetch would set needsSetup=false and the wizard useEffect would redirect to /login before React commits currentStep=2. Status is refetched when the user finishes the wizard and lands on /login.
         } catch (err) {
             console.error('Setup error:', err);
-            setError('Failed to create account - is the backend running?');
+
+            if (err instanceof ApiError) {
+                const backendMessage = getApiErrorMessage(err);
+
+                if (err.status === 409) {
+                    setError(backendMessage || 'Setup already completed. Redirecting to login...');
+                    window.location.href = '/login';
+                    return;
+                }
+
+                setError(backendMessage || `Failed to create account (${err.status} ${err.statusText})`);
+                return;
+            }
+
+            setError('Failed to create account due to an unexpected error.');
         } finally {
             setIsLoading(false);
         }

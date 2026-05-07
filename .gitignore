@@ -80,3 +80,4 @@ certs/
 .cursorrules
 # Ne pas ignorer .github (workflows, etc.)
 # .github/
+.rtk/
