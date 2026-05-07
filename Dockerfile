@@ -48,7 +48,19 @@ RUN --mount=type=cache,target=/root/.npm,id=npm-cache,sharing=locked \
     --mount=type=secret,id=ca_cert,target=/tmp/ca.pem,required=0 \
     sh -c 'if [ -f /tmp/ca.pem ]; then export NODE_EXTRA_CA_CERTS=/tmp/ca.pem; fi; \
     npm install --workspace backend --include=dev --ignore-scripts && \
-    npm install --workspace frontend --include=dev --ignore-scripts'
+        npm install --workspace frontend --include=dev --ignore-scripts && \
+        arch="$(apk --print-arch)" && \
+        case "$arch" in \
+            aarch64) rollup_native="@rollup/rollup-linux-arm64-musl" ;; \
+            x86_64) rollup_native="@rollup/rollup-linux-x64-musl" ;; \
+            *) rollup_native="" ;; \
+        esac && \
+        if [ -n "$rollup_native" ]; then \
+            rollup_native_version="$(ROLLUP_NATIVE_PACKAGE="$rollup_native" node -e "const pkg=require(\"./node_modules/rollup/package.json\"); const name=process.env.ROLLUP_NATIVE_PACKAGE; process.stdout.write((pkg.optionalDependencies && pkg.optionalDependencies[name]) || \"\")")" && \
+            if [ -n "$rollup_native_version" ]; then \
+                npm install --no-save --ignore-scripts "$rollup_native@$rollup_native_version"; \
+            fi; \
+        fi'
 
 # -----------------------------------------------------------------------------
 # Stage: build backend + frontend
