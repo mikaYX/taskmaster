@@ -25,6 +25,14 @@ La taille vient surtout de Chromium/Puppeteer, nécessaire à l'export PDF, et d
 - Un fichier `../.env` prêt à être utilisé au moment du lancement de la stack.
 - Les variables `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`, `AUTH_SECRET`, `BACKUP_ENCRYPTION_KEY` et `CORS_ORIGIN` définies.
 
+### Publication via GitHub Actions
+
+Le workflow [../.github/workflows/docker.yml](../.github/workflows/docker.yml) publie automatiquement les tags de release sur Docker Hub.
+
+- Définir le secret de dépôt `DOCKERHUB_TOKEN` avec un token Docker Hub valide.
+- Définir la variable de dépôt `DOCKERHUB_USERNAME` avec le namespace Docker Hub à publier.
+- Compatibilité héritée : le workflow accepte aussi un secret `DOCKERHUB_USERNAME`, mais la variable de dépôt est préférable car le username n'est pas sensible.
+
 ## Étapes
 
 ### Construire les images
