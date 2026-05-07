@@ -83,16 +83,26 @@ export class SetupService {
           select: { id: true },
         });
 
-        // Create default site so groups, guests and user assignments work without extra config
-        const defaultSite = await tx.site.create({
-          data: {
-            name: 'Default',
-            code: 'default',
-            description:
-              'Site créé automatiquement lors du premier paramétrage.',
-          },
-          select: { id: true },
-        });
+        // Reuse the seeded default site when present; otherwise create it here.
+        const defaultSite =
+          (await tx.site.findFirst({
+            where: {
+              OR: [
+                { id: 1 },
+                { code: { equals: 'DEFAULT', mode: 'insensitive' } },
+              ],
+            },
+            orderBy: { id: 'asc' },
+            select: { id: true },
+          })) ??
+          (await tx.site.create({
+            data: {
+              name: 'Default',
+              code: 'DEFAULT',
+              description: 'Site créé automatiquement lors du premier paramétrage.',
+            },
+            select: { id: true },
+          }));
 
         // Assign admin to default site (required for getDefaultSiteId / buildSiteFilter)
         await tx.userSiteAssignment.create({

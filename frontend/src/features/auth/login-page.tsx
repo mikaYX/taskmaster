@@ -11,32 +11,38 @@ import { useLogin, useVerifyMfaLogin, usePasskeyLogin } from '@/hooks';
 import { settingsApi } from '@/api/settings';
 import { authApi } from '@/api/auth';
 
+function parseLoginSearch(search: string) {
+    const params = new URLSearchParams(search);
+    const ssoTicket = params.get('sso_ticket');
+    let autoUser = params.get('u');
+    let autoPass = params.get('p');
+
+    if (!autoUser && search) {
+        const match = search.match(/[?&]u=([^&]+)/) ?? search.match(/[?&]u-([^&/]+)/);
+        if (match) autoUser = decodeURIComponent(match[1].replace(/%2F/g, '/'));
+    }
+
+    if (!autoPass && search && autoUser) {
+        const match = search.match(/[?&]p=([^&]+)/) ?? search.match(/[?&]p-([^&/]+)/);
+        if (match) autoPass = decodeURIComponent(match[1]);
+    }
+
+    return { ssoTicket, autoUser, autoPass };
+}
+
 export function LoginPage() {
     const { t } = useTranslation();
-    const location = useLocation();
-
-    // Extract auto-login params from URL (SSO ticket, user, password)
-    const { autoUser, autoPass, ssoTicket } = useMemo(() => {
-        const params = new URLSearchParams(location.search);
-        const ssoTicket = params.get('sso_ticket');
-        let autoUser = params.get('u');
-        let autoPass = params.get('p');
-        if (!autoUser && location.search) {
-            const match = location.search.match(/[?&]u=([^&]+)/) ?? location.search.match(/[?&]u-([^&/]+)/);
-            if (match) autoUser = decodeURIComponent(match[1].replace(/%2F/g, '/'));
-        }
-        if (!autoPass && location.search && autoUser) {
-            const match = location.search.match(/[?&]p=([^&]+)/) ?? location.search.match(/[?&]p-([^&/]+)/);
-            if (match) autoPass = decodeURIComponent(match[1]);
-        }
-        return { autoUser, autoPass, ssoTicket };
-    }, [location.search]);
-
-    const [username, setUsername] = useState(() => (autoUser && !autoPass) ? autoUser : '');
+    const [usernameOverride, setUsernameOverride] = useState<string | null>(null);
     const [password, setPassword] = useState('');
     const [mfaCode, setMfaCode] = useState('');
     const [requiresMfa, setRequiresMfa] = useState(false);
     const [mfaToken, setMfaToken] = useState('');
+    const location = useLocation();
+    const { ssoTicket, autoUser, autoPass } = useMemo(
+        () => parseLoginSearch(location.search),
+        [location.search],
+    );
+    const username = usernameOverride ?? autoUser ?? '';
 
     const { mutate: login, isPending: isLoginPending } = useLogin();
     const { mutate: verifyMfa, isPending: isVerifyPending } = useVerifyMfaLogin();
@@ -61,7 +67,7 @@ export function LoginPage() {
                 }
             });
         }
-    }, [ssoTicket, autoUser, autoPass, login, requiresMfa]);
+    }, [autoPass, autoUser, login, requiresMfa, ssoTicket]);
 
     // Public branding settings (no auth required)
     const { data: branding } = useQuery({
@@ -160,7 +166,7 @@ export function LoginPage() {
                                     type="text"
                                     placeholder={t('auth.enterUsername')}
                                     value={username}
-                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUsername(e.target.value)}
+                                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUsernameOverride(e.target.value)}
                                     required
                                 />
                             </div>

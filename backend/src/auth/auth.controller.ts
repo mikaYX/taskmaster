@@ -31,7 +31,7 @@ import { CurrentUser } from './decorators';
 import { PasskeyExempt } from './decorators/passkey-exempt.decorator';
 import { Audit } from '../audit/decorators/audit.decorator';
 import { AuditAction, AuditCategory } from '../audit/audit.constants';
-import { JwtPayload } from './strategies/jwt.strategy';
+import type { JwtPayload } from './strategies/jwt.strategy';
 import {
   REFRESH_COOKIE_NAME,
   setAccessCookie as applyAccessCookie,

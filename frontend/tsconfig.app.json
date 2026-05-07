@@ -19,6 +19,7 @@
     "verbatimModuleSyntax": true,
     "moduleDetection": "force",
     "noEmit": true,
+    "ignoreDeprecations": "6.0",
     "jsx": "react-jsx",
     /* Linting */
     "strict": true,
@@ -28,7 +29,6 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true,
     /* Path alias for shadcn/ui */
-    "baseUrl": ".",
     "paths": {
       "@/*": [
         "./src/*"

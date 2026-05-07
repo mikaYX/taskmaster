@@ -205,6 +205,7 @@ export function GeneralSettingsPage() {
                 setLogoUrl(res.url);
                 updateSetting({ key: 'app.logoUrl', value: res.url });
                 setLogoFile(null);
+                setLogoPreviewDataUrl(null);
             } else {
                 updateSetting({ key: 'app.logoUrl', value: logoUrl });
             }
@@ -215,6 +216,7 @@ export function GeneralSettingsPage() {
                 setFaviconUrl(res.url);
                 updateSetting({ key: 'app.faviconUrl', value: res.url });
                 setFaviconFile(null);
+                setFaviconPreviewDataUrl(null);
             } else {
                 updateSetting({ key: 'app.faviconUrl', value: faviconUrl });
             }

@@ -18,7 +18,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { JwtPayload } from '../auth/strategies/jwt.strategy';
+import type { JwtPayload } from '../auth/strategies/jwt.strategy';
 
 @Controller('sites')
 @UseGuards(JwtAuthGuard, RolesGuard)

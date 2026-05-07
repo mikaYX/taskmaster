@@ -36,7 +36,7 @@ import {
 } from './dto';
 import { JwtAuthGuard, RolesGuard } from '../auth/guards';
 import { Roles, CurrentUser } from '../auth/decorators';
-import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
+import type { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 import { RequirePermission } from '../auth/decorators/require-permission.decorator';
 import { Permission } from '../auth/permissions.enum';
 import { EmailService } from '../email';

@@ -17,9 +17,9 @@ import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './guards';
 import { CurrentUser } from './decorators';
 import { PasskeyExempt } from './decorators/passkey-exempt.decorator';
-import { User } from '@prisma/client';
+import type { User } from '@prisma/client';
 import { RegistrationResponseDto, AuthenticationResponseDto } from './dto';
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import { setAccessCookie, setRefreshCookie } from './auth-cookies';
 
 @Controller('auth/passkeys')
