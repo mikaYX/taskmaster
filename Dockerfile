@@ -69,10 +69,6 @@ COPY backend/scripts/prisma-generate.js ./backend/scripts/prisma-generate.js
 RUN --mount=type=secret,id=ca_cert,target=/tmp/ca.pem,required=0 \
     sh -c 'if [ -f /tmp/ca.pem ]; then export NODE_EXTRA_CA_CERTS=/tmp/ca.pem; fi; \
     npm ci --omit=dev --workspace backend --ignore-scripts && \
-    PRISMA_VERSION="$(node -e "const lock=require(\"./package-lock.json\"); const p=lock.packages[\"node_modules/prisma\"] || lock.packages[\"backend/node_modules/prisma\"]; if (!p) process.exit(1); console.log(p.version)")" && \
-    npm install --omit=dev --ignore-scripts --no-save "prisma@${PRISMA_VERSION}" && \
-    npm rebuild bcrypt --workspace backend && \
-    npm -w backend run db:generate && \
     rm -rf /root/.npm'
 
 # -----------------------------------------------------------------------------
@@ -109,6 +105,7 @@ RUN apk upgrade --no-cache && \
     rm -rf /var/cache/apk/*
 
 COPY --chown=node:node --from=prod-deps /app/node_modules ./node_modules
+COPY --chown=node:node --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --chown=node:node backend/package.json ./
 COPY --chown=node:node backend/prisma ./prisma/
 COPY --chown=node:node backend/prisma.config.cjs ./
