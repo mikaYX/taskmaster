@@ -23,9 +23,9 @@ ENV PUPPETEER_SKIP_DOWNLOAD=true \
     NPM_CONFIG_FETCH_TIMEOUT=300000
 
 # -----------------------------------------------------------------------------
-# Stage: dépendances de build
+# Stage: dépendances runtime
 # -----------------------------------------------------------------------------
-FROM base AS build-deps
+FROM base AS prod-deps
 
 COPY package.json package-lock.json ./
 COPY backend/package.json ./backend/package.json
@@ -34,8 +34,21 @@ COPY backend/prisma ./backend/prisma/
 COPY backend/prisma.config.cjs ./backend/prisma.config.cjs
 COPY backend/scripts/prisma-generate.js ./backend/scripts/prisma-generate.js
 
-RUN --mount=type=cache,target=/root/.npm \
-    npm ci --ignore-scripts
+RUN --mount=type=cache,target=/root/.npm,id=npm-cache,sharing=locked \
+    --mount=type=secret,id=ca_cert,target=/tmp/ca.pem,required=0 \
+    sh -c 'if [ -f /tmp/ca.pem ]; then export NODE_EXTRA_CA_CERTS=/tmp/ca.pem; fi; \
+    npm ci --omit=dev --workspace backend --ignore-scripts'
+
+# -----------------------------------------------------------------------------
+# Stage: dépendances de build
+# -----------------------------------------------------------------------------
+FROM prod-deps AS build-deps
+
+RUN --mount=type=cache,target=/root/.npm,id=npm-cache,sharing=locked \
+    --mount=type=secret,id=ca_cert,target=/tmp/ca.pem,required=0 \
+    sh -c 'if [ -f /tmp/ca.pem ]; then export NODE_EXTRA_CA_CERTS=/tmp/ca.pem; fi; \
+    npm install --workspace backend --include=dev --ignore-scripts && \
+    npm install --workspace frontend --include=dev --ignore-scripts'
 
 # -----------------------------------------------------------------------------
 # Stage: build backend + frontend
@@ -54,22 +67,6 @@ RUN --mount=type=secret,id=ca_cert,target=/tmp/ca.pem,required=0 \
     npm -w backend run build && \
     npm -w frontend run build && \
     npm cache clean --force'
-
-# -----------------------------------------------------------------------------
-# Stage: dépendances runtime
-# -----------------------------------------------------------------------------
-FROM base AS prod-deps
-
-COPY package.json package-lock.json ./
-COPY backend/package.json ./backend/package.json
-COPY backend/prisma ./backend/prisma/
-COPY backend/prisma.config.cjs ./backend/prisma.config.cjs
-COPY backend/scripts/prisma-generate.js ./backend/scripts/prisma-generate.js
-
-RUN --mount=type=secret,id=ca_cert,target=/tmp/ca.pem,required=0 \
-    sh -c 'if [ -f /tmp/ca.pem ]; then export NODE_EXTRA_CA_CERTS=/tmp/ca.pem; fi; \
-    npm ci --omit=dev --workspace backend --ignore-scripts && \
-    rm -rf /root/.npm'
 
 # -----------------------------------------------------------------------------
 # Stage: production (backend + client statique)
