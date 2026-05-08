@@ -121,6 +121,11 @@ COPY --chown=node:node backend/prisma.config.cjs ./
 COPY --chown=node:node --from=builder /app/backend/dist ./dist
 COPY --chown=node:node --from=builder /app/frontend/dist ./client
 
+# Le runtime n'utilise pas npm/npx ; les retirer évite d'embarquer un gestionnaire
+# de paquets inutile et supprime une grande partie des CVE remontées via npm.
+RUN rm -rf /usr/local/lib/node_modules/npm && \
+    rm -f /usr/local/bin/npm /usr/local/bin/npx /usr/bin/npm /usr/bin/npx
+
 RUN install -d -o node -g node \
     /app/backups \
     /app/public/uploads \

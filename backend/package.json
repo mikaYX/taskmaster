@@ -1,6 +1,6 @@
 {
   "name": "backend",
-  "version": "1.0.3",
+  "version": "1.0.7",
   "description": "",
   "author": "",
   "private": true,
@@ -94,6 +94,7 @@
     "rrule": "^2.8.1",
     "rxjs": "^7.8.1",
     "semver": "^6.3.1",
+    "uuid": "^11.1.0",
     "web-push": "^3.6.7",
     "zod": "^4.3.6"
   },

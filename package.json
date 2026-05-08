@@ -1,6 +1,6 @@
 {
   "name": "taskmaster",
-  "version": "1.0.3",
+  "version": "1.0.7",
   "description": "Taskmaster — Task management monorepo (NestJS + React)",
   "private": true,
   "workspaces": [
@@ -70,6 +70,7 @@
     "@xmldom/xmldom": "^0.8.13",
     "postcss": "^8.5.10",
     "basic-ftp": "^5.3.0",
-    "gaxios": "^7.1.4"
+    "gaxios": "^7.1.4",
+    "ip-address": "^10.1.1"
   }
 }

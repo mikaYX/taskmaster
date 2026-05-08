@@ -47,7 +47,7 @@ jobs:
 
       - name: Extract metadata (tags & labels)
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ${{ env.DOCKERHUB_USERNAME }}/taskmaster
           tags: |
@@ -55,7 +55,7 @@ jobs:
             type=raw,value=latest
 
       - name: Build and push
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: Dockerfile
