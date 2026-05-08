@@ -1,7 +1,7 @@
 import { Injectable, NestMiddleware, Logger } from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
 import { Request, Response, NextFunction } from 'express';
 import { ClsService } from 'nestjs-cls';
-import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class CorrelationIdMiddleware implements NestMiddleware {
@@ -12,7 +12,7 @@ export class CorrelationIdMiddleware implements NestMiddleware {
   use(req: Request, res: Response, next: NextFunction) {
     const correlationId = req.headers['x-correlation-id']
       ? (req.headers['x-correlation-id'] as string)
-      : uuidv4();
+      : randomUUID();
 
     // Attach to CLS context
     this.cls.run(() => {
