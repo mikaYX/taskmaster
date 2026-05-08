@@ -9,7 +9,8 @@ Le build s'appuie sur une seule image fullstack :
 - `../Dockerfile`
 - `../docker-compose.yml`
 - `../docker-compose.build.yml`
-- `../docker-compose.dockerhub.yml`
+- `../scripts/docker-build-push.sh`
+- `../scripts/docker-build-push.bat`
 
 Les ordres de grandeur actuellement observés restent :
 
@@ -32,6 +33,10 @@ Le workflow [../.github/workflows/docker.yml](../.github/workflows/docker.yml) p
 - Définir le secret de dépôt `DOCKERHUB_TOKEN` avec un token Docker Hub valide.
 - Définir la variable de dépôt `DOCKERHUB_USERNAME` avec le namespace Docker Hub à publier.
 - Compatibilité héritée : le workflow accepte aussi un secret `DOCKERHUB_USERNAME`, mais la variable de dépôt est préférable car le username n'est pas sensible.
+
+### Publication manuelle vers Docker Hub
+
+Les scripts `../scripts/docker-build-push.sh` et `../scripts/docker-build-push.bat` construisent et publient directement l'image Docker Hub sans fichier Compose dédié.
 
 ## Étapes
 

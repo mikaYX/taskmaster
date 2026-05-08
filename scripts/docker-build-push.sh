@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Build et push de l'image Docker taskmaster (fullstack) vers Docker Hub.
 #
-# Prérequis: docker (et docker compose v2), compte Docker Hub.
+# Prérequis: docker, compte Docker Hub.
 #
 # Usage:
 #   export DOCKERHUB_USER=votre-compte-dockerhub
@@ -42,16 +42,17 @@ elif [ -n "${CORPORATE_CA_CERT}" ]; then
 fi
 
 echo "Build image: ${IMAGE}"
+export DOCKER_BUILDKIT=1
 if [ -n "${CA_FILE}" ]; then
   echo "Using CA cert for build: ${CA_FILE}"
-  DOCKER_BUILDKIT=1 docker build --secret id=ca_cert,src="${CA_FILE}" -t "${IMAGE}" -f Dockerfile .
+  docker build --secret id=ca_cert,src="${CA_FILE}" -t "${IMAGE}" -f Dockerfile .
 else
-  docker compose -f docker-compose.dockerhub.yml build
+  docker build -t "${IMAGE}" -f Dockerfile .
 fi
 
 if [ "${1:-}" = "push" ]; then
   echo "Push vers Docker Hub..."
   echo "Astuce: en cas d'erreur d'auth, exécutez: docker login"
-  docker compose -f docker-compose.dockerhub.yml push
+  docker push "${IMAGE}"
   echo "Terminé."
 fi

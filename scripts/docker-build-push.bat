@@ -2,7 +2,7 @@
 setlocal EnableDelayedExpansion
 REM Build et push de l'image Docker taskmaster (fullstack) vers Docker Hub.
 REM
-REM Prérequis: docker (et docker compose v2), compte Docker Hub.
+REM Prérequis: docker, compte Docker Hub.
 REM
 REM Usage:
 REM   Par argument (recommandé sous PowerShell):
@@ -55,18 +55,18 @@ if "!CA_FILE!"=="" if defined CORPORATE_CA_CERT (
 )
 
 echo Build image: !IMAGE!
+set DOCKER_BUILDKIT=1
 if defined CA_FILE (
   echo Using CA cert for build: !CA_FILE!
-  set DOCKER_BUILDKIT=1
   docker build --secret id=ca_cert,src="!CA_FILE!" -t "!IMAGE!" -f Dockerfile .
 ) else (
-  docker compose -f docker-compose.dockerhub.yml build
+  docker build -t "!IMAGE!" -f Dockerfile .
 )
 
 if "%ACTION%"=="push" (
   echo Push vers Docker Hub...
   echo Astuce: en cas d'erreur d'auth, executez: docker login
-  docker compose -f docker-compose.dockerhub.yml push
+  docker push "!IMAGE!"
   echo Termine.
 )
 
