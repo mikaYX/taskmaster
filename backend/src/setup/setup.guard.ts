@@ -13,7 +13,7 @@ import { ConfigService } from '@nestjs/config';
  * SetupGuard — Security gate for the initial setup endpoint.
  *
  * Enforces:
- * 1. Bootstrap secret validation (header or body)
+ * 1. Bootstrap secret presence in environment
  * 2. In-memory rate limiting (1 attempt / 5 min / IP)
  * 3. Structured security logging of every attempt
  */
@@ -68,36 +68,16 @@ export class SetupGuard implements CanActivate {
       }
     }
 
-    // 2. Bootstrap secret validation
+    // 2. Bootstrap secret must be configured server-side before first setup
     const expectedSecret = this.configService.get<string>('BOOTSTRAP_SECRET');
 
-    if (expectedSecret) {
-      const headerSecret = request.headers['x-bootstrap-secret'];
-      const bodySecret = request.body?.bootstrapSecret;
-      const providedSecret = headerSecret || bodySecret;
-
-      if (!providedSecret) {
-        this.logger.warn(
-          `[SECURITY] Setup attempt WITHOUT bootstrap secret — IP: ${ip}, UA: ${userAgent}`,
-        );
-        throw new ForbiddenException(
-          'Bootstrap secret is required. Provide it via X-Bootstrap-Secret header or bootstrapSecret body field.',
-        );
-      }
-
-      // Constant-time comparison to prevent timing attacks
-      const expected = Buffer.from(expectedSecret, 'utf-8');
-      const provided = Buffer.from(String(providedSecret), 'utf-8');
-
-      if (
-        expected.length !== provided.length ||
-        !require('crypto').timingSafeEqual(expected, provided)
-      ) {
-        this.logger.warn(
-          `[SECURITY] Setup attempt with INVALID bootstrap secret — IP: ${ip}, UA: ${userAgent}`,
-        );
-        throw new ForbiddenException('Invalid bootstrap secret.');
-      }
+    if (!expectedSecret) {
+      this.logger.warn(
+        `[SECURITY] Setup blocked because BOOTSTRAP_SECRET is missing — IP: ${ip}, UA: ${userAgent}`,
+      );
+      throw new ForbiddenException(
+        'BOOTSTRAP_SECRET is missing from the server environment. Define it in the .env file before running the setup wizard.',
+      );
     }
 
     this.logger.log(

@@ -44,44 +44,20 @@ describe('SetupGuard', () => {
     configService = module.get<ConfigService>(ConfigService);
   });
 
-  it('should allow access when no BOOTSTRAP_SECRET is configured', () => {
+  it('should reject when BOOTSTRAP_SECRET is not configured', () => {
     mockConfigService.get.mockReturnValue(undefined);
     const context = createMockContext();
-    expect(guard.canActivate(context as any)).toBe(true);
+    expect(() => guard.canActivate(context as any)).toThrow(ForbiddenException);
   });
 
-  it('should reject when BOOTSTRAP_SECRET is set but not provided', () => {
+  it('should allow setup when BOOTSTRAP_SECRET is configured server-side', () => {
     mockConfigService.get.mockReturnValue('my-super-secret-key!');
     const context = createMockContext();
-    expect(() => guard.canActivate(context as any)).toThrow(ForbiddenException);
-  });
-
-  it('should reject when wrong secret is provided via header', () => {
-    mockConfigService.get.mockReturnValue('my-super-secret-key!');
-    const context = createMockContext({
-      headers: { 'x-bootstrap-secret': 'wrong-secret-value' },
-    });
-    expect(() => guard.canActivate(context as any)).toThrow(ForbiddenException);
-  });
-
-  it('should allow when correct secret is provided via header', () => {
-    mockConfigService.get.mockReturnValue('my-super-secret-key!');
-    const context = createMockContext({
-      headers: { 'x-bootstrap-secret': 'my-super-secret-key!' },
-    });
-    expect(guard.canActivate(context as any)).toBe(true);
-  });
-
-  it('should allow when correct secret is provided via body', () => {
-    mockConfigService.get.mockReturnValue('my-super-secret-key!');
-    const context = createMockContext({
-      body: { bootstrapSecret: 'my-super-secret-key!' },
-    });
     expect(guard.canActivate(context as any)).toBe(true);
   });
 
   it('should rate-limit after first attempt', () => {
-    mockConfigService.get.mockReturnValue(undefined);
+    mockConfigService.get.mockReturnValue('my-super-secret-key!');
     const context = createMockContext();
 
     // First attempt passes

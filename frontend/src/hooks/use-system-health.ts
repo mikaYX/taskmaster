@@ -1,6 +1,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { systemApi } from '@/api/system';
+import { ApiError } from '@/api/http';
 
 export type SystemStatus = 'unknown' | 'ok' | 'unavailable';
 
@@ -26,6 +27,16 @@ export function useSystemHealth() {
             setIsLoading(false);
             retryCount.current = 0;
         } catch (error) {
+            // A forbidden health endpoint still proves the backend is reachable.
+            // This happens in Docker deployments where /health is intentionally
+            // guarded from browser-originated requests.
+            if (error instanceof ApiError && error.status === 403) {
+                setStatus('ok');
+                setIsLoading(false);
+                retryCount.current = 0;
+                return;
+            }
+
             // Only log if manual or final failure to avoid console noise
             if (isManualRetry || retryCount.current >= maxRetries) {
                 console.error('System health check failed:', error);

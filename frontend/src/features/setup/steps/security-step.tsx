@@ -101,6 +101,11 @@ export function SecurityStep({ onNext, onBack }: SecurityStepProps) {
                     return;
                 }
 
+                if (err.status === 403 && !backendMessage) {
+                    setError('BOOTSTRAP_SECRET is missing from the server environment. Add it to the .env file before running setup.');
+                    return;
+                }
+
                 setError(backendMessage || `Failed to create account (${err.status} ${err.statusText})`);
                 return;
             }
