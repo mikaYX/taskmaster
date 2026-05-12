@@ -1,0 +1,83 @@
+name: Monthly Security Exceptions Review
+
+on:
+  schedule:
+    - cron: '0 8 1 * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  review:
+    name: Review security exceptions
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Validate security exceptions
+        id: validate
+        shell: bash
+        run: |
+          set +e
+          node scripts/validate-trivy-exceptions.js
+          exit_code=$?
+          echo "exit_code=${exit_code}" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Publish review summary
+        if: always()
+        shell: bash
+        run: |
+          if [ ! -f security-exceptions-report.json ]; then
+            echo "## Monthly Security Exceptions Review" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "No security exceptions report was generated." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          node <<'EOF' >> "$GITHUB_STEP_SUMMARY"
+          const fs = require('fs');
+          const report = JSON.parse(fs.readFileSync('security-exceptions-report.json', 'utf8'));
+
+          const rows = Array.isArray(report.details) ? report.details : [];
+          const sanitize = (value) => String(value ?? 'None').replace(/\|/g, '\\|').replace(/\r?\n/g, ' ');
+          const renderList = (items) => {
+            if (!Array.isArray(items) || items.length === 0) {
+              return 'None';
+            }
+
+            return sanitize(items.join(', '));
+          };
+
+          console.log('## Monthly Security Exceptions Review');
+          console.log('');
+          console.log(`- Scan date: ${report.scanDate}`);
+          console.log(`- Valid exceptions: ${report.validCount ?? 0}`);
+          console.log(`- Expired exceptions: ${report.expiredCount ?? 0}`);
+          console.log(`- Invalid exceptions: ${report.invalidCount ?? 0}`);
+          console.log('');
+          console.log('| ID | Status | Warnings | Errors |');
+          console.log('| --- | --- | --- | --- |');
+
+          if (rows.length === 0) {
+            console.log('| None | n/a | None | None |');
+          }
+
+          for (const row of rows) {
+            console.log(
+              `| ${sanitize(row.id ?? '(unknown)')} | ${sanitize(row.status ?? 'unknown')} | ${renderList(row.warnings)} | ${renderList(row.errors)} |`,
+            );
+          }
+          EOF
+
+      - name: Fail on expired or invalid exceptions
+        if: steps.validate.outputs.exit_code != '0'
+        run: exit 1
