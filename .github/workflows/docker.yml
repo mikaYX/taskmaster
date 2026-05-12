@@ -1,9 +1,12 @@
 name: Docker Build & Push
 
-on:
+'on':
   push:
     tags:
       - '[0-9]+.[0-9]+.[0-9]+'
+
+permissions:
+  contents: read
 
 jobs:
   docker:
@@ -15,6 +18,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v4
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
