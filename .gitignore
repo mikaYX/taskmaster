@@ -79,6 +79,5 @@ certs/
 .vscode/
 .idea/
 .cursorrules
-# Ne pas ignorer .github (workflows, etc.)
-# .github/
 .rtk/
+.github/skills

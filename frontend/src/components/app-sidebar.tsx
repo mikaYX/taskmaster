@@ -47,7 +47,7 @@ const analyticsNavItems = [
 const adminNavItems = [
     { titleKey: 'nav.taskDefinitions', url: '/task-definitions', icon: ListTodo },
     { titleKey: 'nav.settings', url: '/settings', icon: Settings },
-    { titleKey: 'Audit Log', url: '/admin/audit', icon: ShieldAlert },
+    { titleKey: 'nav.auditLog', url: '/admin/audit', icon: ShieldAlert },
 ];
 
 /**
@@ -77,7 +77,7 @@ export function AppSidebar() {
     const showSubtitle = showSubtitleStr === undefined ? true : showSubtitleStr === 'true';
 
     const currentUser = users?.find(u => u.id === userId);
-    const displayName = currentUser?.fullname || currentUser?.username || 'User';
+    const displayName = currentUser?.fullname || currentUser?.username || t('common.user');
     const initials = displayName.substring(0, 2).toUpperCase();
 
     const handleLogout = () => {
@@ -93,7 +93,7 @@ export function AppSidebar() {
                     {appLogo ? (
                         <img
                             src={appLogo}
-                            alt="Logo"
+                            alt={t('common.logo')}
                             className="h-12 w-auto max-w-full object-contain rounded-md transition-all group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:w-8"
                         />
                     ) : (
@@ -159,13 +159,13 @@ export function AppSidebar() {
                     </SidebarGroup>
                 )}
 
-                {adminNavItems.filter(item => !(isGuest && (item.titleKey === 'nav.settings' || item.titleKey === 'Audit Log' || item.titleKey === 'nav.taskDefinitions'))).length > 0 && (
+                {adminNavItems.filter(item => !(isGuest && (item.titleKey === 'nav.settings' || item.titleKey === 'nav.auditLog' || item.titleKey === 'nav.taskDefinitions'))).length > 0 && (
                     <SidebarGroup>
                         <SidebarGroupLabel>{t('nav.admin')}</SidebarGroupLabel>
                         <SidebarGroupContent>
                             <SidebarMenu>
                                 {adminNavItems
-                                    .filter(item => !(isGuest && (item.titleKey === 'nav.settings' || item.titleKey === 'Audit Log' || item.titleKey === 'nav.taskDefinitions')))
+                                    .filter(item => !(isGuest && (item.titleKey === 'nav.settings' || item.titleKey === 'nav.auditLog' || item.titleKey === 'nav.taskDefinitions')))
                                     .map((item) => (
                                         <SidebarMenuItem key={item.titleKey}>
                                             <SidebarMenuButton

@@ -116,9 +116,4 @@ export const settingsApi = {
     testOidcGeneric: (dto: { issuer: string; clientId: string; clientSecret: string; scopes?: string }) =>
         http.post<{ success: boolean; message: string }>('/settings/oidc/test', dto),
 
-    /**
-     * Submit feedback to GitHub.
-     */
-    submitFeedback: (dto: { type: 'bug' | 'suggestion'; title: string; description: string }) =>
-        http.post<{ success: boolean }>('/settings/github/feedback', dto),
 };

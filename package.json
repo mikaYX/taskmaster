@@ -1,6 +1,6 @@
 {
   "name": "taskmaster",
-  "version": "1.0.7",
+  "version": "1.1.0",
   "description": "Taskmaster — Task management monorepo (NestJS + React)",
   "private": true,
   "workspaces": [
@@ -36,14 +36,16 @@
     "lodash": "4.18.1",
     "path-to-regexp": "^8.4.0",
     "picomatch": "^4.0.4",
-    "hono": "^4.12.14",
+    "hono": "4.12.18",
     "@hono/node-server": "^1.19.13",
     "@prisma/dev": {
-      "hono": "^4.12.14",
+      "hono": "4.12.18",
       "@hono/node-server": "^1.19.13"
     },
+    "@babel/plugin-transform-modules-systemjs": "7.29.4",
     "@types/pg": "^8.18.0",
     "qs": "^6.15.0",
+    "rxjs": "7.8.2",
     "flatted": "^3.4.2",
     "file-type": "^21.3.2",
     "@nestjs/common": {
@@ -57,6 +59,8 @@
     "archiver-utils": {
       "glob": "^8.1.0"
     },
+    "fast-uri": "3.1.2",
+    "ip-address": "10.1.1",
     "jest-config": {
       "glob": "^8.1.0"
     },
@@ -70,7 +74,6 @@
     "@xmldom/xmldom": "^0.8.13",
     "postcss": "^8.5.10",
     "basic-ftp": "^5.3.0",
-    "gaxios": "^7.1.4",
-    "ip-address": "^10.1.1"
+    "gaxios": "^7.1.4"
   }
 }

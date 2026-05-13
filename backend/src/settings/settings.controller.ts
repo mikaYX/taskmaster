@@ -32,7 +32,6 @@ import {
   TestAzureDto,
   TestSamlDto,
   TestOidcDto,
-  SubmitFeedbackDto,
 } from './dto';
 import { JwtAuthGuard, RolesGuard } from '../auth/guards';
 import { Roles, CurrentUser } from '../auth/decorators';
@@ -548,16 +547,17 @@ export class SettingsController {
   }
 
   /**
-   * Submit feedback to GitHub.
+   * Deprecated compatibility endpoint kept to avoid stale frontend failures
+   * during rolling deployments or cached-client upgrades.
    */
   @Post('github/feedback')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
-  async submitFeedback(
-    @Body() dto: SubmitFeedbackDto,
-    @CurrentUser() user: JwtPayload,
-  ) {
-    return this.settingsService.submitFeedback(dto, user);
+  submitFeedbackCompatibility() {
+    this.logger.debug(
+      'Ignored deprecated GitHub feedback request for upgrade compatibility',
+    );
+    return { success: true };
   }
 
   private handleFileUpload(

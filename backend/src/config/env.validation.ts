@@ -100,6 +100,14 @@ class EnvironmentVariables {
 
   @IsOptional()
   @IsString()
+  VERSION_CHECK_DOCKER_IMAGE?: string;
+
+  @IsOptional()
+  @IsString()
+  TASKMASTER_IMAGE?: string;
+
+  @IsOptional()
+  @IsString()
   @MinLength(16, {
     message: 'BOOTSTRAP_SECRET must be at least 16 characters long',
   })

@@ -11,8 +11,8 @@ name: taskmaster
 
 services:
   postgres:
-    image: postgres:18.1-alpine
-    container_name: taskmaster_db
+    image: postgres:18-alpine
+    container_name: ${POSTGRES_CONTAINER_NAME:-taskmaster_db}
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
@@ -30,8 +30,8 @@ services:
       retries: 5
 
   redis:
-    image: redis:8.4.1-alpine
-    container_name: taskmaster_redis
+    image: redis:8.4-alpine
+    container_name: ${REDIS_CONTAINER_NAME:-taskmaster_redis}
     restart: unless-stopped
     ports:
       - "${REDIS_PORT:-6379}:6379"
@@ -48,7 +48,7 @@ services:
       context: .
       dockerfile: Dockerfile
     image: taskmaster:local
-    container_name: taskmaster_app
+    container_name: ${APP_CONTAINER_NAME:-taskmaster_app}
     restart: unless-stopped
     ports:
       - "${PORT:-3000}:3000"

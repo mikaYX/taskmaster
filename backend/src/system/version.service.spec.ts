@@ -30,6 +30,16 @@ function makeRelease(tagName: string, prerelease = false) {
   };
 }
 
+function makeDockerTags(tagNames: string[], count = tagNames.length) {
+  return {
+    ok: true,
+    json: async () => ({
+      count,
+      results: tagNames.map((name) => ({ name })),
+    }),
+  };
+}
+
 describe('VersionService', () => {
   let service: VersionService;
   let configGet: jest.Mock;
@@ -172,6 +182,20 @@ describe('VersionService', () => {
       expect(safeFetch).toHaveBeenCalledTimes(1);
     });
 
+    it('should refresh version status when explicitly requested', async () => {
+      mockFetch(async () => makeRelease('v1.2.0'));
+
+      const first = await service.getVersionStatus();
+
+      mockFetch(async () => makeRelease('v1.3.0'));
+
+      const refreshed = await service.refreshVersionStatus();
+
+      expect(first.latestVersion).toBe('1.2.0');
+      expect(refreshed.latestVersion).toBe('1.3.0');
+      expect(safeFetch).toHaveBeenCalledTimes(2);
+    });
+
     it('should use VERSION_CHECK_REPO when configured', async () => {
       configGet.mockImplementation((key: string) =>
         key === 'VERSION_CHECK_REPO' ? 'custom-org/custom-repo' : undefined,
@@ -201,6 +225,88 @@ describe('VersionService', () => {
 
       expect(result.sourceStatus).toBe('degraded');
       expect(result.error).toBe('Unable to check for updates');
+    });
+
+    it('should use Docker Hub tags when TASKMASTER_IMAGE targets Docker Hub', async () => {
+      configGet.mockImplementation((key: string) =>
+        key === 'TASKMASTER_IMAGE' ? 'mikaxy/taskmaster:latest' : undefined,
+      );
+      mockFetch(async () => makeDockerTags(['latest', '1.0.0', '1.2.0']));
+
+      const result = await service.getVersionStatus();
+
+      expect(result.latestVersion).toBe('1.2.0');
+      expect(result.updateAvailable).toBe(true);
+      expect(result.repo).toBe('mikaxy/taskmaster');
+      expect(result.releaseUrl).toBe(
+        'https://hub.docker.com/r/mikaxy/taskmaster/tags?name=1.2.0',
+      );
+      expect(result.sourceStatus).toBe('ok');
+      expect(safeFetch).toHaveBeenCalledWith(
+        expect.stringContaining(
+          '/v2/namespaces/mikaxy/repositories/taskmaster/tags?page=1&page_size=100',
+        ),
+        expect.any(Object),
+        expect.any(Object),
+      );
+    });
+
+    it('should use VERSION_CHECK_DOCKER_IMAGE when configured for Docker deployments', async () => {
+      configGet.mockImplementation((key: string) => {
+        if (key === 'TASKMASTER_IMAGE') return 'mikaxy/taskmaster:latest';
+        if (key === 'VERSION_CHECK_DOCKER_IMAGE') {
+          return 'fork-user/taskmaster-fork:stable';
+        }
+        return undefined;
+      });
+      mockFetch(async () => makeDockerTags(['0.9.0', '1.3.0']));
+
+      const result = await service.getVersionStatus();
+
+      expect(result.latestVersion).toBe('1.3.0');
+      expect(result.repo).toBe('fork-user/taskmaster-fork');
+      expect(result.releaseUrl).toBe(
+        'https://hub.docker.com/r/fork-user/taskmaster-fork/tags?name=1.3.0',
+      );
+      expect(safeFetch).toHaveBeenCalledWith(
+        expect.stringContaining(
+          '/v2/namespaces/fork-user/repositories/taskmaster-fork/tags?page=1&page_size=100',
+        ),
+        expect.any(Object),
+        expect.any(Object),
+      );
+    });
+
+    it('should ignore Docker Hub prerelease and non-semver tags', async () => {
+      configGet.mockImplementation((key: string) =>
+        key === 'TASKMASTER_IMAGE' ? 'mikaxy/taskmaster:latest' : undefined,
+      );
+      mockFetch(async () =>
+        makeDockerTags(['latest', 'v2.0.0-beta.1', 'build-main', '1.4.0']),
+      );
+
+      const result = await service.getVersionStatus();
+
+      expect(result.latestVersion).toBe('1.4.0');
+      expect(result.updateAvailable).toBe(true);
+      expect(result.sourceStatus).toBe('ok');
+    });
+
+    it('should return degraded status on complete Docker Hub failure', async () => {
+      configGet.mockImplementation((key: string) =>
+        key === 'TASKMASTER_IMAGE' ? 'mikaxy/taskmaster:latest' : undefined,
+      );
+      mockFetch(async () => {
+        throw new Error('Docker Hub unavailable');
+      });
+
+      const result = await service.getVersionStatus();
+
+      expect(result.repo).toBe('mikaxy/taskmaster');
+      expect(result.sourceStatus).toBe('degraded');
+      expect(result.error).toBe('Unable to check for updates');
+      expect(result.updateAvailable).toBe(false);
+      expect(result.releaseUrl).toBeNull();
     });
 
     it('should deduplicate concurrent requests', async () => {

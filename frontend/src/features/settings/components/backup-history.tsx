@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { ManualBackupModal } from './manual-backup-modal';
 import { ImportBackupModal } from './import-backup-modal';
+import { useTranslation } from 'react-i18next';
 
 import {
     AlertDialog,
@@ -32,6 +33,7 @@ interface BackupHistoryTableProps {
 }
 
 export function BackupHistoryTable({ backups, onRefresh, canRunFull, isDirty, onRestore }: BackupHistoryTableProps) {
+    const { t } = useTranslation();
     const [processingId, setProcessingId] = useState<string | null>(null);
     const [showManualModal, setShowManualModal] = useState(false);
     const [showImportModal, setShowImportModal] = useState(false);
@@ -46,11 +48,11 @@ export function BackupHistoryTable({ backups, onRefresh, canRunFull, isDirty, on
         setBackupToDelete(null); // Close modal efficiently
         try {
             await backupApi.delete(filename);
-            toast.success('Backup supprimé');
+            toast.success(t('backupHistory.deleted'));
             onRefresh();
         } catch (e) {
             console.error(e);
-            toast.error('Erreur lors de la suppression');
+            toast.error(t('backupHistory.deleteError'));
         } finally {
             setProcessingId(null);
         }
@@ -68,7 +70,7 @@ export function BackupHistoryTable({ backups, onRefresh, canRunFull, isDirty, on
                     } else if ((response as any).data instanceof Blob) {
                         blob = (response as any).data;
                     } else {
-                        throw new Error('Invalid download response');
+                        throw new Error(t('backupHistory.invalidDownloadResponse'));
                     }
 
                     const url = window.URL.createObjectURL(blob);
@@ -81,35 +83,35 @@ export function BackupHistoryTable({ backups, onRefresh, canRunFull, isDirty, on
                     document.body.removeChild(a);
                 },
                 {
-                    loading: 'Preparing download...',
-                    success: 'Download started',
-                    error: (e) => 'Failed to download: ' + (e.message || 'Unknown error')
+                    loading: t('backupHistory.preparingDownload'),
+                    success: t('backupHistory.downloadStarted'),
+                    error: (e) => t('backupHistory.failedToDownload', { error: e.message || t('backupHistory.unknownError') })
                 }
             );
         } catch (e) {
             console.error('Download error', e);
-            toast.error('Could not start download');
+            toast.error(t('backupHistory.couldNotStartDownload'));
         }
     };
 
     return (
         <Card>
             <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle>System Backups ({backups?.length || 0})</CardTitle>
+                <CardTitle>{t('backupHistory.title', { count: backups?.length || 0 })}</CardTitle>
                 <div className="flex gap-2">
                     <Button variant="outline" size="sm" onClick={() => setShowImportModal(true)}>
-                        <UploadCloud className="mr-2 h-4 w-4" /> Import
+                        <UploadCloud className="mr-2 h-4 w-4" /> {t('backupHistory.import')}
                     </Button>
                     <Button size="sm" onClick={() => {
                         if (isDirty) {
-                            toast.warning('Please save your configuration changes before running a backup.');
+                            toast.warning(t('backupHistory.saveConfigurationFirst'));
                             return;
                         }
                         setShowManualModal(true);
                     }}>
-                        <Play className="mr-2 h-4 w-4" /> Run Now
+                        <Play className="mr-2 h-4 w-4" /> {t('backupHistory.runNow')}
                     </Button>
-                    <Button variant="ghost" size="icon" onClick={onRefresh} title="Refresh List">
+                    <Button variant="ghost" size="icon" onClick={onRefresh} title={t('backupHistory.refreshList')}>
                         <RefreshCw className="h-4 w-4" />
                     </Button>
                 </div>
@@ -119,11 +121,11 @@ export function BackupHistoryTable({ backups, onRefresh, canRunFull, isDirty, on
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead>Type</TableHead>
-                                <TableHead>Filename</TableHead>
-                                <TableHead>Size</TableHead>
-                                <TableHead>Created</TableHead>
-                                <TableHead className="text-right">Actions</TableHead>
+                                <TableHead>{t('backupHistory.columns.type')}</TableHead>
+                                <TableHead>{t('backupHistory.columns.filename')}</TableHead>
+                                <TableHead>{t('backupHistory.columns.size')}</TableHead>
+                                <TableHead>{t('backupHistory.columns.created')}</TableHead>
+                                <TableHead className="text-right">{t('backupHistory.columns.actions')}</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -132,8 +134,8 @@ export function BackupHistoryTable({ backups, onRefresh, canRunFull, isDirty, on
                                     <TableCell colSpan={5} className="text-center py-12 text-muted-foreground">
                                         <div className="flex flex-col items-center gap-2">
                                             <Database className="h-8 w-8 opacity-20 mb-2" />
-                                            <p className="font-medium">Aucun backup trouvé</p>
-                                            <p className="text-xs">Lancez un backup manuel ou vérifiez votre configuration de stockage.</p>
+                                            <p className="font-medium">{t('backupHistory.emptyTitle')}</p>
+                                            <p className="text-xs">{t('backupHistory.emptyDescription')}</p>
                                         </div>
                                     </TableCell>
                                 </TableRow>
@@ -147,7 +149,7 @@ export function BackupHistoryTable({ backups, onRefresh, canRunFull, isDirty, on
                                             <TableCell>
                                                 <div className="flex items-center gap-2">
                                                     {isFull ? <FolderArchive className="h-4 w-4 text-blue-500" /> : <Database className="h-4 w-4 text-orange-500" />}
-                                                    <span className="font-medium">{isFull ? 'System' : 'Database'}</span>
+                                                    <span className="font-medium">{isFull ? t('backupHistory.types.system') : t('backupHistory.types.database')}</span>
                                                 </div>
                                             </TableCell>
                                             <TableCell>
@@ -157,7 +159,7 @@ export function BackupHistoryTable({ backups, onRefresh, canRunFull, isDirty, on
                                                     </span>
                                                     {isEncrypted && (
                                                         <Badge variant="outline" className="w-fit text-[10px] h-5 gap-1 px-1">
-                                                            <Lock className="h-3 w-3" /> Encrypted
+                                                            <Lock className="h-3 w-3" /> {t('backupHistory.encrypted')}
                                                         </Badge>
                                                     )}
                                                 </div>
@@ -173,18 +175,18 @@ export function BackupHistoryTable({ backups, onRefresh, canRunFull, isDirty, on
                                                             variant="ghost"
                                                             size="sm"
                                                             onClick={() => onRestore(backup)}
-                                                            title="Restore this backup"
+                                                            title={t('backupHistory.restoreThisBackup')}
                                                             className="text-orange-600 hover:text-orange-700 hover:bg-orange-50 dark:hover:bg-orange-950"
                                                         >
                                                             <RotateCcw className="h-4 w-4 mr-1" />
-                                                            Restore
+                                                            {t('backupHistory.restore')}
                                                         </Button>
                                                     )}
                                                     <Button
                                                         variant="ghost"
                                                         size="icon"
                                                         onClick={() => handleDownload(backup.filename)}
-                                                        title="Download"
+                                                        title={t('backupHistory.download')}
                                                     >
                                                         <Download className="h-4 w-4" />
                                                     </Button>
@@ -194,7 +196,7 @@ export function BackupHistoryTable({ backups, onRefresh, canRunFull, isDirty, on
                                                         className="text-destructive hover:text-destructive"
                                                         disabled={processingId === backup.filename}
                                                         onClick={() => handleDeleteClick(backup.filename)}
-                                                        title="Delete"
+                                                        title={t('backupHistory.delete')}
                                                     >
                                                         {processingId === backup.filename ? (
                                                             <Loader2 className="h-4 w-4 animate-spin" />
@@ -229,19 +231,19 @@ export function BackupHistoryTable({ backups, onRefresh, canRunFull, isDirty, on
             <AlertDialog open={!!backupToDelete} onOpenChange={(open) => !open && setBackupToDelete(null)}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
-                        <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
+                        <AlertDialogTitle>{t('backupHistory.deleteConfirmTitle')}</AlertDialogTitle>
                         <AlertDialogDescription>
-                            Êtes-vous sûr de vouloir supprimer la sauvegarde <strong>{backupToDelete}</strong> ?<br />
-                            Cette action est irréversible.
+                            {t('backupHistory.deleteConfirmDescription', { filename: backupToDelete ?? '' })}<br />
+                            {t('backupHistory.deleteConfirmIrreversible')}
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel>Annuler</AlertDialogCancel>
+                        <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
                         <AlertDialogAction
                             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                             onClick={() => backupToDelete && confirmDelete(backupToDelete)}
                         >
-                            Supprimer
+                            {t('common.delete')}
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>

@@ -67,7 +67,7 @@ export function SchedulerSettingsPage() {
             }
         } catch {
             setEnabled(!checked);
-            toast.error('Failed to update scheduler state');
+            toast.error(t('schedulerSettings.updateError'));
         } finally {
             setIsSyncingScheduler(false);
         }
@@ -84,7 +84,7 @@ export function SchedulerSettingsPage() {
             }
             queryClient.invalidateQueries({ queryKey: ['system-jobs'] });
         } catch {
-            toast.error(`Failed to trigger ${jobName}`);
+            toast.error(t('schedulerSettings.triggerError', { jobName }));
         } finally {
             setRunningJobName(null);
         }
@@ -107,7 +107,7 @@ export function SchedulerSettingsPage() {
         } catch {
             // Revert on error
             queryClient.invalidateQueries({ queryKey: ['system-jobs'] });
-            toast.error(`Failed to toggle ${jobName}`);
+            toast.error(t('schedulerSettings.toggleError', { jobName }));
         } finally {
             setTogglingJobName(null);
         }
@@ -141,7 +141,7 @@ export function SchedulerSettingsPage() {
                         </div>
                         <div className="flex items-center gap-2">
                             <span className={enabled ? "font-medium text-green-600" : "font-medium text-destructive"}>
-                                {enabled ? 'ACTIVE' : 'SUSPENDED'}
+                                {enabled ? t('schedulerSettings.active') : t('schedulerSettings.suspended')}
                             </span>
                             <Switch checked={enabled} onCheckedChange={handleToggle} disabled={isSyncingScheduler} />
                         </div>
@@ -153,23 +153,23 @@ export function SchedulerSettingsPage() {
             {!enabled && (
                 <Alert variant="destructive">
                     <Info className="h-4 w-4 text-blue-500" />
-                    <AlertTitle>System Paused</AlertTitle>
+                    <AlertTitle>{t('schedulerSettings.systemPausedTitle')}</AlertTitle>
                     <AlertDescription>
-                        Audit loops, auto-exports, backups, and email alerts are currently suspended.
+                        {t('schedulerSettings.systemPausedDescription')}
                     </AlertDescription>
                 </Alert>
             )}
 
             {/* TIMEZONE */}
-            <SettingsSection title="System Timezone" description="Reference time for all schedules">
+            <SettingsSection title={t('schedulerSettings.systemTimezoneTitle')} description={t('schedulerSettings.systemTimezoneDescription')}>
                 <div className="flex items-center gap-2 p-3 bg-muted rounded-md font-mono text-sm">
                     <Clock className="h-4 w-4 text-muted-foreground" />
-                    <span>{timezone} (Detected)</span>
+                    <span>{t('schedulerSettings.detectedTimezone', { timezone })}</span>
                 </div>
             </SettingsSection>
 
             {/* JOB STATUS (READ ONLY) */}
-            <SettingsSection title="Job Status" description="Real-time status of scheduled background tasks">
+            <SettingsSection title={t('schedulerSettings.jobStatusTitle')} description={t('schedulerSettings.jobStatusDescription')}>
                 {isLoadingJobs ? (
                     <div className="flex justify-center p-4">
                         <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
@@ -179,12 +179,12 @@ export function SchedulerSettingsPage() {
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead>Job Name</TableHead>
-                                    <TableHead>Description</TableHead>
-                                    <TableHead>Schedule (Cron)</TableHead>
-                                    <TableHead>Status</TableHead>
-                                    <TableHead>Actions</TableHead>
-                                    <TableHead className="text-right">Next Run</TableHead>
+                                    <TableHead>{t('scheduler.jobName')}</TableHead>
+                                    <TableHead>{t('schedulerSettings.description')}</TableHead>
+                                    <TableHead>{t('schedulerSettings.scheduleCron')}</TableHead>
+                                    <TableHead>{t('scheduler.status')}</TableHead>
+                                    <TableHead>{t('common.actions')}</TableHead>
+                                    <TableHead className="text-right">{t('scheduler.nextRun')}</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -195,7 +195,7 @@ export function SchedulerSettingsPage() {
                                         <TableCell className="font-mono text-xs text-muted-foreground">{job.cron}</TableCell>
                                         <TableCell>
                                             <Badge variant={(enabled && job.enabled) ? "default" : "secondary"} className={(enabled && job.enabled) ? "bg-green-600 hover:bg-green-700" : ""}>
-                                                {(enabled && job.enabled) ? 'Active' : 'Disabled'}
+                                                {(enabled && job.enabled) ? t('schedulerSettings.active') : t('schedulerSettings.disabled')}
                                             </Badge>
                                         </TableCell>
                                         <TableCell>
@@ -238,7 +238,7 @@ export function SchedulerSettingsPage() {
                                 {(!jobs || jobs.length === 0) && (
                                     <TableRow>
                                         <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-                                            No active jobs found.
+                                            {t('schedulerSettings.noJobs')}
                                         </TableCell>
                                     </TableRow>
                                 )}

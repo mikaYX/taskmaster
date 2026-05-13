@@ -1,7 +1,7 @@
-import * as opentelemetry from '@opentelemetry/sdk-node';
+import { NodeSDK } from '@opentelemetry/sdk-node';
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
-import { Resource } from '@opentelemetry/resources';
+import { resourceFromAttributes } from '@opentelemetry/resources';
 import {
   ATTR_SERVICE_NAME,
   ATTR_SERVICE_VERSION,
@@ -27,21 +27,22 @@ const sampler =
         root: new TraceIdRatioBasedSampler(sampleRate),
       });
 
+const traceExporter = process.env.OTEL_EXPORTER_OTLP_ENDPOINT
+  ? new OTLPTraceExporter({ url: process.env.OTEL_EXPORTER_OTLP_ENDPOINT })
+  : new ConsoleSpanExporter();
+
 // Configure the SDK
-const sdk = new opentelemetry.NodeSDK({
-  resource: new Resource({
+const sdk = new NodeSDK({
+  resource: resourceFromAttributes({
     [ATTR_SERVICE_NAME]: 'taskmaster-backend',
     [ATTR_SERVICE_VERSION]: process.env.npm_package_version || '1.0.0',
   }),
   sampler,
-  traceExporter: process.env.OTEL_EXPORTER_OTLP_ENDPOINT
-    ? new OTLPTraceExporter({ url: process.env.OTEL_EXPORTER_OTLP_ENDPOINT })
-    : new ConsoleSpanExporter(), // Fallback to console for easier debugging/dev
-  spanProcessor: process.env.OTEL_EXPORTER_OTLP_ENDPOINT
-    ? new BatchSpanProcessor(
-        new OTLPTraceExporter({ url: process.env.OTEL_EXPORTER_OTLP_ENDPOINT }),
-      )
-    : new SimpleSpanProcessor(new ConsoleSpanExporter()),
+  spanProcessors: [
+    process.env.OTEL_EXPORTER_OTLP_ENDPOINT
+      ? new BatchSpanProcessor(traceExporter)
+      : new SimpleSpanProcessor(traceExporter),
+  ],
   instrumentations: [
     getNodeAutoInstrumentations({
       '@opentelemetry/instrumentation-http': {
@@ -77,7 +78,9 @@ export async function bootstrapOTel() {
       sdk
         .shutdown()
         .then(() => console.log('Tracing terminated'))
-        .catch((error) => console.log('Error terminating tracing', error))
+        .catch((error: unknown) =>
+          console.log('Error terminating tracing', error),
+        )
         .finally(() => process.exit(0));
     });
   } catch (error) {

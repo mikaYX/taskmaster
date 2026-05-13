@@ -1,6 +1,12 @@
 {
   "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "rxjs": ["../node_modules/rxjs"],
+      "rxjs/*": ["../node_modules/rxjs/*"]
+    },
     "module": "node20",
+    "types": ["node", "jest"],
     "esModuleInterop": true,
     "isolatedModules": true,
     "declaration": true,

@@ -126,6 +126,11 @@ Sous **Windows (Docker Desktop)**, le `mkdir` suffit en général ; le `chown` e
 
 L'application sera disponible sur `http://localhost:3000`. Un assistant de configuration guidera la création du premier compte administrateur.
 
+Les vérifications de mise à jour pointent automatiquement vers l'upstream officiel correspondant au mode de déploiement : releases GitHub pour une installation source, tags Docker Hub pour une stack démarrée avec `TASKMASTER_IMAGE` sur Docker Hub. 
+Les variables `VERSION_CHECK_REPO` et `VERSION_CHECK_DOCKER_IMAGE` ne sont utiles que pour les forks.
+
+→ Guide dédié : [`docs/version-updates.md`](docs/version-updates.md)
+
 **En développement local**
 
 ```bash
@@ -152,6 +157,7 @@ npm run dev
 | [`docs/use-cases.md`](docs/use-cases.md) | Cas d’usage métier et exemples de planification |
 | [`docs/authentication.md`](docs/authentication.md) | SSO, LDAP, OIDC, SAML, MFA |
 | [`docs/local-db.md`](docs/local-db.md) | PostgreSQL et Redis en local |
+| [`docs/version-updates.md`](docs/version-updates.md) | Mises à jour de version en local et Docker |
 | [`docs/DOCKER-BUILD.md`](docs/DOCKER-BUILD.md) | Build et publication Docker |
 | [`docs/operations.md`](docs/operations.md) | Exploitation et administration |
 | [`docs/troubleshooting.md`](docs/troubleshooting.md) | Dépannage |

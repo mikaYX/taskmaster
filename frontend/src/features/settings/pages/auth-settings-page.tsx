@@ -30,8 +30,10 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 
 export function AuthSettingsPage() {
+    const { t } = useTranslation();
 
     const { settings, getSetting, updateSettings, isLoading, isUpdating, emailConfigStatus } = useSettings();
     const isInitialized = useRef(false);
@@ -91,16 +93,16 @@ export function AuthSettingsPage() {
         }
 
         if (result?.status === 'error' || result?.status === 'timeout') {
-            return <Badge variant="destructive" className="ml-2">Test Failed</Badge>;
+            return <Badge variant="destructive" className="ml-2">{t('authPage.badges.testFailed')}</Badge>;
         }
         // Show "Active" only if enabled in form AND configured
         if (isCurrentlyEnabled && cap.configured) {
-            return <Badge className="ml-2 bg-green-500 hover:bg-green-600">Active</Badge>;
+            return <Badge className="ml-2 bg-green-500 hover:bg-green-600">{t('authPage.badges.active')}</Badge>;
         }
         if (cap.configured) {
-            return <Badge className="ml-2 bg-blue-500 hover:bg-blue-600">Configured</Badge>;
+            return <Badge className="ml-2 bg-blue-500 hover:bg-blue-600">{t('authPage.badges.configured')}</Badge>;
         }
-        return <Badge variant="secondary" className="ml-2">Available</Badge>;
+        return <Badge variant="secondary" className="ml-2">{t('authPage.badges.available')}</Badge>;
     };
 
     const form = useForm({
@@ -248,14 +250,14 @@ export function AuthSettingsPage() {
         // Validate Email OTP selection
         if (data.mfa?.methods?.includes('email')) {
             if (!emailConfigStatus?.enabled) {
-                toast.error("Cannot enable Email OTP", {
-                    description: "The Email feature is disabled. Enable it in Email Settings first."
+                toast.error(t('authPage.cannotEnableEmailOtpTitle'), {
+                    description: t('authPage.cannotEnableEmailOtpDisabled')
                 });
                 return;
             }
             if (!emailConfigStatus?.configValid) {
-                toast.error("Cannot enable Email OTP", {
-                    description: "Email is enabled but not properly configured. Complete the configuration in Email Settings."
+                toast.error(t('authPage.cannotEnableEmailOtpTitle'), {
+                    description: t('authPage.cannotEnableEmailOtpNotConfigured')
                 });
                 return;
             }
@@ -263,17 +265,17 @@ export function AuthSettingsPage() {
 
         // Capabilities Guards
         if (capabilitiesError) {
-            toast.error("Configuration error", { description: "Cannot save settings while capabilities are unavailable. Read-only mode is active." });
+            toast.error(t('authPage.configurationErrorTitle'), { description: t('authPage.readOnlyCapabilitiesError') });
             return;
         }
 
         function getProviderDisplayName(key: string): string {
             const names: Record<string, string> = {
-                azureAd: 'Azure AD',
-                google: 'Google Workspace',
-                generic: 'Generic SSO',
-                ldap: 'LDAP',
-                oidc_generic: 'OIDC Generic',
+                azureAd: t('authPage.providerNames.azureAd'),
+                google: t('authPage.providerNames.google'),
+                generic: t('authPage.providerNames.generic'),
+                ldap: t('authPage.providerNames.ldap'),
+                oidc_generic: t('authPage.providerNames.oidcGeneric'),
             };
             return names[key] || key;
         }
@@ -282,8 +284,8 @@ export function AuthSettingsPage() {
             if (!isEnabled || !capabilities) return true;
 
             if (!capabilities[capKey]?.implemented) {
-                toast.error("Configuration error", {
-                    description: `${getProviderDisplayName(propKey)} is not yet implemented in this version.`
+                toast.error(t('authPage.configurationErrorTitle'), {
+                    description: t('authPage.notImplementedYet', { provider: getProviderDisplayName(propKey) })
                 });
                 return false;
             }
@@ -303,8 +305,8 @@ export function AuthSettingsPage() {
             }
 
             if (!isFormFilled && !capabilities[capKey]?.configured) {
-                toast.error("Configuration error", {
-                    description: `Please configure all required fields first for ${getProviderDisplayName(propKey)}.`
+                toast.error(t('authPage.configurationErrorTitle'), {
+                    description: t('authPage.configureRequiredFieldsFirst', { provider: getProviderDisplayName(propKey) })
                 });
                 return false;
             }
@@ -384,7 +386,7 @@ export function AuthSettingsPage() {
         // Or assume react-hook-form does it if we passed data to defaultValues.
         // Actually updateSettings is async (optimistic with react-query usually), so we might not be able to reset immediately.
         // But for UX, we show toast.
-        toast.success("Authentication settings updated");
+        toast.success(t('authPage.settingsUpdated'));
     };
 
     if (isLoading || isLoadingCaps) {
@@ -419,27 +421,27 @@ export function AuthSettingsPage() {
         let isValid = true;
 
         if (type === 'azure') {
-            if (!data.azureAd?.tenantId) missing.push('Tenant ID');
-            if (!data.azureAd?.clientId) missing.push('Client ID');
-            if (!data.azureAd?.clientSecret) missing.push('Client Secret');
+            if (!data.azureAd?.tenantId) missing.push(t('authSettings.tenantId'));
+            if (!data.azureAd?.clientId) missing.push(t('authSettings.clientId'));
+            if (!data.azureAd?.clientSecret) missing.push(t('authSettings.clientSecret'));
         } else if (type === 'google') {
-            if (!data.google?.clientId) missing.push('Client ID');
-            if (!data.google?.clientSecret) missing.push('Client Secret');
+            if (!data.google?.clientId) missing.push(t('authSettings.clientId'));
+            if (!data.google?.clientSecret) missing.push(t('authSettings.clientSecret'));
         } else if (type === 'oidc') {
             if (data.generic?.type === 'oidc') {
-                if (!data.generic?.oidc?.issuer) missing.push('Issuer URL');
-                if (!data.generic?.oidc?.clientId) missing.push('Client ID');
-                if (!data.generic?.oidc?.clientSecret) missing.push('Client Secret');
+                if (!data.generic?.oidc?.issuer) missing.push(t('authPage.issuerUrl'));
+                if (!data.generic?.oidc?.clientId) missing.push(t('authSettings.clientId'));
+                if (!data.generic?.oidc?.clientSecret) missing.push(t('authSettings.clientSecret'));
             } else { // SAML
-                if (!data.generic?.saml?.entityId) missing.push('Entity ID');
-                if (!data.generic?.saml?.ssoUrl) missing.push('SSO URL');
-                if (!data.generic?.saml?.x509) missing.push('X.509 Certificate');
+                if (!data.generic?.saml?.entityId) missing.push(t('authPage.entityIdIssuer'));
+                if (!data.generic?.saml?.ssoUrl) missing.push(t('authPage.ssoUrl'));
+                if (!data.generic?.saml?.x509) missing.push(t('authPage.x509Certificate'));
             }
         } else if (type === 'ldap') {
-            if (!data.ldap?.url) missing.push('LDAP URL');
-            if (!data.ldap?.bindDn) missing.push('Bind DN');
-            if (!data.ldap?.bindPassword) missing.push('Bind Password');
-            if (!data.ldap?.searchBase) missing.push('Search Base');
+            if (!data.ldap?.url) missing.push(t('authSettings.ldapUrl'));
+            if (!data.ldap?.bindDn) missing.push(t('authSettings.bindDn'));
+            if (!data.ldap?.bindPassword) missing.push(t('authSettings.bindPassword'));
+            if (!data.ldap?.searchBase) missing.push(t('authSettings.searchBase'));
         }
 
         if (missing.length > 0) isValid = false;
@@ -457,7 +459,7 @@ export function AuthSettingsPage() {
         if (!validation.isValid) {
             setTestResults(prev => ({
                 ...prev,
-                [resultType]: { status: 'error', message: `Missing configuration: ${validation.missing.join(', ')}` }
+                [resultType]: { status: 'error', message: t('authPage.missingConfiguration', { fields: validation.missing.join(', ') }) }
             }));
             setValidatingProvider(null);
             return;
@@ -504,20 +506,20 @@ export function AuthSettingsPage() {
             }
 
             if (res?.success) {
-                setTestResults(prev => ({ ...prev, [resultType]: { status: 'success', message: '✓ Configuration valid' } }));
+                setTestResults(prev => ({ ...prev, [resultType]: { status: 'success', message: t('authPage.configurationValid') } }));
             } else {
                 const isTimeout = res?.message?.toLowerCase().includes('timeout');
                 setTestResults(prev => ({
                     ...prev,
-                    [resultType]: { status: isTimeout ? 'timeout' : 'error', message: res?.message || "Unknown error" }
+                    [resultType]: { status: isTimeout ? 'timeout' : 'error', message: res?.message || t('authPage.unknownError') }
                 }));
             }
         } catch (err: unknown) {
-            let errorMessage = "Unknown error";
+            let errorMessage = t('authPage.unknownError');
             if (err instanceof Error) {
                 errorMessage = err.message;
             } else if (typeof err === 'object' && err !== null && 'response' in err) {
-                errorMessage = (err as { response?: { data?: { message?: string } } }).response?.data?.message || "Unknown error";
+                errorMessage = (err as { response?: { data?: { message?: string } } }).response?.data?.message || t('authPage.unknownError');
             }
             const isTimeout = errorMessage.toLowerCase().includes('timeout');
             setTestResults(prev => ({
@@ -547,7 +549,7 @@ export function AuthSettingsPage() {
             return (
                 <Alert className="bg-green-50 border-green-200 text-green-900 dark:bg-green-900/20 dark:border-green-800 dark:text-green-300">
                     <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
-                    <AlertTitle>Success</AlertTitle>
+                    <AlertTitle>{t('authPage.testResult.successTitle')}</AlertTitle>
                     <AlertDescription>{result.message}</AlertDescription>
                 </Alert>
             );
@@ -557,8 +559,8 @@ export function AuthSettingsPage() {
             return (
                 <Alert className="bg-amber-50 border-amber-200 text-amber-900 dark:bg-amber-900/20 dark:border-amber-800 dark:text-amber-300">
                     <Clock className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-                    <AlertTitle>Connection test timed out</AlertTitle>
-                    <AlertDescription>{result.message || 'The connection timed out after 5 seconds'}</AlertDescription>
+                    <AlertTitle>{t('authPage.testResult.timeoutTitle')}</AlertTitle>
+                    <AlertDescription>{result.message || t('authPage.testResult.timeoutDescription')}</AlertDescription>
                 </Alert>
             );
         }
@@ -566,7 +568,7 @@ export function AuthSettingsPage() {
         return (
             <Alert variant="destructive">
                 <AlertTriangle className="h-4 w-4" />
-                <AlertTitle>Connection failed</AlertTitle>
+                <AlertTitle>{t('authPage.testResult.failedTitle')}</AlertTitle>
                 <AlertDescription>{result.message}</AlertDescription>
             </Alert>
         );
@@ -578,22 +580,22 @@ export function AuthSettingsPage() {
                 <form onSubmit={form.handleSubmit(onSubmit, (errors) => {
                     const failingKeys = Object.keys(errors).join(', ');
                     console.error("Form validation errors:", errors);
-                    toast.error("Form validation failed", {
-                        description: `Check the following tabs/fields for errors: ${failingKeys}`
+                    toast.error(t('authPage.validationFailedTitle'), {
+                        description: t('authPage.validationFailedDescription', { fields: failingKeys })
                     });
                 })} className="space-y-6">
                     <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
                         <div className="flex items-center justify-between">
                             <TabsList>
-                                <TabsTrigger value="auth" className="gap-2"><Shield className="h-4 w-4" /> Providers</TabsTrigger>
-                                <TabsTrigger value="mfa" className="gap-2"><Smartphone className="h-4 w-4" /> MFA</TabsTrigger>
-                                <TabsTrigger value="passkeys" className="gap-2"><Key className="h-4 w-4" /> Passkeys</TabsTrigger>
-                                <TabsTrigger value="requirements" className="gap-2"><Lock className="h-4 w-4" /> Enforcements</TabsTrigger>
-                                <TabsTrigger value="sessions" className="gap-2"><Clock className="h-4 w-4" /> Sessions</TabsTrigger>
+                                <TabsTrigger value="auth" className="gap-2"><Shield className="h-4 w-4" /> {t('authPage.tabs.providers')}</TabsTrigger>
+                                <TabsTrigger value="mfa" className="gap-2"><Smartphone className="h-4 w-4" /> {t('authPage.tabs.mfa')}</TabsTrigger>
+                                <TabsTrigger value="passkeys" className="gap-2"><Key className="h-4 w-4" /> {t('authPage.tabs.passkeys')}</TabsTrigger>
+                                <TabsTrigger value="requirements" className="gap-2"><Lock className="h-4 w-4" /> {t('authPage.tabs.requirements')}</TabsTrigger>
+                                <TabsTrigger value="sessions" className="gap-2"><Clock className="h-4 w-4" /> {t('authPage.tabs.sessions')}</TabsTrigger>
                             </TabsList>
                             <Button type="submit" disabled={isUpdating || !isDirty || capabilitiesError || isLoadingCaps}>
                                 {isUpdating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                Save Changes
+                                {t('common.save')}
                             </Button>
                         </div>
 
@@ -602,19 +604,18 @@ export function AuthSettingsPage() {
 
                             <Alert>
                                 <Info className="h-4 w-4 text-blue-500" />
-                                <AlertTitle>Information</AlertTitle>
+                                <AlertTitle>{t('authPage.informationTitle')}</AlertTitle>
                                 <AlertDescription>
-                                    External identity providers allow users to sign in with their organization accounts.
-                                    Local authentication remains available as a fallback unless explicitly disabled.
+                                    {t('authPage.informationDescription')}
                                 </AlertDescription>
                             </Alert>
 
                             {capabilitiesError && (
                                 <Alert variant="destructive" className="bg-red-50 text-red-900 border-red-200 dark:bg-red-950/30 dark:text-red-200 dark:border-red-900">
                                     <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400" />
-                                    <AlertTitle>Connection Error</AlertTitle>
+                                    <AlertTitle>{t('authPage.connectionErrorTitle')}</AlertTitle>
                                     <AlertDescription>
-                                        Failed to verify authentication capabilities with the server. Settings have been locked in read-only mode to prevent invalid configurations.
+                                        {t('authPage.connectionErrorDescription')}
                                     </AlertDescription>
                                 </Alert>
                             )}
@@ -632,7 +633,7 @@ export function AuthSettingsPage() {
                                                     )}
                                                 </TabsTrigger>
                                             </TooltipTrigger>
-                                            <TooltipContent>For Microsoft 365 and Azure Active Directory accounts</TooltipContent>
+                                            <TooltipContent>{t('authPage.tooltips.azure')}</TooltipContent>
                                         </Tooltip>
 
                                         <Tooltip>
@@ -644,7 +645,7 @@ export function AuthSettingsPage() {
                                                     )}
                                                 </TabsTrigger>
                                             </TooltipTrigger>
-                                            <TooltipContent>For Google Workspace accounts with optional domain restriction</TooltipContent>
+                                            <TooltipContent>{t('authPage.tooltips.google')}</TooltipContent>
                                         </Tooltip>
 
                                         <Tooltip>
@@ -656,7 +657,7 @@ export function AuthSettingsPage() {
                                                     )}
                                                 </TabsTrigger>
                                             </TooltipTrigger>
-                                            <TooltipContent>For custom OpenID Connect providers (Keycloak, Okta, Auth0, etc.) or enterprise SAML 2.0</TooltipContent>
+                                            <TooltipContent>{t('authPage.tooltips.oidc')}</TooltipContent>
                                         </Tooltip>
 
                                         <Tooltip>
@@ -668,7 +669,7 @@ export function AuthSettingsPage() {
                                                     )}
                                                 </TabsTrigger>
                                             </TooltipTrigger>
-                                            <TooltipContent>For Active Directory and OpenLDAP directory services</TooltipContent>
+                                            <TooltipContent>{t('authPage.tooltips.ldap')}</TooltipContent>
                                         </Tooltip>
                                     </TabsList>
 
@@ -679,13 +680,13 @@ export function AuthSettingsPage() {
                                                 <div className="flex items-start justify-between">
                                                     <div className="space-y-1">
                                                         <CardTitle className="flex items-center gap-2">
-                                                            Azure Active Directory
+                                                            {t('authPage.providers.azure.title')}
                                                             <ProviderBadge capabilityKey="azure_ad" providerType="azure" />
                                                             {form.watch('azureAd.enabled') && !azureValidation.isValid && (
-                                                                <Badge variant="outline" className="ml-2 border-amber-500 text-amber-500">Incomplete configuration</Badge>
+                                                                <Badge variant="outline" className="ml-2 border-amber-500 text-amber-500">{t('authPage.incompleteConfiguration')}</Badge>
                                                             )}
                                                         </CardTitle>
-                                                        <CardDescription>Allow users to sign in with Microsoft Entra ID accounts</CardDescription>
+                                                        <CardDescription>{t('authPage.providers.azure.description')}</CardDescription>
                                                     </div>
                                                     <FormField
                                                         control={form.control}
@@ -704,7 +705,7 @@ export function AuthSettingsPage() {
                                                 <CardContent className="space-y-6">
                                                     {!azureValidation.isValid && (
                                                         <div className="rounded-md bg-amber-50 p-3 text-sm text-amber-800 dark:bg-amber-950/30 dark:text-amber-400">
-                                                            Please complete all required fields (Tenant ID, Client ID, Secret) to activate this provider.
+                                                            {t('authPage.providers.azure.requiredFields')}
                                                         </div>
                                                     )}
                                                     <div className="space-y-4">
@@ -713,7 +714,7 @@ export function AuthSettingsPage() {
                                                             name="azureAd.tenantId"
                                                             render={({ field }) => (
                                                                 <FormItem>
-                                                                    <FormLabel>Tenant ID <span className="text-destructive">*</span></FormLabel>
+                                                                    <FormLabel>{t('authSettings.tenantId')} <span className="text-destructive">*</span></FormLabel>
                                                                     <FormControl><Input placeholder="00000000-0000-0000-0000-000000000000" {...field} /></FormControl>
                                                                 </FormItem>
                                                             )}
@@ -724,7 +725,7 @@ export function AuthSettingsPage() {
                                                                 name="azureAd.clientId"
                                                                 render={({ field }) => (
                                                                     <FormItem>
-                                                                        <FormLabel>Client ID <span className="text-destructive">*</span></FormLabel>
+                                                                        <FormLabel>{t('authSettings.clientId')} <span className="text-destructive">*</span></FormLabel>
                                                                         <FormControl><Input {...field} /></FormControl>
                                                                     </FormItem>
                                                                 )}
@@ -734,7 +735,7 @@ export function AuthSettingsPage() {
                                                                 name="azureAd.clientSecret"
                                                                 render={({ field }) => (
                                                                     <FormItem>
-                                                                        <FormLabel>Client Secret <span className="text-destructive">*</span></FormLabel>
+                                                                        <FormLabel>{t('authSettings.clientSecret')} <span className="text-destructive">*</span></FormLabel>
                                                                         <FormControl><Input type="password" placeholder="••••••••" {...field} /></FormControl>
                                                                     </FormItem>
                                                                 )}
@@ -755,7 +756,7 @@ export function AuthSettingsPage() {
                                                             ) : (
                                                                 <CheckCircle2 className="mr-2 h-4 w-4" />
                                                             )}
-                                                            Test Configuration
+                                                            {t('authPage.testConfiguration')}
                                                         </Button>
                                                     </div>
                                                 </CardContent>
@@ -770,13 +771,13 @@ export function AuthSettingsPage() {
                                                 <div className="flex items-start justify-between">
                                                     <div className="space-y-1">
                                                         <CardTitle className="flex items-center gap-2">
-                                                            Google Workspace
+                                                            {t('authPage.providers.google.title')}
                                                             <ProviderBadge capabilityKey="google_workspace" providerType="google" />
                                                             {form.watch('google.enabled') && !googleValidation.isValid && (
-                                                                <Badge variant="outline" className="ml-2 border-amber-500 text-amber-500">Incomplete configuration</Badge>
+                                                                <Badge variant="outline" className="ml-2 border-amber-500 text-amber-500">{t('authPage.incompleteConfiguration')}</Badge>
                                                             )}
                                                         </CardTitle>
-                                                        <CardDescription>Allow users to sign in with Google Workspace accounts</CardDescription>
+                                                        <CardDescription>{t('authPage.providers.google.description')}</CardDescription>
                                                     </div>
                                                     <FormField
                                                         control={form.control}
@@ -793,7 +794,7 @@ export function AuthSettingsPage() {
                                                 <CardContent className="space-y-6">
                                                     {!googleValidation.isValid && (
                                                         <div className="rounded-md bg-amber-50 p-3 text-sm text-amber-800 dark:bg-amber-950/30 dark:text-amber-400">
-                                                            Please complete required fields (Client ID, Secret).
+                                                            {t('authPage.providers.google.requiredFields')}
                                                         </div>
                                                     )}
                                                     <div className="grid md:grid-cols-2 gap-4">
@@ -802,7 +803,7 @@ export function AuthSettingsPage() {
                                                             name="google.clientId"
                                                             render={({ field }) => (
                                                                 <FormItem>
-                                                                    <FormLabel>Client ID <span className="text-destructive">*</span></FormLabel>
+                                                                    <FormLabel>{t('authSettings.clientId')} <span className="text-destructive">*</span></FormLabel>
                                                                     <FormControl><Input {...field} /></FormControl>
                                                                 </FormItem>
                                                             )}
@@ -812,7 +813,7 @@ export function AuthSettingsPage() {
                                                             name="google.clientSecret"
                                                             render={({ field }) => (
                                                                 <FormItem>
-                                                                    <FormLabel>Client Secret <span className="text-destructive">*</span></FormLabel>
+                                                                    <FormLabel>{t('authSettings.clientSecret')} <span className="text-destructive">*</span></FormLabel>
                                                                     <FormControl><Input type="password" placeholder="••••••••" {...field} /></FormControl>
                                                                 </FormItem>
                                                             )}
@@ -823,9 +824,9 @@ export function AuthSettingsPage() {
                                                         name="google.hostedDomain"
                                                         render={({ field }) => (
                                                             <FormItem>
-                                                                <FormLabel>Hosted Domain (Optional)</FormLabel>
+                                                                <FormLabel>{t('authPage.hostedDomainOptional')}</FormLabel>
                                                                 <FormControl><Input placeholder="example.com" {...field} /></FormControl>
-                                                                <FormDescription>Restrict login to a specific Google Workspace domain</FormDescription>
+                                                                <FormDescription>{t('authPage.hostedDomainDescription')}</FormDescription>
                                                             </FormItem>
                                                         )}
                                                     />
@@ -843,7 +844,7 @@ export function AuthSettingsPage() {
                                                             ) : (
                                                                 <CheckCircle2 className="mr-2 h-4 w-4" />
                                                             )}
-                                                            Test Configuration
+                                                            {t('authPage.testConfiguration')}
                                                         </Button>
                                                     </div>
                                                 </CardContent>
@@ -858,13 +859,13 @@ export function AuthSettingsPage() {
                                                 <div className="flex items-start justify-between">
                                                     <div className="space-y-1">
                                                         <CardTitle className="flex items-center gap-2">
-                                                            Generic Identity Provider
+                                                            {t('authPage.providers.generic.title')}
                                                             <ProviderBadge capabilityKey={form.watch('generic.type') === 'saml' ? 'saml' : 'oidc_generic'} providerType={form.watch('generic.type') === 'saml' ? 'saml' : 'oidc'} />
                                                             {form.watch('generic.enabled') && !oidcValidation.isValid && (
-                                                                <Badge variant="outline" className="ml-2 border-amber-500 text-amber-500">Incomplete configuration</Badge>
+                                                                <Badge variant="outline" className="ml-2 border-amber-500 text-amber-500">{t('authPage.incompleteConfiguration')}</Badge>
                                                             )}
                                                         </CardTitle>
-                                                        <CardDescription>Connect via OpenID Connect (OIDC) or SAML 2.0 protocol</CardDescription>
+                                                        <CardDescription>{t('authPage.providers.generic.description')}</CardDescription>
                                                     </div>
                                                     <FormField
                                                         control={form.control}
@@ -881,7 +882,7 @@ export function AuthSettingsPage() {
                                                 <CardContent className="space-y-6">
                                                     {!oidcValidation.isValid && (
                                                         <div className="rounded-md bg-amber-50 p-3 text-sm text-amber-800 dark:bg-amber-950/30 dark:text-amber-400">
-                                                            Please complete all required fields for {form.watch('generic.type') === 'oidc' ? 'OIDC' : 'SAML'}.
+                                                            {t('authPage.providers.generic.requiredFields', { protocol: form.watch('generic.type') === 'oidc' ? 'OIDC' : 'SAML' })}
                                                         </div>
                                                     )}
                                                     <FormField
@@ -889,12 +890,12 @@ export function AuthSettingsPage() {
                                                         name="generic.type"
                                                         render={({ field }) => (
                                                             <FormItem>
-                                                                <FormLabel>Protocol Type</FormLabel>
+                                                                <FormLabel>{t('authPage.protocolType')}</FormLabel>
                                                                 <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                                    <FormControl><SelectTrigger><SelectValue placeholder="Select protocol" /></SelectTrigger></FormControl>
+                                                                    <FormControl><SelectTrigger><SelectValue placeholder={t('authPage.selectProtocol')} /></SelectTrigger></FormControl>
                                                                     <SelectContent>
-                                                                        <SelectItem value="oidc">OpenID Connect (OIDC)</SelectItem>
-                                                                        <SelectItem value="saml">SAML 2.0</SelectItem>
+                                                                        <SelectItem value="oidc">{t('authPage.protocols.oidc')}</SelectItem>
+                                                                        <SelectItem value="saml">{t('authPage.protocols.saml')}</SelectItem>
                                                                     </SelectContent>
                                                                 </Select>
                                                             </FormItem>
@@ -907,7 +908,7 @@ export function AuthSettingsPage() {
                                                                 name="generic.oidc.issuer"
                                                                 render={({ field }) => (
                                                                     <FormItem>
-                                                                        <FormLabel>Issuer URL <span className="text-destructive">*</span></FormLabel>
+                                                                        <FormLabel>{t('authPage.issuerUrl')} <span className="text-destructive">*</span></FormLabel>
                                                                         <FormControl><Input placeholder="https://auth.example.com" {...field} /></FormControl>
                                                                     </FormItem>
                                                                 )}
@@ -918,7 +919,7 @@ export function AuthSettingsPage() {
                                                                     name="generic.oidc.clientId"
                                                                     render={({ field }) => (
                                                                         <FormItem>
-                                                                            <FormLabel>Client ID <span className="text-destructive">*</span></FormLabel>
+                                                                            <FormLabel>{t('authSettings.clientId')} <span className="text-destructive">*</span></FormLabel>
                                                                             <FormControl><Input {...field} /></FormControl>
                                                                         </FormItem>
                                                                     )}
@@ -928,7 +929,7 @@ export function AuthSettingsPage() {
                                                                     name="generic.oidc.clientSecret"
                                                                     render={({ field }) => (
                                                                         <FormItem>
-                                                                            <FormLabel>Client Secret <span className="text-destructive">*</span></FormLabel>
+                                                                            <FormLabel>{t('authSettings.clientSecret')} <span className="text-destructive">*</span></FormLabel>
                                                                             <FormControl><Input type="password" placeholder="••••••••" {...field} /></FormControl>
                                                                         </FormItem>
                                                                     )}
@@ -939,9 +940,9 @@ export function AuthSettingsPage() {
                                                                 name="generic.oidc.scopes"
                                                                 render={({ field }) => (
                                                                     <FormItem>
-                                                                        <FormLabel>Scopes</FormLabel>
+                                                                        <FormLabel>{t('authPage.scopes')}</FormLabel>
                                                                         <FormControl><Input {...field} /></FormControl>
-                                                                        <FormDescription>Space-separated scopes (e.g., openid profile email)</FormDescription>
+                                                                        <FormDescription>{t('authPage.scopesDescription')}</FormDescription>
                                                                     </FormItem>
                                                                 )}
                                                             />
@@ -950,9 +951,9 @@ export function AuthSettingsPage() {
                                                                 name="generic.oidc.providerName"
                                                                 render={({ field }) => (
                                                                     <FormItem>
-                                                                        <FormLabel>Provider Name</FormLabel>
+                                                                        <FormLabel>{t('authPage.providerName')}</FormLabel>
                                                                         <FormControl><Input placeholder="e.g. Keycloak, Okta..." {...field} /></FormControl>
-                                                                        <FormDescription>Display name shown on the login button</FormDescription>
+                                                                        <FormDescription>{t('authPage.providerNameDescription')}</FormDescription>
                                                                     </FormItem>
                                                                 )}
                                                             />
@@ -964,7 +965,7 @@ export function AuthSettingsPage() {
                                                                 name="generic.saml.entityId"
                                                                 render={({ field }) => (
                                                                     <FormItem>
-                                                                        <FormLabel>Entity ID (Issuer) <span className="text-destructive">*</span></FormLabel>
+                                                                        <FormLabel>{t('authPage.entityIdIssuer')} <span className="text-destructive">*</span></FormLabel>
                                                                         <FormControl><Input {...field} /></FormControl>
                                                                     </FormItem>
                                                                 )}
@@ -974,7 +975,7 @@ export function AuthSettingsPage() {
                                                                 name="generic.saml.ssoUrl"
                                                                 render={({ field }) => (
                                                                     <FormItem>
-                                                                        <FormLabel>SSO URL <span className="text-destructive">*</span></FormLabel>
+                                                                        <FormLabel>{t('authPage.ssoUrl')} <span className="text-destructive">*</span></FormLabel>
                                                                         <FormControl><Input placeholder="https://idp.example.com/sso" {...field} /></FormControl>
                                                                     </FormItem>
                                                                 )}
@@ -984,7 +985,7 @@ export function AuthSettingsPage() {
                                                                 name="generic.saml.x509"
                                                                 render={({ field }) => (
                                                                     <FormItem>
-                                                                        <FormLabel>X.509 Certificate <span className="text-destructive">*</span></FormLabel>
+                                                                        <FormLabel>{t('authPage.x509Certificate')} <span className="text-destructive">*</span></FormLabel>
                                                                         <FormControl><Textarea className="font-mono text-xs" placeholder="-----BEGIN CERTIFICATE-----..." rows={5} {...field} /></FormControl>
                                                                     </FormItem>
                                                                 )}
@@ -994,7 +995,7 @@ export function AuthSettingsPage() {
                                                                 name="generic.saml.metadataUrl"
                                                                 render={({ field }) => (
                                                                     <FormItem>
-                                                                        <FormLabel>Metadata URL</FormLabel>
+                                                                        <FormLabel>{t('authPage.metadataUrl')}</FormLabel>
                                                                         <FormControl><Input placeholder="https://idp.example.com/metadata.xml" {...field} /></FormControl>
                                                                     </FormItem>
                                                                 )}
@@ -1015,7 +1016,7 @@ export function AuthSettingsPage() {
                                                             ) : (
                                                                 <CheckCircle2 className="mr-2 h-4 w-4" />
                                                             )}
-                                                            Test Configuration
+                                                            {t('authPage.testConfiguration')}
                                                         </Button>
                                                     </div>
                                                 </CardContent>
@@ -1030,13 +1031,13 @@ export function AuthSettingsPage() {
                                                 <div className="flex items-start justify-between">
                                                     <div className="space-y-1">
                                                         <CardTitle className="flex items-center gap-2">
-                                                            LDAP / Active Directory
+                                                            {t('authPage.providers.ldap.title')}
                                                             <ProviderBadge capabilityKey="ldap" providerType="ldap" />
                                                             {form.watch('ldap.enabled') && !ldapValidation.isValid && (
-                                                                <Badge variant="outline" className="ml-2 border-amber-500 text-amber-500">Incomplete configuration</Badge>
+                                                                <Badge variant="outline" className="ml-2 border-amber-500 text-amber-500">{t('authPage.incompleteConfiguration')}</Badge>
                                                             )}
                                                         </CardTitle>
-                                                        <CardDescription>Connect to legacy Active Directory or OpenLDAP</CardDescription>
+                                                        <CardDescription>{t('authPage.providers.ldap.description')}</CardDescription>
                                                     </div>
                                                     <FormField
                                                         control={form.control}
@@ -1053,7 +1054,7 @@ export function AuthSettingsPage() {
                                                 <CardContent className="space-y-6">
                                                     {!ldapValidation.isValid && (
                                                         <div className="rounded-md bg-amber-50 p-3 text-sm text-amber-800 dark:bg-amber-950/30 dark:text-amber-400">
-                                                            Please complete required fields (URL, Bind DN, Password, Search Base).
+                                                            {t('authPage.providers.ldap.requiredFields')}
                                                         </div>
                                                     )}
                                                     <FormField
@@ -1061,7 +1062,7 @@ export function AuthSettingsPage() {
                                                         name="ldap.url"
                                                         render={({ field }) => (
                                                             <FormItem>
-                                                                <FormLabel>LDAP URL <span className="text-destructive">*</span></FormLabel>
+                                                                <FormLabel>{t('authSettings.ldapUrl')} <span className="text-destructive">*</span></FormLabel>
                                                                 <FormControl><Input placeholder="ldaps://ldap.example.com:636" {...field} /></FormControl>
                                                             </FormItem>
                                                         )}
@@ -1072,7 +1073,7 @@ export function AuthSettingsPage() {
                                                             name="ldap.bindDn"
                                                             render={({ field }) => (
                                                                 <FormItem>
-                                                                    <FormLabel>Bind DN <span className="text-destructive">*</span></FormLabel>
+                                                                    <FormLabel>{t('authSettings.bindDn')} <span className="text-destructive">*</span></FormLabel>
                                                                     <FormControl><Input placeholder="cn=admin,dc=example,dc=com" {...field} /></FormControl>
                                                                 </FormItem>
                                                             )}
@@ -1082,7 +1083,7 @@ export function AuthSettingsPage() {
                                                             name="ldap.bindPassword"
                                                             render={({ field }) => (
                                                                 <FormItem>
-                                                                    <FormLabel>Bind Password <span className="text-destructive">*</span></FormLabel>
+                                                                    <FormLabel>{t('authSettings.bindPassword')} <span className="text-destructive">*</span></FormLabel>
                                                                     <FormControl><Input type="password" placeholder="••••••••" {...field} /></FormControl>
                                                                 </FormItem>
                                                             )}
@@ -1093,7 +1094,7 @@ export function AuthSettingsPage() {
                                                         name="ldap.searchBase"
                                                         render={({ field }) => (
                                                             <FormItem>
-                                                                <FormLabel>Search Base <span className="text-destructive">*</span></FormLabel>
+                                                                <FormLabel>{t('authSettings.searchBase')} <span className="text-destructive">*</span></FormLabel>
                                                                 <FormControl><Input placeholder="ou=users,dc=example,dc=com" {...field} /></FormControl>
                                                             </FormItem>
                                                         )}
@@ -1103,9 +1104,9 @@ export function AuthSettingsPage() {
                                                         name="ldap.searchFilter"
                                                         render={({ field }) => (
                                                             <FormItem>
-                                                                <FormLabel>Search Filter</FormLabel>
+                                                                <FormLabel>{t('authSettings.searchFilter')}</FormLabel>
                                                                 <FormControl><Input placeholder="(mail={{usermail}})" {...field} /></FormControl>
-                                                                <FormDescription>Must contain <code>{'{{usermail}}'}</code> placeholder</FormDescription>
+                                                                <FormDescription>{t('authPage.usermailPlaceholderHint')} <code>{'{{usermail}}'}</code></FormDescription>
                                                             </FormItem>
                                                         )}
                                                     />
@@ -1123,7 +1124,7 @@ export function AuthSettingsPage() {
                                                             ) : (
                                                                 <CheckCircle2 className="mr-2 h-4 w-4" />
                                                             )}
-                                                            Test Configuration
+                                                            {t('authPage.testConfiguration')}
                                                         </Button>
                                                     </div>
                                                 </CardContent>
@@ -1139,30 +1140,30 @@ export function AuthSettingsPage() {
                         <TabsContent value="mfa" className="space-y-6">
                             <Card>
                                 <CardHeader>
-                                    <CardTitle>MFA Policy</CardTitle>
-                                    <CardDescription>Determine who must use Multi-Factor Authentication</CardDescription>
+                                    <CardTitle>{t('authPage.mfaPolicyTitle')}</CardTitle>
+                                    <CardDescription>{t('authPage.mfaPolicyDescription')}</CardDescription>
                                 </CardHeader>
                                 <CardContent>
                                     <RadioGroup value={mfaPolicy} onValueChange={handleMfaPolicyChange} className="space-y-4">
                                         <div className="flex items-start space-x-3">
                                             <RadioGroupItem value="disabled" id="mfa-disabled" className="mt-1" />
                                             <div className="grid gap-0.5">
-                                                <Label htmlFor="mfa-disabled" className="font-medium text-base">Disabled</Label>
-                                                <p className="text-sm text-muted-foreground">MFA is completely disabled. Users cannot configure it.</p>
+                                                <Label htmlFor="mfa-disabled" className="font-medium text-base">{t('authPage.mfaOptions.disabled.title')}</Label>
+                                                <p className="text-sm text-muted-foreground">{t('authPage.mfaOptions.disabled.description')}</p>
                                             </div>
                                         </div>
                                         <div className="flex items-start space-x-3">
                                             <RadioGroupItem value="optional" id="mfa-optional" className="mt-1" />
                                             <div className="grid gap-0.5">
-                                                <Label htmlFor="mfa-optional" className="font-medium text-base">Optional (Users may enable)</Label>
-                                                <p className="text-sm text-muted-foreground">Recommended. Users can choose to enable MFA from their profile.</p>
+                                                <Label htmlFor="mfa-optional" className="font-medium text-base">{t('authPage.mfaOptions.optional.title')}</Label>
+                                                <p className="text-sm text-muted-foreground">{t('authPage.mfaOptions.optional.description')}</p>
                                             </div>
                                         </div>
                                         <div className="flex items-start space-x-3">
                                             <RadioGroupItem value="required" id="mfa-required" className="mt-1" />
                                             <div className="grid gap-0.5">
-                                                <Label htmlFor="mfa-required" className="font-medium text-base">Required for all users</Label>
-                                                <p className="text-sm text-muted-foreground">All users must set up MFA to access the system. Good for high security.</p>
+                                                <Label htmlFor="mfa-required" className="font-medium text-base">{t('authPage.mfaOptions.required.title')}</Label>
+                                                <p className="text-sm text-muted-foreground">{t('authPage.mfaOptions.required.description')}</p>
                                             </div>
                                         </div>
                                     </RadioGroup>
@@ -1170,7 +1171,7 @@ export function AuthSettingsPage() {
                             </Card>
 
                             <div className="space-y-4">
-                                <h3 className="text-lg font-semibold">Allowed Methods</h3>
+                                <h3 className="text-lg font-semibold">{t('authPage.allowedMethods')}</h3>
                                 <div className="grid md:grid-cols-2 gap-4">
                                     <Card className={cn(
                                         "relative cursor-pointer transition-all border-2",
@@ -1193,11 +1194,11 @@ export function AuthSettingsPage() {
                                         </div>
                                         <CardHeader>
                                             <Smartphone className="h-8 w-8 mb-2 text-primary" />
-                                            <CardTitle className="text-base">Authenticator App</CardTitle>
-                                            <CardDescription>TOTP (Google Auth, Authy)</CardDescription>
+                                            <CardTitle className="text-base">{t('authPage.authenticatorApp')}</CardTitle>
+                                            <CardDescription>{t('authPage.authenticatorAppDescription')}</CardDescription>
                                         </CardHeader>
                                         <CardContent>
-                                            <Badge variant="secondary" className="bg-primary/20 text-primary">Recommended</Badge>
+                                            <Badge variant="secondary" className="bg-primary/20 text-primary">{t('authPage.recommended')}</Badge>
                                         </CardContent>
                                     </Card>
 
@@ -1225,17 +1226,17 @@ export function AuthSettingsPage() {
                                         </div>
                                         <CardHeader>
                                             <Mail className="h-8 w-8 mb-2 text-primary" />
-                                            <CardTitle className="text-base">Email OTP</CardTitle>
-                                            <CardDescription>One-time code via email</CardDescription>
+                                            <CardTitle className="text-base">{t('authPage.emailOtp')}</CardTitle>
+                                            <CardDescription>{t('authPage.emailOtpDescription')}</CardDescription>
                                         </CardHeader>
                                         <CardContent>
                                             {!emailConfigStatus?.enabled ? (
                                                 <div className="space-y-2">
                                                     <Badge variant="outline" className="border-muted-foreground text-muted-foreground">
-                                                        Feature Disabled
+                                                        {t('authPage.featureDisabled')}
                                                     </Badge>
                                                     <p className="text-xs text-muted-foreground">
-                                                        Email feature is disabled.
+                                                        {t('authPage.emailFeatureDisabled')}
                                                     </p>
                                                     <Button
                                                         variant="link"
@@ -1245,16 +1246,16 @@ export function AuthSettingsPage() {
                                                         onClick={() => window.location.href = '/settings/email'}
                                                     >
                                                         <Settings className="h-3 w-3 mr-1" />
-                                                        Enable in Email Settings
+                                                        {t('authPage.enableInEmailSettings')}
                                                     </Button>
                                                 </div>
                                             ) : !emailConfigStatus?.configValid ? (
                                                 <div className="space-y-2">
                                                     <Badge variant="outline" className="border-amber-500 text-amber-600">
-                                                        Configuration Required
+                                                        {t('authPage.configurationRequired')}
                                                     </Badge>
                                                     <p className="text-xs text-muted-foreground">
-                                                        Email sending is not configured.
+                                                        {t('authPage.emailSendingNotConfigured')}
                                                     </p>
                                                     <Button
                                                         variant="link"
@@ -1264,11 +1265,11 @@ export function AuthSettingsPage() {
                                                         onClick={() => window.location.href = '/settings/email'}
                                                     >
                                                         <Settings className="h-3 w-3 mr-1" />
-                                                        Configure Email Settings
+                                                        {t('authPage.configureEmailSettings')}
                                                     </Button>
                                                 </div>
                                             ) : (
-                                                <Badge variant="secondary">Available</Badge>
+                                                <Badge variant="secondary">{t('authPage.badges.available')}</Badge>
                                             )}
                                         </CardContent>
                                     </Card>
@@ -1282,10 +1283,9 @@ export function AuthSettingsPage() {
                                 <CardHeader>
                                     <div className="flex items-start justify-between">
                                         <div className="space-y-1">
-                                            <CardTitle>Passwordless Authentication</CardTitle>
+                                            <CardTitle>{t('authPage.passkeysTitle')}</CardTitle>
                                             <CardDescription>
-                                                Allow users to sign in using biometrics (FaceID, TouchID) or security keys (YubiKey).
-                                                <br />Recommended for modern browsers and high-security environments.
+                                                {t('authPage.passkeysDescription')}
                                             </CardDescription>
                                         </div>
                                         <FormField
@@ -1306,22 +1306,21 @@ export function AuthSettingsPage() {
                                         {/* Inline Alert - New */}
                                         <div className="bg-primary/10 text-primary-900 dark:text-primary-100 rounded-md p-3 flex gap-3 text-sm items-start border border-primary/20">
                                             <Info className="h-4 w-4 mt-0.5 shrink-0 text-blue-500" />
-                                            <p>Passkeys will be available to all users. Users must register them from their profile before they can be used.</p>
+                                            <p>{t('authPage.passkeysInfo')}</p>
                                         </div>
 
                                         {/* Password Fallback Alert - Replaces Checkbox */}
                                         <Alert variant="default" className="bg-muted border-none">
                                             <Info className="h-4 w-4 text-blue-500" />
-                                            <AlertTitle>Password fallback is always enabled</AlertTitle>
+                                            <AlertTitle>{t('authPage.passwordFallbackTitle')}</AlertTitle>
                                             <AlertDescription>
-                                                Password-based authentication remains available to prevent lockouts.
-                                                This behavior cannot be disabled.
+                                                {t('authPage.passwordFallbackDescription')}
                                             </AlertDescription>
                                         </Alert>
 
                                         {/* Adoption Block - New (Read-only) */}
                                         <div className="border rounded-lg p-4 space-y-3">
-                                            <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Adoption</h4>
+                                            <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">{t('authPage.adoption')}</h4>
                                             <div className="flex items-center gap-8">
                                                 <div className="flex items-center gap-2">
                                                     <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
@@ -1329,7 +1328,7 @@ export function AuthSettingsPage() {
                                                     </div>
                                                     <div>
                                                         <p className="text-2xl font-bold">0</p>
-                                                        <p className="text-xs text-muted-foreground">Users</p>
+                                                        <p className="text-xs text-muted-foreground">{t('common.users')}</p>
                                                     </div>
                                                 </div>
                                                 <div className="flex items-center gap-2">
@@ -1338,11 +1337,11 @@ export function AuthSettingsPage() {
                                                     </div>
                                                     <div>
                                                         <p className="text-2xl font-bold">0</p>
-                                                        <p className="text-xs text-muted-foreground">Devices</p>
+                                                        <p className="text-xs text-muted-foreground">{t('authPage.devices')}</p>
                                                     </div>
                                                 </div>
                                             </div>
-                                            <p className="text-xs text-muted-foreground pt-1">No passkeys registered yet.</p>
+                                            <p className="text-xs text-muted-foreground pt-1">{t('authPage.noPasskeysRegistered')}</p>
                                         </div>
                                     </CardContent>
                                 )}
@@ -1367,8 +1366,8 @@ export function AuthSettingsPage() {
                                                     <Lock className="h-5 w-5 text-primary" />
                                                 </div>
                                                 <div>
-                                                    <h3 className="text-lg font-semibold tracking-tight">Access Requirements</h3>
-                                                    <p className="text-sm text-muted-foreground">Define authentication requirements per role</p>
+                                                    <h3 className="text-lg font-semibold tracking-tight">{t('authPage.accessRequirementsTitle')}</h3>
+                                                    <p className="text-sm text-muted-foreground">{t('authPage.accessRequirementsDescription')}</p>
                                                 </div>
                                             </div>
                                         </div>
@@ -1379,7 +1378,7 @@ export function AuthSettingsPage() {
                                         <div className="flex items-center gap-3 p-4 rounded-lg bg-muted/50 border border-dashed">
                                             <Info className="h-5 w-5 text-blue-500 shrink-0" />
                                             <p className="text-sm text-muted-foreground">
-                                                Enable MFA or Passkeys to configure access requirements for different roles.
+                                                {t('authPage.accessRequirementsDisabled')}
                                             </p>
                                         </div>
                                     )}
@@ -1396,10 +1395,10 @@ export function AuthSettingsPage() {
                                                         </div>
                                                         <div>
                                                             <div className="flex items-center gap-2">
-                                                                <h4 className="font-medium">Administrators</h4>
-                                                                <Badge variant="outline" className="text-xs border-amber-500/50 text-amber-600">High privilege</Badge>
+                                                                <h4 className="font-medium">{t('authPage.roles.administrators')}</h4>
+                                                                <Badge variant="outline" className="text-xs border-amber-500/50 text-amber-600">{t('authPage.roles.highPrivilege')}</Badge>
                                                             </div>
-                                                            <p className="text-sm text-muted-foreground mt-0.5">Full system access and configuration rights</p>
+                                                            <p className="text-sm text-muted-foreground mt-0.5">{t('authPage.roles.administratorsDescription')}</p>
                                                         </div>
                                                     </div>
                                                     <div className="flex items-center gap-2 flex-wrap">
@@ -1448,10 +1447,10 @@ export function AuthSettingsPage() {
                                                         </div>
                                                         <div>
                                                             <div className="flex items-center gap-2">
-                                                                <h4 className="font-medium">Users</h4>
-                                                                <Badge variant="outline" className="text-xs border-blue-500/50 text-blue-600">Standard</Badge>
+                                                                <h4 className="font-medium">{t('authPage.roles.users')}</h4>
+                                                                <Badge variant="outline" className="text-xs border-blue-500/50 text-blue-600">{t('authPage.roles.standard')}</Badge>
                                                             </div>
-                                                            <p className="text-sm text-muted-foreground mt-0.5">Regular users with task management access</p>
+                                                            <p className="text-sm text-muted-foreground mt-0.5">{t('authPage.roles.usersDescription')}</p>
                                                         </div>
                                                     </div>
                                                     <div className="flex items-center gap-2 flex-wrap">
@@ -1496,7 +1495,7 @@ export function AuthSettingsPage() {
                                     {/* Info footer */}
                                     {(mfaPolicy !== 'disabled' || form.watch('passkeys.enabled')) && (
                                         <p className="text-xs text-muted-foreground pt-2 border-t">
-                                            Users will be prompted to set up required authentication methods on their next login.
+                                            {t('authPage.nextLoginPrompt')}
                                         </p>
                                     )}
                                 </div>
@@ -1507,8 +1506,8 @@ export function AuthSettingsPage() {
                         <TabsContent value="sessions" className="space-y-6">
                             <Card>
                                 <CardHeader>
-                                    <CardTitle>Session Policies</CardTitle>
-                                    <CardDescription>Control how long users stay logged in and when they must re-authenticate.</CardDescription>
+                                    <CardTitle>{t('authPage.sessionPoliciesTitle')}</CardTitle>
+                                    <CardDescription>{t('authPage.sessionPoliciesDescription')}</CardDescription>
                                 </CardHeader>
                                 <CardContent className="space-y-6">
                                     <FormField
@@ -1516,7 +1515,7 @@ export function AuthSettingsPage() {
                                         name="session.timeout"
                                         render={({ field }) => (
                                             <FormItem className="space-y-2">
-                                                <FormLabel>Auto-logout after inactivity (minutes)</FormLabel>
+                                                <FormLabel>{t('authPage.autoLogoutAfterInactivity')}</FormLabel>
                                                 <div className="flex items-center gap-4">
                                                     <FormControl>
                                                         <div className="flex items-center space-x-2">
@@ -1556,7 +1555,7 @@ export function AuthSettingsPage() {
                                                             </Button>
                                                         </div>
                                                     </FormControl>
-                                                    <span className="text-sm text-muted-foreground">Does not affect API tokens</span>
+                                                    <span className="text-sm text-muted-foreground">{t('authPage.apiTokensUnaffected')}</span>
                                                 </div>
                                                 <FormMessage />
                                             </FormItem>
@@ -1571,9 +1570,9 @@ export function AuthSettingsPage() {
                                         render={({ field }) => (
                                             <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                                                 <div className="space-y-0.5">
-                                                    <FormLabel className="text-base">Secure Actions</FormLabel>
+                                                    <FormLabel className="text-base">{t('authPage.secureActions')}</FormLabel>
                                                     <FormDescription>
-                                                        Require re-authentication for sensitive actions (e.g. changing password, updating security settings)
+                                                        {t('authPage.secureActionsDescription')}
                                                     </FormDescription>
                                                 </div>
                                                 <FormControl>
@@ -1585,7 +1584,7 @@ export function AuthSettingsPage() {
 
                                     <div className="pt-4 flex justify-end">
                                         <Button type="button" disabled variant="outline" className="opacity-50 text-destructive border-destructive/50 hover:bg-destructive/10">
-                                            Invalidate all active sessions (Coming Soon)
+                                            {t('authPage.invalidateAllSessionsSoon')}
                                         </Button>
                                     </div>
                                 </CardContent>

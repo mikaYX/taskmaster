@@ -41,6 +41,7 @@ docker compose -f docker-compose.local-db.yml logs -f
 ```ini
 DATABASE_URL=postgresql://taskmaster:taskmaster_dev@127.0.0.1:5432/taskmaster
 REDIS_URL=redis://127.0.0.1:6379
+BACKUP_DOCKER_CONTAINER=taskmaster_local_db
 ```
 
 ```bash
@@ -60,6 +61,8 @@ docker compose -f docker-compose.local-db.yml down -v
 
 - `docker compose -f docker-compose.local-db.yml ps` montre `postgres` et `redis` démarrés.
 - `pg_isready` répond correctement si vous testez le conteneur PostgreSQL.
+- `command -v pg_dump && pg_dump --version` permet de vérifier le client PostgreSQL côté hôte.
+- `docker exec taskmaster_local_db pg_dump --version` permet de vérifier le client PostgreSQL côté conteneur.
 - `redis-cli ping` renvoie `PONG`.
 - Le backend peut se connecter avec les valeurs de `DATABASE_URL` et `REDIS_URL`.
 
@@ -73,6 +76,7 @@ Notes :
 
 - Prisma n'est pas exécuté automatiquement par `docker-compose.local-db.yml`.
 - La commande `npx prisma generate` est une dépendance implicite si les types Prisma sont absents ou obsolètes.
+- Si `pg_dump` est absent ou d'une version incompatible sur l'hôte, `BACKUP_DOCKER_CONTAINER=taskmaster_local_db` force le fallback backup vers le conteneur local.
 
 ## Voir aussi
 

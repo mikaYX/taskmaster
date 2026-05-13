@@ -8,13 +8,13 @@ const DISMISS_KEY = 'taskmaster-version-dismissed';
 
 export function VersionUpdateBanner() {
   const { t } = useTranslation();
-  const { data, backendUpgraded } = useVersionStatus();
   const role = useAuthStore((s) => s.role);
   const [dismissed, setDismissed] = useState(() =>
     sessionStorage.getItem(DISMISS_KEY) === 'true',
   );
 
   const isPrivileged = role === 'SUPER_ADMIN' || role === 'MANAGER';
+  const { data, backendUpgraded } = useVersionStatus(isPrivileged);
 
   if (!isPrivileged) return null;
 

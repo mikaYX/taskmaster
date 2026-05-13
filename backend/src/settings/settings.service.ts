@@ -11,7 +11,6 @@ import {
 } from './settings.registry';
 import { SettingResponseDto } from './dto';
 import parser from 'cron-parser';
-import { safeFetch } from '../common/utils/url-validator.util';
 
 const SENSITIVE_PLACEHOLDER = '••••••••';
 
@@ -508,57 +507,6 @@ export class SettingsService {
       return JSON.parse(value);
     } catch {
       return value;
-    }
-  }
-
-  /**
-   * Submit feedback to GitHub.
-   */
-  async submitFeedback(
-    dto: any,
-    user: { username: string },
-  ): Promise<{ success: boolean }> {
-    const token = process.env.GITHUB_TOKEN;
-    const repo = process.env.GITHUB_REPO || 'Mika/taskmaster';
-
-    if (!token) {
-      this.logger.warn('GitHub feedback failed: No GITHUB_TOKEN configured.');
-      throw new BadRequestException('GitHub integration is not configured.');
-    }
-
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
-
-      const response = await safeFetch(
-        `https://api.github.com/repos/${repo}/issues`,
-        {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${token}`,
-            Accept: 'application/vnd.github.v3+json',
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            title: `[${dto.type.toUpperCase()}] ${dto.title}`,
-            body: `**From User:** ${user.username}\n\n**Type:** ${dto.type}\n\n**Description:**\n${dto.description}`,
-            labels: [dto.type, 'user-feedback'],
-          }),
-          signal: controller.signal as RequestInit['signal'],
-        },
-        { timeoutMs: 10000, allowHttp: false },
-      );
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        throw new Error(`GitHub API returned ${response.status}`);
-      }
-
-      return { success: true };
-    } catch (err: unknown) {
-      const errMsg = err instanceof Error ? err.message : String(err);
-      this.logger.error(`Failed to submit GitHub feedback: ${errMsg}`);
-      throw new BadRequestException('Failed to submit feedback at this time.');
     }
   }
 

@@ -23,7 +23,7 @@ import { SchedulerSettingsPage } from './pages/scheduler-settings-page';
 import { ApiKeysSettingsPage } from './pages/api-keys-settings-page';
 import { SitesSettingsPage } from './pages/sites-settings-page';
 import { NotificationsSettingsPage } from './pages/notifications-settings-page';
-import { FeedbackPage } from './pages/feedback-page';
+import { UpdatesPage } from './pages/updates-page';
 import { useAuthStore } from '@/stores/auth-store';
 
 /**
@@ -83,7 +83,7 @@ export function SettingsPage() {
                                 <TabsTrigger value="api-keys">{t('settings.apiKeys.title')}</TabsTrigger>
                             </>
                         )}
-                        <TabsTrigger value="feedback">{t('settings.feedback')}</TabsTrigger>
+                        <TabsTrigger value="updates">{t('settings.updates')}</TabsTrigger>
                     </TabsList>
                 </ScrollAreaHorizontal>
 
@@ -150,9 +150,9 @@ export function SettingsPage() {
                     </>
                 )}
 
-                <TabsContent value="feedback" className="mt-6">
+                <TabsContent value="updates" className="mt-6">
                     <div className="space-y-6">
-                        <FeedbackPage />
+                        <UpdatesPage />
                     </div>
                 </TabsContent>
             </Tabs>
