@@ -7,4 +7,3 @@ export * from './test-google.dto';
 export * from './test-azure.dto';
 export * from './test-saml.dto';
 export * from './test-oidc.dto';
-export * from './submit-feedback.dto';

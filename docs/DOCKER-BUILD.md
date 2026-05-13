@@ -85,7 +85,7 @@ TASKMASTER_IMAGE=taskmaster:secure-local docker compose --env-file .env up -d
 
 - Dossier backend : [`../backend`](../backend)
 - Dossier frontend : [`../frontend`](../frontend)
-- Compose de production : [`../docker-compose.prod.yml`](../docker-compose.prod.yml)
+- Compose principal : [`../docker-compose.yml`](../docker-compose.yml)
 - Variables d'environnement : [`../.env.docker.example`](../.env.docker.example)
 
 Notes :

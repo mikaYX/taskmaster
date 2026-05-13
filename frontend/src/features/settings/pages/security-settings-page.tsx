@@ -10,8 +10,8 @@ export function SecuritySettingsPage() {
         <div className="space-y-6 max-w-6xl">
             <Tabs defaultValue="users" className="w-full">
                 <TabsList variant="line" className="w-full justify-start border-b">
-                    <TabsTrigger value="users">Users</TabsTrigger>
-                    <TabsTrigger value="groups">Groups</TabsTrigger>
+                    <TabsTrigger value="users">{t('settings.usersTab')}</TabsTrigger>
+                    <TabsTrigger value="groups">{t('settings.groupsTab')}</TabsTrigger>
 
                 </TabsList>
 
@@ -21,7 +21,7 @@ export function SecuritySettingsPage() {
                             <div>
                                 <h3 className="text-lg font-medium">{t('settings.usersManager')}</h3>
                                 <p className="text-sm text-muted-foreground">
-                                    Create and manage user accounts and assign roles.
+                                    {t('settings.usersManagerDescription')}
                                 </p>
                             </div>
                         </div>
@@ -35,7 +35,7 @@ export function SecuritySettingsPage() {
                             <div>
                                 <h3 className="text-lg font-medium">{t('settings.groupsManager')}</h3>
                                 <p className="text-sm text-muted-foreground">
-                                    Create groups to organize users and permissions.
+                                    {t('settings.groupsManagerDescription')}
                                 </p>
                             </div>
                         </div>

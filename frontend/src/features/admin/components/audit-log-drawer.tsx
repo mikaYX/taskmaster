@@ -3,6 +3,7 @@ import type { AuditLog } from "@/api/types";
 import { format } from "date-fns";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
+import { useTranslation } from "react-i18next";
 
 interface AuditLogDrawerProps {
     log: AuditLog | null;
@@ -13,6 +14,8 @@ interface AuditLogDrawerProps {
 // ... imports
 
 function DiffViewer({ details }: { details: Record<string, unknown> }) {
+    const { t } = useTranslation();
+
     if (!details || typeof details !== 'object') return null;
 
     // Check if it looks like a diff (keys map to { from, to })
@@ -32,11 +35,11 @@ function DiffViewer({ details }: { details: Record<string, unknown> }) {
                     <div className="font-semibold text-zinc-400 mb-1">{key}</div>
                     <div className="grid grid-cols-2 gap-2">
                         <div className="bg-red-950/30 text-red-200 p-2 rounded border border-red-900/50 break-all">
-                            <div className="text-[10px] uppercase text-red-500 mb-0.5">Before</div>
+                            <div className="text-[10px] uppercase text-red-500 mb-0.5">{t('auditLog.diff.before')}</div>
                             {JSON.stringify((diff as Record<string, unknown>)?.from)}
                         </div>
                         <div className="bg-green-950/30 text-green-200 p-2 rounded border border-green-900/50 break-all">
-                            <div className="text-[10px] uppercase text-green-500 mb-0.5">After</div>
+                            <div className="text-[10px] uppercase text-green-500 mb-0.5">{t('auditLog.diff.after')}</div>
                             {JSON.stringify((diff as Record<string, unknown>)?.to)}
                         </div>
                     </div>
@@ -47,6 +50,8 @@ function DiffViewer({ details }: { details: Record<string, unknown> }) {
 }
 
 export function AuditLogDrawer({ log, open, onOpenChange }: AuditLogDrawerProps) {
+    const { t } = useTranslation();
+
     if (!log) return null;
 
     let parsedDetails = null;
@@ -62,9 +67,9 @@ export function AuditLogDrawer({ log, open, onOpenChange }: AuditLogDrawerProps)
         <Sheet open={open} onOpenChange={onOpenChange}>
             <SheetContent className="sm:max-w-xl flex flex-col h-full">
                 <SheetHeader>
-                    <SheetTitle>Audit Log Details</SheetTitle>
+                    <SheetTitle>{t('auditLog.detailsTitle')}</SheetTitle>
                     <SheetDescription>
-                        Transaction ID: #{log.id}
+                        {t('auditLog.transactionId', { id: log.id })}
                     </SheetDescription>
                 </SheetHeader>
 
@@ -73,13 +78,13 @@ export function AuditLogDrawer({ log, open, onOpenChange }: AuditLogDrawerProps)
                         {/* Header Info */}
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-1">
-                                <span className="text-xs font-medium text-muted-foreground uppercase">Timestamp</span>
+                                <span className="text-xs font-medium text-muted-foreground uppercase">{t('auditLog.columns.timestamp')}</span>
                                 <div className="text-sm font-mono">
                                     {format(new Date(log.timestamp), 'PPP pp')}
                                 </div>
                             </div>
                             <div className="space-y-1">
-                                <span className="text-xs font-medium text-muted-foreground uppercase">Severity</span>
+                                <span className="text-xs font-medium text-muted-foreground uppercase">{t('auditLog.columns.severity')}</span>
                                 <div>
                                     <Badge variant={log.severity === 'CRITICAL' ? 'destructive' : log.severity === 'WARN' ? 'default' : 'secondary'}>
                                         {log.severity}
@@ -89,42 +94,42 @@ export function AuditLogDrawer({ log, open, onOpenChange }: AuditLogDrawerProps)
                         </div>
 
                         <div className="space-y-1">
-                            <span className="text-xs font-medium text-muted-foreground uppercase">Action</span>
+                            <span className="text-xs font-medium text-muted-foreground uppercase">{t('auditLog.columns.action')}</span>
                             <div className="text-base font-semibold">{log.action}</div>
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-1">
-                                <span className="text-xs font-medium text-muted-foreground uppercase">Category</span>
+                                <span className="text-xs font-medium text-muted-foreground uppercase">{t('auditLog.columns.category')}</span>
                                 <div className="text-sm">{log.category}</div>
                             </div>
                             <div className="space-y-1">
-                                <span className="text-xs font-medium text-muted-foreground uppercase">Target</span>
+                                <span className="text-xs font-medium text-muted-foreground uppercase">{t('auditLog.columns.target')}</span>
                                 <div className="text-sm font-mono bg-muted inline-block px-1 rounded">
-                                    {log.target || 'N/A'}
+                                    {log.target || t('auditLog.notAvailable')}
                                 </div>
                             </div>
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-1">
-                                <span className="text-xs font-medium text-muted-foreground uppercase">Actor</span>
-                                <div className="text-sm">{log.actorName || 'System'} {log.actorId ? `(ID: ${log.actorId})` : ''}</div>
+                                <span className="text-xs font-medium text-muted-foreground uppercase">{t('auditLog.columns.actor')}</span>
+                                <div className="text-sm">{log.actorName || t('auditLog.systemActor')} {log.actorId ? `(ID: ${log.actorId})` : ''}</div>
                             </div>
                             <div className="space-y-1">
-                                <span className="text-xs font-medium text-muted-foreground uppercase">IP Address</span>
-                                <div className="text-sm font-mono">{log.ipAddress || 'Unknown'}</div>
+                                <span className="text-xs font-medium text-muted-foreground uppercase">{t('auditLog.ipAddress')}</span>
+                                <div className="text-sm font-mono">{log.ipAddress || t('auditLog.unknown')}</div>
                             </div>
                         </div>
 
                         {/* Payload */}
                         <div className="space-y-2">
-                            <span className="text-xs font-medium text-muted-foreground uppercase">Changes / Details</span>
+                            <span className="text-xs font-medium text-muted-foreground uppercase">{t('auditLog.changesDetails')}</span>
                             <div className="rounded-md border bg-zinc-950 p-4 font-mono text-xs text-zinc-50 dark:bg-zinc-900">
                                 {parsedDetails ? (
                                     <DiffViewer details={parsedDetails} />
                                 ) : (
-                                    <span className="text-zinc-500 italic">No additional details recorded.</span>
+                                    <span className="text-zinc-500 italic">{t('auditLog.noAdditionalDetails')}</span>
                                 )}
                             </div>
                         </div>

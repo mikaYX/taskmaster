@@ -14,6 +14,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
 import { Input } from '@/components/ui/input';
+import { NumberInput } from '@/components/ui/number-input';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -60,16 +61,85 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
+import { useTranslation } from 'react-i18next';
 
 type RangeMode = 'rolling' | 'fixed';
 
 export function ExportSettingsPage() {
+    const { t } = useTranslation();
     const { settings, getSetting, updateSetting, isLoading, isUpdating, emailConfigStatus } = useSettings();
     const [isTesting, setIsTesting] = useState(false);
     const [isRunningNow, setIsRunningNow] = useState(false);
     const [isCleaning, setIsCleaning] = useState(false);
     const isInitialized = useRef(false);
     const [rangeMode, setRangeMode] = useState<RangeMode>('rolling');
+
+    const getWeekdayLabel = (day: number) => {
+        switch (day) {
+            case 1:
+                return t('exportSettings.weekdays.monday');
+            case 2:
+                return t('exportSettings.weekdays.tuesday');
+            case 3:
+                return t('exportSettings.weekdays.wednesday');
+            case 4:
+                return t('exportSettings.weekdays.thursday');
+            case 5:
+                return t('exportSettings.weekdays.friday');
+            case 6:
+                return t('exportSettings.weekdays.saturday');
+            case 0:
+            default:
+                return t('exportSettings.weekdays.sunday');
+        }
+    };
+
+    const getOrdinalLabel = (ordinal: string) => t(`exportSettings.ordinals.${ordinal}`);
+
+    const frequencyOptions = [
+        { value: 'daily', label: t('periodicity.daily'), icon: Calendar },
+        { value: 'weekly', label: t('periodicity.weekly'), icon: Calendar },
+        { value: 'monthly', label: t('exportSettings.frequency.monthly'), icon: CalendarDays },
+        { value: 'custom', label: t('periodicity.custom'), icon: Settings },
+    ] as const;
+
+    const weekdayOptions = [
+        { value: '1', label: t('exportSettings.weekdays.monday') },
+        { value: '2', label: t('exportSettings.weekdays.tuesday') },
+        { value: '3', label: t('exportSettings.weekdays.wednesday') },
+        { value: '4', label: t('exportSettings.weekdays.thursday') },
+        { value: '5', label: t('exportSettings.weekdays.friday') },
+        { value: '6', label: t('exportSettings.weekdays.saturday') },
+        { value: '0', label: t('exportSettings.weekdays.sunday') },
+    ] as const;
+
+    const ordinalOptions = [
+        { value: 'first', label: t('exportSettings.ordinals.first') },
+        { value: 'second', label: t('exportSettings.ordinals.second') },
+        { value: 'third', label: t('exportSettings.ordinals.third') },
+        { value: 'fourth', label: t('exportSettings.ordinals.fourth') },
+        { value: 'last', label: t('exportSettings.ordinals.last') },
+    ] as const;
+
+    const rollingPeriodOptions = [
+        { value: '7', label: t('exportSettings.periods.last7Days') },
+        { value: '14', label: t('exportSettings.periods.last14Days') },
+        { value: '30', label: t('exportSettings.periods.last30Days') },
+        { value: '60', label: t('exportSettings.periods.last60Days') },
+        { value: '90', label: t('exportSettings.periods.last90Days') },
+        { value: '180', label: t('exportSettings.periods.last6Months') },
+        { value: '365', label: t('exportSettings.periods.last12Months') },
+    ] as const;
+
+    const retentionOptions = [
+        { value: '0', label: t('exportSettings.retentionOptions.never') },
+        { value: '30', label: t('exportSettings.retentionOptions.days30') },
+        { value: '60', label: t('exportSettings.retentionOptions.days60') },
+        { value: '90', label: t('exportSettings.retentionOptions.days90') },
+        { value: '180', label: t('exportSettings.retentionOptions.days180') },
+        { value: '365', label: t('exportSettings.retentionOptions.days365') },
+        { value: '3650', label: t('exportSettings.retentionOptions.days3650') },
+    ] as const;
 
     // Fetch scheduler jobs to get export job status
     const { data: jobsData } = useQuery({
@@ -188,10 +258,10 @@ export function ExportSettingsPage() {
         setIsRunningNow(true);
         try {
             const res = await exportApi.test();
-            toast.success(`Export generated: ${res.filename}`);
+            toast.success(t('exportSettings.exportGenerated', { filename: res.filename }));
             refetchExports();
         } catch {
-            toast.error('Export failed');
+            toast.error(t('exportSettings.exportFailed'));
         } finally {
             setIsRunningNow(false);
         }
@@ -201,9 +271,9 @@ export function ExportSettingsPage() {
         setIsTesting(true);
         try {
             await exportApi.testEmail(form.getValues('autoExport.email.recipients'));
-            toast.success('Test email sent');
+            toast.success(t('exportSettings.testEmailSent'));
         } catch {
-            toast.error('Email failed');
+            toast.error(t('exportSettings.emailFailed'));
         } finally {
             setIsTesting(false);
         }
@@ -213,10 +283,10 @@ export function ExportSettingsPage() {
         setIsCleaning(true);
         try {
             const res = await exportApi.cleanup();
-            toast.success(`Cleaned up ${res.deleted} files`);
+            toast.success(t('exportSettings.cleanedUp', { count: res.deleted }));
             refetchExports();
         } catch {
-            toast.error('Cleanup failed');
+            toast.error(t('exportSettings.cleanupFailed'));
         } finally {
             setIsCleaning(false);
         }
@@ -241,25 +311,28 @@ export function ExportSettingsPage() {
     const getFrequencyText = () => {
         switch (scheduleType) {
             case 'daily':
-                return 'Every day at midnight';
-            case 'weekly': {
-                const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-                return `Every ${days[form.watch('autoExport.dayOfWeek')]}`;
-            }
+                return t('exportSettings.everyDayAtMidnight');
+            case 'weekly':
+                return t('exportSettings.everyDayOfWeek', {
+                    day: getWeekdayLabel(form.watch('autoExport.dayOfWeek')),
+                });
             case 'monthly': {
                 const mode = form.watch('autoExport.monthMode');
-                if (mode === 'last') return 'Last day of every month';
+                if (mode === 'last') return t('exportSettings.lastDayOfMonth');
                 if (mode === 'relative') {
-                    const ordinals: Record<string, string> = { first: '1st', second: '2nd', third: '3rd', fourth: '4th', last: 'Last' };
-                    const dayName = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][form.watch('autoExport.dayOfWeek')];
-                    return `${ordinals[form.watch('autoExport.weekOrdinal') ?? 'first']} ${dayName} of every month`;
+                    return t('exportSettings.relativeMonthly', {
+                        position: getOrdinalLabel(form.watch('autoExport.weekOrdinal') ?? 'first'),
+                        day: getWeekdayLabel(form.watch('autoExport.dayOfWeek')),
+                    });
                 }
-                return `Day ${form.watch('autoExport.dayOfMonth')} of every month`;
+                return t('exportSettings.dayOfMonthRecurring', {
+                    day: form.watch('autoExport.dayOfMonth'),
+                });
             }
             case 'custom':
                 return form.watch('autoExport.cron');
             default:
-                return 'Not configured';
+                return t('exportSettings.notConfigured');
         }
     };
 
@@ -298,31 +371,31 @@ export function ExportSettingsPage() {
                         <CardHeader className="pb-3">
                             <CardTitle className="text-base flex items-center gap-2">
                                 <Clock className="h-4 w-4" />
-                                Export Status
+                                {t('exportSettings.statusTitle')}
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                 {/* Status */}
                                 <div className="space-y-1">
-                                    <p className="text-xs text-muted-foreground uppercase tracking-wide">Status</p>
+                                    <p className="text-xs text-muted-foreground uppercase tracking-wide">{t('exportSettings.status')}</p>
                                     <div className="flex items-center gap-2">
                                         {autoExportEnabled ? (
                                             isConfigIncomplete ? (
                                                 <>
                                                     <AlertTriangle className="h-4 w-4 text-yellow-500" />
-                                                    <span className="text-sm font-medium text-yellow-600">Incomplete</span>
+                                                    <span className="text-sm font-medium text-yellow-600">{t('exportSettings.incomplete')}</span>
                                                 </>
                                             ) : (
                                                 <>
                                                     <CheckCircle2 className="h-4 w-4 text-green-500" />
-                                                    <span className="text-sm font-medium text-green-600">Active</span>
+                                                    <span className="text-sm font-medium text-green-600">{t('exportSettings.active')}</span>
                                                 </>
                                             )
                                         ) : (
                                             <>
                                                 <XCircle className="h-4 w-4 text-muted-foreground" />
-                                                <span className="text-sm font-medium text-muted-foreground">Disabled</span>
+                                                <span className="text-sm font-medium text-muted-foreground">{t('exportSettings.disabled')}</span>
                                             </>
                                         )}
                                     </div>
@@ -330,7 +403,7 @@ export function ExportSettingsPage() {
 
                                 {/* Frequency */}
                                 <div className="space-y-1">
-                                    <p className="text-xs text-muted-foreground uppercase tracking-wide">Frequency</p>
+                                    <p className="text-xs text-muted-foreground uppercase tracking-wide">{t('exportSettings.frequencyLabel')}</p>
                                     <p className="text-sm font-medium">
                                         {autoExportEnabled ? getFrequencyText() : '—'}
                                     </p>
@@ -338,7 +411,7 @@ export function ExportSettingsPage() {
 
                                 {/* Next Run */}
                                 <div className="space-y-1">
-                                    <p className="text-xs text-muted-foreground uppercase tracking-wide">Next Run</p>
+                                    <p className="text-xs text-muted-foreground uppercase tracking-wide">{t('exportSettings.nextRun')}</p>
                                     <p className="text-sm font-medium">
                                         {exportJob?.nextRun ? new Date(exportJob.nextRun).toLocaleString() : '—'}
                                     </p>
@@ -346,16 +419,16 @@ export function ExportSettingsPage() {
 
                                 {/* Delivery */}
                                 <div className="space-y-1">
-                                    <p className="text-xs text-muted-foreground uppercase tracking-wide">Delivery</p>
+                                    <p className="text-xs text-muted-foreground uppercase tracking-wide">{t('exportSettings.delivery')}</p>
                                     <div className="flex items-center gap-2">
                                         <Badge variant="outline" className="text-xs">
                                             <FolderOpen className="h-3 w-3 mr-1" />
-                                            Server
+                                            {t('exportSettings.server')}
                                         </Badge>
                                         {emailEnabled && isEmailAvailable && (
                                             <Badge variant="outline" className="text-xs">
                                                 <Mail className="h-3 w-3 mr-1" />
-                                                Email
+                                                {t('settings.email')}
                                             </Badge>
                                         )}
                                     </div>
@@ -368,21 +441,21 @@ export function ExportSettingsPage() {
                     {isConfigIncomplete && (
                         <Alert variant="destructive" className="border-yellow-500 bg-yellow-50 dark:bg-yellow-950">
                             <AlertTriangle className="h-4 w-4 text-yellow-600" />
-                            <AlertTitle className="text-yellow-800 dark:text-yellow-200">Incomplete Configuration</AlertTitle>
+                            <AlertTitle className="text-yellow-800 dark:text-yellow-200">{t('exportSettings.incompleteConfigurationTitle')}</AlertTitle>
                             <AlertDescription className="text-yellow-700 dark:text-yellow-300">
-                                Automatic exports are enabled but the configuration is incomplete. Please select at least one export format.
+                                {t('exportSettings.incompleteConfigurationDescription')}
                             </AlertDescription>
                         </Alert>
                     )}
 
                     {/* === MASTER SWITCH === */}
                     <FormField control={form.control} name="autoExport.enabled" render={({ field }) => (
-                        <SettingsSection title="Automatic Exports">
+                        <SettingsSection title={t('exportSettings.automaticExports')}>
                             <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                                 <div className="space-y-0.5">
-                                    <FormLabel className="text-base">Enable Automatic Exports</FormLabel>
+                                    <FormLabel className="text-base">{t('exportSettings.enableAutomaticExports')}</FormLabel>
                                     <FormDescription>
-                                        Automatically generate exports on a schedule
+                                        {t('exportSettings.automaticExportsDescription')}
                                     </FormDescription>
                                 </div>
                                 <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
@@ -392,20 +465,15 @@ export function ExportSettingsPage() {
 
                     {/* === SCHEDULE (Progressive Disclosure) === */}
                     {autoExportEnabled && (
-                        <SettingsSection title="Schedule" description="Configure when exports are generated">
+                        <SettingsSection title={t('exportSettings.scheduleTitle')} description={t('exportSettings.scheduleDescription')}>
                             <div className="space-y-6">
                                 {/* Frequency Selection */}
                                 <FormField control={form.control} name="autoExport.scheduleType" render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Frequency</FormLabel>
+                                        <FormLabel>{t('exportSettings.frequencyLabel')}</FormLabel>
                                         <FormControl>
                                             <RadioGroup onValueChange={field.onChange} value={field.value} className="grid grid-cols-4 gap-4">
-                                                {[
-                                                    { value: 'daily', label: 'Daily', icon: Calendar },
-                                                    { value: 'weekly', label: 'Weekly', icon: Calendar },
-                                                    { value: 'monthly', label: 'Monthly', icon: CalendarDays },
-                                                    { value: 'custom', label: 'Custom', icon: Settings },
-                                                ].map((option) => (
+                                                {frequencyOptions.map((option) => (
                                                     <FormItem key={option.value}>
                                                         <FormControl>
                                                             <label
@@ -430,19 +498,15 @@ export function ExportSettingsPage() {
                                 {scheduleType === 'weekly' && (
                                     <FormField control={form.control} name="autoExport.dayOfWeek" render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Day of Week</FormLabel>
+                                            <FormLabel>{t('exportSettings.dayOfWeek')}</FormLabel>
                                             <Select onValueChange={(val) => field.onChange(parseInt(val))} value={String(field.value)}>
                                                 <FormControl>
-                                                    <SelectTrigger><SelectValue placeholder="Select day" /></SelectTrigger>
+                                                    <SelectTrigger><SelectValue placeholder={t('exportSettings.selectDay')} /></SelectTrigger>
                                                 </FormControl>
                                                 <SelectContent>
-                                                    <SelectItem value="1">Monday</SelectItem>
-                                                    <SelectItem value="2">Tuesday</SelectItem>
-                                                    <SelectItem value="3">Wednesday</SelectItem>
-                                                    <SelectItem value="4">Thursday</SelectItem>
-                                                    <SelectItem value="5">Friday</SelectItem>
-                                                    <SelectItem value="6">Saturday</SelectItem>
-                                                    <SelectItem value="0">Sunday</SelectItem>
+                                                    {weekdayOptions.map((option) => (
+                                                        <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                                                    ))}
                                                 </SelectContent>
                                             </Select>
                                         </FormItem>
@@ -454,11 +518,11 @@ export function ExportSettingsPage() {
                                     <div className="space-y-4">
                                         <FormField control={form.control} name="autoExport.monthMode" render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel>Mode</FormLabel>
+                                                <FormLabel>{t('exportSettings.mode')}</FormLabel>
                                                 <RadioGroup onValueChange={field.onChange} value={field.value} className="flex gap-4">
-                                                    <FormItem className="flex items-center space-x-2"><FormControl><RadioGroupItem value="specific" /></FormControl><FormLabel className="font-normal">Specific Day</FormLabel></FormItem>
-                                                    <FormItem className="flex items-center space-x-2"><FormControl><RadioGroupItem value="relative" /></FormControl><FormLabel className="font-normal">Relative</FormLabel></FormItem>
-                                                    <FormItem className="flex items-center space-x-2"><FormControl><RadioGroupItem value="last" /></FormControl><FormLabel className="font-normal">Last Day</FormLabel></FormItem>
+                                                    <FormItem className="flex items-center space-x-2"><FormControl><RadioGroupItem value="specific" /></FormControl><FormLabel className="font-normal">{t('exportSettings.monthMode.specific')}</FormLabel></FormItem>
+                                                    <FormItem className="flex items-center space-x-2"><FormControl><RadioGroupItem value="relative" /></FormControl><FormLabel className="font-normal">{t('exportSettings.monthMode.relative')}</FormLabel></FormItem>
+                                                    <FormItem className="flex items-center space-x-2"><FormControl><RadioGroupItem value="last" /></FormControl><FormLabel className="font-normal">{t('exportSettings.monthMode.last')}</FormLabel></FormItem>
                                                 </RadioGroup>
                                             </FormItem>
                                         )} />
@@ -466,7 +530,7 @@ export function ExportSettingsPage() {
                                         {form.watch('autoExport.monthMode') === 'specific' && (
                                             <FormField control={form.control} name="autoExport.dayOfMonth" render={({ field }) => (
                                                 <FormItem>
-                                                    <FormLabel>Day of Month (1-31)</FormLabel>
+                                                    <FormLabel>{t('exportSettings.dayOfMonth')}</FormLabel>
                                                     <FormControl><Input type="number" min={1} max={31} {...field} onChange={e => field.onChange(parseInt(e.target.value))} /></FormControl>
                                                 </FormItem>
                                             )} />
@@ -476,32 +540,26 @@ export function ExportSettingsPage() {
                                             <div className="flex gap-4">
                                                 <FormField control={form.control} name="autoExport.weekOrdinal" render={({ field }) => (
                                                     <FormItem className="flex-1">
-                                                        <FormLabel>Ordinal</FormLabel>
+                                                        <FormLabel>{t('exportSettings.ordinal')}</FormLabel>
                                                         <Select onValueChange={field.onChange} value={field.value}>
                                                             <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
                                                             <SelectContent>
-                                                                <SelectItem value="first">First</SelectItem>
-                                                                <SelectItem value="second">Second</SelectItem>
-                                                                <SelectItem value="third">Third</SelectItem>
-                                                                <SelectItem value="fourth">Fourth</SelectItem>
-                                                                <SelectItem value="last">Last</SelectItem>
+                                                                {ordinalOptions.map((option) => (
+                                                                    <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                                                                ))}
                                                             </SelectContent>
                                                         </Select>
                                                     </FormItem>
                                                 )} />
                                                 <FormField control={form.control} name="autoExport.dayOfWeek" render={({ field }) => (
                                                     <FormItem className="flex-1">
-                                                        <FormLabel>Day</FormLabel>
+                                                        <FormLabel>{t('exportSettings.dayLabel')}</FormLabel>
                                                         <Select onValueChange={(val) => field.onChange(parseInt(val))} value={String(field.value)}>
                                                             <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
                                                             <SelectContent>
-                                                                <SelectItem value="1">Monday</SelectItem>
-                                                                <SelectItem value="2">Tuesday</SelectItem>
-                                                                <SelectItem value="3">Wednesday</SelectItem>
-                                                                <SelectItem value="4">Thursday</SelectItem>
-                                                                <SelectItem value="5">Friday</SelectItem>
-                                                                <SelectItem value="6">Saturday</SelectItem>
-                                                                <SelectItem value="0">Sunday</SelectItem>
+                                                                {weekdayOptions.map((option) => (
+                                                                    <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                                                                ))}
                                                             </SelectContent>
                                                         </Select>
                                                     </FormItem>
@@ -515,7 +573,7 @@ export function ExportSettingsPage() {
                                 {scheduleType === 'custom' && (
                                     <FormField control={form.control} name="autoExport.cron" render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Cron Expression</FormLabel>
+                                            <FormLabel>{t('exportSettings.cronExpression')}</FormLabel>
                                             <FormControl><Input {...field} className="font-mono" placeholder="0 0 * * *" /></FormControl>
                                             <CronPreview expression={field.value} />
                                         </FormItem>
@@ -524,7 +582,7 @@ export function ExportSettingsPage() {
 
                                 {/* Export Formats - Toggle Chips */}
                                 <div className="space-y-3">
-                                    <FormLabel className="text-base">Export Formats</FormLabel>
+                                    <FormLabel className="text-base">{t('exportSettings.exportFormats')}</FormLabel>
                                     <div className="flex gap-3">
                                         <FormField control={form.control} name="autoExport.formats" render={({ field }) => (
                                             <>
@@ -573,7 +631,7 @@ export function ExportSettingsPage() {
                     )}
 
                     {/* === DATA RANGE === */}
-                    <SettingsSection title="Data Range" description="Define the date range for exported data">
+                    <SettingsSection title={t('exportSettings.dataRangeTitle')} description={t('exportSettings.dataRangeDescription')}>
                         <div className="space-y-4">
                             {/* Range Mode Toggle */}
                             <div className="flex gap-2 mb-4">
@@ -583,7 +641,7 @@ export function ExportSettingsPage() {
                                     size="sm"
                                     onClick={() => setRangeMode('rolling')}
                                 >
-                                    Rolling Window
+                                    {t('exportSettings.rollingWindow')}
                                 </Button>
                                 <Button
                                     type="button"
@@ -591,7 +649,7 @@ export function ExportSettingsPage() {
                                     size="sm"
                                     onClick={() => setRangeMode('fixed')}
                                 >
-                                    Custom Days
+                                    {t('exportSettings.customDays')}
                                 </Button>
                             </div>
 
@@ -599,7 +657,7 @@ export function ExportSettingsPage() {
                                 <div className="grid grid-cols-2 gap-4">
                                     <FormField control={form.control} name="config.offsetFrom" render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Period</FormLabel>
+                                            <FormLabel>{t('exportSettings.period')}</FormLabel>
                                             <Select onValueChange={(val) => {
                                                 const days = parseInt(val);
                                                 field.onChange(days);
@@ -607,13 +665,9 @@ export function ExportSettingsPage() {
                                             }} value={String(field.value)}>
                                                 <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
                                                 <SelectContent>
-                                                    <SelectItem value="7">Last 7 days</SelectItem>
-                                                    <SelectItem value="14">Last 14 days</SelectItem>
-                                                    <SelectItem value="30">Last 30 days</SelectItem>
-                                                    <SelectItem value="60">Last 60 days</SelectItem>
-                                                    <SelectItem value="90">Last 90 days</SelectItem>
-                                                    <SelectItem value="180">Last 6 months</SelectItem>
-                                                    <SelectItem value="365">Last 12 months</SelectItem>
+                                                    {rollingPeriodOptions.map((option) => (
+                                                        <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                                                    ))}
                                                 </SelectContent>
                                             </Select>
                                         </FormItem>
@@ -623,17 +677,27 @@ export function ExportSettingsPage() {
                                 <div className="grid grid-cols-2 gap-4">
                                     <FormField control={form.control} name="config.offsetFrom" render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>From (days ago)</FormLabel>
+                                            <FormLabel>{t('common.from')} ({t('exportSettings.daysAgo')})</FormLabel>
                                             <FormControl>
-                                                <Input type="number" min={0} {...field} onChange={e => field.onChange(parseInt(e.target.value) || 0)} />
+                                                <NumberInput
+                                                    min={0}
+                                                    {...field}
+                                                    value={typeof field.value === 'number' && !Number.isNaN(field.value) ? field.value : 0}
+                                                    onChange={(value) => field.onChange(Number.isNaN(value) ? 0 : value)}
+                                                />
                                             </FormControl>
                                         </FormItem>
                                     )} />
                                     <FormField control={form.control} name="config.offsetTo" render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>To (days ago)</FormLabel>
+                                            <FormLabel>{t('common.to')} ({t('exportSettings.daysAgo')})</FormLabel>
                                             <FormControl>
-                                                <Input type="number" min={0} {...field} onChange={e => field.onChange(parseInt(e.target.value) || 0)} />
+                                                <NumberInput
+                                                    min={0}
+                                                    {...field}
+                                                    value={typeof field.value === 'number' && !Number.isNaN(field.value) ? field.value : 0}
+                                                    onChange={(value) => field.onChange(Number.isNaN(value) ? 0 : value)}
+                                                />
                                             </FormControl>
                                         </FormItem>
                                     )} />
@@ -644,7 +708,7 @@ export function ExportSettingsPage() {
                             <div className="p-4 bg-muted/50 rounded-lg border">
                                 <div className="flex items-center gap-2 text-sm mb-2">
                                     <Info className="h-4 w-4 text-blue-500" />
-                                    <span className="font-medium">Preview Range</span>
+                                    <span className="font-medium">{t('exportSettings.previewRange')}</span>
                                 </div>
                                 <p className="text-sm text-muted-foreground">
                                     <strong>{fromDate.toLocaleDateString(undefined, dateOptions)}</strong>
@@ -657,11 +721,11 @@ export function ExportSettingsPage() {
                     </SettingsSection>
 
                     {/* === DESTINATION === */}
-                    <SettingsSection title="Destination" description="Where exports are stored on the server">
+                    <SettingsSection title={t('exportSettings.destinationTitle')} description={t('exportSettings.destinationDescription')}>
                         <div className="space-y-4">
                             <FormField control={form.control} name="config.path" render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Export Directory</FormLabel>
+                                    <FormLabel>{t('exportSettings.exportDirectory')}</FormLabel>
                                     <FormControl>
                                         <div className="flex gap-2">
                                             <div className="flex-1 relative">
@@ -671,7 +735,7 @@ export function ExportSettingsPage() {
                                         </div>
                                     </FormControl>
                                     <FormDescription>
-                                        Path on the server filesystem. Files are stored here and accessible via the download API.
+                                        {t('exportSettings.exportDirectoryHint')}
                                     </FormDescription>
                                 </FormItem>
                             )} />
@@ -679,21 +743,21 @@ export function ExportSettingsPage() {
                     </SettingsSection>
 
                     {/* === EMAIL DELIVERY (Feature-Gated) === */}
-                    <SettingsSection title="Email Delivery" description="Send exports via email">
+                    <SettingsSection title={t('exportSettings.emailDeliveryTitle')} description={t('exportSettings.emailDeliveryDescription')}>
                         {!emailConfigStatus?.enabled ? (
                             <Alert>
                                 <Mail className="h-4 w-4" />
-                                <AlertTitle>Email Feature Disabled</AlertTitle>
+                                <AlertTitle>{t('exportSettings.emailFeatureDisabledTitle')}</AlertTitle>
                                 <AlertDescription>
-                                    Enable the email feature in Email Settings to send exports by email.
+                                    {t('exportSettings.emailFeatureDisabledDescription')}
                                 </AlertDescription>
                             </Alert>
                         ) : !emailConfigStatus?.configValid ? (
                             <Alert variant="destructive">
                                 <AlertTriangle className="h-4 w-4" />
-                                <AlertTitle>Email Not Configured</AlertTitle>
+                                <AlertTitle>{t('exportSettings.emailNotConfiguredTitle')}</AlertTitle>
                                 <AlertDescription>
-                                    Email is enabled but not properly configured. Please configure your email provider in Email Settings.
+                                    {t('exportSettings.emailNotConfiguredDescription')}
                                 </AlertDescription>
                             </Alert>
                         ) : (
@@ -701,8 +765,8 @@ export function ExportSettingsPage() {
                                 <FormField control={form.control} name="autoExport.email.enabled" render={({ field }) => (
                                     <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 mb-4">
                                         <div className="space-y-0.5">
-                                            <FormLabel className="text-base">Enable Email Delivery</FormLabel>
-                                            <FormDescription>Send exports as email attachments</FormDescription>
+                                            <FormLabel className="text-base">{t('exportSettings.enableEmailDelivery')}</FormLabel>
+                                            <FormDescription>{t('exportSettings.enableEmailDeliveryDescription')}</FormDescription>
                                         </div>
                                         <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
                                     </FormItem>
@@ -712,7 +776,7 @@ export function ExportSettingsPage() {
                                     <div className="space-y-4 pt-4 border-t">
                                         {/* Email Formats */}
                                         <div className="space-y-3">
-                                            <FormLabel>Email Attachments</FormLabel>
+                                            <FormLabel>{t('exportSettings.emailAttachments')}</FormLabel>
                                             <div className="flex gap-3">
                                                 <FormField control={form.control} name="autoExport.email.formats" render={({ field }) => (
                                                     <>
@@ -759,7 +823,7 @@ export function ExportSettingsPage() {
 
                                         {/* Recipients */}
                                         <div className="space-y-2">
-                                            <FormLabel>Recipients</FormLabel>
+                                            <FormLabel>{t('recipients.label')}</FormLabel>
                                             <RecipientSelector
                                                 recipients={form.watch('autoExport.email.recipients')}
                                                 setRecipients={(vals) => {
@@ -783,26 +847,22 @@ export function ExportSettingsPage() {
                     </SettingsSection>
 
                     {/* === RETENTION & CLEANUP === */}
-                    <SettingsSection title="Retention & Cleanup" description="Automatically remove old export files">
+                    <SettingsSection title={t('exportSettings.retentionCleanupTitle')} description={t('exportSettings.retentionCleanupDescription')}>
                         <div className="space-y-4">
                             <div className="flex gap-4 items-end">
                                 <FormField control={form.control} name="retention.days" render={({ field }) => (
                                     <FormItem className="flex-1">
-                                        <FormLabel>Retention Period</FormLabel>
+                                        <FormLabel>{t('exportSettings.retentionPeriod')}</FormLabel>
                                         <Select onValueChange={(val) => field.onChange(parseInt(val))} value={String(field.value)}>
                                             <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
                                             <SelectContent>
-                                                <SelectItem value="0">Never (Keep Forever)</SelectItem>
-                                                <SelectItem value="30">30 Days</SelectItem>
-                                                <SelectItem value="60">60 Days</SelectItem>
-                                                <SelectItem value="90">90 Days</SelectItem>
-                                                <SelectItem value="180">180 Days (6 Months)</SelectItem>
-                                                <SelectItem value="365">365 Days (1 Year)</SelectItem>
-                                                <SelectItem value="3650">10 Years</SelectItem>
+                                                {retentionOptions.map((option) => (
+                                                    <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                                                ))}
                                             </SelectContent>
                                         </Select>
                                         <FormDescription>
-                                            Files older than this will be automatically deleted during cleanup.
+                                            {t('exportSettings.retentionFilesDescription')}
                                         </FormDescription>
                                     </FormItem>
                                 )} />
@@ -811,29 +871,29 @@ export function ExportSettingsPage() {
                             {/* Cleanup Now with Confirmation */}
                             <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/30">
                                 <div>
-                                    <p className="font-medium text-sm">Manual Cleanup</p>
+                                    <p className="font-medium text-sm">{t('exportSettings.manualCleanup')}</p>
                                     <p className="text-xs text-muted-foreground">
-                                        Delete all exports older than the retention period ({form.watch('retention.days')} days)
+                                        {t('exportSettings.manualCleanupDescription', { days: form.watch('retention.days') })}
                                     </p>
                                 </div>
                                 <AlertDialog>
                                     <AlertDialogTrigger asChild>
                                         <Button type="button" variant="outline" size="sm" disabled={isCleaning}>
                                             {isCleaning ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
-                                            Cleanup Now
+                                            {t('exportSettings.cleanupNow')}
                                         </Button>
                                     </AlertDialogTrigger>
                                     <AlertDialogContent>
                                         <AlertDialogHeader>
-                                            <AlertDialogTitle>Confirm Cleanup</AlertDialogTitle>
+                                            <AlertDialogTitle>{t('exportSettings.confirmCleanupTitle')}</AlertDialogTitle>
                                             <AlertDialogDescription>
-                                                This will permanently delete all export files older than {form.watch('retention.days')} days. This action cannot be undone.
+                                                {t('exportSettings.confirmCleanupDescription', { days: form.watch('retention.days') })}
                                             </AlertDialogDescription>
                                         </AlertDialogHeader>
                                         <AlertDialogFooter>
-                                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
                                             <AlertDialogAction onClick={handleCleanup} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                                                Delete Old Files
+                                                {t('exportSettings.deleteOldFiles')}
                                             </AlertDialogAction>
                                         </AlertDialogFooter>
                                     </AlertDialogContent>
@@ -843,26 +903,28 @@ export function ExportSettingsPage() {
                     </SettingsSection>
 
                     {/* === RUN NOW (Actions) === */}
-                    <SettingsSection title="Manual Actions" description="Generate exports or test email delivery">
+                    <SettingsSection title={t('exportSettings.manualActionsTitle')} description={t('exportSettings.manualActionsDescription')}>
                         <div className="space-y-4">
                             {/* Run Now with Draft Warning */}
                             <div className="flex items-center justify-between p-4 border rounded-lg">
                                 <div>
-                                    <p className="font-medium text-sm">Generate Export Now</p>
+                                    <p className="font-medium text-sm">{t('exportSettings.generateExportNow')}</p>
                                     <p className="text-xs text-muted-foreground">
-                                        Run the export immediately with {isDirty ? 'current (unsaved)' : 'saved'} configuration
+                                        {t('exportSettings.runWithConfig', {
+                                            state: isDirty ? t('exportSettings.configState.currentUnsaved') : t('exportSettings.configState.saved'),
+                                        })}
                                     </p>
                                 </div>
                                 <div className="flex items-center gap-2">
                                     {isDirty && (
                                         <Badge variant="outline" className="text-yellow-600 border-yellow-300 bg-yellow-50">
                                             <AlertTriangle className="h-3 w-3 mr-1" />
-                                            Unsaved
+                                            {t('exportSettings.unsaved')}
                                         </Badge>
                                     )}
                                     <Button type="button" onClick={handleRunNow} disabled={isRunningNow}>
                                         {isRunningNow ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Play className="mr-2 h-4 w-4" />}
-                                        Run Now
+                                        {t('exportSettings.runNow')}
                                     </Button>
                                 </div>
                             </div>
@@ -871,14 +933,14 @@ export function ExportSettingsPage() {
                             {isEmailAvailable && emailEnabled && (
                                 <div className="flex items-center justify-between p-4 border rounded-lg">
                                     <div>
-                                        <p className="font-medium text-sm">Test Email Delivery</p>
+                                        <p className="font-medium text-sm">{t('exportSettings.testEmailDelivery')}</p>
                                         <p className="text-xs text-muted-foreground">
-                                            Send a test email to verify delivery configuration
+                                            {t('exportSettings.testEmailDeliveryDescription')}
                                         </p>
                                     </div>
                                     <Button type="button" variant="secondary" onClick={handleTestEmail} disabled={isTesting}>
                                         {isTesting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Mail className="mr-2 h-4 w-4" />}
-                                        Test Email
+                                        {t('exportSettings.testEmail')}
                                     </Button>
                                 </div>
                             )}
@@ -886,22 +948,22 @@ export function ExportSettingsPage() {
                     </SettingsSection>
 
                     {/* === RUN HISTORY === */}
-                    <SettingsSection title="Export History" description="Recent export files">
+                    <SettingsSection title={t('exportSettings.historyTitle')} description={t('exportSettings.historyDescription')}>
                         {recentExports.length === 0 ? (
                             <div className="flex flex-col items-center justify-center p-8 text-center text-muted-foreground">
                                 <History className="h-8 w-8 mb-2" />
-                                <p className="text-sm">No exports yet</p>
-                                <p className="text-xs">Generated exports will appear here</p>
+                                <p className="text-sm">{t('exportSettings.noExportsYet')}</p>
+                                <p className="text-xs">{t('exportSettings.generatedExportsAppearHere')}</p>
                             </div>
                         ) : (
                             <div className="space-y-4">
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
-                                            <TableHead>Filename</TableHead>
-                                            <TableHead>Size</TableHead>
-                                            <TableHead>Created</TableHead>
-                                            <TableHead className="text-right">Actions</TableHead>
+                                            <TableHead>{t('exportSettings.columns.filename')}</TableHead>
+                                            <TableHead>{t('exportSettings.columns.size')}</TableHead>
+                                            <TableHead>{t('exportSettings.columns.created')}</TableHead>
+                                            <TableHead className="text-right">{t('common.actions')}</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
@@ -931,7 +993,7 @@ export function ExportSettingsPage() {
                                 <div className="flex justify-end">
                                     <Button type="button" variant="ghost" size="sm" onClick={() => refetchExports()}>
                                         <RefreshCw className="h-4 w-4 mr-2" />
-                                        Refresh
+                                        {t('common.refresh')}
                                     </Button>
                                 </div>
                             </div>
@@ -943,12 +1005,12 @@ export function ExportSettingsPage() {
                         <div className="flex items-center gap-4">
                             {isDirty && (
                                 <span className="text-sm text-muted-foreground">
-                                    You have unsaved changes
+                                    {t('exportSettings.youHaveUnsavedChanges')}
                                 </span>
                             )}
                             <Button type="submit" disabled={isUpdating}>
                                 {isUpdating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                Save Changes
+                                {t('common.save')}
                             </Button>
                         </div>
                     </div>

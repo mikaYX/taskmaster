@@ -6,6 +6,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Loader2, Upload, FileUp, AlertCircle } from 'lucide-react';
 import { backupApi } from '@/api/backup';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 
 interface ImportBackupModalProps {
     open: boolean;
@@ -14,6 +15,7 @@ interface ImportBackupModalProps {
 }
 
 export function ImportBackupModal({ open, onOpenChange, onSuccess }: ImportBackupModalProps) {
+    const { t } = useTranslation();
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [isUploading, setIsUploading] = useState(false);
@@ -30,12 +32,12 @@ export function ImportBackupModal({ open, onOpenChange, onSuccess }: ImportBacku
         setIsUploading(true);
         try {
             await backupApi.import(selectedFile);
-            toast.success('Backup imported into history');
+            toast.success(t('importBackupModal.success'));
             onOpenChange(false);
             onSuccess();
         } catch (e) {
             console.error(e);
-            toast.error('Import failed');
+            toast.error(t('importBackupModal.failed'));
         } finally {
             setIsUploading(false);
         }
@@ -45,10 +47,9 @@ export function ImportBackupModal({ open, onOpenChange, onSuccess }: ImportBacku
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>Import Backup File</DialogTitle>
+                    <DialogTitle>{t('importBackupModal.title')}</DialogTitle>
                     <DialogDescription>
-                        Upload an existing backup file (.enc, .tar.gz) to add it to the history.
-                        You can restore from it after import.
+                        {t('importBackupModal.description')}
                     </DialogDescription>
                 </DialogHeader>
 
@@ -59,9 +60,9 @@ export function ImportBackupModal({ open, onOpenChange, onSuccess }: ImportBacku
                             onClick={() => fileInputRef.current?.click()}
                         >
                             <Upload className="h-8 w-8 text-muted-foreground mb-4" />
-                            <h3 className="font-semibold">Click to Upload</h3>
+                            <h3 className="font-semibold">{t('importBackupModal.clickToUpload')}</h3>
                             <p className="text-sm text-muted-foreground mt-1">
-                                Supported formats: .tar.gz.enc, .db.dump
+                                {t('importBackupModal.supportedFormats')}
                             </p>
                             <input
                                 type="file"
@@ -80,24 +81,24 @@ export function ImportBackupModal({ open, onOpenChange, onSuccess }: ImportBacku
                                     <p className="text-xs text-muted-foreground">{(selectedFile.size / 1024 / 1024).toFixed(2)} MB</p>
                                 </div>
                             </div>
-                            <Button variant="ghost" size="sm" onClick={() => setSelectedFile(null)}>Change</Button>
+                            <Button variant="ghost" size="sm" onClick={() => setSelectedFile(null)}>{t('importBackupModal.change')}</Button>
                         </div>
                     )}
 
                     <Alert>
                         <AlertCircle className="h-4 w-4" />
-                        <AlertTitle>Note</AlertTitle>
+                        <AlertTitle>{t('importBackupModal.note')}</AlertTitle>
                         <AlertDescription>
-                            This does NOT restore the system immediately. It just adds the file to your backup list.
+                            {t('importBackupModal.noteDescription')}
                         </AlertDescription>
                     </Alert>
                 </div>
 
                 <DialogFooter>
-                    <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+                    <Button variant="outline" onClick={() => onOpenChange(false)}>{t('common.cancel')}</Button>
                     <Button onClick={handleImport} disabled={!selectedFile || isUploading}>
                         {isUploading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Upload & Import
+                        {t('importBackupModal.uploadAndImport')}
                     </Button>
                 </DialogFooter>
             </DialogContent>

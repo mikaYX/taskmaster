@@ -1,12 +1,13 @@
 import { z } from 'zod';
+import i18n from '@/lib/i18n';
 
 export const generalSettingsSchema = z.object({
     lang: z.enum(['en', 'fr']),
-    country: z.string().min(2, 'Country code is required'),
+    country: z.string().min(2, i18n.t('settingsValidation.countryRequired')),
     displayMode: z.enum(['light', 'dark', 'system']),
     theme: z.string().optional(),
-    title: z.string().max(50, 'Title must be 50 characters or less').optional(),
-    subtitle: z.string().max(100, 'Subtitle must be 100 characters or less').optional(),
+    title: z.string().max(50, i18n.t('settingsValidation.titleMax')).optional(),
+    subtitle: z.string().max(100, i18n.t('settingsValidation.subtitleMax')).optional(),
 });
 
 export const authSettingsSchema = z.object({
@@ -33,7 +34,7 @@ export const authSettingsSchema = z.object({
     }).optional(),
     azureAd: z.object({
         enabled: z.boolean(),
-        tenantId: z.string().uuid('Invalid Tenant ID format').optional().or(z.literal('')),
+        tenantId: z.string().uuid(i18n.t('settingsValidation.invalidTenantIdFormat')).optional().or(z.literal('')),
         clientId: z.string().optional(),
         clientSecret: z.string().optional(),
     }),
@@ -62,12 +63,12 @@ export const authSettingsSchema = z.object({
     }),
     ldap: z.object({
         enabled: z.boolean(),
-        url: z.string().url('Invalid LDAP URL').optional().or(z.literal('')),
+        url: z.string().url(i18n.t('settingsValidation.invalidLdapUrl')).optional().or(z.literal('')),
         bindDn: z.string().optional(),
         bindPassword: z.string().optional(),
         searchBase: z.string().optional(),
         searchFilter: z.string().refine(val => !val || val.includes('{{usermail}}'), {
-            message: 'Filter must contain {{usermail}} placeholder'
+            message: i18n.t('settingsValidation.usermailPlaceholder')
         }).optional(),
     }),
 });
@@ -76,27 +77,27 @@ export const emailSettingsSchema = z.object({
     enabled: z.boolean(),
     provider: z.enum(['smtp', 'mailgun', 'mailjet', 'sendgrid']),
     smtp: z.object({
-        host: z.string().min(1, 'Host is required').optional().or(z.literal('')),
+        host: z.string().min(1, i18n.t('settingsValidation.hostRequired')).optional().or(z.literal('')),
         port: z.number().int().positive().optional(),
         user: z.string().optional(),
         pass: z.string().optional(),
-        from: z.string().email('Invalid email address').optional().or(z.literal('')),
+        from: z.string().email(i18n.t('settingsValidation.invalidEmailAddress')).optional().or(z.literal('')),
         secure: z.boolean(),
     }).optional(),
     mailgun: z.object({
         apiKey: z.string().optional(),
         domain: z.string().optional(),
         region: z.string().optional(),
-        from: z.string().email('Invalid email address').optional().or(z.literal('')),
+        from: z.string().email(i18n.t('settingsValidation.invalidEmailAddress')).optional().or(z.literal('')),
     }).optional(),
     mailjet: z.object({
         apiKey: z.string().optional(),
         secretKey: z.string().optional(),
-        from: z.string().email('Invalid email address').optional().or(z.literal('')),
+        from: z.string().email(i18n.t('settingsValidation.invalidEmailAddress')).optional().or(z.literal('')),
     }).optional(),
     sendgrid: z.object({
         apiKey: z.string().optional(),
-        from: z.string().email('Invalid email address').optional().or(z.literal('')),
+        from: z.string().email(i18n.t('settingsValidation.invalidEmailAddress')).optional().or(z.literal('')),
     }).optional(),
     alerts: z.object({
         missingTasks: z.boolean(),
@@ -144,7 +145,7 @@ export const backupSettingsSchema = z.object({
     scheduleType: z.enum(['daily', 'weekly', 'custom']),
     dayOfWeek: z.number().min(0).max(6),
     cron: z.string(),
-    time: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Invalid time format').optional(),
+    time: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, i18n.t('settingsValidation.invalidTimeFormat')).optional(),
     type: z.enum(['json', 'zip']),
     emailDelivery: z.boolean().optional(),
     encryption: z.object({

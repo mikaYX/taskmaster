@@ -19,6 +19,7 @@ Index de la documentation complémentaire du projet.
 |----------|-------------|
 | [Authentification](authentication.md) | Configuration SSO, LDAP, OIDC, SAML, MFA |
 | [Base locale](local-db.md) | PostgreSQL et Redis pour le développement |
+| [Mises à jour de version](version-updates.md) | Vérification et mise à jour en installation locale et Docker |
 | [Build Docker](DOCKER-BUILD.md) | Construction et publication des images |
 | [Exploitation](operations.md) | Références d’exploitation et administration |
 | [Dépannage](troubleshooting.md) | Résolution des problèmes courants |

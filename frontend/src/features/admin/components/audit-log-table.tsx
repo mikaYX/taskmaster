@@ -3,6 +3,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import type { AuditLog } from "@/api/types";
 import { format } from "date-fns";
 import { Info, AlertTriangle, AlertOctagon, User, ShieldAlert } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 interface AuditLogTableProps {
     logs: AuditLog[];
@@ -11,10 +12,12 @@ interface AuditLogTableProps {
 }
 
 export function AuditLogTable({ logs, isLoading, onViewDetails }: AuditLogTableProps) {
+    const { t } = useTranslation();
+
     if (isLoading) {
         return (
             <div className="rounded-md border p-8 text-center text-muted-foreground">
-                Loading audit logs...
+                {t('auditLog.loading')}
             </div>
         );
     }
@@ -23,7 +26,7 @@ export function AuditLogTable({ logs, isLoading, onViewDetails }: AuditLogTableP
         return (
             <div className="rounded-md border p-8 text-center text-muted-foreground flex flex-col items-center gap-2">
                 <ShieldAlert className="h-8 w-8 opacity-20" />
-                <p>No audit logs found matching your criteria.</p>
+                <p>{t('auditLog.empty')}</p>
             </div>
         );
     }
@@ -33,12 +36,12 @@ export function AuditLogTable({ logs, isLoading, onViewDetails }: AuditLogTableP
             <Table>
                 <TableHeader>
                     <TableRow>
-                        <TableHead className="w-[180px]">Timestamp</TableHead>
-                        <TableHead className="w-[100px]">Severity</TableHead>
-                        <TableHead className="w-[150px]">Actor</TableHead>
-                        <TableHead className="w-[200px]">Action</TableHead>
-                        <TableHead className="w-[150px]">Category</TableHead>
-                        <TableHead>Target</TableHead>
+                        <TableHead className="w-[180px]">{t('auditLog.columns.timestamp')}</TableHead>
+                        <TableHead className="w-[100px]">{t('auditLog.columns.severity')}</TableHead>
+                        <TableHead className="w-[150px]">{t('auditLog.columns.actor')}</TableHead>
+                        <TableHead className="w-[200px]">{t('auditLog.columns.action')}</TableHead>
+                        <TableHead className="w-[150px]">{t('auditLog.columns.category')}</TableHead>
+                        <TableHead>{t('auditLog.columns.target')}</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -62,7 +65,7 @@ export function AuditLogTable({ logs, isLoading, onViewDetails }: AuditLogTableP
                                             <span className="text-sm font-medium">{log.actorName}</span>
                                         </>
                                     ) : (
-                                        <span className="text-sm text-muted-foreground italic">System</span>
+                                        <span className="text-sm text-muted-foreground italic">{t('auditLog.systemActor')}</span>
                                     )}
                                 </div>
                             </TableCell>
@@ -86,24 +89,26 @@ export function AuditLogTable({ logs, isLoading, onViewDetails }: AuditLogTableP
 }
 
 function SeverityBadge({ severity }: { severity: string }) {
+    const { t } = useTranslation();
+
     switch (severity) {
         case 'CRITICAL':
             return (
                 <Badge variant="destructive" className="gap-1">
-                    <AlertOctagon className="h-3 w-3" /> Critical
+                    <AlertOctagon className="h-3 w-3" /> {t('auditLog.severity.critical')}
                 </Badge>
             );
         case 'WARN':
             return (
                 <Badge variant="default" className="bg-amber-500 hover:bg-amber-600 gap-1 text-white border-transparent">
-                    <AlertTriangle className="h-3 w-3" /> Warning
+                    <AlertTriangle className="h-3 w-3" /> {t('auditLog.severity.warning')}
                 </Badge>
             );
         case 'INFO':
         default:
             return (
                 <Badge variant="secondary" className="gap-1">
-                    <Info className="h-3 w-3 text-blue-500" /> Info
+                    <Info className="h-3 w-3 text-blue-500" /> {t('auditLog.severity.info')}
                 </Badge>
             );
     }

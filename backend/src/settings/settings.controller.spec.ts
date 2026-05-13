@@ -123,6 +123,14 @@ describe('SettingsController', () => {
     });
   });
 
+  describe('submitFeedbackCompatibility()', () => {
+    it('should return success for deprecated compatibility calls', () => {
+      expect(controller.submitFeedbackCompatibility()).toEqual({
+        success: true,
+      });
+    });
+  });
+
   describe('testGoogleConnection()', () => {
     beforeEach(() => {
       (safeFetch as jest.Mock).mockReset();

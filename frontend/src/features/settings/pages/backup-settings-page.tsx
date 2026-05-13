@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useSettings } from '../hooks/use-settings';
 import { backupSettingsSchema } from '../schemas/settings-schemas';
 import { z } from 'zod';
+import { useTranslation } from 'react-i18next';
 
 type BackupSettingsFormValues = z.infer<typeof backupSettingsSchema>;
 import { Form } from "@/components/ui/form";
@@ -23,6 +24,7 @@ import type { RestoreZoneRef } from '../components/restore-zone';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export function BackupSettingsPage() {
+    const { t } = useTranslation();
     const { settings, getSetting, getSettingAsBool, updateSettings, isLoading: isSettingsLoading, isUpdating } = useSettings();
     const [backups, setBackups] = useState<BackupFile[]>([]);
     const [isHistoryLoading, setIsHistoryLoading] = useState(true);
@@ -153,18 +155,18 @@ export function BackupSettingsPage() {
 
             {/* ZONE B: Exports */}
             <section className="space-y-4">
-                <h3 className="text-lg font-medium">Export de Données (Portable)</h3>
+                <h3 className="text-lg font-medium">{t('exportSection.title')}</h3>
                 <ExportSection />
             </section>
 
             {/* ZONE C: System Backups (Schedule + History) */}
             <section className="space-y-4">
                 <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-medium">Sauvegardes Système (Recovery)</h3>
+                    <h3 className="text-lg font-medium">{t('backupPage.systemBackupsTitle')}</h3>
                     {!isDirty && (
                         <Button onClick={form.handleSubmit(onSubmit)} disabled={isUpdating} variant="outline">
                             <Save className="mr-2 h-4 w-4" />
-                            Save Config
+                            {t('backupPage.saveConfig')}
                         </Button>
                     )}
                 </div>
@@ -179,10 +181,12 @@ export function BackupSettingsPage() {
                 {statusData?.encryptionKeyIsDefault && (
                     <Alert variant="destructive" className="bg-destructive/10 border-destructive/20 text-destructive">
                         <ShieldAlert className="h-4 w-4" />
-                        <AlertTitle className="font-bold">Risque de Sécurité Critique</AlertTitle>
+                        <AlertTitle className="font-bold">{t('backupPage.criticalSecurityRiskTitle')}</AlertTitle>
                         <AlertDescription className="text-sm">
-                            Votre clé de chiffrement des sauvegardes (<strong>BACKUP_ENCRYPTION_KEY</strong>) est actuellement définie sur une valeur par défaut non sécurisée.
-                            Toutes vos sauvegardes chiffrées sont vulnérables. <strong>Veuillez générer une nouvelle clé aléatoire de 32 caractères minimum dans votre fichier .env</strong>
+                            {t('backupPage.defaultEncryptionKeyWarning.before')}
+                            <strong>BACKUP_ENCRYPTION_KEY</strong>
+                            {t('backupPage.defaultEncryptionKeyWarning.middle')}
+                            <strong>{t('backupPage.defaultEncryptionKeyWarning.strong')}</strong>
                         </AlertDescription>
                     </Alert>
                 )}
@@ -191,13 +195,13 @@ export function BackupSettingsPage() {
                 {isDirty && (
                     <Alert className="bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-900/50" variant="default">
                         <AlertTriangle className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
-                        <AlertTitle className="text-yellow-800 dark:text-yellow-200">Unsaved Changes Detected</AlertTitle>
+                        <AlertTitle className="text-yellow-800 dark:text-yellow-200">{t('backupPage.unsavedChangesDetected')}</AlertTitle>
                         <AlertDescription className="flex items-center justify-between">
-                            <span className="text-yellow-700 dark:text-yellow-300">You have modified backup configurations. Please save before running manual backups.</span>
+                            <span className="text-yellow-700 dark:text-yellow-300">{t('backupPage.unsavedChangesDescription')}</span>
                             <Button size="sm" onClick={form.handleSubmit(onSubmit)} disabled={isUpdating} className="bg-yellow-600 hover:bg-yellow-700 text-white dark:bg-yellow-700 dark:hover:bg-yellow-600">
                                 {isUpdating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                 <Save className="mr-2 h-4 w-4" />
-                                Save Now
+                                {t('backupPage.saveNow')}
                             </Button>
                         </AlertDescription>
                     </Alert>

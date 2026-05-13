@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Loader2, Upload, X, Image as ImageIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 
 interface ImageUploadProps {
     value?: string;
@@ -21,6 +22,7 @@ export function ImageUpload({
     className,
     accept = "image/png, image/jpeg, image/x-icon"
 }: ImageUploadProps) {
+    const { t } = useTranslation();
     const [isUploading, setIsUploading] = useState(false);
     const [preview, setPreview] = useState(value);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -38,10 +40,10 @@ export function ImageUpload({
             const uploadedUrl = await onUpload(file);
             onChange(uploadedUrl);
             setPreview(uploadedUrl);
-            toast.success('Image uploaded successfully');
+            toast.success(t('imageUpload.success'));
         } catch (error) {
             console.error('Upload failed:', error);
-            toast.error('Failed to upload image');
+            toast.error(t('imageUpload.failed'));
             // Revert preview
             setPreview(value);
         } finally {
@@ -72,7 +74,7 @@ export function ImageUpload({
                     ) : preview ? (
                         <img
                             src={preview}
-                            alt="Preview"
+                            alt={t('imageUpload.previewAlt')}
                             className="h-full w-full rounded-md object-contain p-1"
                         />
                     ) : (
@@ -86,7 +88,7 @@ export function ImageUpload({
                             className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90"
                         >
                             <X className="h-3 w-3" />
-                            <span className="sr-only">Remove</span>
+                            <span className="sr-only">{t('imageUpload.remove')}</span>
                         </button>
                     )}
                 </div>
@@ -107,10 +109,10 @@ export function ImageUpload({
                         onClick={() => fileInputRef.current?.click()}
                     >
                         <Upload className="mr-2 h-4 w-4" />
-                        Upload Image
+                        {t('imageUpload.uploadButton')}
                     </Button>
                     <p className="text-[0.8rem] text-muted-foreground">
-                        Recommended: PNG or JPG. Max 2MB.
+                        {t('imageUpload.recommendedFormats')}
                     </p>
                 </div>
             </div>

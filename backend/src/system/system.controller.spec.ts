@@ -1,10 +1,16 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import { UserRole } from '@prisma/client';
+import { GUARDS_METADATA } from '@nestjs/common/constants';
+import { JwtAuthGuard, RolesGuard } from '../auth';
+import { ROLES_KEY } from '../auth/decorators/roles.decorator';
 import { SystemController } from './system.controller';
 import { VersionService, VersionStatusDto } from './version.service';
 
 describe('SystemController', () => {
   let controller: SystemController;
-  let versionService: { getVersionStatus: jest.Mock };
+  let versionService: {
+    getVersionStatus: jest.Mock;
+    refreshVersionStatus: jest.Mock;
+  };
 
   const mockDto: VersionStatusDto = {
     currentVersion: '1.0.0',
@@ -20,18 +26,30 @@ describe('SystemController', () => {
   beforeEach(async () => {
     versionService = {
       getVersionStatus: jest.fn().mockResolvedValue(mockDto),
+      refreshVersionStatus: jest.fn().mockResolvedValue(mockDto),
     };
 
-    const module: TestingModule = await Test.createTestingModule({
-      controllers: [SystemController],
-      providers: [{ provide: VersionService, useValue: versionService }],
-    }).compile();
-
-    controller = module.get<SystemController>(SystemController);
+    controller = new SystemController(versionService as unknown as VersionService);
   });
 
   it('should be defined', () => {
     expect(controller).toBeDefined();
+  });
+
+  it('should protect the controller with JWT and role guards', () => {
+    expect(Reflect.getMetadata(GUARDS_METADATA, SystemController)).toEqual([
+      JwtAuthGuard,
+      RolesGuard,
+    ]);
+  });
+
+  it('should restrict version checks to privileged roles', () => {
+    expect(
+      Reflect.getMetadata(ROLES_KEY, SystemController.prototype.getVersion),
+    ).toEqual([UserRole.SUPER_ADMIN, UserRole.MANAGER]);
+    expect(
+      Reflect.getMetadata(ROLES_KEY, SystemController.prototype.refreshVersion),
+    ).toEqual([UserRole.SUPER_ADMIN, UserRole.MANAGER]);
   });
 
   describe('GET /system/version', () => {
@@ -57,6 +75,15 @@ describe('SystemController', () => {
 
       expect(result.sourceStatus).toBe('degraded');
       expect(result.error).toBe('Unable to check for updates');
+    });
+  });
+
+  describe('POST /system/version/refresh', () => {
+    it('should refresh and return version status', async () => {
+      const result = await controller.refreshVersion();
+
+      expect(result).toEqual(mockDto);
+      expect(versionService.refreshVersionStatus).toHaveBeenCalledTimes(1);
     });
   });
 });

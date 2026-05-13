@@ -15,17 +15,18 @@ import * as z from "zod";
 import { toast } from "sonner";
 import type { NotificationChannel } from "@/api/notifications";
 
-const channelSchema = z.object({
-    name: z.string().min(1, "Name is required"),
+const createChannelSchema = (t: (key: string) => string) => z.object({
+    name: z.string().min(1, t('settings.notifications.validation.nameRequired')),
     type: z.enum(["EMAIL", "TEAMS", "SLACK", "WEBHOOK", "TELEGRAM", "DISCORD", "PUSH"]),
     enabled: z.boolean(),
     config: z.record(z.string(), z.unknown()),
 });
 
-type ChannelFormValues = z.infer<typeof channelSchema>;
+type ChannelFormValues = z.infer<ReturnType<typeof createChannelSchema>>;
 
 export function NotificationsSettingsPage() {
     const { t } = useTranslation();
+    const channelSchema = createChannelSchema(t);
     const { data: channels, isLoading } = useChannels();
     const createMutation = useCreateChannel();
     const updateMutation = useUpdateChannel();
@@ -130,6 +131,11 @@ export function NotificationsSettingsPage() {
         return <div className="flex justify-center p-8"><Loader2 className="animate-spin" /></div>;
     }
 
+    const getChannelTypeLabel = (type: ChannelFormValues['type'] | NotificationChannel['type']) => {
+        const key = type.toLowerCase();
+        return t(`settings.notifications.types.${key}`);
+    };
+
     return (
         <div className="space-y-6">
             <div>
@@ -165,7 +171,7 @@ export function NotificationsSettingsPage() {
                         </CardHeader>
                         <CardContent>
                             <CardDescription className="mb-4">
-                                {channel.type}
+                                {getChannelTypeLabel(channel.type)}
                             </CardDescription>
                             <div className="flex justify-end gap-2">
                                 <Button variant="outline" size="icon" onClick={() => { setChannelToTest(channel); setIsTestDialogOpen(true); }}>
@@ -198,7 +204,7 @@ export function NotificationsSettingsPage() {
                                     <FormItem>
                                         <FormLabel>{t('common.name')}</FormLabel>
                                         <FormControl>
-                                            <Input {...field} placeholder="My Channel" />
+                                            <Input {...field} placeholder={t('settings.notifications.namePlaceholder')} />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
@@ -214,17 +220,17 @@ export function NotificationsSettingsPage() {
                                         <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!!editingChannel}>
                                             <FormControl>
                                                 <SelectTrigger>
-                                                    <SelectValue placeholder="Select type" />
+                                                    <SelectValue placeholder={t('settings.notifications.typePlaceholder')} />
                                                 </SelectTrigger>
                                             </FormControl>
                                             <SelectContent>
-                                                <SelectItem value="EMAIL">Email</SelectItem>
-                                                <SelectItem value="SLACK">Slack</SelectItem>
-                                                <SelectItem value="TEAMS">Teams</SelectItem>
-                                                <SelectItem value="DISCORD">Discord</SelectItem>
-                                                <SelectItem value="TELEGRAM">Telegram</SelectItem>
-                                                <SelectItem value="WEBHOOK">Webhook (Custom)</SelectItem>
-                                                <SelectItem value="PUSH">Push (Not yet implemented)</SelectItem>
+                                                <SelectItem value="EMAIL">{t('settings.notifications.types.email')}</SelectItem>
+                                                <SelectItem value="SLACK">{t('settings.notifications.types.slack')}</SelectItem>
+                                                <SelectItem value="TEAMS">{t('settings.notifications.types.teams')}</SelectItem>
+                                                <SelectItem value="DISCORD">{t('settings.notifications.types.discord')}</SelectItem>
+                                                <SelectItem value="TELEGRAM">{t('settings.notifications.types.telegram')}</SelectItem>
+                                                <SelectItem value="WEBHOOK">{t('settings.notifications.types.webhook')}</SelectItem>
+                                                <SelectItem value="PUSH">{t('settings.notifications.types.push')}</SelectItem>
                                             </SelectContent>
                                         </Select>
                                         <FormMessage />
@@ -239,7 +245,7 @@ export function NotificationsSettingsPage() {
                                     name="config.webhookUrl"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Webhook URL</FormLabel>
+                                            <FormLabel>{t('settings.notifications.fields.webhookUrl')}</FormLabel>
                                             <FormControl>
                                                 <Input {...field} value={(field.value as string) || ''} onChange={field.onChange} placeholder="https://..." />
                                             </FormControl>
@@ -255,7 +261,7 @@ export function NotificationsSettingsPage() {
                                         name="config.botToken"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel>Bot Token</FormLabel>
+                                                <FormLabel>{t('settings.notifications.fields.botToken')}</FormLabel>
                                                 <FormControl>
                                                     <Input {...field} value={(field.value as string) || ''} onChange={field.onChange} />
                                                 </FormControl>
@@ -267,7 +273,7 @@ export function NotificationsSettingsPage() {
                                         name="config.chatId"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel>Chat ID</FormLabel>
+                                                <FormLabel>{t('settings.notifications.fields.chatId')}</FormLabel>
                                                 <FormControl>
                                                     <Input {...field} value={(field.value as string) || ''} onChange={field.onChange} />
                                                 </FormControl>
@@ -284,7 +290,7 @@ export function NotificationsSettingsPage() {
                                         name="config.webhookUrl"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel>URL</FormLabel>
+                                                <FormLabel>{t('settings.notifications.fields.url')}</FormLabel>
                                                 <FormControl>
                                                     <Input {...field} value={(field.value as string) || ''} onChange={field.onChange} placeholder="https://..." />
                                                 </FormControl>
@@ -296,7 +302,7 @@ export function NotificationsSettingsPage() {
                                         name="config.method"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel>HTTP Method</FormLabel>
+                                                <FormLabel>{t('settings.notifications.fields.httpMethod')}</FormLabel>
                                                 <Select onValueChange={field.onChange} defaultValue={(field.value as string) || "POST"}>
                                                     <FormControl>
                                                         <SelectTrigger>

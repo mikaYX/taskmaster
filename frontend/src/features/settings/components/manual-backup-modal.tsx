@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Loader2, Database, FolderArchive } from 'lucide-react';
 import { backupApi } from '@/api/backup';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 
 interface ManualBackupModalProps {
     open: boolean;
@@ -16,6 +17,7 @@ interface ManualBackupModalProps {
 }
 
 export function ManualBackupModal({ open, onOpenChange, onSuccess, canRunFull }: ManualBackupModalProps) {
+    const { t } = useTranslation();
     const [type, setType] = useState<'DB' | 'FULL'>('DB');
     const [isLoading, setIsLoading] = useState(false);
 
@@ -23,12 +25,12 @@ export function ManualBackupModal({ open, onOpenChange, onSuccess, canRunFull }:
         setIsLoading(true);
         try {
             await backupApi.createSystem(type);
-            toast.success(`${type === 'DB' ? 'Database' : 'Full System'} backup started successfully`);
+            toast.success(type === 'DB' ? t('backupModal.startedDatabase') : t('backupModal.startedFullSystem'));
             onOpenChange(false);
             onSuccess();
         } catch (e) {
             console.error(e);
-            toast.error('Failed to start backup');
+            toast.error(t('backupModal.startFailed'));
         } finally {
             setIsLoading(false);
         }
@@ -38,9 +40,9 @@ export function ManualBackupModal({ open, onOpenChange, onSuccess, canRunFull }:
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>Run Manual Backup</DialogTitle>
+                    <DialogTitle>{t('backupModal.title')}</DialogTitle>
                     <DialogDescription>
-                        Trigger an immediate backup. This will be saved to the server history.
+                        {t('backupModal.description')}
                     </DialogDescription>
                 </DialogHeader>
 
@@ -53,10 +55,10 @@ export function ManualBackupModal({ open, onOpenChange, onSuccess, canRunFull }:
                             <RadioGroupItem value="DB" id="type-db" className="mt-1" disabled={!canRunFull} />
                             <div className="grid gap-1.5 leading-none">
                                 <Label htmlFor="type-db" className={`font-semibold flex items-center gap-2 ${!canRunFull ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
-                                    <Database className="h-4 w-4" /> Database Only
+                                    <Database className="h-4 w-4" /> {t('backupModal.databaseOnly')}
                                 </Label>
                                 <p className="text-sm text-muted-foreground">
-                                    Fast. Includes all application data and users.
+                                    {t('backupModal.databaseDescription')}
                                 </p>
                             </div>
                         </div>
@@ -65,12 +67,12 @@ export function ManualBackupModal({ open, onOpenChange, onSuccess, canRunFull }:
                             <RadioGroupItem value="FULL" id="type-full" className="mt-1" disabled={!canRunFull} />
                             <div className="grid gap-1.5 leading-none">
                                 <Label htmlFor="type-full" className={`font-semibold flex items-center gap-2 ${!canRunFull ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
-                                    <FolderArchive className="h-4 w-4" /> System Snapshot
+                                    <FolderArchive className="h-4 w-4" /> {t('backupModal.systemSnapshot')}
                                 </Label>
                                 <p className="text-sm text-muted-foreground">
-                                    Includes Database + Config + Uploaded Files + Secrets.
+                                    {t('backupModal.systemDescription')}
                                     <br />
-                                    <span className="text-xs font-medium text-orange-600 dark:text-orange-400">Requires Encryption Key.</span>
+                                    <span className="text-xs font-medium text-orange-600 dark:text-orange-400">{t('backupModal.requiresEncryptionKey')}</span>
                                 </p>
                             </div>
                         </div>
@@ -78,16 +80,16 @@ export function ManualBackupModal({ open, onOpenChange, onSuccess, canRunFull }:
 
                     {!canRunFull && (
                         <p className="text-xs text-destructive text-center bg-destructive/10 p-2 rounded">
-                            Backups are disabled because BACKUP_ENCRYPTION_KEY is missing.
+                            {t('backupModal.disabledMissingKey')}
                         </p>
                     )}
                 </div>
 
                 <DialogFooter>
-                    <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+                    <Button variant="outline" onClick={() => onOpenChange(false)}>{t('common.cancel')}</Button>
                     <Button onClick={handleRun} disabled={isLoading || !canRunFull}>
                         {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Run Backup
+                        {t('backupModal.runBackup')}
                     </Button>
                 </DialogFooter>
             </DialogContent>

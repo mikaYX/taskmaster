@@ -221,7 +221,7 @@ export function ApiKeysSettingsPage() {
                                         <Label htmlFor="key-name">Nom de la clé *</Label>
                                         <Input
                                             id="key-name"
-                                            placeholder="ex: Integration Zapier"
+                                            placeholder="ex : intégration Zapier"
                                             value={form.name}
                                             onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                                         />
@@ -297,108 +297,110 @@ export function ApiKeysSettingsPage() {
                 </Dialog>
             </div>
 
-            <Card className="glass-morphism overflow-hidden">
+            <Card className="glass-morphism">
                 <CardHeader>
                     <CardTitle>Clés API de l'organisation</CardTitle>
                     <CardDescription>
                         Utilisez ces clés pour authentifier les scripts ou services tiers (Header X-API-KEY).
                     </CardDescription>
                 </CardHeader>
-                <CardContent className="p-0">
-                    <Table>
-                        <TableHeader className="bg-muted/50">
-                            <TableRow>
-                                <TableHead className="w-[200px]">Nom / Préfixe</TableHead>
-                                <TableHead>Permissions</TableHead>
-                                <TableHead>Dernière utilisation</TableHead>
-                                <TableHead>Statut</TableHead>
-                                <TableHead className="text-right">Actions</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {filteredKeys.length === 0 ? (
+                <CardContent>
+                    <div className="rounded-md border overflow-hidden">
+                        <Table>
+                            <TableHeader className="bg-muted/50">
                                 <TableRow>
-                                    <TableCell colSpan={5} className="text-center h-48 text-muted-foreground italic">
-                                        <div className="flex flex-col items-center gap-2">
-                                            <AlertTriangle className="h-8 w-8 opacity-20" />
-                                            Aucune clé API trouvée.
-                                        </div>
-                                    </TableCell>
+                                    <TableHead className="w-[200px]">Nom / Préfixe</TableHead>
+                                    <TableHead>Permissions</TableHead>
+                                    <TableHead>Dernière utilisation</TableHead>
+                                    <TableHead>Statut</TableHead>
+                                    <TableHead className="text-right">Actions</TableHead>
                                 </TableRow>
-                            ) : (
-                                filteredKeys.map((key) => {
-                                    const isExpired = key.expiresAt && !isAfter(new Date(key.expiresAt), new Date());
-                                    const isActive = !key.revokedAt && !isExpired;
+                            </TableHeader>
+                            <TableBody>
+                                {filteredKeys.length === 0 ? (
+                                    <TableRow>
+                                        <TableCell colSpan={5} className="h-48 text-center text-muted-foreground italic">
+                                            <div className="flex flex-col items-center gap-2">
+                                                <AlertTriangle className="h-8 w-8 opacity-20" />
+                                                Aucune clé API trouvée.
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                ) : (
+                                    filteredKeys.map((key) => {
+                                        const isExpired = key.expiresAt && !isAfter(new Date(key.expiresAt), new Date());
+                                        const isActive = !key.revokedAt && !isExpired;
 
-                                    return (
-                                        <TableRow key={key.id} className={cn(!isActive && "opacity-60 bg-muted/20")}>
-                                            <TableCell>
-                                                <div className="flex flex-col">
-                                                    <span className="font-bold text-sm">{key.name || 'Sans nom'}</span>
-                                                    <span className="font-mono text-[10px] text-muted-foreground">{key.keyPrefix}...</span>
-                                                    {key.description && <span className="text-[11px] text-muted-foreground line-clamp-1">{key.description}</span>}
-                                                </div>
-                                            </TableCell>
-                                            <TableCell>
-                                                <div className="flex flex-wrap gap-1 max-w-[250px]">
-                                                    {key.scopes.map(scope => {
-                                                        const label = AVAILABLE_SCOPES.find(s => s.value === scope)?.label || scope;
-                                                        return (
-                                                            <Badge key={scope} variant="secondary" className="text-[10px] px-1.5 py-0 whitespace-nowrap">
-                                                                {label}
-                                                            </Badge>
-                                                        );
-                                                    })}
-                                                </div>
-                                            </TableCell>
-                                            <TableCell>
-                                                <div className="flex flex-col text-[11px]">
-                                                    <span className="text-muted-foreground">Utilisée : {key.lastUsedAt ? format(new Date(key.lastUsedAt), 'PPp') : 'Jamais'}</span>
-                                                    <span className="text-muted-foreground/70">Créée : {format(new Date(key.createdAt), 'PP')}</span>
-                                                </div>
-                                            </TableCell>
-                                            <TableCell>
-                                                {key.revokedAt ? (
-                                                    <Badge variant="destructive" className="font-bold">Révoquée</Badge>
-                                                ) : isExpired ? (
-                                                    <Badge variant="outline" className="text-orange-500 border-orange-500">Expirée</Badge>
-                                                ) : (
-                                                    <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/20">Active</Badge>
-                                                )}
-                                                {key.expiresAt && !isExpired && (
-                                                    <p className="text-[10px] text-muted-foreground mt-1">Expire le {format(new Date(key.expiresAt), 'PP')}</p>
-                                                )}
-                                            </TableCell>
-                                            <TableCell className="text-right">
-                                                <div className="flex justify-end gap-1">
-                                                    {isActive && (
+                                        return (
+                                            <TableRow key={key.id} className={cn(!isActive && "opacity-60 bg-muted/20")}>
+                                                <TableCell>
+                                                    <div className="flex flex-col">
+                                                        <span className="font-bold text-sm">{key.name || 'Sans nom'}</span>
+                                                        <span className="font-mono text-[10px] text-muted-foreground">{key.keyPrefix}...</span>
+                                                        {key.description && <span className="text-[11px] text-muted-foreground line-clamp-1">{key.description}</span>}
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <div className="flex max-w-[250px] flex-wrap gap-1">
+                                                        {key.scopes.map(scope => {
+                                                            const label = AVAILABLE_SCOPES.find(s => s.value === scope)?.label || scope;
+                                                            return (
+                                                                <Badge key={scope} variant="secondary" className="whitespace-nowrap px-1.5 py-0 text-[10px]">
+                                                                    {label}
+                                                                </Badge>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <div className="flex flex-col text-[11px]">
+                                                        <span className="text-muted-foreground">Utilisée : {key.lastUsedAt ? format(new Date(key.lastUsedAt), 'PPp') : 'Jamais'}</span>
+                                                        <span className="text-muted-foreground/70">Créée : {format(new Date(key.createdAt), 'PP')}</span>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>
+                                                    {key.revokedAt ? (
+                                                        <Badge variant="destructive" className="font-bold">Révoquée</Badge>
+                                                    ) : isExpired ? (
+                                                        <Badge variant="outline" className="border-orange-500 text-orange-500">Expirée</Badge>
+                                                    ) : (
+                                                        <Badge variant="outline" className="border-green-500/20 bg-green-500/10 text-green-500">Active</Badge>
+                                                    )}
+                                                    {key.expiresAt && !isExpired && (
+                                                        <p className="mt-1 text-[10px] text-muted-foreground">Expire le {format(new Date(key.expiresAt), 'PP')}</p>
+                                                    )}
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    <div className="flex justify-end gap-1">
+                                                        {isActive && (
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                title="Régénérer"
+                                                                onClick={() => handleRotate(key.id)}
+                                                            >
+                                                                <RefreshCw className="h-4 w-4" />
+                                                            </Button>
+                                                        )}
                                                         <Button
                                                             variant="ghost"
                                                             size="icon"
-                                                            title="Régénérer"
-                                                            onClick={() => handleRotate(key.id)}
+                                                            className="text-destructive hover:bg-destructive/10"
+                                                            title="Révoquer"
+                                                            disabled={key.revokedAt !== null}
+                                                            onClick={() => handleRevoke(key.id)}
                                                         >
-                                                            <RefreshCw className="h-4 w-4" />
+                                                            <Trash2 className="h-4 w-4" />
                                                         </Button>
-                                                    )}
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        className="text-destructive hover:bg-destructive/10"
-                                                        title="Révoquer"
-                                                        disabled={key.revokedAt !== null}
-                                                        onClick={() => handleRevoke(key.id)}
-                                                    >
-                                                        <Trash2 className="h-4 w-4" />
-                                                    </Button>
-                                                </div>
-                                            </TableCell>
-                                        </TableRow>
-                                    );
-                                })
-                            )}
-                        </TableBody>
-                    </Table>
+                                                    </div>
+                                                </TableCell>
+                                            </TableRow>
+                                        );
+                                    })
+                                )}
+                            </TableBody>
+                        </Table>
+                    </div>
                 </CardContent>
             </Card>
         </div>

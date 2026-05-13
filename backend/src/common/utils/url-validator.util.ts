@@ -151,10 +151,24 @@ export async function safeFetch(
 
   // 2. Create custom agent bounding the hostname to the pre-checked IP
   const agentOpts = {
-    lookup: (hostname: string, lookupOptions: any, callback: any) => {
+    lookup: (_hostname: string, lookupOptions: any, callback?: any) => {
+      const lookupCallback =
+        typeof lookupOptions === 'function' ? lookupOptions : callback;
+
+      if (!lookupCallback) {
+        throw new Error('Missing DNS lookup callback');
+      }
+
       // Force resolution to the IP we already checked (Prevent DNS Rebinding)
       const family = net.isIPv6(ipAddress) ? 6 : 4;
-      callback(null, ipAddress, family);
+
+      // Newer Node runtimes may request all resolved addresses.
+      if (lookupOptions?.all) {
+        lookupCallback(null, [{ address: ipAddress, family }]);
+        return;
+      }
+
+      lookupCallback(null, ipAddress, family);
     },
   };
   const agent =

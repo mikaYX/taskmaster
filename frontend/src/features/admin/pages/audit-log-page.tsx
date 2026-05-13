@@ -11,8 +11,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { CalendarIcon, Filter, RefreshCcw } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 export function AuditLogPage() {
+    const { t } = useTranslation();
     const [page, setPage] = useState(1);
     const [limit] = useState(20);
     const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
@@ -36,15 +38,15 @@ export function AuditLogPage() {
         <div className="space-y-6">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold tracking-tight">Audit Log</h1>
+                    <h1 className="text-2xl font-bold tracking-tight">{t('auditLog.title')}</h1>
                     <p className="text-muted-foreground">
-                        Traceability and security events log.
+                        {t('auditLog.description')}
                     </p>
                 </div>
                 <div className="flex items-center gap-2">
                     <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isRefetching}>
                         <RefreshCcw className={cn("mr-2 h-4 w-4", isRefetching && "animate-spin")} />
-                        Refresh
+                        {t('common.refresh')}
                     </Button>
                 </div>
             </div>
@@ -53,22 +55,22 @@ export function AuditLogPage() {
             <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-card p-2 shadow-sm">
                 <div className="flex items-center gap-2 px-2 text-sm text-muted-foreground">
                     <Filter className="h-4 w-4" />
-                    <span>Filters:</span>
+                    <span>{t('auditLog.filters')}</span>
                 </div>
                 <div className="h-6 w-px bg-border mx-1" />
 
                 <Select value={category} onValueChange={setCategory}>
                     <SelectTrigger className="w-[180px] h-9">
-                        <SelectValue placeholder="Category" />
+                        <SelectValue placeholder={t('auditLog.category')} />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="ALL">All Categories</SelectItem>
-                        <SelectItem value="AUTH">Authentication</SelectItem>
-                        <SelectItem value="USER">User Management</SelectItem>
-                        <SelectItem value="GROUP">Group Management</SelectItem>
-                        <SelectItem value="TASK">Tasks</SelectItem>
-                        <SelectItem value="SETTINGS">Settings</SelectItem>
-                        <SelectItem value="SYSTEM">System</SelectItem>
+                        <SelectItem value="ALL">{t('auditLog.categories.all')}</SelectItem>
+                        <SelectItem value="AUTH">{t('auditLog.categories.auth')}</SelectItem>
+                        <SelectItem value="USER">{t('auditLog.categories.user')}</SelectItem>
+                        <SelectItem value="GROUP">{t('auditLog.categories.group')}</SelectItem>
+                        <SelectItem value="TASK">{t('auditLog.categories.task')}</SelectItem>
+                        <SelectItem value="SETTINGS">{t('auditLog.categories.settings')}</SelectItem>
+                        <SelectItem value="SYSTEM">{t('auditLog.categories.system')}</SelectItem>
                     </SelectContent>
                 </Select>
 
@@ -83,7 +85,7 @@ export function AuditLogPage() {
                             )}
                         >
                             <CalendarIcon className="mr-2 h-4 w-4" />
-                            {date ? format(date, "PPP") : <span>Pick a date</span>}
+                            {date ? format(date, "PPP") : <span>{t('auditLog.pickDate')}</span>}
                         </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
@@ -104,7 +106,7 @@ export function AuditLogPage() {
                         onClick={() => { setCategory("ALL"); setDate(undefined); }}
                         className="h-9 px-2 lg:px-3"
                     >
-                        Reset
+                        {t('common.reset')}
                     </Button>
                 )}
             </div>
@@ -119,7 +121,11 @@ export function AuditLogPage() {
             {data && (
                 <div className="flex items-center justify-between">
                     <p className="text-sm text-muted-foreground">
-                        Showing {((page - 1) * limit) + 1} to {Math.min(page * limit, data.total)} of {data.total} entries
+                        {t('auditLog.showingEntries', {
+                            start: ((page - 1) * limit) + 1,
+                            end: Math.min(page * limit, data.total),
+                            total: data.total,
+                        })}
                     </p>
                     <div className="flex items-center gap-2">
                         <Button
@@ -128,7 +134,7 @@ export function AuditLogPage() {
                             onClick={() => setPage(p => Math.max(1, p - 1))}
                             disabled={page === 1}
                         >
-                            Previous
+                            {t('common.previous')}
                         </Button>
                         <Button
                             variant="outline"
@@ -136,7 +142,7 @@ export function AuditLogPage() {
                             onClick={() => setPage(p => p + 1)}
                             disabled={page * limit >= data.total}
                         >
-                            Next
+                            {t('common.next')}
                         </Button>
                     </div>
                 </div>

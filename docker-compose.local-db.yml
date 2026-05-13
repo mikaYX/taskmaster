@@ -1,28 +1,28 @@
 services:
   postgres:
-    image: postgres:18.1-alpine
-    container_name: taskmaster_local_db
+    image: postgres:18-alpine
+    container_name: ${POSTGRES_CONTAINER_NAME:-taskmaster_local_db}
     restart: unless-stopped
     environment:
-      POSTGRES_USER: taskmaster
-      POSTGRES_PASSWORD: taskmaster_dev
-      POSTGRES_DB: taskmaster
+      POSTGRES_USER: ${POSTGRES_USER:-taskmaster}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-taskmaster_dev}
+      POSTGRES_DB: ${POSTGRES_DB:-taskmaster}
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_local_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U taskmaster -d taskmaster"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 5
 
   redis:
-    image: redis:8.4.1-alpine
-    container_name: taskmaster_local_redis
+    image: redis:8.4-alpine
+    container_name: ${REDIS_CONTAINER_NAME:-taskmaster_local_redis}
     restart: unless-stopped
     ports:
-      - "6379:6379"
+      - "${REDIS_PORT:-6379}:6379"
     volumes:
       - redis_local_data:/data
     healthcheck:
