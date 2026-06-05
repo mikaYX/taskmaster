@@ -113,9 +113,14 @@ RUN apk upgrade --no-cache && \
     tini && \
     rm -rf /var/cache/apk/*
 
+# npm workspaces hoists what it can to /app/node_modules; backend-only versions
+# (notably @opentelemetry/*, import-in-the-middle, require-in-the-middle) stay
+# in /app/backend/node_modules. Both must land in the runtime image, otherwise
+# `node dist/src/main` fails with "Cannot find module '@opentelemetry/sdk-node'".
 COPY --chown=node:node --from=prod-deps /app/node_modules ./node_modules
+COPY --chown=node:node --from=prod-deps /app/backend/node_modules ./node_modules
 COPY --chown=node:node --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-COPY --chown=node:node backend/package.json ./
+COPY --chown=node:node backend/package.json backend/package-lock.json ./
 COPY --chown=node:node backend/prisma ./prisma/
 COPY --chown=node:node backend/prisma.config.cjs ./
 COPY --chown=node:node --from=builder /app/backend/dist ./dist
