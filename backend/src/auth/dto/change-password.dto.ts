@@ -1,13 +1,14 @@
-import { IsString } from 'class-validator';
+import { IsString, MaxLength } from 'class-validator';
 import { IsStrongPassword, IsNotCommonPassword } from '../../common/validators';
 
 /**
  * DTO for password change.
- * Validates new password has minimum 8 characters.
+ * Validates new password is strong, not a common password, and within bounds
+ * (max 128 chars; bcrypt truncates at 72 bytes anyway).
  */
 export class ChangePasswordDto {
   @IsString()
-  @IsString()
+  @MaxLength(128, { message: 'Password too long' })
   @IsStrongPassword()
   @IsNotCommonPassword()
   password!: string;

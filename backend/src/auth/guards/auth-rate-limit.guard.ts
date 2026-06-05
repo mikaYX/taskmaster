@@ -98,6 +98,21 @@ const LUA_INCR_WITH_TTL = `
 @Injectable()
 export class AuthRateLimitGuard implements CanActivate {
   private readonly logger = new Logger(AuthRateLimitGuard.name);
+  /**
+   * IPs autorisées à contourner les fenêtres de rate-limit basées sur l'IP
+   * (utile pour les sorties NAT / proxy d'entreprise partagées par plusieurs
+   * utilisateurs légitimes). Les fenêtres par username restent appliquées
+   * pour conserver la protection anti-brute-force par compte.
+   *
+   * Source : variable d'env `AUTH_LOCKOUT_IP_WHITELIST` (CSV, ex:
+   * `203.0.113.5,198.51.100.42`). Match exact uniquement.
+   */
+  private readonly ipWhitelist: ReadonlySet<string> = new Set(
+    (process.env.AUTH_LOCKOUT_IP_WHITELIST ?? '')
+      .split(',')
+      .map((ip) => ip.trim())
+      .filter(Boolean),
+  );
 
   constructor(
     @Inject(REDIS_CLIENT) private readonly redis: Redis,
@@ -117,6 +132,7 @@ export class AuthRateLimitGuard implements CanActivate {
     const res = context.switchToHttp().getResponse<Response>();
 
     const ip = this.extractIp(req);
+    const ipWhitelisted = this.ipWhitelist.has(ip);
     const username =
       type === AuthRateLimitType.LOGIN
         ? String(req.body?.username ?? '')
@@ -127,6 +143,15 @@ export class AuthRateLimitGuard implements CanActivate {
     const windows = RATE_LIMIT_CONFIG[type];
 
     for (const win of windows) {
+      // IP whitelisted → on saute les fenêtres purement IP, mais les fenêtres
+      // par username s'appliquent toujours (protection brute-force par compte).
+      if (ipWhitelisted && !win.useUsername) {
+        this.logger.debug(
+          `[AUTH-RATE-LIMIT] bypass ip-window — type=${type} window=${win.label} ip=${ip}`,
+        );
+        continue;
+      }
+
       const discriminant = win.useUsername && username ? username : ip;
       const key = `${win.prefix}:${discriminant}`;
 

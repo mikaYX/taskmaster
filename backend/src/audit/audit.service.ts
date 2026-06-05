@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   AuditActionType,
@@ -8,6 +8,8 @@ import {
 
 @Injectable()
 export class AuditService {
+  private readonly logger = new Logger(AuditService.name);
+
   constructor(private prisma: PrismaService) {}
 
   async log(payload: {
@@ -34,8 +36,17 @@ export class AuditService {
         },
       });
     } catch (error) {
-      // Fail-safe: Audit logging should not crash the main application flow
-      console.error('Failed to create audit log', error);
+      // Fail-safe: audit logging must not crash the main application flow.
+      // Emit a structured log so ops can alert on missing audit entries
+      // (e.g., alert when `[AUDIT_LOG_FAILED]` appears in production logs).
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.error(
+        `[AUDIT_LOG_FAILED] action=${payload.action} category=${payload.category} ` +
+          `severity=${payload.severity || AuditSeverity.INFO} ` +
+          `actorId=${payload.actorId ?? 'null'} target=${payload.target ?? 'null'} ` +
+          `error="${message}"`,
+        error instanceof Error ? error.stack : undefined,
+      );
     }
   }
 

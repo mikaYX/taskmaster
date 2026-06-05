@@ -22,6 +22,17 @@ export default defineConfig([
     rules: {
       'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
       '@typescript-eslint/no-explicit-any': 'warn',
+      // Prévention du reverse-tabnabbing : tout <a target="_blank"> doit porter rel="noopener noreferrer".
+      // Note : ce sélecteur signale l'absence totale d'attribut `rel`. Les
+      // attributs `rel` malformés (sans noopener/noreferrer) restent à
+      // contrôler en revue ou via un plugin react dédié (non installé ici).
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "JSXOpeningElement:has(JSXAttribute[name.name='target'][value.value='_blank']):not(:has(JSXAttribute[name.name='rel']))",
+          message: 'Ajouter rel="noopener noreferrer" sur tout lien target="_blank" (prévention reverse-tabnabbing / fuite Referer).',
+        },
+      ],
     },
   },
 ])

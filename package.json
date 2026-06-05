@@ -1,6 +1,6 @@
 {
   "name": "taskmaster",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "Taskmaster — Task management monorepo (NestJS + React)",
   "private": true,
   "workspaces": [
@@ -31,6 +31,10 @@
   },
   "devDependencies": {
     "concurrently": "^9.2.1"
+  },
+  "engines": {
+    "node": ">=22 <25",
+    "npm": ">=10"
   },
   "overrides": {
     "lodash": "4.18.1",

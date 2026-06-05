@@ -27,7 +27,7 @@ export class CreateUserDto {
   email?: string;
 
   @IsString()
-  @IsString()
+  @MaxLength(128, { message: 'Password too long' })
   @IsStrongPassword()
   @IsNotCommonPassword()
   password!: string;

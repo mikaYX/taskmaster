@@ -5,3 +5,12 @@ node_modules
 /generated
 
 backups/
+
+# Build / lint / audit artefacts (regenerated; should never be tracked)
+audit.json
+build_errors.txt
+lint-output.json
+lint-output2.json
+flaky-report/
+coverage/
+coverage-auth/
