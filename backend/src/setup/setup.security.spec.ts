@@ -8,12 +8,14 @@ import {
 import { SetupGuard } from './setup.guard';
 import { SetupService } from './setup.service';
 import { PrismaService } from '../prisma';
+import { REDIS_CLIENT } from '../common/redis/redis.module';
 
 // ─── SetupGuard Tests ───────────────────────────────────────────────
 
 describe('SetupGuard', () => {
   let guard: SetupGuard;
   let configService: ConfigService;
+  let redisSet: jest.Mock;
 
   const mockConfigService = {
     get: jest.fn(),
@@ -22,8 +24,8 @@ describe('SetupGuard', () => {
   const createMockContext = (overrides: any = {}) => ({
     switchToHttp: () => ({
       getRequest: () => ({
-        ip: '127.0.0.1',
-        socket: { remoteAddress: '127.0.0.1' },
+        ip: overrides.ip || '127.0.0.1',
+        socket: { remoteAddress: overrides.ip || '127.0.0.1' },
         headers: overrides.headers || {},
         body: overrides.body || {},
       }),
@@ -32,11 +34,15 @@ describe('SetupGuard', () => {
 
   beforeEach(async () => {
     mockConfigService.get.mockReset();
+    // Default Redis SET NX behaviour: first call returns 'OK', subsequent
+    // calls return null (key already exists in the rate-limit window).
+    redisSet = jest.fn().mockResolvedValueOnce('OK').mockResolvedValue(null);
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         SetupGuard,
         { provide: ConfigService, useValue: mockConfigService },
+        { provide: REDIS_CLIENT, useValue: { set: redisSet } },
       ],
     }).compile();
 
@@ -44,27 +50,56 @@ describe('SetupGuard', () => {
     configService = module.get<ConfigService>(ConfigService);
   });
 
-  it('should reject when BOOTSTRAP_SECRET is not configured', () => {
+  it('should reject when BOOTSTRAP_SECRET is not configured', async () => {
     mockConfigService.get.mockReturnValue(undefined);
     const context = createMockContext();
-    expect(() => guard.canActivate(context as any)).toThrow(ForbiddenException);
+    await expect(guard.canActivate(context as any)).rejects.toThrow(
+      ForbiddenException,
+    );
   });
 
-  it('should allow setup when BOOTSTRAP_SECRET is configured server-side', () => {
+  it('should allow setup when BOOTSTRAP_SECRET is configured server-side', async () => {
     mockConfigService.get.mockReturnValue('my-super-secret-key!');
     const context = createMockContext();
-    expect(guard.canActivate(context as any)).toBe(true);
+    await expect(guard.canActivate(context as any)).resolves.toBe(true);
   });
 
-  it('should rate-limit after first attempt', () => {
+  it('should rate-limit after first attempt (AUDIT #14 — distributed via Redis)', async () => {
     mockConfigService.get.mockReturnValue('my-super-secret-key!');
     const context = createMockContext();
 
-    // First attempt passes
-    expect(guard.canActivate(context as any)).toBe(true);
+    // First attempt passes (Redis SET NX returns 'OK')
+    await expect(guard.canActivate(context as any)).resolves.toBe(true);
 
-    // Second attempt should be rate-limited (within 5 min window)
-    expect(() => guard.canActivate(context as any)).toThrow(HttpException);
+    // Second attempt blocked (Redis SET NX returns null → key existed)
+    await expect(guard.canActivate(context as any)).rejects.toThrow(
+      HttpException,
+    );
+
+    // Both attempts hit Redis with the SET NX EX 300 contract
+    expect(redisSet).toHaveBeenCalledTimes(2);
+    expect(redisSet).toHaveBeenLastCalledWith(
+      expect.stringContaining('setup:rate:'),
+      expect.any(String),
+      'EX',
+      300,
+      'NX',
+    );
+  });
+
+  it('should fall back to the in-memory map when Redis throws', async () => {
+    mockConfigService.get.mockReturnValue('my-super-secret-key!');
+    redisSet.mockReset();
+    redisSet.mockRejectedValue(new Error('ECONNREFUSED'));
+    const context = createMockContext();
+
+    // First attempt passes (Redis failed → in-memory fallback grants the slot)
+    await expect(guard.canActivate(context as any)).resolves.toBe(true);
+
+    // Second attempt blocked by the in-memory map
+    await expect(guard.canActivate(context as any)).rejects.toThrow(
+      HttpException,
+    );
   });
 });
 
@@ -90,7 +125,7 @@ describe('SetupService', () => {
   const mockPrisma = {
     client: {
       user: { count: jest.fn() },
-      config: { upsert: jest.fn() },
+      config: { upsert: jest.fn(), findUnique: jest.fn() },
       $transaction: jest.fn((cb: any) => cb(mockTx)),
     },
   };
@@ -104,6 +139,7 @@ describe('SetupService', () => {
     mockTx.site.create.mockResolvedValue({ id: 1 });
     mockTx.userSiteAssignment.create.mockResolvedValue({});
     mockPrisma.client.config.upsert.mockResolvedValue({});
+    mockPrisma.client.config.findUnique.mockResolvedValue(null);
     mockPrisma.client.user.count.mockResolvedValue(0);
 
     const module: TestingModule = await Test.createTestingModule({
@@ -159,5 +195,42 @@ describe('SetupService', () => {
     await expect(
       service.initializeAdmin('admin2', 'StrongP@ss123!'),
     ).rejects.toThrow(ConflictException);
+  });
+
+  // ── AUDIT #9 & #11 & #7 new behaviours ────────────────────────────
+
+  it('should hash the admin password with the project-wide bcrypt cost (AUDIT #11)', async () => {
+    await service.initializeAdmin('admin', 'StrongP@ss123!');
+
+    const callArg = mockTx.user.create.mock.calls[0][0];
+    const hash = callArg.data.passwordHash as string;
+    // bcrypt prefix `$2a$12$` / `$2b$12$` confirms cost = 12 (not 10).
+    expect(hash).toMatch(/^\$2[aby]\$12\$/);
+  });
+
+  it('should persist the setup.completed flag after a successful run (AUDIT #7)', async () => {
+    await service.initializeAdmin('admin', 'StrongP@ss123!');
+
+    expect(mockPrisma.client.config.upsert).toHaveBeenCalledWith({
+      where: { key: 'setup.completed' },
+      create: { key: 'setup.completed', value: 'true' },
+      update: { value: 'true' },
+    });
+  });
+
+  it('needsSetup() should return false as soon as setup.completed=true is persisted, even with no admin', async () => {
+    mockPrisma.client.config.findUnique.mockResolvedValue({ value: 'true' });
+    mockPrisma.client.user.count.mockResolvedValue(0);
+
+    await expect(service.needsSetup()).resolves.toBe(false);
+    // Short-circuit: we must NOT have queried the user table at all
+    expect(mockPrisma.client.user.count).not.toHaveBeenCalled();
+  });
+
+  it('needsSetup() returns true when neither flag nor admin exists', async () => {
+    mockPrisma.client.config.findUnique.mockResolvedValue(null);
+    mockPrisma.client.user.count.mockResolvedValue(0);
+
+    await expect(service.needsSetup()).resolves.toBe(true);
   });
 });

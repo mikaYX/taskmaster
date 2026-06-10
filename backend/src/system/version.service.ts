@@ -93,7 +93,6 @@ export class VersionService {
   }
 
   private async fetchFreshStatus(): Promise<VersionStatusDto> {
-
     if (this.inflightPromise) {
       return this.inflightPromise;
     }
@@ -156,7 +155,9 @@ export class VersionService {
   }
 
   private resolveGitHubSource(): GitHubVersionSource {
-    const configuredRepo = this.config.get<string>('VERSION_CHECK_REPO')?.trim();
+    const configuredRepo = this.config
+      .get<string>('VERSION_CHECK_REPO')
+      ?.trim();
 
     if (configuredRepo) {
       if (this.isValidGitHubRepo(configuredRepo)) {
@@ -436,13 +437,11 @@ export class VersionService {
   private async fetchLatestDockerTag(
     image: DockerHubImageRef,
   ): Promise<{ tag: string; version: string } | null> {
-    let bestMatch:
-      | {
-          tag: string;
-          version: string;
-          parsedVersion: string;
-        }
-      | null = null;
+    let bestMatch: {
+      tag: string;
+      version: string;
+      parsedVersion: string;
+    } | null = null;
 
     for (let page = 1; page <= DOCKER_HUB_MAX_PAGES; page += 1) {
       const response = await this.fetchWithTimeout(

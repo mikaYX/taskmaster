@@ -29,7 +29,9 @@ describe('SystemController', () => {
       refreshVersionStatus: jest.fn().mockResolvedValue(mockDto),
     };
 
-    controller = new SystemController(versionService as unknown as VersionService);
+    controller = new SystemController(
+      versionService as unknown as VersionService,
+    );
   });
 
   it('should be defined', () => {

@@ -1,6 +1,7 @@
 import { Injectable, ConflictException, Logger } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma';
+import { BCRYPT_ROUNDS } from '../auth/auth.constants';
 
 /**
  * Setup Service.
@@ -11,18 +12,37 @@ import { PrismaService } from '../prisma';
  * - Atomic transaction prevents race conditions (double setup)
  * - Structured logging for all setup attempts
  * - ConflictException if setup already completed
+ * - Idempotent flag `setup.completed` persisted so the wizard cannot be
+ *   re-triggered after a SUPER_ADMIN soft-delete (AUDIT.md Finding #7 / §6.6)
  */
 @Injectable()
 export class SetupService {
   private readonly logger = new Logger(SetupService.name);
 
+  /** Settings flag persisted after a successful setup wizard. */
+  private static readonly SETUP_COMPLETED_KEY = 'setup.completed';
+
   constructor(private readonly prisma: PrismaService) {}
 
   /**
    * Check if initial setup is needed.
-   * Returns true if no admin user exists.
+   *
+   * Short-circuits to `false` whenever the `setup.completed` flag is set in
+   * the `config` table. This is the authoritative answer even when every
+   * SUPER_ADMIN has been soft-deleted, preventing an attacker (or an
+   * accidental admin purge) from re-triggering the wizard with the bootstrap
+   * secret. To intentionally redo the setup, an operator must explicitly
+   * remove this row through a DB-level intervention.
    */
   async needsSetup(): Promise<boolean> {
+    const completedFlag = await this.prisma.client.config.findUnique({
+      where: { key: SetupService.SETUP_COMPLETED_KEY },
+      select: { value: true },
+    });
+    if (completedFlag?.value === 'true') {
+      return false;
+    }
+
     const adminCount = await this.prisma.client.user.count({
       where: {
         role: 'SUPER_ADMIN',
@@ -48,7 +68,7 @@ export class SetupService {
 
     this.logger.log(`[SECURITY] Setup initialization attempt — IP: ${ip}`);
 
-    const passwordHash = await bcrypt.hash(password, 10);
+    const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
 
     try {
       // Atomic transaction: check + create in one operation
@@ -99,7 +119,8 @@ export class SetupService {
             data: {
               name: 'Default',
               code: 'DEFAULT',
-              description: 'Site créé automatiquement lors du premier paramétrage.',
+              description:
+                'Site créé automatiquement lors du premier paramétrage.',
             },
             select: { id: true },
           }));
@@ -133,6 +154,14 @@ export class SetupService {
       where: { key: 'addons.todolist.enabled' },
       create: { key: 'addons.todolist.enabled', value: todolistEnabled },
       update: { value: todolistEnabled },
+    });
+
+    // Mark setup as completed so `needsSetup()` short-circuits afterwards
+    // even if every SUPER_ADMIN ends up soft-deleted (AUDIT.md Finding #7).
+    await this.prisma.client.config.upsert({
+      where: { key: SetupService.SETUP_COMPLETED_KEY },
+      create: { key: SetupService.SETUP_COMPLETED_KEY, value: 'true' },
+      update: { value: 'true' },
     });
 
     return { success: true, message: 'Admin user created successfully' };

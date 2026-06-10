@@ -190,4 +190,38 @@ describe('RefreshTokenService', () => {
       expect(prisma.client.refreshToken.findUnique).not.toHaveBeenCalled();
     });
   });
+
+  describe('createToken — GDPR IP anonymization (AUDIT.md #8 / §15.3)', () => {
+    it('masks the last octet of an IPv4 before persistence', async () => {
+      await service.createToken(1, 'ua', '192.168.1.42');
+
+      expect(prisma.client.refreshToken.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({ ipAddress: '192.168.1.0' }),
+      });
+    });
+
+    it('masks the last 80 bits of an IPv6 before persistence', async () => {
+      await service.createToken(1, 'ua', '2001:db8:abcd::1');
+
+      expect(prisma.client.refreshToken.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({ ipAddress: '2001:db8:abcd::' }),
+      });
+    });
+
+    it('persists undefined when no IP is supplied (Prisma stores NULL)', async () => {
+      await service.createToken(1, 'ua');
+
+      expect(prisma.client.refreshToken.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({ ipAddress: undefined }),
+      });
+    });
+
+    it('persists undefined for malformed IPs (anonymizer drops bad input)', async () => {
+      await service.createToken(1, 'ua', 'not-an-ip');
+
+      expect(prisma.client.refreshToken.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({ ipAddress: undefined }),
+      });
+    });
+  });
 });

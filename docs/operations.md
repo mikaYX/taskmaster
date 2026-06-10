@@ -98,6 +98,26 @@ docker compose --env-file .env up -d app
 - `curl http://localhost:3000/api/health` renvoie un statut `200`.
 - `docker compose --env-file .env logs --tail=100 app` ne montre ni erreur Prisma ni erreur Redis au démarrage.
 
+## RGPD, IP et rétention
+
+Taskmaster anonymise les adresses IP avant persistance dans les nouvelles lignes de `audit_logs.ip_address` et `refresh_tokens.ip_address`.
+
+- IPv4 : dernier octet masqué, par exemple `192.168.1.42` devient `192.168.1.0`.
+- IPv6 : seuls les 48 premiers bits sont conservés, par exemple `2001:db8:abcd::1` devient `2001:db8:abcd::`.
+- La valeur sentinelle `unknown` reste inchangée.
+- Les valeurs malformées ne sont pas persistées.
+
+L'anonymisation est activée par défaut. L'option `IP_ANONYMIZATION_ENABLED=false` existe uniquement pour une fenêtre d'investigation forensique validée ; elle doit être retirée après l'incident.
+
+Cette anonymisation s'applique aux nouvelles écritures. Elle ne modifie pas les lignes historiques déjà stockées. Un backfill historique de `audit_logs.ip_address` et `refresh_tokens.ip_address` doit être arbitré par le DPO ou le responsable conformité, car il réduit la granularité disponible pour les investigations passées.
+
+Les jobs de rétention suppriment progressivement les anciennes données :
+
+- `AUDIT_LOG_RETENTION_DAYS` : rétention des journaux d'audit, défaut 365 jours.
+- `REFRESH_TOKEN_REVOKED_RETENTION_DAYS` : rétention des refresh tokens révoqués, défaut 90 jours.
+
+Après tout changement de politique de rétention ou d'anonymisation, vérifiez les logs applicatifs autour de `cleanup-audit-logs` et `cleanup-refresh-tokens`, puis documentez la décision dans le registre de traitement ou le dossier conformité.
+
 ## Ressources
 
 - Compose principal : [`../docker-compose.yml`](../docker-compose.yml)

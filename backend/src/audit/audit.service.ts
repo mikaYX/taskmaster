@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { anonymizeIp } from '../common/utils/ip-anonymizer.util';
 import {
   AuditActionType,
   AuditCategory,
@@ -23,6 +24,8 @@ export class AuditService {
     ipAddress?: string;
   }) {
     try {
+      // GDPR Art. 5(1)(c) — anonymize IP before persistence (AUDIT.md #8, §15.3).
+      // Helper preserves null/undefined/"unknown" sentinel; bad inputs → null.
       await this.prisma.client.auditLog.create({
         data: {
           action: payload.action,
@@ -32,7 +35,7 @@ export class AuditService {
           category: payload.category,
           severity: payload.severity || AuditSeverity.INFO,
           details: payload.details ? JSON.stringify(payload.details) : null,
-          ipAddress: payload.ipAddress,
+          ipAddress: anonymizeIp(payload.ipAddress) ?? undefined,
         },
       });
     } catch (error) {

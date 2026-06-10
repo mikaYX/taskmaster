@@ -4,7 +4,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { randomBytes, createHash } from 'crypto';
+import { randomBytes, createHash, timingSafeEqual } from 'crypto';
 import { Permission } from './permissions.enum';
 
 @Injectable()
@@ -134,7 +134,31 @@ export class ApiKeysService {
     return createHash('sha256').update(key).digest('hex');
   }
 
+  /**
+   * Constant-time hash comparison.
+   *
+   * SECURITY (AUDIT.md Finding #2): plain `===` on hex strings is vulnerable to
+   * timing side-channels — comparison aborts on the first divergent byte, so
+   * an attacker on the local network can infer bytes from latency. We use
+   * `crypto.timingSafeEqual` instead, with a length guard because it throws
+   * when buffers have different sizes.
+   *
+   * Note: the underlying SHA-256 (unsalted) hash format is unchanged — a full
+   * migration to bcrypt/Argon2id is tracked separately (AUDIT.md Phase B)
+   * because it requires forced rotation of every existing API key.
+   */
   private verifyHash(key: string, hash: string): boolean {
-    return this.hashKey(key) === hash;
+    const computed = this.hashKey(key);
+    if (computed.length !== hash.length) return false;
+
+    try {
+      return timingSafeEqual(
+        Buffer.from(computed, 'hex'),
+        Buffer.from(hash, 'hex'),
+      );
+    } catch {
+      // Malformed hash (non-hex chars) — treat as mismatch instead of throwing.
+      return false;
+    }
   }
 }

@@ -85,11 +85,15 @@ describe('UrlValidator', () => {
     });
 
     function getLookupFromLastFetchCall() {
-      const fetchOptions = (fetch as unknown as jest.Mock).mock.calls.at(-1)?.[1] as
+      const fetchOptions = (fetch as unknown as jest.Mock).mock.calls.at(
+        -1,
+      )?.[1] as
         | { agent?: { options?: { lookup?: Function }; lookup?: Function } }
         | undefined;
 
-      return fetchOptions?.agent?.options?.lookup ?? fetchOptions?.agent?.lookup;
+      return (
+        fetchOptions?.agent?.options?.lookup ?? fetchOptions?.agent?.lookup
+      );
     }
 
     it('should execute fetch successfully for an allowed URL', async () => {
@@ -114,18 +118,25 @@ describe('UrlValidator', () => {
       const lookup = getLookupFromLastFetchCall();
       expect(lookup).toBeDefined();
 
-      const addresses = await new Promise<Array<{ address: string; family: number }>>(
-        (resolve, reject) => {
-          lookup?.('google.com', { all: true }, (err: Error | null, result: Array<{ address: string; family: number }>) => {
+      const addresses = await new Promise<
+        Array<{ address: string; family: number }>
+      >((resolve, reject) => {
+        lookup?.(
+          'google.com',
+          { all: true },
+          (
+            err: Error | null,
+            result: Array<{ address: string; family: number }>,
+          ) => {
             if (err) {
               reject(err);
               return;
             }
 
             resolve(result);
-          });
-        },
-      );
+          },
+        );
+      });
 
       expect(addresses).toHaveLength(1);
       expect(addresses[0]?.address).toMatch(/\./);

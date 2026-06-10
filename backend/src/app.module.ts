@@ -64,11 +64,26 @@ import { SystemModule } from './system';
                   target: 'pino-pretty',
                   options: { singleLine: true, colorize: true },
                 },
-            // Ne jamais logger les tokens d'auth
+            // Ne jamais logger les tokens d'auth — étendu au body sensible
+            // (AUDIT.md Finding #18). Les valeurs ciblées sont remplacées par
+            // `[Redacted]` dans tous les logs, y compris les niveaux debug.
             redact: [
               'req.headers.authorization',
               'req.headers.cookie',
               'req.headers["x-api-key"]',
+              'req.body.password',
+              'req.body.currentPassword',
+              'req.body.newPassword',
+              'req.body.confirmPassword',
+              'req.body.token',
+              'req.body.refreshToken',
+              'req.body.ssoTicket',
+              'req.body.sso_ticket',
+              'req.body.apiKey',
+              'req.body.mfaToken',
+              'req.body.totpToken',
+              'req.body.recoveryCode',
+              'res.headers["set-cookie"]',
             ],
             customProps: () => ({
               service: 'taskmaster-backend',

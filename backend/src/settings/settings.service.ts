@@ -15,6 +15,39 @@ import parser from 'cron-parser';
 const SENSITIVE_PLACEHOLDER = '••••••••';
 
 /**
+ * Whitelist of settings keys returned by `getPublicBranding()`.
+ *
+ * Public endpoint, NO authentication. Any key added here is observable by
+ * any anonymous visitor of the login page (AUDIT.md Finding #17). Strict
+ * review required for additions.
+ *
+ * - `app.title`, `app.subtitle`, `app.logoUrl`, `app.faviconUrl`: branding
+ *   visible on the login screen.
+ * - `ui.theme`: dark/light mode default — needed before login so the page
+ *   matches subsequent in-app appearance.
+ * - `auth.generic.enabled`, `auth.generic.oidc.providerName`: control whether
+ *   to render the SSO button and what label to show; the provider's display
+ *   name is intentionally public.
+ * - `auth.passkeys.enabled`: feature flag, controls passkey button rendering.
+ * - `addons.todolist.enabled`: sidebar feature flag read before auth so the
+ *   shell renders consistently.
+ *
+ * MUST NOT include: any `*.clientSecret`, `*.apiKey`, `*.password`,
+ * `*.privateKey`, `*.signingKey`, internal endpoints, DB URLs, etc.
+ */
+export const PUBLIC_BRANDING_KEYS = [
+  'app.title',
+  'app.subtitle',
+  'app.logoUrl',
+  'app.faviconUrl',
+  'ui.theme',
+  'auth.generic.enabled',
+  'auth.generic.oidc.providerName',
+  'auth.passkeys.enabled',
+  'addons.todolist.enabled',
+] as const;
+
+/**
  * Settings Service.
  *
  * - Validates keys against whitelist
@@ -40,21 +73,15 @@ export class SettingsService {
   /**
    * Get public branding settings (no auth required).
    * Only returns non-sensitive branding settings for login page.
+   *
+   * AUDIT.md Finding #17: the list of public-facing settings keys is
+   * intentionally pinned here and exported as a read-only constant so any
+   * future addition is reviewable. Each key is justified inline — add a
+   * comment when extending the list and confirm the value is never sensitive.
    */
   async getPublicBranding(): Promise<Record<string, unknown>> {
-    const brandingKeys = [
-      'app.title',
-      'app.subtitle',
-      'app.logoUrl',
-      'app.faviconUrl',
-      'ui.theme',
-      'auth.generic.enabled',
-      'auth.generic.oidc.providerName',
-      'auth.passkeys.enabled',
-      'addons.todolist.enabled',
-    ];
     const stored = await this.prisma.client.config.findMany({
-      where: { key: { in: brandingKeys } },
+      where: { key: { in: [...PUBLIC_BRANDING_KEYS] } },
     });
 
     const result: Record<string, unknown> = {};

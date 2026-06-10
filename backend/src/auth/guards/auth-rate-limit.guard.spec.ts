@@ -295,7 +295,7 @@ describe('AuthRateLimitGuard', () => {
       });
     });
 
-    it('saute toutes les fenêtres refresh pour une IP whitelistée (refresh n\'a pas de fenêtre username)', async () => {
+    it("saute toutes les fenêtres refresh pour une IP whitelistée (refresh n'a pas de fenêtre username)", async () => {
       const { guard: g, redis } = await buildGuardWithWhitelist('203.0.113.5');
       jest
         .spyOn((g as any).reflector, 'get')

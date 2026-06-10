@@ -235,7 +235,8 @@ export class BackupLogicService {
         fullError.includes('ENOENT') ||
         fullError.includes('command not found')
       ) {
-        const containerCandidates = this.getDockerPgDumpContainerCandidates(env);
+        const containerCandidates =
+          this.getDockerPgDumpContainerCandidates(env);
         const passwordEnv = env.PGPASSWORD
           ? `-e PGPASSWORD="${env.PGPASSWORD}"`
           : '';
@@ -289,9 +290,7 @@ export class BackupLogicService {
     }
   }
 
-  private getDockerPgDumpContainerCandidates(
-    env: NodeJS.ProcessEnv,
-  ): string[] {
+  private getDockerPgDumpContainerCandidates(env: NodeJS.ProcessEnv): string[] {
     const configuredContainer = this.configService
       .get<string>('BACKUP_DOCKER_CONTAINER')
       ?.trim();
@@ -314,7 +313,10 @@ export class BackupLogicService {
   private isNonLocalHost(host?: string): boolean {
     const normalizedHost = host?.trim().toLowerCase();
 
-    return !!normalizedHost && !['localhost', '127.0.0.1', '::1'].includes(normalizedHost);
+    return (
+      !!normalizedHost &&
+      !['localhost', '127.0.0.1', '::1'].includes(normalizedHost)
+    );
   }
 
   private collectSystemArtifacts(targetDir: string): void {
@@ -334,18 +336,15 @@ export class BackupLogicService {
       }
     }
 
-    const envPath = join(process.cwd(), '.env');
-    if (!existsSync(envPath)) {
-      // Try project root if backend/.env doesn't exist
-      const rootEnv = join(process.cwd(), '..', '.env');
-      if (existsSync(rootEnv)) {
-        copyFileSync(rootEnv, join(targetDir, '.env'));
-        this.logger.log('Found .env in project root');
-      }
-    } else {
-      copyFileSync(envPath, join(targetDir, '.env'));
-      this.logger.log('Found .env in backend directory');
-    }
+    // SECURITY (AUDIT.md Finding #4): .env is NEVER included in a FULL backup.
+    // Rationale: an exfiltrated archive must not bootstrap an attack — the .env
+    // contains AUTH_SECRET, BACKUP_ENCRYPTION_KEY (the one that could decrypt
+    // this very archive), DATABASE_URL credentials and OIDC/SAML/SMTP secrets.
+    // Operators must reconfigure secrets from their KMS / vault on restore.
+    this.logger.log(
+      'System artifact collection skipping .env by design (AUDIT #4). ' +
+        'Reconfigure secrets from the vault on restore.',
+    );
   }
 
   private async archiveAndEncrypt(

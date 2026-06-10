@@ -14,20 +14,14 @@ import { authApi } from '@/api/auth';
 function parseLoginSearch(search: string) {
     const params = new URLSearchParams(search);
     const ssoTicket = params.get('sso_ticket');
-    let autoUser = params.get('u');
-    let autoPass = params.get('p');
 
-    if (!autoUser && search) {
-        const match = search.match(/[?&]u=([^&]+)/) ?? search.match(/[?&]u-([^&/]+)/);
-        if (match) autoUser = decodeURIComponent(match[1].replace(/%2F/g, '/'));
-    }
-
-    if (!autoPass && search && autoUser) {
-        const match = search.match(/[?&]p=([^&]+)/) ?? search.match(/[?&]p-([^&/]+)/);
-        if (match) autoPass = decodeURIComponent(match[1]);
-    }
-
-    return { ssoTicket, autoUser, autoPass };
+    // SECURITY (AUDIT.md Finding #1): the previous `?u=<username>&p=<password>`
+    // auto-login mode for Guest/TV deployments has been removed entirely.
+    // Passwords in URL leak through browser history, the Referer header, every
+    // reverse-proxy/CDN access log, bookmarks and screen-sharing tools. The
+    // only supported password-less entry path is the server-issued
+    // `sso_ticket` (one-time, short TTL, single-use, IP-bound) handled below.
+    return { ssoTicket };
 }
 
 export function LoginPage() {
@@ -38,17 +32,19 @@ export function LoginPage() {
     const [requiresMfa, setRequiresMfa] = useState(false);
     const [mfaToken, setMfaToken] = useState('');
     const location = useLocation();
-    const { ssoTicket, autoUser, autoPass } = useMemo(
+    const { ssoTicket } = useMemo(
         () => parseLoginSearch(location.search),
         [location.search],
     );
-    const username = usernameOverride ?? autoUser ?? '';
+    const username = usernameOverride ?? '';
 
     const { mutate: login, isPending: isLoginPending } = useLogin();
     const { mutate: verifyMfa, isPending: isVerifyPending } = useVerifyMfaLogin();
     const { mutate: passkeyLogin, isPending: isPasskeyPending } = usePasskeyLogin();
 
-    // URL-based auto-login (for TV Links / Guest) and SSO ticket exchange
+    // SSO ticket exchange — the ONLY supported password-less entry path
+    // (AUDIT.md Finding #1). Any other auto-login attempt via query string is
+    // intentionally ignored: passwords MUST NOT travel through the URL.
     useEffect(() => {
         if (ssoTicket) {
             authApi.exchangeSsoTicket(ssoTicket).then(() => {
@@ -56,18 +52,8 @@ export function LoginPage() {
             }).catch(() => {
                 console.error('SSO ticket exchange failed');
             });
-        } else if (autoUser && autoPass && !requiresMfa) {
-            // Full auto-login for Guest/TV Links when u and p are present
-            login({ username: autoUser, password: autoPass }, {
-                onSuccess: () => {
-                    window.location.replace('/');
-                },
-                onError: () => {
-                    console.error('Auto-login failed');
-                }
-            });
         }
-    }, [autoPass, autoUser, login, requiresMfa, ssoTicket]);
+    }, [ssoTicket]);
 
     // Public branding settings (no auth required)
     const { data: branding } = useQuery({

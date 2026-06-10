@@ -37,6 +37,8 @@ exports/*
 client/public/uploads/
 backend/public/uploads/
 backup/*
+.agents
+AUDIT.md
 
 # Logs
 logs
