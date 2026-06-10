@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.3] - 2026-06-11
+
+### Changed
+- Migrated frontend build to **Vite 8** (Rolldown bundler) — faster builds (~1.1s) and better chunk splitting via `rolldownOptions.output.codeSplitting.groups`.
+- Bumped frontend dependencies: Radix UI components, Zod 4.4.3, date-fns 4.4.0, date-holidays 3.30.2, NestJS patch group, nodemailer types.
+
 ## [1.1.2] - 2026-06-05
 
 ### Security
