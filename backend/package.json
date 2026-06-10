@@ -123,7 +123,6 @@
     "@types/passport-jwt": "^4.0.1",
     "@types/pg": "^8.18.0",
     "@types/qrcode": "^1.5.6",
-    "@types/rrule": "^2.1.7",
     "@types/semver": "^7.7.1",
     "@types/supertest": "^6.0.2",
     "@types/web-push": "^3.6.4",
