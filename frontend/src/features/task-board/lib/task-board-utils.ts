@@ -65,7 +65,7 @@ export interface TaskBoardPreferences {
 
 export const PRESETS = [
     { label: "Aujourd'hui", getValue: () => ({ start: startOfDay(new Date()), end: endOfDay(new Date()) }) },
-    { label: '7j.', getValue: () => ({ start: startOfDay(subDays(new Date(), 6)), end: endOfDay(new Date()) }) }, // J (included) - 6 = 7 days total
+    { label: '7j', getValue: () => ({ start: startOfDay(subDays(new Date(), 6)), end: endOfDay(new Date()) }) }, // J (included) - 6 = 7 days total
     { label: '30j', getValue: () => ({ start: startOfDay(subDays(new Date(), 29)), end: endOfDay(new Date()) }) },
     { label: '90j', getValue: () => ({ start: startOfDay(subDays(new Date(), MAX_RANGE_DAYS - 1)), end: endOfDay(new Date()) }) },
 ];
