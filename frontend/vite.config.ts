@@ -37,31 +37,13 @@ export default defineConfig({
     },
   },
   build: {
-    rolldownOptions: {
+    rollupOptions: {
       output: {
-        codeSplitting: {
-          groups: [
-            {
-              name: 'react-vendor',
-              test: /node_modules[\\/](react|react-dom|react-router-dom)[\\/]/,
-              priority: 40,
-            },
-            {
-              name: 'ui-vendor',
-              test: /node_modules[\\/](@radix-ui|lucide-react|class-variance-authority|clsx|tailwind-merge)[\\/]/,
-              priority: 30,
-            },
-            {
-              name: 'query-vendor',
-              test: /node_modules[\\/]@tanstack[\\/]react-query[\\/]/,
-              priority: 25,
-            },
-            {
-              name: 'date-vendor',
-              test: /node_modules[\\/](date-fns|date-fns-tz|rrule|cron-parser)[\\/]/,
-              priority: 20,
-            },
-          ],
+        manualChunks: (id: string) => {
+          if (/(react|react-dom|react-router-dom)/.test(id)) return 'react-vendor';
+          if (/(@radix-ui|lucide-react|class-variance-authority|clsx|tailwind-merge)/.test(id)) return 'ui-vendor';
+          if (/@tanstack[\\/]react-query/.test(id)) return 'query-vendor';
+          if (/(date-fns|date-fns-tz|rrule|cron-parser)/.test(id)) return 'date-vendor';
         },
       },
     },
