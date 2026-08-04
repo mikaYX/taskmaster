@@ -235,35 +235,88 @@ export class BackupLogicService {
         fullError.includes('ENOENT') ||
         fullError.includes('command not found')
       ) {
-        this.logger.warn('Attempting fallback using Docker container...');
+        const containerCandidates =
+          this.getDockerPgDumpContainerCandidates(env);
+        const passwordEnv = env.PGPASSWORD
+          ? `-e PGPASSWORD="${env.PGPASSWORD}"`
+          : '';
+        const fallbackErrors: string[] = [];
 
-        try {
-          const containerName =
-            this.configService.get<string>('BACKUP_DOCKER_CONTAINER') ||
-            'taskmaster_db';
-          const passwordEnv = env.PGPASSWORD
-            ? `-e PGPASSWORD="${env.PGPASSWORD}"`
-            : '';
-          const dockerCmd = `docker exec ${passwordEnv} ${containerName} pg_dump -U ${env.PGUSER || 'taskmaster'} --format=c ${env.PGDATABASE || 'taskmaster'} > "${dumpPath}"`;
+        this.logger.warn(
+          `Attempting fallback using Docker containers: ${containerCandidates.join(', ')}`,
+        );
 
-          this.logger.log(
-            `Executing Docker fallback on container: ${containerName}`,
-          );
-          await execAsync(dockerCmd, { timeout: 300000 });
-          this.logger.log(`Fallback to Docker pg_dump succeeded`);
-          return;
-        } catch (dockerError: any) {
-          const msg = dockerError.stderr || dockerError.message || '';
-          this.logger.error(`Docker fallback failed: ${msg}`);
-          throw new Error(
-            `Database dump failed (pg_dump mismatch + Docker fallback failed: ${msg})`,
-          );
+        for (const containerName of containerCandidates) {
+          try {
+            const dockerCmd = `docker exec ${passwordEnv} ${containerName} pg_dump -U "${env.PGUSER || 'taskmaster'}" --format=c "${env.PGDATABASE || 'taskmaster'}" > "${dumpPath}"`;
+
+            this.logger.log(
+              `Executing Docker fallback on container: ${containerName}`,
+            );
+            await execAsync(dockerCmd, { timeout: 300000 });
+            this.logger.log(
+              `Fallback to Docker pg_dump succeeded on ${containerName}`,
+            );
+            return;
+          } catch (dockerError: unknown) {
+            const execDockerError = dockerError as {
+              message?: string;
+              stderr?: string;
+            };
+            const msg =
+              execDockerError.stderr ||
+              execDockerError.message ||
+              'Unknown Docker fallback error';
+
+            fallbackErrors.push(`${containerName}: ${msg.trim()}`);
+            this.logger.warn(
+              `Docker pg_dump fallback failed on ${containerName}: ${msg}`,
+            );
+          }
         }
+
+        const fallbackMessage =
+          fallbackErrors.join(' | ') ||
+          'No Docker fallback candidates resolved. Configure BACKUP_DOCKER_CONTAINER to override the container name.';
+
+        this.logger.error(`Docker fallback failed: ${fallbackMessage}`);
+        throw new Error(
+          `Database dump failed (pg_dump mismatch + Docker fallback failed: ${fallbackMessage})`,
+        );
       }
 
       this.logger.error('pg_dump failed with unhandled error', e);
       throw e;
     }
+  }
+
+  private getDockerPgDumpContainerCandidates(env: NodeJS.ProcessEnv): string[] {
+    const configuredContainer = this.configService
+      .get<string>('BACKUP_DOCKER_CONTAINER')
+      ?.trim();
+    const hostContainer = this.isNonLocalHost(env.PGHOST)
+      ? env.PGHOST?.trim()
+      : undefined;
+
+    return Array.from(
+      new Set(
+        [
+          configuredContainer,
+          hostContainer,
+          'taskmaster_db',
+          'taskmaster_local_db',
+        ].filter((value): value is string => !!value && value.length > 0),
+      ),
+    );
+  }
+
+  private isNonLocalHost(host?: string): boolean {
+    const normalizedHost = host?.trim().toLowerCase();
+
+    return (
+      !!normalizedHost &&
+      !['localhost', '127.0.0.1', '::1'].includes(normalizedHost)
+    );
   }
 
   private collectSystemArtifacts(targetDir: string): void {
@@ -283,18 +336,15 @@ export class BackupLogicService {
       }
     }
 
-    const envPath = join(process.cwd(), '.env');
-    if (!existsSync(envPath)) {
-      // Try project root if backend/.env doesn't exist
-      const rootEnv = join(process.cwd(), '..', '.env');
-      if (existsSync(rootEnv)) {
-        copyFileSync(rootEnv, join(targetDir, '.env'));
-        this.logger.log('Found .env in project root');
-      }
-    } else {
-      copyFileSync(envPath, join(targetDir, '.env'));
-      this.logger.log('Found .env in backend directory');
-    }
+    // SECURITY (AUDIT.md Finding #4): .env is NEVER included in a FULL backup.
+    // Rationale: an exfiltrated archive must not bootstrap an attack — the .env
+    // contains AUTH_SECRET, BACKUP_ENCRYPTION_KEY (the one that could decrypt
+    // this very archive), DATABASE_URL credentials and OIDC/SAML/SMTP secrets.
+    // Operators must reconfigure secrets from their KMS / vault on restore.
+    this.logger.log(
+      'System artifact collection skipping .env by design (AUDIT #4). ' +
+        'Reconfigure secrets from the vault on restore.',
+    );
   }
 
   private async archiveAndEncrypt(

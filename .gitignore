@@ -83,16 +83,3 @@ certs/
 .cursorrules
 .rtk/
 .github/skills
-
-# Windows installer (installer/build.ps1 output + build-time artifacts)
-# — scripts, .wxs sources, README/checksums are committed; generated/
-# downloaded/staged binaries and build output are not.
-/client
-/dist-installer/
-installer/staging/
-installer/wix/AppFiles.wxs
-installer/wix/NodeRuntimeFiles.wxs
-installer/payloads/*.exe
-installer/payloads/*.msi
-installer/*.log
-installer/**/*.wixpdb
