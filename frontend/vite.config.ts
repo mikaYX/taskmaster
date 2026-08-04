@@ -8,7 +8,7 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./src"),
+      "@": path.resolve(import.meta.dirname, "./src"),
     },
   },
   test: {
@@ -37,31 +37,31 @@ export default defineConfig({
     },
   },
   build: {
-    rollupOptions: {
+    rolldownOptions: {
       output: {
-        manualChunks: {
-          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-          'ui-vendor': [
-            '@radix-ui/react-alert-dialog',
-            '@radix-ui/react-avatar',
-            '@radix-ui/react-dialog',
-            '@radix-ui/react-dropdown-menu',
-            '@radix-ui/react-label',
-            '@radix-ui/react-progress',
-            '@radix-ui/react-radio-group',
-            '@radix-ui/react-select',
-            '@radix-ui/react-separator',
-            '@radix-ui/react-slot',
-            '@radix-ui/react-switch',
-            '@radix-ui/react-tabs',
-            '@radix-ui/react-tooltip',
-            'lucide-react',
-            'class-variance-authority',
-            'clsx',
-            'tailwind-merge'
+        codeSplitting: {
+          groups: [
+            {
+              name: 'react-vendor',
+              test: /node_modules[\\/](react|react-dom|react-router-dom)[\\/]/,
+              priority: 40,
+            },
+            {
+              name: 'ui-vendor',
+              test: /node_modules[\\/](@radix-ui|lucide-react|class-variance-authority|clsx|tailwind-merge)[\\/]/,
+              priority: 30,
+            },
+            {
+              name: 'query-vendor',
+              test: /node_modules[\\/]@tanstack[\\/]react-query[\\/]/,
+              priority: 25,
+            },
+            {
+              name: 'date-vendor',
+              test: /node_modules[\\/](date-fns|date-fns-tz|rrule|cron-parser)[\\/]/,
+              priority: 20,
+            },
           ],
-          'query-vendor': ['@tanstack/react-query'],
-          'date-vendor': ['date-fns', 'date-fns-tz', 'rrule', 'cron-parser'],
         },
       },
     },

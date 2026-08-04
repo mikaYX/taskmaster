@@ -212,4 +212,101 @@ describe('AuthRateLimitGuard', () => {
     await expect(guard.canActivate(ctx)).rejects.toThrow();
     expect(headers['Retry-After']).toBeDefined();
   });
+
+  // ─── Whitelist IP (AUTH_LOCKOUT_IP_WHITELIST) ─────────────────────────────
+  describe('AUTH_LOCKOUT_IP_WHITELIST', () => {
+    const ORIGINAL = process.env.AUTH_LOCKOUT_IP_WHITELIST;
+
+    afterEach(() => {
+      if (ORIGINAL === undefined) {
+        delete process.env.AUTH_LOCKOUT_IP_WHITELIST;
+      } else {
+        process.env.AUTH_LOCKOUT_IP_WHITELIST = ORIGINAL;
+      }
+    });
+
+    async function buildGuardWithWhitelist(csv: string) {
+      process.env.AUTH_LOCKOUT_IP_WHITELIST = csv;
+      const redis = { eval: jest.fn() };
+      const mod = await Test.createTestingModule({
+        providers: [
+          AuthRateLimitGuard,
+          Reflector,
+          { provide: REDIS_CLIENT, useValue: redis },
+        ],
+      }).compile();
+      return { guard: mod.get(AuthRateLimitGuard), redis };
+    }
+
+    it('saute les fenêtres IP sur login pour une IP whitelistée mais conserve la fenêtre username', async () => {
+      const { guard: g, redis } = await buildGuardWithWhitelist(
+        '203.0.113.5, 198.51.100.42',
+      );
+      jest
+        .spyOn((g as any).reflector, 'get')
+        .mockReturnValue(AuthRateLimitType.LOGIN);
+      // Une seule fenêtre devrait toucher Redis : la fenêtre username.
+      redis.eval.mockResolvedValueOnce(1);
+
+      const ctx = buildContext({
+        type: AuthRateLimitType.LOGIN,
+        ip: '203.0.113.5',
+        username: 'alice',
+      });
+      await expect(g.canActivate(ctx)).resolves.toBe(true);
+
+      expect(redis.eval).toHaveBeenCalledTimes(1);
+      const call = redis.eval.mock.calls[0];
+      expect(call[2]).toMatch(/^rl:login:user:900:alice$/);
+    });
+
+    it("n'exempte pas une IP non whitelistée même si la liste est non vide", async () => {
+      const { guard: g, redis } = await buildGuardWithWhitelist('203.0.113.5');
+      jest
+        .spyOn((g as any).reflector, 'get')
+        .mockReturnValue(AuthRateLimitType.LOGIN);
+      redis.eval.mockResolvedValue(1);
+
+      const ctx = buildContext({
+        type: AuthRateLimitType.LOGIN,
+        ip: '8.8.8.8',
+        username: 'alice',
+      });
+      await expect(g.canActivate(ctx)).resolves.toBe(true);
+
+      // Les 3 fenêtres LOGIN ont été évaluées (2 IP + 1 user)
+      expect(redis.eval).toHaveBeenCalledTimes(3);
+    });
+
+    it('bloque toujours sur la fenêtre username pour une IP whitelistée si le seuil compte est dépassé', async () => {
+      const { guard: g, redis } = await buildGuardWithWhitelist('203.0.113.5');
+      jest
+        .spyOn((g as any).reflector, 'get')
+        .mockReturnValue(AuthRateLimitType.LOGIN);
+      redis.eval.mockResolvedValueOnce(11); // user → 11/10
+
+      const ctx = buildContext({
+        type: AuthRateLimitType.LOGIN,
+        ip: '203.0.113.5',
+        username: 'alice',
+      });
+      await expect(g.canActivate(ctx)).rejects.toMatchObject({
+        status: HttpStatus.TOO_MANY_REQUESTS,
+      });
+    });
+
+    it("saute toutes les fenêtres refresh pour une IP whitelistée (refresh n'a pas de fenêtre username)", async () => {
+      const { guard: g, redis } = await buildGuardWithWhitelist('203.0.113.5');
+      jest
+        .spyOn((g as any).reflector, 'get')
+        .mockReturnValue(AuthRateLimitType.REFRESH);
+
+      const ctx = buildContext({
+        type: AuthRateLimitType.REFRESH,
+        ip: '203.0.113.5',
+      });
+      await expect(g.canActivate(ctx)).resolves.toBe(true);
+      expect(redis.eval).not.toHaveBeenCalled();
+    });
+  });
 });

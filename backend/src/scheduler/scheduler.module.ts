@@ -5,6 +5,8 @@ import { JobsController } from './scheduler.controller';
 import {
   CleanupExportsJob,
   CleanupBackupsJob,
+  CleanupAuditLogsJob,
+  CleanupRefreshTokensJob,
   HealthCheckJob,
   AutoBackupJob,
   AutoExportJob,
@@ -42,6 +44,8 @@ import { DelegationsModule } from '../modules/delegations/delegations.module';
     JobLockService,
     CleanupExportsJob,
     CleanupBackupsJob,
+    CleanupAuditLogsJob,
+    CleanupRefreshTokensJob,
     HealthCheckJob,
     AuditScheduler,
     AutoBackupJob,

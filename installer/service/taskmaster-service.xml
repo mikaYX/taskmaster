@@ -1,0 +1,83 @@
+<!--
+  WinSW (https://github.com/winsw/winsw) service descriptor for Taskmaster.
+  Pinned WinSW version: v2.12.0 (Apache License 2.0 — MIT-compatible; see
+  docs/windows-server-2019-local.md for the license rationale). This file is
+  paired at build time with a renamed copy of the WinSW executable
+  (taskmaster-service.exe) placed in the same directory
+  (C:\Program Files\Taskmaster\service\), per WinSW's convention of matching
+  the .exe/.xml base name.
+
+  Secrets policy: this file lives under Program Files (broadly readable ACLs)
+  and must NEVER contain a secret. Only non-secret pointers are set here;
+  the app reads real secrets from the ACL-restricted
+  C:\ProgramData\Taskmaster\config\.env via TASKMASTER_ENV_FILE.
+-->
+<service>
+  <id>Taskmaster</id>
+  <name>Taskmaster</name>
+  <description>Taskmaster application server (NestJS API + static frontend).</description>
+
+  <!--
+    Launched through cmd.exe /c, not node.exe directly: confirmed via direct
+    reproduction on a real install that node.exe hangs forever (process
+    alive, zero bytes ever written to stdout/stderr, port 3000 never opens)
+    when WinSW spawns it directly - WinSW's underlying .NET Process creation
+    (CreateNoWindow=true with all three of stdin/stdout/stderr redirected)
+    gives the child NO console/conhost at all, and Node appears to stall
+    during startup without one. The identical binary/env/working directory
+    boots successfully in under 25s when given a real (even hidden) console -
+    which is exactly what happens when a plain Scheduled Task redirects
+    output through cmd.exe, and exactly what this wrapper reproduces here.
+    The outer/inner triple-quoting is the standard cmd.exe /c idiom that
+    keeps paths containing spaces (e.g. the default "C:\Program Files\
+    Taskmaster\...") intact - see Microsoft's CommandLineToArgvW / cmd.exe
+    quoting rules. stopparentprocessfirst + WinSW's own Job Object handling
+    for the whole process tree confirmed cmd.exe's node.exe grandchild is
+    still cleanly killed on service stop (verified: both processes gone,
+    port released, within 2s of Stop-Service).
+  -->
+  <executable>%WINDIR%\System32\cmd.exe</executable>
+  <arguments>/c ""%BASE%\..\runtime\node\node.exe" "%BASE%\..\app\dist\src\main.js""</arguments>
+  <workingdirectory>%BASE%\..\app</workingdirectory>
+
+  <env name="TASKMASTER_INSTALL_DIR" value="%BASE%\..\app"/>
+  <env name="TASKMASTER_DATA_DIR" value="C:\ProgramData\Taskmaster"/>
+  <env name="TASKMASTER_ENV_FILE" value="C:\ProgramData\Taskmaster\config\.env"/>
+
+  <!--
+    No static <depend> here: whether Postgres/Memurai are even local named
+    Windows services depends on the install-time choice (Local vs Existing -
+    an "Existing" server could be on a different machine entirely, or not a
+    Windows service at all). A hardcoded `<depend>postgresql-x64-17</depend>`
+    made the SCM refuse to start Taskmaster with error 1075 (dependency
+    service does not exist) on a real Existing-mode install - confirmed the
+    hard way. install-service.ps1 sets the right dependency list per-install
+    via `sc.exe config Taskmaster depend=`, based on the actual PostgresMode/
+    RedisMode choice, once WinSW has installed the service. SCM-level
+    "depend on" only guarantees PostgreSQL/Memurai report Running, not that
+    they are accepting connections yet, when it does apply - backend/src/
+    main.ts's waitForDependencies() (TASKMASTER_STARTUP_TIMEOUT_SECONDS,
+    default 60s) closes that gap at the application level.
+  -->
+
+  <log mode="roll-by-size">
+    <sizeThreshold>10240</sizeThreshold>
+    <keepFiles>10</keepFiles>
+  </log>
+  <logpath>C:\ProgramData\Taskmaster\logs</logpath>
+
+  <onfailure action="restart" delay="10 sec"/>
+  <onfailure action="restart" delay="30 sec"/>
+  <onfailure action="restart" delay="60 sec"/>
+  <onfailure action="none"/>
+  <resetfailure>1 hour</resetfailure>
+
+  <stoptimeout>30 sec</stoptimeout>
+  <stopparentprocessfirst>true</stopparentprocessfirst>
+
+  <!--
+    WinSW has no native "Automatic (Delayed Start)" flag — install-service.ps1
+    applies it post-install via `sc.exe config Taskmaster start= delayed-auto`.
+  -->
+  <startmode>Automatic</startmode>
+</service>

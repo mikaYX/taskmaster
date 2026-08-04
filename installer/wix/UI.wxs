@@ -1,0 +1,111 @@
+<!--
+  MSI-level UI for Taskmaster.wxs: install-directory (stock WixUI_InstallDir)
+  plus ONE custom dialog (TaskmasterConfigDlg) collecting the application
+  port and the Existing PostgreSQL/Redis connection details, inserted right
+  after the install-directory picker.
+
+  This is the "Existing server" path: it never installs PostgreSQL/Redis
+  itself, but it CAN create the app's own role+database on that existing
+  server if the operator also fills in the optional admin (superuser)
+  fields - see provision-existing-postgres.js, invoked from
+  RunOrchestrateInstallCmd (Product.wxs). Leaving the admin password blank
+  assumes the DBA already created the role/database themselves.
+
+  No live "test connection" here: Windows Installer's native dialog engine
+  cannot run arbitrary code from a control's UI thread without a real custom
+  action round-trip (and there is no async/spinner concept in the classic
+  Dialog/Control model) - connectivity is verified for real during the actual
+  install (RunOrchestrateInstall's own prerequisite check), which already
+  fails fast with a clear message if unreachable.
+
+  Cannot be built in this environment — see Product.wxs for details.
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+  <Fragment>
+    <ui:WixUI Id="WixUI_InstallDir" InstallDirectory="TASKMASTERROOT" />
+
+    <!-- Standard "Print README"-style checkbox is unused; replace the
+         default WixUI_InstallDir finish dialog text with Taskmaster-specific
+         copy pointing at the Start Menu shortcut. -->
+    <UI Id="TaskmasterUI">
+      <Property Id="WIXUI_EXITDIALOGOPTIONALTEXT"
+                Value="Taskmaster est installé. Utilisez le raccourci du menu Démarrer pour l'ouvrir." />
+
+      <!-- ================= TaskmasterConfigDlg ================= -->
+      <Dialog Id="TaskmasterConfigDlg" Width="370" Height="310" Title="[ProductName] Setup">
+        <Control Id="BannerLine" Type="Line" X="0" Y="44" Width="370" Height="0" />
+        <Control Id="BottomLine" Type="Line" X="0" Y="276" Width="370" Height="0" />
+
+        <Control Id="Title" Type="Text" X="15" Y="6" Width="250" Height="15" Transparent="yes" NoPrefix="yes"
+                 Text="Configuration de l'application" />
+        <Control Id="Description" Type="Text" X="25" Y="23" Width="320" Height="15" Transparent="yes" NoPrefix="yes"
+                 Text="Port de l'application, et connexion à un serveur PostgreSQL / Redis existant." />
+
+        <Control Id="PortLabel" Type="Text" X="20" Y="48" Width="140" Height="15" Text="Port de l'application :" />
+        <Control Id="PortEdit" Type="Edit" X="170" Y="46" Width="80" Height="18" Property="TASKMASTER_PORT" />
+
+        <Control Id="PgHostLabel" Type="Text" X="20" Y="68" Width="140" Height="15" Text="Hôte PostgreSQL :" />
+        <Control Id="PgHostEdit" Type="Edit" X="170" Y="66" Width="180" Height="18" Property="POSTGRES_DB_HOST" />
+
+        <Control Id="PgPortLabel" Type="Text" X="20" Y="88" Width="140" Height="15" Text="Port PostgreSQL :" />
+        <Control Id="PgPortEdit" Type="Edit" X="170" Y="86" Width="80" Height="18" Property="POSTGRES_DB_PORT" />
+
+        <Control Id="PgDbLabel" Type="Text" X="20" Y="108" Width="140" Height="15" Text="Base de données :" />
+        <Control Id="PgDbEdit" Type="Edit" X="170" Y="106" Width="180" Height="18" Property="POSTGRES_DB_NAME" />
+
+        <Control Id="PgUserLabel" Type="Text" X="20" Y="128" Width="140" Height="15" Text="Utilisateur PostgreSQL :" />
+        <Control Id="PgUserEdit" Type="Edit" X="170" Y="126" Width="180" Height="18" Property="POSTGRES_DB_USER" />
+
+        <Control Id="PgPasswordLabel" Type="Text" X="20" Y="148" Width="140" Height="15" Text="Mot de passe PostgreSQL :" />
+        <Control Id="PgPasswordEdit" Type="Edit" X="170" Y="146" Width="180" Height="18" Property="POSTGRES_DB_PASSWORD" Password="yes" />
+
+        <!-- Optional: only used to create the role/database above if they
+             don't exist yet (provision-existing-postgres.js, invoked from
+             RunOrchestrateInstallCmd - Product.wxs). Leave the password
+             blank if the DBA already created them - the app then just logs
+             in directly with the credentials entered above, as before. -->
+        <Control Id="AdminNote" Type="Text" X="20" Y="168" Width="330" Height="24" Transparent="yes" NoPrefix="yes"
+                 Text="Facultatif : identifiants admin PostgreSQL (ex. postgres), utilisés uniquement pour créer le rôle/la base ci-dessus s'ils n'existent pas encore. Laissez le mot de passe vide s'ils existent déjà." />
+
+        <Control Id="PgAdminUserLabel" Type="Text" X="20" Y="196" Width="140" Height="15" Text="Utilisateur admin PostgreSQL :" />
+        <Control Id="PgAdminUserEdit" Type="Edit" X="170" Y="194" Width="180" Height="18" Property="POSTGRES_ADMIN_USER" />
+
+        <Control Id="PgAdminPasswordLabel" Type="Text" X="20" Y="216" Width="140" Height="15" Text="Mot de passe admin :" />
+        <Control Id="PgAdminPasswordEdit" Type="Edit" X="170" Y="214" Width="180" Height="18" Property="POSTGRES_ADMIN_PASSWORD" Password="yes" />
+
+        <Control Id="RedisHostLabel" Type="Text" X="20" Y="236" Width="140" Height="15" Text="Hôte Redis :" />
+        <Control Id="RedisHostEdit" Type="Edit" X="170" Y="234" Width="180" Height="18" Property="REDIS_DB_HOST" />
+
+        <Control Id="RedisPortLabel" Type="Text" X="20" Y="256" Width="140" Height="15" Text="Port Redis :" />
+        <Control Id="RedisPortEdit" Type="Edit" X="170" Y="254" Width="80" Height="18" Property="REDIS_DB_PORT" />
+
+        <Control Id="Back" Type="PushButton" X="180" Y="285" Width="56" Height="17" Text="!(loc.WixUIBack)">
+          <Publish Event="NewDialog" Value="InstallDirDlg" Condition="1" />
+        </Control>
+        <Control Id="Next" Type="PushButton" X="236" Y="285" Width="56" Height="17" Default="yes" Text="!(loc.WixUINext)">
+          <Publish Event="NewDialog" Value="VerifyReadyDlg" Condition="1" />
+        </Control>
+        <Control Id="Cancel" Type="PushButton" X="304" Y="285" Width="56" Height="17" Cancel="yes" Text="!(loc.WixUICancel)">
+          <Publish Event="SpawnDialog" Value="CancelDlg" Condition="1" />
+        </Control>
+      </Dialog>
+
+      <!-- Splice TaskmasterConfigDlg between InstallDirDlg and VerifyReadyDlg.
+           WixUI_InstallDir's own library ControlEvents for InstallDirDlg/Next
+           run CheckTargetPath (order 1) then SetTargetPath (order 3) then its
+           own NewDialog->VerifyReadyDlg (order 4) - confirmed by decompiling
+           a built MSI's ControlEvent table. Multiple true-condition NewDialog
+           rows for the same Dialog/Control all fire in ascending Ordering,
+           and the LAST one to fire wins the actual displayed dialog - an
+           Order="2" override here (as originally authored) fires BEFORE the
+           library's own order=4 entry, so Next silently landed straight on
+           VerifyReadyDlg, skipping this dialog entirely (confirmed: it only
+           worked when navigating Back, since VerifyReadyDlg/Back's competing
+           library entry for a fresh install is order=1, below this row's
+           order=2). Order="10" guarantees this fires last and wins. -->
+      <Publish Dialog="InstallDirDlg" Control="Next" Event="NewDialog" Value="TaskmasterConfigDlg" Order="10" Condition="1" />
+      <Publish Dialog="VerifyReadyDlg" Control="Back" Event="NewDialog" Value="TaskmasterConfigDlg" Order="2" Condition="1" />
+    </UI>
+  </Fragment>
+</Wix>

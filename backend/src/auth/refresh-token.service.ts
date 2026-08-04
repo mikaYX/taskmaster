@@ -6,6 +6,7 @@ import Redis from 'ioredis';
 import * as crypto from 'crypto';
 import { PrismaService } from '../prisma';
 import { REDIS_CLIENT } from '../common/redis/redis.module';
+import { anonymizeIp } from '../common/utils/ip-anonymizer.util';
 
 /**
  * Refresh Token Service.
@@ -95,6 +96,10 @@ export class RefreshTokenService {
     // Use provided familyId or create new one
     const family = familyId || crypto.randomUUID();
 
+    // GDPR Art. 5(1)(c) — anonymize IP before persistence (AUDIT.md #8, §15.3).
+    // Helper preserves null/undefined; bad inputs become null (Prisma stores as NULL).
+    const maskedIp = anonymizeIp(ipAddress) ?? undefined;
+
     await this.prisma.client.refreshToken.create({
       data: {
         userId,
@@ -102,7 +107,7 @@ export class RefreshTokenService {
         familyId: family,
         expiresAt,
         userAgent,
-        ipAddress,
+        ipAddress: maskedIp,
       },
     });
 

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -25,18 +25,15 @@ export function PreferencesStep({ onNext, onBack, isFirstStep }: PreferencesStep
     const { t, i18n } = useTranslation();
     const completeStep = useSetupStore((state) => state.completeStep);
     const initialPreferences = useSetupStore((state) => state.initialPreferences);
-    const [language, setLanguage] = useState(i18n.language?.split('-')[0] || 'en');
+    // Derived directly from i18n.language during render — useTranslation() already
+    // re-renders this component whenever the active language changes, so no local
+    // state/effect is needed to keep it in sync.
+    const language = i18n.language?.split('-')[0] === 'fr' ? 'fr' : 'en';
     const [timezone, setTimezone] = useState('Europe/Paris');
     const [todolistEnabled, setTodolistEnabled] = useState(initialPreferences.todolistEnabled);
     const [isLoading, setIsLoading] = useState(false);
 
-    useEffect(() => {
-        const code = i18n.language?.split('-')[0] || 'en';
-        setLanguage(code === 'fr' ? 'fr' : 'en');
-    }, [i18n.language]);
-
     const handleLanguageChange = (value: string) => {
-        setLanguage(value);
         i18n.changeLanguage(value);
     };
 

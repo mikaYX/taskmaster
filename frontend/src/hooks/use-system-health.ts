@@ -10,6 +10,10 @@ export function useSystemHealth() {
     const [isLoading, setIsLoading] = useState(true);
     const retryCount = useRef(0);
     const maxRetries = 10; // ~20 seconds of grace period
+    // Holds the latest `checkHealth` so the retry timeout below can call it
+    // recursively without referencing the `checkHealth` binding before it's
+    // fully declared (react-hooks/immutability).
+    const checkHealthRef = useRef<((isManualRetry?: boolean) => Promise<void>) | undefined>(undefined);
 
     const checkHealth = useCallback(async (isManualRetry = false) => {
         if (isManualRetry) {
@@ -44,7 +48,7 @@ export function useSystemHealth() {
 
             if (retryCount.current < maxRetries) {
                 retryCount.current++;
-                setTimeout(() => checkHealth(), 2000);
+                setTimeout(() => checkHealthRef.current?.(), 2000);
             } else {
                 setStatus('unavailable');
                 setIsLoading(false);
@@ -52,8 +56,15 @@ export function useSystemHealth() {
         }
     }, []);
 
-    // Initial check
+    // Refs must not be written during render — keep the ref updated after each
+    // commit instead (react-hooks/refs).
     useEffect(() => {
+        checkHealthRef.current = checkHealth;
+    });
+
+    // Initial check — one-shot on mount, not a derived-state sync.
+    useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         checkHealth();
         return () => { retryCount.current = maxRetries + 1; }; // Prevent retries after unmount
     }, [checkHealth]);

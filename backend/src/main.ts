@@ -1,3 +1,4 @@
+import { setDefaultResultOrder } from 'dns';
 import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import { NestExpressApplication } from '@nestjs/platform-express';
@@ -10,6 +11,21 @@ import { Logger } from 'nestjs-pino';
 import { AppModule } from './app.module';
 import { GlobalExceptionFilter, GlobalValidationPipe } from './common';
 import { bootstrapOTel } from './otel-sdk';
+import { getClientDir, getPublicDir } from './config/app-paths';
+import { waitForDependencies } from './config/wait-for-dependencies';
+
+// Node 18+ resolves "localhost" preferring whatever order the OS resolver
+// returns, which on Windows (especially running as a service account) often
+// comes back IPv6-first (::1). Memurai/Redis (installer default host:
+// "localhost") only binds 127.0.0.1, never ::1, so every connection to ::1
+// gets refused - waitForDependencies()'s retry loop then spins silently
+// until its own 60s deadline, the app never reaches app.listen(), and the
+// installer's health check times out. Confirmed on a real Windows Service
+// install: PostgreSQL listens on both stacks and was unaffected, only Redis
+// was refusing every attempt. Forcing ipv4first here applies to every
+// subsequent DNS lookup in the process (this app's own TCP probe, ioredis,
+// node-postgres), not just the first one.
+setDefaultResultOrder('ipv4first');
 
 /**
  * Application bootstrap.
@@ -25,15 +41,25 @@ async function bootstrap(): Promise<void> {
   // Initialize OpenTelemetry
   await bootstrapOTel();
 
+  // Wait for PostgreSQL/Redis to accept connections before starting Nest —
+  // a Windows Service's "depend on" SCM ordering only guarantees those
+  // services report Running, not that they're reachable yet.
+  await waitForDependencies();
+
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     bufferLogs: true, // Met en buffer les logs jusqu'à ce que Pino soit prêt
   });
+
+  // Allows OnModuleDestroy/beforeApplicationShutdown hooks to run on
+  // SIGTERM/SIGINT, so a service manager (WinSW, systemd) can stop the
+  // process cleanly (in-flight BullMQ jobs, Prisma pool, Redis clients).
+  app.enableShutdownHooks();
 
   // Utilise Pino comme logger global (JSON en prod, pretty en dev)
   app.useLogger(app.get(Logger));
 
   // Serve static assets (uploads, etc)
-  app.useStaticAssets(join(process.cwd(), 'public'), {
+  app.useStaticAssets(getPublicDir(), {
     prefix: '/public/',
   });
 
@@ -87,7 +113,7 @@ async function bootstrap(): Promise<void> {
   });
 
   // SPA frontend (mode fullstack : un seul conteneur) — si client/index.html existe
-  const clientPath = join(process.cwd(), 'client');
+  const clientPath = getClientDir();
   if (existsSync(join(clientPath, 'index.html'))) {
     app.use(express.static(clientPath));
     app.use((req: Request, res: Response, next: NextFunction) => {

@@ -7,12 +7,14 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Lock } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface BackupScheduleProps {
     form: UseFormReturn<any>;
 }
 
 export function BackupSchedule({ form }: BackupScheduleProps) {
+    const { t } = useTranslation();
     const isEnabled = form.watch('enabled');
     const scheduleType = form.watch('scheduleType');
 
@@ -20,8 +22,8 @@ export function BackupSchedule({ form }: BackupScheduleProps) {
         <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <div className="space-y-1">
-                    <CardTitle>Automatic Backup Schedule</CardTitle>
-                    <CardDescription>Configure frequency and retention settings</CardDescription>
+                    <CardTitle>{t('backupSchedule.title')}</CardTitle>
+                    <CardDescription>{t('backupSchedule.description')}</CardDescription>
                 </div>
                 <FormField control={form.control} name="enabled" render={({ field }) => (
                     <FormControl>
@@ -34,18 +36,18 @@ export function BackupSchedule({ form }: BackupScheduleProps) {
                     <div className="grid gap-6 md:grid-cols-2">
                         {/* FREQUENCY */}
                         <div className="space-y-4">
-                            <h4 className="text-sm font-medium">Frequency</h4>
+                            <h4 className="text-sm font-medium">{t('backupSchedule.frequency')}</h4>
                             <FormField control={form.control} name="scheduleType" render={({ field }) => (
                                 <FormItem>
                                     <FormControl>
                                         <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex flex-col space-y-2">
                                             <FormItem className="flex items-center space-x-3 space-y-0">
                                                 <FormControl><RadioGroupItem value="daily" /></FormControl>
-                                                <FormLabel className="font-normal">Daily</FormLabel>
+                                                <FormLabel className="font-normal">{t('backupSchedule.daily')}</FormLabel>
                                             </FormItem>
                                             <FormItem className="flex items-center space-x-3 space-y-0">
                                                 <FormControl><RadioGroupItem value="weekly" /></FormControl>
-                                                <FormLabel className="font-normal">Weekly</FormLabel>
+                                                <FormLabel className="font-normal">{t('backupSchedule.weekly')}</FormLabel>
                                             </FormItem>
                                         </RadioGroup>
                                     </FormControl>
@@ -57,16 +59,16 @@ export function BackupSchedule({ form }: BackupScheduleProps) {
                                     <FormItem>
                                         <Select onValueChange={(val) => field.onChange(parseInt(val))} value={String(field.value)}>
                                             <FormControl>
-                                                <SelectTrigger><SelectValue placeholder="Select day" /></SelectTrigger>
+                                                <SelectTrigger><SelectValue placeholder={t('backupSchedule.selectDay')} /></SelectTrigger>
                                             </FormControl>
                                             <SelectContent>
-                                                <SelectItem value="1">Monday</SelectItem>
-                                                <SelectItem value="2">Tuesday</SelectItem>
-                                                <SelectItem value="3">Wednesday</SelectItem>
-                                                <SelectItem value="4">Thursday</SelectItem>
-                                                <SelectItem value="5">Friday</SelectItem>
-                                                <SelectItem value="6">Saturday</SelectItem>
-                                                <SelectItem value="0">Sunday</SelectItem>
+                                                <SelectItem value="1">{t('backupSchedule.days.monday')}</SelectItem>
+                                                <SelectItem value="2">{t('backupSchedule.days.tuesday')}</SelectItem>
+                                                <SelectItem value="3">{t('backupSchedule.days.wednesday')}</SelectItem>
+                                                <SelectItem value="4">{t('backupSchedule.days.thursday')}</SelectItem>
+                                                <SelectItem value="5">{t('backupSchedule.days.friday')}</SelectItem>
+                                                <SelectItem value="6">{t('backupSchedule.days.saturday')}</SelectItem>
+                                                <SelectItem value="0">{t('backupSchedule.days.sunday')}</SelectItem>
                                             </SelectContent>
                                         </Select>
                                     </FormItem>
@@ -75,7 +77,7 @@ export function BackupSchedule({ form }: BackupScheduleProps) {
 
                             <FormField control={form.control} name="time" render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Time (HH:mm)</FormLabel>
+                                    <FormLabel>{t('backupSchedule.timeLabel')}</FormLabel>
                                     <FormControl>
                                         <Input type="time" {...field} className="w-full" />
                                     </FormControl>
@@ -85,10 +87,10 @@ export function BackupSchedule({ form }: BackupScheduleProps) {
 
                         {/* RETENTION & DELIVERY */}
                         <div className="space-y-4">
-                            <h4 className="text-sm font-medium">Retention Policy</h4>
+                            <h4 className="text-sm font-medium">{t('backupSchedule.retentionPolicy')}</h4>
                             <FormField control={form.control} name="retention.count" render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Keep last {field.value} files</FormLabel>
+                                    <FormLabel>{t('backupSchedule.keepLastFiles', { count: field.value })}</FormLabel>
                                     <FormControl>
                                         <div className="flex items-center gap-4">
                                             <input
@@ -101,7 +103,7 @@ export function BackupSchedule({ form }: BackupScheduleProps) {
                                             <span className="font-mono border px-2 py-1 rounded text-sm min-w-[3rem] text-center">{field.value}</span>
                                         </div>
                                     </FormControl>
-                                    <FormDescription>Older backups are automatically deleted.</FormDescription>
+                                    <FormDescription>{t('backupSchedule.retentionDescription')}</FormDescription>
                                 </FormItem>
                             )} />
 
@@ -111,10 +113,9 @@ export function BackupSchedule({ form }: BackupScheduleProps) {
                     <div className="bg-muted/50 p-4 rounded-lg flex items-start gap-4 border border-blue-200 dark:border-blue-900/50">
                         <Lock className="h-5 w-5 text-blue-500 mt-0.5" />
                         <div className="space-y-1">
-                            <h5 className="text-sm font-medium">Encryption is Enabled</h5>
+                            <h5 className="text-sm font-medium">{t('backupSchedule.encryptionEnabled')}</h5>
                             <p className="text-xs text-muted-foreground">
-                                All automatic backups are encrypted using the server-side key (`BACKUP_ENCRYPTION_KEY`).
-                                You do not need to manage passwords manually for scheduled jobs.
+                                {t('backupSchedule.encryptionEnabledDescription')}
                             </p>
                         </div>
                     </div>

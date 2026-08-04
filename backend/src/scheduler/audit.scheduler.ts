@@ -57,8 +57,7 @@ export class AuditScheduler {
     for (const task of tasks) {
       const t = task as any;
       let fromCompletionCtx:
-        | import('../tasks/instance.service').FromCompletionContext
-        | undefined;
+        import('../tasks/instance.service').FromCompletionContext | undefined;
 
       if (fcEnabled && t.recurrenceMode === 'FROM_COMPLETION' && t.rrule) {
         const lastTerminal = await this.prisma.client.status.findFirst({

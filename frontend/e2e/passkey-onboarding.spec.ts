@@ -81,7 +81,7 @@ test.describe('Passkey Onboarding Modal', () => {
         await expect(skipBtn).not.toBeVisible();
     });
 
-    test('Scenario 2: Enrôlement passkey réussi => accès autorisé immédiatement', async ({ page }) => {
+    test('Scenario 2: Enrolement passkey reussi => acces autorise immediatement', async ({ page }) => {
         let hasPasskeyState = false;
 
         // Mock session: first time no passkey, second time has passkey
@@ -138,7 +138,7 @@ test.describe('Passkey Onboarding Modal', () => {
         await expect(page.locator('body')).not.toHaveText(/Setup a Passkey/i);
     });
 
-    test('Scenario 3: Deux onglets ouverts, enrôlement dans A => modale fermée dans B', async ({ context, page }) => {
+    test('Scenario 3: Deux onglets ouverts, enrolement dans A => modale fermee dans B', async ({ context, page }) => {
         let hasPasskeyState = false;
 
         // Route for both pages in the context
@@ -186,7 +186,7 @@ test.describe('Passkey Onboarding Modal', () => {
         await expect(modalB).not.toBeVisible();
     });
 
-    test('Scenario 4: Déjà équipé passkey => aucun blocage', async ({ page }) => {
+    test('Scenario 4: Deja equipe passkey => aucun blocage', async ({ page }) => {
         await page.route(/\/api\/auth\/session(\/.*|\?.*)?$/, async route => {
             await route.fulfill({
                 json: {

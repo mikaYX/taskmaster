@@ -4,21 +4,17 @@ import {
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import * as fs from 'fs';
 import * as path from 'path';
+import { getProcedureStorageDir } from '../config/app-paths';
 
 @Injectable()
 export class ProcedureStorageService {
   private readonly logger = new Logger(ProcedureStorageService.name);
   private readonly storageDir: string;
 
-  constructor(private readonly config: ConfigService) {
-    // Resolve path definitively against project root or configured env
-    const configuredPath =
-      this.config.get<string>('PROCEDURE_STORAGE_PATH') ||
-      path.join(process.cwd(), 'storage', 'procedures');
-    this.storageDir = path.resolve(configuredPath);
+  constructor() {
+    this.storageDir = getProcedureStorageDir();
     this.ensureStorageDirectory();
   }
 

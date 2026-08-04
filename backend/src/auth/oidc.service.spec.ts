@@ -2,8 +2,9 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { OidcService } from './oidc.service';
 import { SettingsService } from '../settings/settings.service';
 import { BadRequestException, UnauthorizedException } from '@nestjs/common';
-import { Issuer, generators } from 'openid-client';
+import { Issuer, generators, custom } from 'openid-client';
 import { REDIS_CLIENT } from '../common/redis/redis.module';
+import * as urlValidator from '../common/utils/url-validator.util';
 
 jest.mock('openid-client', () => {
   return {
@@ -14,8 +15,15 @@ jest.mock('openid-client', () => {
       state: jest.fn().mockReturnValue('mock-state'),
       nonce: jest.fn().mockReturnValue('mock-nonce'),
     },
+    custom: {
+      setHttpOptionsDefaults: jest.fn(),
+    },
   };
 });
+
+// Spy on the SSRF validator — we want to assert it's called before any
+// outbound discovery request (AUDIT #3).
+jest.spyOn(urlValidator, 'validateUrl');
 
 describe('OidcService', () => {
   let service: OidcService;
@@ -32,6 +40,11 @@ describe('OidcService', () => {
       set: jest.fn(),
       del: jest.fn(),
     };
+
+    // Default: validateUrl passes through (no SSRF). Individual tests can
+    // override to simulate a malicious URL.
+    (urlValidator.validateUrl as jest.Mock).mockReset();
+    (urlValidator.validateUrl as jest.Mock).mockResolvedValue(undefined);
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -53,6 +66,19 @@ describe('OidcService', () => {
 
   it('should be defined', () => {
     expect(service).toBeDefined();
+  });
+
+  describe('onModuleInit (AUDIT #3 — defense-in-depth timeout)', () => {
+    it('configures a 5s global HTTP timeout on openid-client', () => {
+      (custom.setHttpOptionsDefaults as jest.Mock).mockClear();
+
+      service.onModuleInit();
+
+      expect(custom.setHttpOptionsDefaults).toHaveBeenCalledTimes(1);
+      expect(custom.setHttpOptionsDefaults).toHaveBeenCalledWith({
+        timeout: 5000,
+      });
+    });
   });
 
   describe('getClient', () => {
@@ -88,6 +114,51 @@ describe('OidcService', () => {
       await expect(service.getClient('unknown')).rejects.toThrow(
         BadRequestException,
       );
+    });
+
+    it('should validate the issuer URL against SSRF before discovery (AUDIT #3)', async () => {
+      settingsService.getRawValue.mockResolvedValueOnce('true');
+      settingsService.getRawValue.mockResolvedValueOnce('https://issuer.com');
+      settingsService.getRawValue.mockResolvedValueOnce('clientId');
+      settingsService.getRawValue.mockResolvedValueOnce('clientSecret');
+
+      (urlValidator.validateUrl as jest.Mock).mockResolvedValueOnce(undefined);
+      const MockClientClass = jest.fn().mockImplementation(() => ({}));
+      (Issuer.discover as jest.Mock).mockResolvedValue({
+        Client: MockClientClass,
+      });
+
+      await service.getClient('generic');
+
+      // The SSRF validator must be invoked BEFORE Issuer.discover
+      expect(urlValidator.validateUrl).toHaveBeenCalledWith(
+        'https://issuer.com',
+        expect.objectContaining({ timeoutMs: expect.any(Number) }),
+      );
+      const validateOrder = (urlValidator.validateUrl as jest.Mock).mock
+        .invocationCallOrder[0];
+      const discoverOrder = (Issuer.discover as jest.Mock).mock
+        .invocationCallOrder[0];
+      expect(validateOrder).toBeLessThan(discoverOrder);
+    });
+
+    it('should reject loopback / private-range issuer URLs without contacting them (AUDIT #3)', async () => {
+      settingsService.getRawValue.mockResolvedValueOnce('true');
+      settingsService.getRawValue.mockResolvedValueOnce(
+        'http://169.254.169.254/.well-known/openid-configuration',
+      );
+      settingsService.getRawValue.mockResolvedValueOnce('clientId');
+      settingsService.getRawValue.mockResolvedValueOnce('clientSecret');
+
+      (urlValidator.validateUrl as jest.Mock).mockRejectedValueOnce(
+        new Error('URL resolves to a private IP address'),
+      );
+
+      await expect(service.getClient('generic')).rejects.toThrow(
+        BadRequestException,
+      );
+      // The defence is upstream: Issuer.discover must NEVER be called.
+      expect(Issuer.discover).not.toHaveBeenCalled();
     });
 
     it('should return cached client if config unchanged', async () => {

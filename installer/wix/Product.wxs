@@ -1,0 +1,436 @@
+<!--
+  Taskmaster MSI (WiX Toolset v5 — https://wixtoolset.org, MS-RL license).
+  MS-RL applies to WiX's own source; using WiX as a build-time tool does not
+  affect Taskmaster's own MIT license (see docs/windows-server-2019-local.md).
+
+  This MSI installs Taskmaster ONLY (app files, embedded Node runtime, the
+  Windows Service registration). It does not install PostgreSQL or Memurai —
+  that chaining happens in Bundle.wxs (the Setup.exe / Burn bootstrapper),
+  which is the recommended install path. Running `msiexec /i Taskmaster.msi`
+  directly still works (e.g. for scripted/enterprise deployment against an
+  already-provisioned PostgreSQL/Redis), driven entirely by MSI properties —
+  no interactive prompts live in this file (see UI.wxs).
+
+  ProductVersion is injected at build time from the root package.json version
+  (build.ps1 passes -d ProductVersion=<version> to `wix build`) — never
+  hand-duplicated here.
+
+  Cannot be built in this environment (`wix build` requires the WiX .NET tool
+  on a Windows or cross-platform .NET SDK host with the Windows targeting
+  bits) — authored for review; first real build happens per
+  docs/windows-server-2019-local.md.
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
+
+  <Package Name="Taskmaster"
+           Manufacturer="Taskmaster"
+           Version="$(var.ProductVersion)"
+           UpgradeCode="8f2a7b0e-2f0d-4a9d-9e1a-6f2c0d6a2b40"
+           Language="1036"
+           Codepage="UTF-8"
+           InstallerVersion="500"
+           Scope="perMachine">
+
+    <SummaryInformation Description="Taskmaster application server" Manufacturer="Taskmaster" />
+
+    <!--
+      Stop/restart the Taskmaster service across a MajorUpgrade so file
+      replacement never happens while node.exe holds the dist/ files open.
+      Custom actions below hook into InstallExecuteSequence around this.
+    -->
+    <MajorUpgrade
+      DowngradeErrorMessage="Une version plus récente de Taskmaster est déjà installée."
+      Schedule="afterInstallInitialize" />
+
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+
+    <WixVariable Id="WixUILicenseRtf" Value="!(bindpath.repo)\installer\wix\License.rtf" />
+    <!-- Forces UI.wxs's Fragment (the <ui:WixUI Id="WixUI_InstallDir"> dialog
+         set + the spliced TaskmasterConfigDlg) to be linked in. WiX v4+ only
+         includes fragments reachable by symbol reference from this Package;
+         referencing the extension library's own "WixUI_InstallDir" symbol
+         directly here fails with WIX0094 (protection level), so this
+         references our own UI.wxs-authored <UI Id="TaskmasterUI"> block
+         instead - pulling in the whole fragment, including its sibling
+         ui:WixUI element, as a side effect. Confirmed via `wix msi decompile`
+         that without ANY such reference the compiled MSI has zero rows in
+         Dialog/Control/ControlEvent (no Dialog/Control/ControlEvent tables
+         at all) - a standalone `msiexec /i` run then shows no UI whatsoever
+         and silently falls through to Property defaults (empty
+         POSTGRES_DB_PASSWORD, etc.), which is exactly what caused "aucune
+         chaine de connexion" on first real-world install. -->
+    <UIRef Id="TaskmasterUI" />
+
+    <!-- ================= Directory layout ================= -->
+    <!-- ProgramFiles6432Folder (not ProgramFilesFolder): the latter always
+         resolves to the 32-bit "Program Files (x86)" - matching the native
+         Windows Installer ProgramFilesFolder property - regardless of the
+         package's declared architecture (-arch x64 on the wix build command
+         line only affects component/file bitness, not this). The "6432"
+         variant is WiX's architecture-aware equivalent. -->
+    <StandardDirectory Id="ProgramFiles6432Folder">
+      <Directory Id="TASKMASTERROOT" Name="Taskmaster">
+        <Directory Id="APPFOLDER" Name="app" />
+        <Directory Id="RUNTIMEFOLDER" Name="runtime">
+          <Directory Id="NODEFOLDER" Name="node" />
+        </Directory>
+        <Directory Id="SERVICEFOLDER" Name="service" />
+        <!-- Mirrors this repo's own installer/service/../common/ layout, so
+             install-service.ps1/uninstall-service.ps1's existing
+             `Join-Path $PSScriptRoot '..\common\Taskmaster.Common.ps1'`
+             dot-source keeps working unmodified once installed. -->
+        <Directory Id="COMMONFOLDER" Name="common" />
+        <!-- orchestrate-install.ps1 itself is staged directly in
+             TASKMASTERROOT (not a subfolder) so its existing
+             `Join-Path $PSScriptRoot 'common\...'` / `'service\...'`
+             references resolve straight to COMMONFOLDER/SERVICEFOLDER
+             without any changes to the script. Only its `provision\`
+             children need a new sibling directory. -->
+        <Directory Id="PROVISIONFOLDER" Name="provision" />
+      </Directory>
+    </StandardDirectory>
+
+    <StandardDirectory Id="CommonAppDataFolder">
+      <Directory Id="TASKMASTERDATAROOT" Name="Taskmaster">
+        <Directory Id="CONFIGFOLDER" Name="config" />
+        <Directory Id="DATAFOLDER" Name="data" />
+        <Directory Id="PUBLICFOLDER" Name="public">
+          <Directory Id="UPLOADSFOLDER" Name="uploads" />
+        </Directory>
+        <Directory Id="STORAGEFOLDER" Name="storage">
+          <Directory Id="PROCEDURESFOLDER" Name="procedures" />
+        </Directory>
+        <Directory Id="BACKUPSFOLDER" Name="backups" />
+        <Directory Id="LOGSFOLDER" Name="logs" />
+      </Directory>
+    </StandardDirectory>
+
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="TASKMASTERSTARTMENU" Name="Taskmaster" />
+    </StandardDirectory>
+
+    <!-- ================= ProgramData folders + ACLs =================
+         Only ever created here; the live .env is NEVER an MSI component —
+         it's created once by orchestrate-install.ps1 and never touched again,
+         which is what guarantees MSI repair never overwrites it. -->
+    <StandardDirectory Id="CommonAppDataFolder">
+      <Directory Id="TASKMASTERDATAROOT_ACL" Name="Taskmaster" />
+    </StandardDirectory>
+
+    <ComponentGroup Id="DataFoldersGroup" Directory="TASKMASTERDATAROOT">
+      <Component Id="ConfigFolderComponent" Guid="6a1f9d3e-6b7a-4b7c-9a0e-1a2b3c4d5e60">
+        <CreateFolder Directory="CONFIGFOLDER">
+          <util:PermissionEx User="NT AUTHORITY\LocalService" GenericRead="yes" GenericExecute="yes" />
+          <util:PermissionEx User="SYSTEM" GenericAll="yes" />
+          <util:PermissionEx User="Administrators" GenericAll="yes" />
+        </CreateFolder>
+      </Component>
+      <Component Id="DataFolderComponent" Guid="6a1f9d3e-6b7a-4b7c-9a0e-1a2b3c4d5e61">
+        <CreateFolder Directory="DATAFOLDER">
+          <util:PermissionEx User="NT AUTHORITY\LocalService" GenericAll="yes" />
+        </CreateFolder>
+      </Component>
+      <Component Id="UploadsFolderComponent" Guid="6a1f9d3e-6b7a-4b7c-9a0e-1a2b3c4d5e62">
+        <CreateFolder Directory="UPLOADSFOLDER">
+          <util:PermissionEx User="NT AUTHORITY\LocalService" GenericAll="yes" />
+        </CreateFolder>
+      </Component>
+      <Component Id="ProceduresFolderComponent" Guid="6a1f9d3e-6b7a-4b7c-9a0e-1a2b3c4d5e63">
+        <CreateFolder Directory="PROCEDURESFOLDER">
+          <util:PermissionEx User="NT AUTHORITY\LocalService" GenericAll="yes" />
+        </CreateFolder>
+      </Component>
+      <Component Id="BackupsFolderComponent" Guid="6a1f9d3e-6b7a-4b7c-9a0e-1a2b3c4d5e64">
+        <CreateFolder Directory="BACKUPSFOLDER">
+          <util:PermissionEx User="NT AUTHORITY\LocalService" GenericAll="yes" />
+        </CreateFolder>
+      </Component>
+      <Component Id="LogsFolderComponent" Guid="6a1f9d3e-6b7a-4b7c-9a0e-1a2b3c4d5e65">
+        <CreateFolder Directory="LOGSFOLDER">
+          <util:PermissionEx User="NT AUTHORITY\LocalService" GenericAll="yes" />
+        </CreateFolder>
+      </Component>
+    </ComponentGroup>
+
+    <!-- ================= Start Menu shortcut ================= -->
+    <ComponentGroup Id="ShortcutGroup" Directory="TASKMASTERSTARTMENU">
+      <Component Id="StartMenuShortcut" Guid="6a1f9d3e-6b7a-4b7c-9a0e-1a2b3c4d5e70">
+        <Shortcut Id="TaskmasterShortcut"
+                  Name="Taskmaster"
+                  Description="Ouvrir Taskmaster"
+                  Target="http://localhost:[TASKMASTER_PORT]/"
+                  WorkingDirectory="APPFOLDER" />
+        <RemoveFolder Id="RemoveStartMenuFolder" Directory="TASKMASTERSTARTMENU" On="uninstall" />
+        <RegistryValue Root="HKCU" Key="Software\Taskmaster" Name="shortcut_installed" Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+
+    <!-- Default port used to build the shortcut URL; overridable for silent
+         `msiexec /i Taskmaster.msi TASKMASTER_PORT=8080` deployments, or via
+         TaskmasterConfigDlg (UI.wxs) for an interactive install.
+         Secure="yes": required for the value to survive from the (possibly
+         unprivileged) UI sequence into the elevated deferred custom action
+         below - see RunOrchestrateInstallCmd. -->
+    <Property Id="TASKMASTER_PORT" Value="3000" Secure="yes" />
+
+    <!-- ================= Existing PostgreSQL/Redis (standalone msiexec only) =====
+         Collected by TaskmasterConfigDlg (UI.wxs) or overridable from the
+         command line for scripted/enterprise deployment. Only consumed by
+         RunOrchestrateInstall below, which is itself skipped entirely when
+         this MSI is chained from Setup.exe (BURNMSIINSTALL) - Bundle.wxs's
+         own EXISTING_DATABASE_URL/EXISTING_REDIS_URL Burn variables remain
+         the only source of truth for that path, unchanged. -->
+    <Property Id="POSTGRES_DB_HOST" Value="localhost" Secure="yes" />
+    <Property Id="POSTGRES_DB_PORT" Value="5432" Secure="yes" />
+    <Property Id="POSTGRES_DB_NAME" Value="taskmaster" Secure="yes" />
+    <Property Id="POSTGRES_DB_USER" Value="taskmaster" Secure="yes" />
+    <!-- Hidden="yes": suppresses this property's value from MSI verbose logs
+         (msiexec /l*v) - the value itself still flows through CustomActionData
+         to the deferred action exactly like the others. -->
+    <Property Id="POSTGRES_DB_PASSWORD" Secure="yes" Hidden="yes" />
+    <!-- Optional superuser credentials, used ONLY to create/update the role+
+         database above if they don't already exist (see
+         provision-existing-postgres.js via RunOrchestrateInstallCmd). Left
+         blank (default) means "the DBA already created them" - unchanged
+         prior behaviour. -->
+    <Property Id="POSTGRES_ADMIN_USER" Value="postgres" Secure="yes" />
+    <Property Id="POSTGRES_ADMIN_PASSWORD" Secure="yes" Hidden="yes" />
+    <Property Id="REDIS_DB_HOST" Value="localhost" Secure="yes" />
+    <Property Id="REDIS_DB_PORT" Value="6379" Secure="yes" />
+
+    <!-- ================= App + runtime files (single-archive install) =================
+         AppFiles.wxs and NodeRuntimeFiles.wxs each define ONE Component
+         wrapping a zip built by installer/build.ps1 (app.zip,
+         runtime/node-runtime.zip) — a full node_modules tree is 70k+ files,
+         which exceeds the MSI's hard 65536-Component limit if harvested one
+         Component per file (heat.exe's classic behavior). The zips are
+         expanded into APPFOLDER / NODEFOLDER by the deferred custom actions
+         below (installer/expand-staged-archive.ps1). -->
+
+    <!-- The extra trailing "\" right before the closing &quot; in
+         -DestinationDir is deliberate, not a typo: [APPFOLDER]/[NODEFOLDER]
+         MSI directory properties always end in "\", and a single backslash
+         immediately before a closing quote is parsed by CommandLineToArgvW
+         as an ESCAPED quote (not a path separator + string terminator) -
+         doubling it collapses to one literal backslash and lets the quote
+         close correctly. Confirmed by reproducing the deferred CA's exact
+         command line under a SYSTEM-context scheduled task, where
+         Get-ChildItem failed on a $DestinationDir value with a literal
+         trailing '"' character baked into the string. -->
+    <SetProperty Id="ExtractAppArchiveCmd"
+                 Value="&quot;[System64Folder]WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File &quot;[#ExpandArchivePs1]&quot; -ArchivePath &quot;[#AppArchiveZip]&quot; -DestinationDir &quot;[APPFOLDER]\&quot;"
+                 Sequence="execute"
+                 Before="ExtractAppArchive" />
+    <CustomAction Id="ExtractAppArchive" Execute="deferred" Return="check" Impersonate="no"
+                  ExeCommand="[ExtractAppArchiveCmd]" Directory="APPFOLDER" />
+
+    <!-- Same trailing "\\" reasoning as ExtractAppArchiveCmd above. -->
+    <SetProperty Id="ExtractNodeRuntimeArchiveCmd"
+                 Value="&quot;[System64Folder]WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File &quot;[#ExpandArchivePs1]&quot; -ArchivePath &quot;[#NodeRuntimeArchiveZip]&quot; -DestinationDir &quot;[NODEFOLDER]\&quot;"
+                 Sequence="execute"
+                 Before="ExtractNodeRuntimeArchive" />
+    <CustomAction Id="ExtractNodeRuntimeArchive" Execute="deferred" Return="check" Impersonate="no"
+                  ExeCommand="[ExtractNodeRuntimeArchiveCmd]" Directory="NODEFOLDER" />
+
+    <!-- ================= Service install/uninstall (WinSW-managed) =================
+         WinSW manages the actual Windows Service (not MSI's native
+         ServiceInstall/ServiceControl), so install/uninstall is driven by
+         deferred custom actions calling the PowerShell scripts in
+         installer/service/. -->
+    <ComponentGroup Id="ServiceFilesGroup" Directory="SERVICEFOLDER">
+      <Component Id="ServiceXmlComponent" Guid="6a1f9d3e-6b7a-4b7c-9a0e-1a2b3c4d5e80">
+        <File Id="TaskmasterServiceXml" Source="!(bindpath.staging)\service\taskmaster-service.xml" KeyPath="yes" />
+      </Component>
+      <Component Id="ServiceExeComponent" Guid="6a1f9d3e-6b7a-4b7c-9a0e-1a2b3c4d5e81">
+        <File Id="TaskmasterServiceExe" Source="!(bindpath.staging)\service\taskmaster-service.exe" KeyPath="yes" />
+      </Component>
+      <!-- Actually embedded as MSI payloads (unlike the broken
+           "[SERVICEFOLDER]..\..\..\installer\..." relative-path scheme this
+           replaced, which pointed outside Program Files entirely and only
+           ever happened to work if a repo checkout existed at that exact
+           relative location on the target machine - never true for a real
+           installed MSI). Referenced by the custom actions below via
+           [#InstallServicePs1] / [#UninstallServicePs1]. -->
+      <Component Id="InstallServiceScriptComponent" Guid="6a1f9d3e-6b7a-4b7c-9a0e-1a2b3c4d5e83">
+        <File Id="InstallServicePs1" Source="!(bindpath.staging)\service\install-service.ps1" KeyPath="yes" />
+      </Component>
+      <Component Id="UninstallServiceScriptComponent" Guid="6a1f9d3e-6b7a-4b7c-9a0e-1a2b3c4d5e84">
+        <File Id="UninstallServicePs1" Source="!(bindpath.staging)\service\uninstall-service.ps1" KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+
+    <!-- install-service.ps1 / uninstall-service.ps1 dot-source this via
+         `Join-Path $PSScriptRoot '..\common\Taskmaster.Common.ps1'` -
+         COMMONFOLDER is SERVICEFOLDER's sibling so that relative path
+         resolves correctly once installed. Dot-sourced (not Import-Module'd)
+         everywhere, and named .ps1 (not .psm1): dot-sourcing a .psm1 file
+         still carries an implicit module boundary, which combined with
+         Export-ModuleMember (needed for real Import-Module use, meaningless
+         for dot-sourcing) silently prevented every function in it from ever
+         reaching the caller's scope - confirmed the hard way on a real
+         install. -->
+    <ComponentGroup Id="CommonFilesGroup" Directory="COMMONFOLDER">
+      <Component Id="CommonModuleComponent" Guid="6a1f9d3e-6b7a-4b7c-9a0e-1a2b3c4d5e82">
+        <File Id="TaskmasterCommonPsm1" Source="!(bindpath.staging)\common\Taskmaster.Common.ps1" KeyPath="yes" />
+      </Component>
+      <!-- Lives here (not in APPFOLDER/NODEFOLDER) because it purges
+           everything else in its target directory before extracting the
+           archive - installing it alongside app.zip/node-runtime.zip would
+           make it delete itself mid-execution. Shared by both
+           ExtractAppArchive and ExtractNodeRuntimeArchive (see below). -->
+      <Component Id="ExpandArchiveScriptComponent" Guid="6a1f9d3e-6b7a-4b7c-9a0e-1a2b3c4d5e92">
+        <File Id="ExpandArchivePs1" Source="!(bindpath.staging)\expand-staged-archive.ps1" KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+
+    <!-- orchestrate-install.ps1 itself: staged directly under TASKMASTERROOT
+         (see PROVISIONFOLDER comment above) so Bundle.wxs's OrchestrateInstall
+         ExePackage can invoke it via a fixed, known absolute path instead of
+         relying on Burn's ExePackage Payload-caching path substitution, which
+         (unlike MSI's own `[#FileId]` formatted strings used elsewhere in this
+         file) does not resolve `[#Id]` tokens inside InstallArguments - a real
+         bug found the first time this bundle was actually run end-to-end
+         (Setup.exe launched powershell.exe with an empty -File argument). -->
+    <ComponentGroup Id="OrchestrateScriptGroup" Directory="TASKMASTERROOT">
+      <Component Id="OrchestrateInstallScriptComponent" Guid="6a1f9d3e-6b7a-4b7c-9a0e-1a2b3c4d5e93">
+        <File Id="OrchestrateInstallPs1" Source="!(bindpath.repo)\installer\orchestrate-install.ps1" KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+
+    <!-- provision/*.ps1: orchestrate-install.ps1 reaches these via
+         `Join-Path $PSScriptRoot 'provision\...'` - PROVISIONFOLDER is
+         TASKMASTERROOT's sibling to COMMONFOLDER/SERVICEFOLDER so that
+         resolves correctly once installed. -->
+    <ComponentGroup Id="ProvisionFilesGroup" Directory="PROVISIONFOLDER">
+      <Component Id="TestPrerequisitesScriptComponent" Guid="6a1f9d3e-6b7a-4b7c-9a0e-1a2b3c4d5e94">
+        <File Id="TestPrerequisitesPs1" Source="!(bindpath.repo)\installer\provision\test-prerequisites.ps1" KeyPath="yes" />
+      </Component>
+      <Component Id="ProvisionPostgresScriptComponent" Guid="6a1f9d3e-6b7a-4b7c-9a0e-1a2b3c4d5e95">
+        <File Id="ProvisionPostgresPs1" Source="!(bindpath.repo)\installer\provision\provision-postgres.ps1" KeyPath="yes" />
+      </Component>
+      <Component Id="ProvisionCacheScriptComponent" Guid="6a1f9d3e-6b7a-4b7c-9a0e-1a2b3c4d5e96">
+        <File Id="ProvisionCachePs1" Source="!(bindpath.repo)\installer\provision\provision-cache.ps1" KeyPath="yes" />
+      </Component>
+      <Component Id="ConfigureFirewallScriptComponent" Guid="6a1f9d3e-6b7a-4b7c-9a0e-1a2b3c4d5e97">
+        <File Id="ConfigureFirewallPs1" Source="!(bindpath.repo)\installer\provision\configure-firewall.ps1" KeyPath="yes" />
+      </Component>
+      <Component Id="CheckPostgresVersionScriptComponent" Guid="6a1f9d3e-6b7a-4b7c-9a0e-1a2b3c4d5e98">
+        <File Id="CheckPostgresVersionJs" Source="!(bindpath.repo)\installer\provision\check-postgres-version.js" KeyPath="yes" />
+      </Component>
+      <Component Id="ProvisionExistingPostgresScriptComponent" Guid="6a1f9d3e-6b7a-4b7c-9a0e-1a2b3c4d5e99">
+        <File Id="ProvisionExistingPostgresJs" Source="!(bindpath.repo)\installer\provision\provision-existing-postgres.js" KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+
+    <!-- -ServiceDir is required: install-service.ps1's own default
+         ('C:\Program Files\Taskmaster\service') is only correct when the
+         admin accepts the default install location. Without this, choosing
+         a custom directory (e.g. D:\Taskmaster) stages the real WinSW files
+         under [SERVICEFOLDER] but install-service.ps1 still looks for them
+         at the hardcoded default, throws "WinSW service files not found",
+         and the whole MSI fails with error 1722 at the InstallService action
+         - confirmed on a real install. -->
+    <SetProperty Id="InstallServiceCmd"
+                 Value="&quot;[System64Folder]WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File &quot;[#InstallServicePs1]&quot; -ServiceDir &quot;[SERVICEFOLDER]\&quot;"
+                 Sequence="execute"
+                 Before="InstallService" />
+    <CustomAction Id="InstallService" Execute="deferred" Return="check" Impersonate="no"
+                  ExeCommand="[InstallServiceCmd]" Directory="SERVICEFOLDER" />
+
+    <!-- Full orchestration (secrets, .env, Prisma migration, service
+         install+start, health check) for a STANDALONE `msiexec /i` install
+         only - see BURNMSIINSTALL condition on the sequence entry below.
+         Reuses orchestrate-install.ps1 as-is (already extensively exercised
+         via Setup.exe/Bundle.wxs), pointed at APPFOLDER/TASKMASTERROOT
+         wherever the user actually chose to install (not the hardcoded
+         defaults the script falls back to), in -PostgresMode/-RedisMode
+         Existing using the discrete fields TaskmasterConfigDlg collected
+         (UI.wxs) - orchestrate-install.ps1 DSN-encodes user/password itself
+         (ConvertTo-DsnEncoded) rather than building the connection string
+         here, since raw substitution into a URL breaks on '@', ':', '%'.
+         Same trailing "\\" -> escaped-quote reasoning as ExtractAppArchiveCmd
+         above applies to the ...FOLDER]\&quot; occurrences below. -->
+    <SetProperty Id="RunOrchestrateInstallCmd"
+                 Value="&quot;[System64Folder]WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File &quot;[#OrchestrateInstallPs1]&quot; -Port [TASKMASTER_PORT] -InstallDir &quot;[APPFOLDER]\&quot; -DataDir &quot;[TASKMASTERDATAROOT]\&quot; -PostgresMode Existing -PostgresDbHost &quot;[POSTGRES_DB_HOST]&quot; -PostgresDbPort [POSTGRES_DB_PORT] -PostgresDb &quot;[POSTGRES_DB_NAME]&quot; -PostgresUser &quot;[POSTGRES_DB_USER]&quot; -PostgresPassword &quot;[POSTGRES_DB_PASSWORD]&quot; -PostgresAdminUser &quot;[POSTGRES_ADMIN_USER]&quot; -PostgresAdminPassword &quot;[POSTGRES_ADMIN_PASSWORD]&quot; -RedisMode Existing -RedisDbHost &quot;[REDIS_DB_HOST]&quot; -RedisDbPort [REDIS_DB_PORT]"
+                 Sequence="execute"
+                 Before="RunOrchestrateInstall" />
+    <CustomAction Id="RunOrchestrateInstall" Execute="deferred" Return="check" Impersonate="no"
+                  ExeCommand="[RunOrchestrateInstallCmd]" Directory="APPFOLDER" />
+
+    <!-- Same -ServiceDir reasoning as InstallServiceCmd above. -->
+    <SetProperty Id="UninstallServiceCmd"
+                 Value="&quot;[System64Folder]WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File &quot;[#UninstallServicePs1]&quot; -ServiceDir &quot;[SERVICEFOLDER]\&quot;"
+                 Sequence="execute"
+                 Before="UninstallService" />
+    <CustomAction Id="UninstallService" Execute="deferred" Return="ignore" Impersonate="no"
+                  ExeCommand="[UninstallServiceCmd]" Directory="SERVICEFOLDER" />
+
+    <!-- Recursively wipes APPFOLDER/NODEFOLDER on full uninstall - their
+         extracted content (from expand-staged-archive.ps1) is invisible to
+         MSI's own file tracking, so RemoveFiles/RemoveFolders never touch it.
+         util:RemoveFolderEx (WiX's built-in mechanism for exactly this) was
+         tried first, but its custom action is scheduled by the extension's
+         own wixlib well before CostFinalize, too early for APPFOLDER/
+         NODEFOLDER to have resolved values yet ("Missing folder property:
+         APPFOLDER") - confirmed via a real install+uninstall cycle where the
+         extracted content was silently left behind - and WiX errors on
+         re-scheduling an already-registered extension action. Plain
+         PowerShell cmdlets (Get-ChildItem/Remove-Item), not another native
+         exe: passing an MSI folder property (always trailing "\") as an
+         argument to a SECOND native process hits the same trailing-
+         backslash-escapes-the-quote bug that broke ExtractAppArchive/
+         ExtractNodeRuntimeArchive earlier - single-quoting the path for
+         PowerShell's own parser (not double-quoting) sidesteps it entirely,
+         since CommandLineToArgvW only treats a backslash specially when it
+         immediately precedes a double quote. -->
+    <SetProperty Id="CleanupAppFolderCmd"
+                 Value="&quot;[System64Folder]WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -Command &quot;Get-ChildItem -LiteralPath '[APPFOLDER]' -Force | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue&quot;"
+                 Sequence="execute"
+                 Before="CleanupAppFolder" />
+    <CustomAction Id="CleanupAppFolder" Execute="deferred" Return="ignore" Impersonate="no"
+                  ExeCommand="[CleanupAppFolderCmd]" Directory="APPFOLDER" />
+
+    <SetProperty Id="CleanupNodeFolderCmd"
+                 Value="&quot;[System64Folder]WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -Command &quot;Get-ChildItem -LiteralPath '[NODEFOLDER]' -Force | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue&quot;"
+                 Sequence="execute"
+                 Before="CleanupNodeFolder" />
+    <CustomAction Id="CleanupNodeFolder" Execute="deferred" Return="ignore" Impersonate="no"
+                  ExeCommand="[CleanupNodeFolderCmd]" Directory="NODEFOLDER" />
+
+    <InstallExecuteSequence>
+      <!-- Stop the service before files are replaced (fresh install: no-op, service doesn't exist yet). -->
+      <Custom Action="UninstallService" Before="RemoveFiles" Condition='REMOVE~="ALL" OR (Installed AND NOT REINSTALL)' />
+      <Custom Action="CleanupAppFolder" After="UninstallService" Condition='REMOVE~="ALL"' />
+      <Custom Action="CleanupNodeFolder" After="CleanupAppFolder" Condition='REMOVE~="ALL"' />
+      <Custom Action="ExtractAppArchive" After="InstallFiles" Condition="NOT REMOVE" />
+      <Custom Action="ExtractNodeRuntimeArchive" After="ExtractAppArchive" Condition="NOT REMOVE" />
+      <Custom Action="InstallService" After="ExtractNodeRuntimeArchive" Condition="NOT REMOVE" />
+      <!-- BURNMSIINSTALL is set by Bundle.wxs's own MsiPackage invocation
+           (Burn always passes it) - never set when this MSI runs standalone.
+           Skipping in the Burn-driven case leaves that flow's own
+           OrchestrateInstall ExePackage (Bundle.wxs) as the sole source of
+           truth, exactly as before this change - zero behavior change for
+           the already-verified Setup.exe path. -->
+      <Custom Action="RunOrchestrateInstall" After="InstallService" Condition="NOT REMOVE AND NOT BURNMSIINSTALL" />
+    </InstallExecuteSequence>
+
+    <!-- ================= Feature tree ================= -->
+    <Feature Id="MainFeature" Title="Taskmaster" Level="1">
+      <ComponentGroupRef Id="DataFoldersGroup" />
+      <ComponentGroupRef Id="ShortcutGroup" />
+      <ComponentGroupRef Id="ServiceFilesGroup" />
+      <ComponentGroupRef Id="CommonFilesGroup" />
+      <ComponentGroupRef Id="OrchestrateScriptGroup" />
+      <ComponentGroupRef Id="ProvisionFilesGroup" />
+      <ComponentGroupRef Id="AppFilesGroup" />
+      <ComponentGroupRef Id="NodeRuntimeFilesGroup" />
+    </Feature>
+
+    <!-- Minimal MSI-level UI is defined in UI.wxs (a separate Fragment) —
+         interactive prompts (port, LAN vs local, data dir, PostgreSQL/Redis
+         mode) live in Bundle.wxs's Burn UI so a standalone msiexec install
+         remains fully silent/scriptable. -->
+
+  </Package>
+</Wix>

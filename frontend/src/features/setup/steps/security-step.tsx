@@ -53,6 +53,10 @@ export function SecurityStep({ onNext, onBack }: SecurityStepProps) {
         return /\S+@\S+\.\S+/.test(email);
     };
 
+    const isStrongPassword = (password: string) => {
+        return /^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*])(?=.{12,})/.test(password);
+    };
+
     const handleSubmit = async () => {
         setError('');
 
@@ -61,8 +65,8 @@ export function SecurityStep({ onNext, onBack }: SecurityStepProps) {
             return;
         }
 
-        if (password.length < 8) {
-            setError('Password must be at least 8 characters');
+        if (!isStrongPassword(password)) {
+            setError('Password must be at least 12 characters and include an uppercase letter, a lowercase letter, a number, and a special character (!@#$%^&*)');
             return;
         }
 
@@ -158,7 +162,7 @@ export function SecurityStep({ onNext, onBack }: SecurityStepProps) {
                             type={showPassword ? 'text' : 'password'}
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            placeholder="Strong password (min 8 chars)"
+                            placeholder="Strong password (min 12 chars, mixed case, number, symbol)"
                         />
                         <Button
                             type="button"
@@ -170,6 +174,9 @@ export function SecurityStep({ onNext, onBack }: SecurityStepProps) {
                             {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </Button>
                     </div>
+                    <p className="text-[0.8rem] text-muted-foreground">
+                        At least 12 characters, with uppercase, lowercase, a number, and a special character (!@#$%^&*).
+                    </p>
                 </div>
 
                 {/* Confirm Password */}

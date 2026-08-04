@@ -9,12 +9,14 @@ vi.mock('@/api/system', () => ({
   systemApi: {
     checkHealth: vi.fn(),
     getVersionStatus: vi.fn(),
+    refreshVersionStatus: vi.fn(),
   },
 }));
 
 import { systemApi } from '@/api/system';
 
 const mockedGetVersionStatus = vi.mocked(systemApi.getVersionStatus);
+const mockedRefreshVersionStatus = vi.mocked(systemApi.refreshVersionStatus);
 
 function createWrapper() {
   const queryClient = new QueryClient({
@@ -27,6 +29,17 @@ function createWrapper() {
 describe('useVersionStatus', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it('should stay idle when disabled', () => {
+    const { result } = renderHook(() => useVersionStatus(false), {
+      wrapper: createWrapper(),
+    });
+
+    expect(mockedGetVersionStatus).not.toHaveBeenCalled();
+    expect(result.current.data).toBeNull();
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.backendUpgraded).toBe(false);
   });
 
   it('should return null data initially while loading', () => {
@@ -128,5 +141,45 @@ describe('useVersionStatus', () => {
     });
 
     expect(result.current.backendUpgraded).toBe(true);
+  });
+
+  it('should refresh version data on demand', async () => {
+    mockedGetVersionStatus.mockResolvedValue({
+      currentVersion: '1.0.0',
+      latestVersion: '1.0.0',
+      updateAvailable: false,
+      repo: 'mikaYX/taskmaster',
+      releaseUrl: null,
+      checkedAt: '2026-03-14T12:00:00.000Z',
+      sourceStatus: 'ok',
+      error: null,
+    });
+    mockedRefreshVersionStatus.mockResolvedValue({
+      currentVersion: '1.0.0',
+      latestVersion: '1.0.7',
+      updateAvailable: true,
+      repo: 'mikaYX/taskmaster',
+      releaseUrl: 'https://github.com/mikaYX/taskmaster/releases/tag/1.0.7',
+      checkedAt: '2026-03-14T12:10:00.000Z',
+      sourceStatus: 'ok',
+      error: null,
+    });
+
+    const { result } = renderHook(() => useVersionStatus(), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(result.current.data).not.toBeNull();
+    });
+
+    await result.current.refresh();
+
+    await waitFor(() => {
+      expect(result.current.data!.latestVersion).toBe('1.0.7');
+    });
+
+    expect(result.current.data!.updateAvailable).toBe(true);
+    expect(mockedRefreshVersionStatus).toHaveBeenCalledTimes(1);
   });
 });

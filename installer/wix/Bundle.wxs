@@ -1,0 +1,159 @@
+<!--
+  Taskmaster Setup.exe — WiX Burn bootstrapper (WiX Toolset v5, MS-RL license
+  applies to WiX's own source only; see docs/windows-server-2019-local.md).
+  This is the recommended install path: it chains PostgreSQL 17 x64, Memurai
+  (or skips both when the admin points at existing servers), the Taskmaster
+  MSI, then runs installer/orchestrate-install.ps1 (secrets generation, .env
+  creation, Prisma migration, Windows Service install, health checks).
+
+  UI approach (decided with the project owner): the STOCK WiX Standard
+  Bootstrapper Application is used rather than a fully custom Managed BA, to
+  keep this maintainable with plain WiX. WixStdBA's own dialog set only
+  covers license/directory/progress/finish — it does not support arbitrary
+  custom wizard pages. The simple/default path (port 3000, local-only access,
+  local PostgreSQL, local Memurai) requires zero prompts beyond WixStdBA's
+  stock license+install dialogs. The "advanced" choices described in the
+  product spec (existing PostgreSQL/Redis, LAN access, custom port/data dir)
+  are exposed as overridable Burn variables settable from the command line
+  (e.g. `Taskmaster-Setup-1.1.3-x64.exe /passive POSTGRES_MODE=Existing
+  EXISTING_DATABASE_URL=... ACCESS_MODE=Lan PORT=8080`) rather than through
+  additional GUI wizard pages. A future iteration could replace
+  WixStandardBootstrapperApplication with a custom Managed BA (.NET/WPF) if a
+  full graphical wizard for the advanced path becomes a requirement — that is
+  a materially larger, separate effort (see docs/windows-server-2019-local.md).
+
+  Cannot be built in this environment — see Product.wxs for details.
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:bal="http://wixtoolset.org/schemas/v4/wxs/bal"
+     xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
+
+  <Bundle Name="Taskmaster Setup"
+          Version="$(var.ProductVersion)"
+          Manufacturer="Taskmaster"
+          UpgradeCode="3d4c6e8a-9b1f-4e2d-8c3a-5f6a7b8c9d10">
+
+    <!--
+      No custom Icon/Logo is referenced here: this repo doesn't ship a
+      .ico/.png brand asset, and pointing at a file that doesn't exist would
+      break the build. Add IconSourceFile="!(bindpath.repo)\path\to\icon.ico"
+      and a LogoFile back onto WixStandardBootstrapperApplication once a real
+      asset exists — until then, WixStdBA's own default icon/logo apply.
+    -->
+    <BootstrapperApplication>
+      <!-- rtfLicense (not hyperlinkLicense): this repo embeds the plain-text
+           LICENSE file directly via LicenseFile, with no public URL to point
+           a hyperlink theme's required LicenseUrl bind variable at. -->
+      <bal:WixStandardBootstrapperApplication
+        Theme="rtfLicense"
+        LicenseFile="!(bindpath.repo)\LICENSE"
+        SuppressOptionsUI="no" />
+    </BootstrapperApplication>
+
+    <!-- ================= Overridable install choices (defaults = the simple path) ================= -->
+    <Variable Name="PORT" Type="numeric" Value="3000" bal:Overridable="yes" />
+    <Variable Name="ACCESS_MODE" Type="string" Value="Local" bal:Overridable="yes" /> <!-- Local | Lan -->
+    <Variable Name="HOST_NAME" Type="string" Value="localhost" bal:Overridable="yes" />
+    <Variable Name="DATA_DIR" Type="string" Value="C:\ProgramData\Taskmaster" bal:Overridable="yes" />
+
+    <Variable Name="POSTGRES_MODE" Type="string" Value="Local" bal:Overridable="yes" /> <!-- Local | Existing -->
+    <Variable Name="EXISTING_DATABASE_URL" Type="string" Value="" bal:Overridable="yes" />
+    <Variable Name="EXISTING_PG_BIN_PATH" Type="string" Value="" bal:Overridable="yes" />
+
+    <Variable Name="REDIS_MODE" Type="string" Value="Local" bal:Overridable="yes" /> <!-- Local | Existing -->
+    <Variable Name="EXISTING_REDIS_URL" Type="string" Value="" bal:Overridable="yes" />
+
+    <!-- Detect condition helpers: skip the PostgreSQL/Memurai chain packages
+         entirely when either an existing server was requested or the
+         corresponding Windows service is already present (idempotent re-run,
+         e.g. repair or upgrade). -->
+    <util:RegistrySearch Id="PostgresServiceProbe"
+                          Root="HKLM"
+                          Key="SYSTEM\CurrentControlSet\Services\postgresql-x64-17"
+                          Variable="PostgresServiceExists"
+                          Result="exists" />
+    <util:RegistrySearch Id="MemuraiServiceProbe"
+                          Root="HKLM"
+                          Key="SYSTEM\CurrentControlSet\Services\Memurai"
+                          Variable="MemuraiServiceExists"
+                          Result="exists" />
+
+    <Chain>
+      <!-- PostgreSQL 17 x64 — auto-fetched and SHA-256-verified by build.ps1
+           (PostgreSQL License is redistribution-permissive; see
+           installer/payloads/README.md). Skipped when POSTGRES_MODE=Existing
+           or the service is already installed. Wrapped in a preprocessor
+           <?if?> because build.ps1 only passes HasPostgresPayload=1 when
+           installer/payloads/postgresql-17-x64.exe actually exists — WiX
+           needs the referenced SourceFile to exist AT BUILD TIME (to size it
+           for the Burn manifest), so this package is omitted from the chain
+           entirely rather than referencing a possibly-missing file. -->
+      <?if $(var.HasPostgresPayload) = 1?>
+      <ExePackage Id="PostgreSql"
+                  SourceFile="!(bindpath.payloads)\postgresql-17-x64.exe"
+                  InstallArguments="--mode unattended --unattendedmodeui minimal"
+                  DetectCondition="PostgresServiceExists OR POSTGRES_MODE = &quot;Existing&quot;"
+                  InstallCondition="POSTGRES_MODE = &quot;Local&quot;"
+                  Vital="yes"
+                  Permanent="yes" />
+      <?endif?>
+
+      <!-- Memurai — proprietary, never auto-fetched; must be pre-staged by
+           the operator in installer/payloads/ (see payloads/README.md).
+           Same build-time existence reasoning as PostgreSQL above: only
+           chained when build.ps1 found installer/payloads/memurai.msi.
+           Vital="no": a missing payload downgrades Setup.exe to an
+           MSI-only/no-cache-provisioning run rather than hard-failing,
+           per the "never silently proceed, never hard-require a
+           non-redistributable payload" requirement. -->
+      <?if $(var.HasMemuraiPayload) = 1?>
+      <!-- No DetectCondition here: unlike ExePackage, MsiPackage detection is
+           automatic (Burn/Windows Installer tracks the MSI's own ProductCode),
+           so Burn already knows whether this exact package is installed. The
+           MemuraiServiceExists / REDIS_MODE probe still gates whether we
+           attempt the install at all, via InstallCondition. -->
+      <MsiPackage Id="Memurai"
+                  SourceFile="!(bindpath.payloads)\memurai.msi"
+                  InstallCondition="REDIS_MODE = &quot;Local&quot; AND NOT MemuraiServiceExists"
+                  Vital="no"
+                  Permanent="yes" />
+      <?endif?>
+
+      <!-- The Taskmaster application itself. -->
+      <MsiPackage Id="TaskmasterMsi"
+                  SourceFile="!(bindpath.staging)\Taskmaster.msi"
+                  Vital="yes">
+        <MsiProperty Name="TASKMASTER_PORT" Value="[PORT]" />
+      </MsiPackage>
+
+      <!-- Post-MSI orchestration: secrets, .env, Prisma migration, service
+           install, health checks. Surfaces the French progress stages
+           ("installation PostgreSQL", "initialisation de la base",
+           "installation du cache", "migration Prisma",
+           "installation du service", "démarrage", "contrôle de santé") via
+           its own Write-Host output, captured by Burn's ExePackage progress
+           reporting and mirrored into
+           C:\ProgramData\Taskmaster\logs\install.log.
+
+           orchestrate-install.ps1 is referenced by a FIXED ABSOLUTE PATH
+           (it's installed by the preceding TaskmasterMsi package, staged
+           directly under TASKMASTERROOT - see Product.wxs's
+           OrchestrateScriptGroup/ProvisionFilesGroup), not via a Burn Payload
+           + `[#Id]` token substitution: unlike Windows Installer's own
+           `[#FileId]` formatted strings (used successfully elsewhere in
+           Product.wxs, e.g. [#InstallServicePs1]), Burn's ExePackage
+           InstallArguments does NOT resolve `[#Id]` payload-cache tokens -
+           confirmed the first time this bundle was actually run end-to-end
+           (Setup.exe launched powershell.exe with an empty -File argument,
+           because [#OrchestrateInstallScript] silently evaluated to "").
+           Permanent="yes": this is a one-shot provisioning script, not a
+           package with a meaningful inverse action, so no UninstallArguments. -->
+      <ExePackage Id="OrchestrateInstall"
+                  SourceFile="C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe"
+                  DetectCondition="0"
+                  Permanent="yes"
+                  Vital="yes"
+                  InstallArguments="-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File &quot;C:\Program Files\Taskmaster\orchestrate-install.ps1&quot; -Port [PORT] -AccessMode [ACCESS_MODE] -HostName [HOST_NAME] -DataDir &quot;[DATA_DIR]&quot; -PostgresMode [POSTGRES_MODE] -ExistingDatabaseUrl &quot;[EXISTING_DATABASE_URL]&quot; -ExistingPgBinPath &quot;[EXISTING_PG_BIN_PATH]&quot; -RedisMode [REDIS_MODE] -ExistingRedisUrl &quot;[EXISTING_REDIS_URL]&quot;" />
+    </Chain>
+  </Bundle>
+</Wix>

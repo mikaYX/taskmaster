@@ -28,8 +28,10 @@ import {
     FormLabel,
     FormMessage,
 } from "@/components/ui/form";
+import { useTranslation } from 'react-i18next';
 
 export function EmailSettingsPage() {
+    const { t } = useTranslation();
     const { settings, getSetting, updateSetting, isLoading, isUpdating, testEmail, isTestingEmail } = useSettings();
     const [isTestDialogOpen, setIsTestDialogOpen] = useState(false);
     const [testEmailTo, setTestEmailTo] = useState('');
@@ -130,7 +132,7 @@ export function EmailSettingsPage() {
     const handleTestConnection = () => {
         // Check if config is saved before testing
         if (form.formState.isDirty) {
-            toast.error("Veuillez sauvegarder vos paramètres avant de tester la connexion.");
+            toast.error(t('emailSettings.saveBeforeTest'));
             return;
         }
         testEmail({ to: [testEmailTo] });
@@ -144,7 +146,7 @@ export function EmailSettingsPage() {
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
                     {/* Enable Email */}
-                    <SettingsSection title="Global Configuration">
+                    <SettingsSection title={t('emailSettings.globalConfiguration')}>
                         <FormField
                             control={form.control}
                             name="enabled"
@@ -154,8 +156,8 @@ export function EmailSettingsPage() {
                                         <Switch checked={field.value} onCheckedChange={field.onChange} />
                                     </FormControl>
                                     <div className="space-y-0.5">
-                                        <FormLabel className="text-base">Enable Email Sending</FormLabel>
-                                        <FormDescription>Master switch for all email features</FormDescription>
+                                        <FormLabel className="text-base">{t('email.globalToggle')}</FormLabel>
+                                        <FormDescription>{t('emailSettings.globalToggleDescription')}</FormDescription>
                                     </div>
                                 </FormItem>
                             )}
@@ -165,7 +167,7 @@ export function EmailSettingsPage() {
                     {form.watch('enabled') && (
                         <>
                             {/* Provider */}
-                            <SettingsSection title="Email Provider">
+                            <SettingsSection title={t('email.provider')}>
                                 <FormField
                                     control={form.control}
                                     name="provider"
@@ -239,83 +241,83 @@ export function EmailSettingsPage() {
 
                             {/* SMTP Config */}
                             {form.watch('provider') === 'smtp' && (
-                                <SettingsSection title="SMTP Configuration">
+                                        <SettingsSection title={t('emailSettings.smtpConfiguration')}>
                                     <div className="grid grid-cols-2 gap-4">
                                         <FormField control={form.control} name="smtp.host" render={({ field }) => (
-                                            <FormItem><FormLabel>Host</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                                                    <FormItem><FormLabel>{t('email.smtpHost')}</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                                         )} />
                                         <FormField control={form.control} name="smtp.port" render={({ field }) => (
-                                            <FormItem><FormLabel>Port</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value))} /></FormControl><FormMessage /></FormItem>
+                                                    <FormItem><FormLabel>{t('email.smtpPort')}</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value))} /></FormControl><FormMessage /></FormItem>
                                         )} />
                                         <FormField control={form.control} name="smtp.user" render={({ field }) => (
-                                            <FormItem><FormLabel>User</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                                                    <FormItem><FormLabel>{t('email.smtpUser')}</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                                         )} />
                                         <FormField control={form.control} name="smtp.pass" render={({ field }) => (
-                                            <FormItem><FormLabel>Password</FormLabel><FormControl><Input type="password" {...field} /></FormControl><FormMessage /></FormItem>
+                                                    <FormItem><FormLabel>{t('email.smtpPassword')}</FormLabel><FormControl><Input type="password" {...field} /></FormControl><FormMessage /></FormItem>
                                         )} />
                                         <FormField control={form.control} name="smtp.from" render={({ field }) => (
-                                            <FormItem><FormLabel>From Address</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                                                    <FormItem><FormLabel>{t('email.fromAddress')}</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                                         )} />
                                     </div>
                                     <Button type="button" variant="outline" size="sm" className="mt-4" onClick={() => setIsTestDialogOpen(true)}>
-                                        <Mail className="mr-2 h-4 w-4" /> Test Connection
+                                                <Mail className="mr-2 h-4 w-4" /> {t('email.testSMTP')}
                                     </Button>
                                 </SettingsSection>
                             )}
 
                             {/* Mailgun Config */}
                             {form.watch('provider') === 'mailgun' && (
-                                <SettingsSection title="Mailgun Configuration">
+                                        <SettingsSection title={t('emailSettings.mailgunConfiguration')}>
                                     <div className="grid gap-4">
                                         <FormField control={form.control} name="mailgun.apiKey" render={({ field }) => (
-                                            <FormItem><FormLabel>API Key</FormLabel><FormControl><Input type="password" {...field} /></FormControl><FormMessage /></FormItem>
+                                                    <FormItem><FormLabel>{t('email.apiKey')}</FormLabel><FormControl><Input type="password" {...field} /></FormControl><FormMessage /></FormItem>
                                         )} />
                                         <FormField control={form.control} name="mailgun.domain" render={({ field }) => (
-                                            <FormItem><FormLabel>Domain</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                                                    <FormItem><FormLabel>{t('email.domain')}</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                                         )} />
                                         <FormField control={form.control} name="mailgun.from" render={({ field }) => (
-                                            <FormItem><FormLabel>From Address</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                                                    <FormItem><FormLabel>{t('email.fromAddress')}</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                                         )} />
                                     </div>
                                     <Button type="button" variant="outline" size="sm" className="mt-4" onClick={() => setIsTestDialogOpen(true)}>
-                                        <Mail className="mr-2 h-4 w-4" /> Test Connection
+                                                <Mail className="mr-2 h-4 w-4" /> {t('email.testSMTP')}
                                     </Button>
                                 </SettingsSection>
                             )}
 
                             {/* Mailjet Config */}
                             {form.watch('provider') === 'mailjet' && (
-                                <SettingsSection title="Mailjet Configuration">
+                                        <SettingsSection title={t('emailSettings.mailjetConfiguration')}>
                                     <div className="grid gap-4">
                                         <FormField control={form.control} name="mailjet.apiKey" render={({ field }) => (
-                                            <FormItem><FormLabel>API Key</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                                                    <FormItem><FormLabel>{t('email.apiKey')}</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                                         )} />
                                         <FormField control={form.control} name="mailjet.secretKey" render={({ field }) => (
-                                            <FormItem><FormLabel>Secret Key</FormLabel><FormControl><Input type="password" {...field} /></FormControl><FormMessage /></FormItem>
+                                                    <FormItem><FormLabel>{t('email.secretKey')}</FormLabel><FormControl><Input type="password" {...field} /></FormControl><FormMessage /></FormItem>
                                         )} />
                                         <FormField control={form.control} name="mailjet.from" render={({ field }) => (
-                                            <FormItem><FormLabel>From Address</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                                                    <FormItem><FormLabel>{t('email.fromAddress')}</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                                         )} />
                                     </div>
                                     <Button type="button" variant="outline" size="sm" className="mt-4" onClick={() => setIsTestDialogOpen(true)}>
-                                        <Mail className="mr-2 h-4 w-4" /> Test Connection
+                                                <Mail className="mr-2 h-4 w-4" /> {t('email.testSMTP')}
                                     </Button>
                                 </SettingsSection>
                             )}
 
                             {/* SendGrid Config */}
                             {form.watch('provider') === 'sendgrid' && (
-                                <SettingsSection title="SendGrid Configuration">
+                                        <SettingsSection title={t('emailSettings.sendgridConfiguration')}>
                                     <div className="grid gap-4">
                                         <FormField control={form.control} name="sendgrid.apiKey" render={({ field }) => (
-                                            <FormItem><FormLabel>API Key</FormLabel><FormControl><Input type="password" {...field} /></FormControl><FormMessage /></FormItem>
+                                                    <FormItem><FormLabel>{t('email.apiKey')}</FormLabel><FormControl><Input type="password" {...field} /></FormControl><FormMessage /></FormItem>
                                         )} />
                                         <FormField control={form.control} name="sendgrid.from" render={({ field }) => (
-                                            <FormItem><FormLabel>From Address</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                                                    <FormItem><FormLabel>{t('email.fromAddress')}</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                                         )} />
                                     </div>
                                     <Button type="button" variant="outline" size="sm" className="mt-4" onClick={() => setIsTestDialogOpen(true)}>
-                                        <Mail className="mr-2 h-4 w-4" /> Test Connection
+                                                <Mail className="mr-2 h-4 w-4" /> {t('email.testSMTP')}
                                     </Button>
                                 </SettingsSection>
                             )}
@@ -325,7 +327,7 @@ export function EmailSettingsPage() {
                     <div className="flex justify-end">
                         <Button type="submit" disabled={isUpdating}>
                             {isUpdating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            Save Changes
+                            {t('common.save')}
                         </Button>
                     </div>
                 </form>
@@ -334,12 +336,12 @@ export function EmailSettingsPage() {
             <Dialog open={isTestDialogOpen} onOpenChange={setIsTestDialogOpen}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Test Email</DialogTitle>
-                        <DialogDescription>Send a test email to verify config.</DialogDescription>
+                        <DialogTitle>{t('emailSettings.testEmailTitle')}</DialogTitle>
+                        <DialogDescription>{t('emailSettings.testEmailDescription')}</DialogDescription>
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
                         <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="test-email" className="text-right">Recipient</Label>
+                            <Label htmlFor="test-email" className="text-right">{t('emailSettings.recipient')}</Label>
                             <Input
                                 id="test-email"
                                 value={testEmailTo}
@@ -350,11 +352,11 @@ export function EmailSettingsPage() {
                     </div>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setIsTestDialogOpen(false)}>
-                            Cancel
+                            {t('common.cancel')}
                         </Button>
                         <Button onClick={handleTestConnection} disabled={isTestingEmail}>
                             {isTestingEmail && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            Send Test
+                            {t('emailSettings.sendTest')}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

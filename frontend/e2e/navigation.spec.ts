@@ -32,13 +32,13 @@ async function setupAuthenticatedContext(context: import('@playwright/test').Bro
     await context.route(/\/api\/tasks(\/.*|\?.*)?$/, route => route.fulfill({ json: [] }));
 }
 
-test.describe('Navigation — sidebar et routes', () => {
+test.describe('Navigation - sidebar et routes', () => {
 
     test.beforeEach(async ({ context }) => {
         await setupAuthenticatedContext(context);
     });
 
-    test('Scénario 1 : la sidebar est présente après authentification', async ({ page }) => {
+    test('Scenario 1 : la sidebar est presente apres authentification', async ({ page }) => {
         await page.goto('/');
         await page.waitForLoadState('networkidle');
 
@@ -47,7 +47,7 @@ test.describe('Navigation — sidebar et routes', () => {
         await expect(nav).toBeVisible();
     });
 
-    test('Scénario 2 : clic sur "Définitions de Tâches" navigue vers /task-definitions', async ({ page }) => {
+    test('Scenario 2 : clic sur "Definitions de Taches" navigue vers /task-definitions', async ({ page }) => {
         await page.goto('/');
         await page.waitForLoadState('networkidle');
 
@@ -62,7 +62,7 @@ test.describe('Navigation — sidebar et routes', () => {
         await expect(page).toHaveURL(/\/task-definitions/);
     });
 
-    test('Scénario 3 : /task-definitions/new charge la page de création de tâche', async ({ page }) => {
+    test('Scenario 3 : /task-definitions/new charge la page de creation de tache', async ({ page }) => {
         await page.goto('/task-definitions/new');
         await page.waitForLoadState('networkidle');
 
@@ -72,7 +72,7 @@ test.describe('Navigation — sidebar et routes', () => {
         await expect(page.locator('body')).not.toHaveText(/404/i);
     });
 
-    test('Scénario 4 : /task-definitions/archive charge la page des archives', async ({ page }) => {
+    test('Scenario 4 : /task-definitions/archive charge la page des archives', async ({ page }) => {
         await page.route(/\/api\/tasks\/archived$/, route =>
             route.fulfill({ json: [] })
         );
@@ -85,7 +85,7 @@ test.describe('Navigation — sidebar et routes', () => {
         await expect(page.locator('body')).not.toHaveText(/404/i);
     });
 
-    test('Scénario 5 : une URL inconnue redirige vers la racine', async ({ page }) => {
+    test('Scenario 5 : une URL inconnue redirige vers la racine', async ({ page }) => {
         await page.goto('/this-route-does-not-exist');
         await page.waitForLoadState('networkidle');
 
@@ -93,7 +93,7 @@ test.describe('Navigation — sidebar et routes', () => {
         await expect(page).toHaveURL('/');
     });
 
-    test('Scénario 6 : /settings charge la page des paramètres', async ({ page }) => {
+    test('Scenario 6 : /settings charge la page des parametres', async ({ page }) => {
         await page.goto('/settings');
         await page.waitForLoadState('networkidle');
 

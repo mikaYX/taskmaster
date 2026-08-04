@@ -97,21 +97,6 @@ export function useSettings() {
         testEmailMutation.mutate(dto);
     };
 
-    const submitFeedbackMutation = useMutation({
-        mutationFn: settingsApi.submitFeedback,
-        onSuccess: () => {
-            toast.success(t('settings.feedbackSuccess'));
-        },
-        onError: (error) => {
-            console.error('Failed to submit feedback:', error);
-            toast.error(t('settings.feedbackError'));
-        },
-    });
-
-    const submitFeedback = (dto: { type: 'bug' | 'suggestion', title: string, description: string }) => {
-        submitFeedbackMutation.mutate(dto);
-    };
-
     return {
         settings,
         isLoading,
@@ -121,10 +106,8 @@ export function useSettings() {
         updateSetting,
         updateSettings,
         testEmail,
-        submitFeedback,
         isUpdating: updateMutation.isPending || updateBulkMutation.isPending,
         isTestingEmail: testEmailMutation.isPending,
-        isSubmittingFeedback: submitFeedbackMutation.isPending,
         emailConfigStatus,
     };
 }

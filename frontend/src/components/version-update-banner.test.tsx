@@ -260,4 +260,26 @@ describe('VersionUpdateBanner', () => {
     expect(link.getAttribute('target')).toBe('_blank');
     expect(link.getAttribute('rel')).toBe('noopener noreferrer');
   });
+
+  it('should render release link pointing to Docker Hub', () => {
+    mockVersionData.data = {
+      currentVersion: '1.0.0',
+      latestVersion: '1.2.0',
+      updateAvailable: true,
+      repo: 'mikaxy/taskmaster',
+      releaseUrl: 'https://hub.docker.com/r/mikaxy/taskmaster/tags?name=1.2.0',
+      checkedAt: '2026-03-14T12:00:00.000Z',
+      sourceStatus: 'ok',
+      error: null,
+    };
+
+    render(<VersionUpdateBanner />);
+
+    const link = screen.getByText('version.viewRelease');
+    expect(link.getAttribute('href')).toBe(
+      'https://hub.docker.com/r/mikaxy/taskmaster/tags?name=1.2.0',
+    );
+    expect(link.getAttribute('target')).toBe('_blank');
+    expect(link.getAttribute('rel')).toBe('noopener noreferrer');
+  });
 });

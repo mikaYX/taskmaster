@@ -26,7 +26,13 @@ export const systemApi = {
   checkHealth: () => http.get<SystemHealth>('/health'),
 
   /**
-   * Get application version status (current vs latest on GitHub).
+   * Get application version status against the active official update source.
+   * The backend selects GitHub releases or Docker Hub tags automatically.
    */
   getVersionStatus: () => http.get<VersionStatus>('/system/version'),
+
+  /**
+   * Force a fresh version lookup, bypassing the backend cache.
+   */
+  refreshVersionStatus: () => http.post<VersionStatus>('/system/version/refresh'),
 };

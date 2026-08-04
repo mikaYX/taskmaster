@@ -124,4 +124,31 @@ describe('LoginPage', () => {
             expect(authApi.exchangeSsoTicket).not.toHaveBeenCalled();
         });
     });
+
+    describe('URL credentials (AUDIT.md Finding #1 — fully removed)', () => {
+        it('MUST NOT call POST /auth/login when the URL carries ?u=&p=', async () => {
+            renderWithRouter(['/login?u=admin&p=hunter2']);
+
+            // Allow effects + react-query to settle
+            await waitFor(() => new Promise(r => setTimeout(r, 100)));
+
+            expect(authApi.login).not.toHaveBeenCalled();
+            expect(authApi.exchangeSsoTicket).not.toHaveBeenCalled();
+        });
+
+        it('MUST NOT pre-fill the username field from ?u=', async () => {
+            renderWithRouter(['/login?u=admin&p=hunter2']);
+
+            const input = await screen.findByLabelText(/auth\.username/i) as HTMLInputElement;
+            expect(input.value).toBe('');
+        });
+
+        it('MUST NOT call POST /auth/login for the legacy ?u-/p- variants', async () => {
+            renderWithRouter(['/login?u-admin&p-hunter2']);
+
+            await waitFor(() => new Promise(r => setTimeout(r, 100)));
+
+            expect(authApi.login).not.toHaveBeenCalled();
+        });
+    });
 });

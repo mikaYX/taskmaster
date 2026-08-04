@@ -14,8 +14,15 @@ const VERDICT_FILE = path.resolve(process.cwd(), 'auth-release-verdict.json');
 const slo = JSON.parse(fs.readFileSync(SLO_FILE, 'utf-8')).slos;
 
 const API_URL = process.env.API_URL || 'http://localhost:3000/api';
-const USERNAME = process.env.SMOKE_USERNAME || 'smoke_test_user';
-const PASSWORD = process.env.SMOKE_PASSWORD || 'smoke_test_password';
+const USERNAME = process.env.SMOKE_USERNAME;
+const PASSWORD = process.env.SMOKE_PASSWORD;
+
+if (!USERNAME || !PASSWORD) {
+    console.error(
+        '[GO/NO-GO] Refusing to run: SMOKE_USERNAME and SMOKE_PASSWORD must both be set.',
+    );
+    process.exit(1);
+}
 
 // Paramètres d'Échantillonnage
 const SAMPLES = 30;

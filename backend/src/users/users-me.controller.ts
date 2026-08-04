@@ -19,6 +19,7 @@ import * as path from 'path';
 import { UsersService } from './users.service';
 import { JwtAuthGuard, RolesGuard, Roles, CurrentUser } from '../auth';
 import type { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
+import { getUploadsDir } from '../config/app-paths';
 
 /**
  * Controller for "current user" (me) routes.
@@ -54,10 +55,7 @@ export class UsersMeController {
       if (!file?.buffer) {
         throw new BadRequestException('No file uploaded');
       }
-      const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
-      if (!fs.existsSync(uploadsDir)) {
-        fs.mkdirSync(uploadsDir, { recursive: true });
-      }
+      const uploadsDir = getUploadsDir();
       const ext = path.extname(file.originalname) || '.jpg';
       const filename = `avatar-${user.sub}-${Date.now()}${ext}`;
       const filepath = path.join(uploadsDir, filename);

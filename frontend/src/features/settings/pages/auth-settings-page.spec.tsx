@@ -95,8 +95,8 @@ describe('AuthSettingsPage Capability Constraints', () => {
         // Error banner should be visible
         expect(await screen.findByText(/Connection Error/i)).toBeInTheDocument();
 
-        // Save Changes button should be disabled
-        const saveBtn = screen.getByRole('button', { name: /Save Changes/i });
+        // Save button should be disabled
+        const saveBtn = screen.getByRole('button', { name: /^Save$/i });
         expect(saveBtn).toBeDisabled();
 
         // Azure should be disabled

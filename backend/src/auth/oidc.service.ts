@@ -4,12 +4,14 @@ import {
   BadRequestException,
   UnauthorizedException,
   Inject,
+  OnModuleInit,
 } from '@nestjs/common';
 import { SettingsService } from '../settings/settings.service';
-import { Issuer, Client, TokenSet, generators } from 'openid-client';
+import { Issuer, Client, TokenSet, generators, custom } from 'openid-client';
 import Redis from 'ioredis';
 import { REDIS_CLIENT } from '../common/redis/redis.module';
 import { randomBytes } from 'crypto';
+import { validateUrl } from '../common/utils/url-validator.util';
 
 export interface OidcProfile {
   username: string;
@@ -27,8 +29,16 @@ interface OidcClientCacheEntry {
 const SSO_TICKET_TTL = 60;
 const STATE_TTL = 300;
 
+/**
+ * Hard cap on every HTTP request emitted by openid-client (discovery,
+ * userinfo, token, jwks). Defense-in-depth complement to AUDIT.md Finding #3:
+ * even if the SSRF pre-check is bypassed via DNS rebinding, the request can
+ * never hang an event-loop slot for more than this duration.
+ */
+const OIDC_HTTP_TIMEOUT_MS = 5_000;
+
 @Injectable()
-export class OidcService {
+export class OidcService implements OnModuleInit {
   private readonly logger = new Logger(OidcService.name);
   private cachedClients: Record<string, OidcClientCacheEntry> = {};
 
@@ -36,6 +46,13 @@ export class OidcService {
     private readonly settingsService: SettingsService,
     @Inject(REDIS_CLIENT) private readonly redis: Redis,
   ) {}
+
+  onModuleInit(): void {
+    // Apply globally to every HTTP request done by openid-client (Issuer
+    // discovery, token endpoint, userinfo, jwks). Default in openid-client v5
+    // is 3.5s; we keep a conservative 5s to match `validateUrl` semantics.
+    custom.setHttpOptionsDefaults({ timeout: OIDC_HTTP_TIMEOUT_MS });
+  }
 
   async getClient(provider: string): Promise<Client> {
     if (provider === 'google') return this.getGoogleClient();
@@ -115,6 +132,33 @@ export class OidcService {
       this.logger.log(
         `Discovering OIDC issuer for provider '${provider}': ${issuerUrl}`,
       );
+
+      // SECURITY (AUDIT.md Finding #3): pre-validate issuer URL against SSRF
+      // BEFORE Issuer.discover() fires its own HTTP request. This blocks the
+      // common case where a malicious SUPER_ADMIN configures an issuer
+      // pointing at cloud metadata (169.254.169.254), loopback (127.0.0.1),
+      // or other internal services (Redis, Postgres, VPC). Private IPs can be
+      // explicitly allowed via OIDC_ALLOW_PRIVATE_IPS=true for self-hosted
+      // OIDC providers on private networks.
+      //
+      // Residual risk — DNS rebinding: the hostname is resolved twice (once
+      // by `validateUrl`, once by openid-client's internal got client). An
+      // attacker controlling the issuer DNS could return a public IP on the
+      // first lookup and a private IP on the second. This requires:
+      //   1. A SUPER_ADMIN account already compromised (issuer URL is a
+      //      privileged setting), AND
+      //   2. Attacker-controlled authoritative DNS with very short TTL.
+      // Out of scope of this hardening pass — fully solving it requires
+      // pinning the validated IP onto openid-client's HTTP agent (see Phase B
+      // in AUDIT.md). The global `custom.setHttpOptionsDefaults` timeout
+      // configured in `onModuleInit` caps the blast radius regardless.
+      const allowPrivateIps = process.env.OIDC_ALLOW_PRIVATE_IPS === 'true';
+      await validateUrl(issuerUrl, {
+        allowPrivateIps,
+        allowHttp: allowPrivateIps,
+        timeoutMs: 5000,
+      });
+
       const issuer = await Issuer.discover(issuerUrl);
       const client = new issuer.Client({
         client_id: clientId,

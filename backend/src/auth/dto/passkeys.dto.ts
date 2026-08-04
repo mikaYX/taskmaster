@@ -1,4 +1,10 @@
-import { IsNotEmpty, IsObject, IsOptional, IsString } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsObject,
+  IsOptional,
+  IsString,
+  MaxLength,
+} from 'class-validator';
 
 export class RegistrationResponseDto {
   @IsObject()
@@ -7,6 +13,7 @@ export class RegistrationResponseDto {
 
   @IsString()
   @IsOptional()
+  @MaxLength(100)
   name?: string;
 }
 export class AuthenticationResponseDto {
@@ -16,5 +23,6 @@ export class AuthenticationResponseDto {
 
   @IsString()
   @IsNotEmpty()
+  @MaxLength(256)
   sessionId: string;
 }

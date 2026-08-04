@@ -32,13 +32,13 @@ import {
   TestAzureDto,
   TestSamlDto,
   TestOidcDto,
-  SubmitFeedbackDto,
 } from './dto';
 import { JwtAuthGuard, RolesGuard } from '../auth/guards';
 import { Roles, CurrentUser } from '../auth/decorators';
 import type { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 import { RequirePermission } from '../auth/decorators/require-permission.decorator';
 import { Permission } from '../auth/permissions.enum';
+import { getUploadsDir } from '../config/app-paths';
 import { EmailService } from '../email';
 import { LdapService } from '../auth/ldap.service';
 import { FileValidationPipe } from '../common/pipes/file-validation.pipe';
@@ -548,16 +548,17 @@ export class SettingsController {
   }
 
   /**
-   * Submit feedback to GitHub.
+   * Deprecated compatibility endpoint kept to avoid stale frontend failures
+   * during rolling deployments or cached-client upgrades.
    */
   @Post('github/feedback')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
-  async submitFeedback(
-    @Body() dto: SubmitFeedbackDto,
-    @CurrentUser() user: JwtPayload,
-  ) {
-    return this.settingsService.submitFeedback(dto, user);
+  submitFeedbackCompatibility() {
+    this.logger.debug(
+      'Ignored deprecated GitHub feedback request for upgrade compatibility',
+    );
+    return { success: true };
   }
 
   private handleFileUpload(
@@ -569,11 +570,7 @@ export class SettingsController {
     }
 
     // Save file (simple local storage)
-    const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
-
-    if (!fs.existsSync(uploadsDir)) {
-      fs.mkdirSync(uploadsDir, { recursive: true });
-    }
+    const uploadsDir = getUploadsDir();
 
     // Clean up old files of same type to prevent accumulation
     try {

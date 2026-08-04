@@ -90,7 +90,7 @@ docker run -d --name taskmaster-db \
   -e POSTGRES_PASSWORD=taskmaster_dev \
   -e POSTGRES_DB=taskmaster \
   -p 5432:5432 \
-  postgres:17
+  postgres:18-alpine
 
 # Apply migrations
 npx prisma migrate deploy

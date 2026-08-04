@@ -23,13 +23,13 @@ async function setupAuthenticatedSession(context: import('@playwright/test').Bro
     await context.route(/\/api\/sites(\/.*|\?.*)?$/, route => route.fulfill({ json: [] }));
 }
 
-test.describe('Tableau de bord des tâches', () => {
+test.describe('Tableau de bord des taches', () => {
 
     test.beforeEach(async ({ context }) => {
         await setupAuthenticatedSession(context);
     });
 
-    test('Scénario 1 : état vide — message informatif quand aucune tâche planifiée', async ({ page }) => {
+    test('Scenario 1 : etat vide - message informatif quand aucune tache planifiee', async ({ page }) => {
         await page.route(/\/api\/tasks\/board(\/.*|\?.*)?$/, route =>
             route.fulfill({ json: [] })
         );
@@ -45,7 +45,7 @@ test.describe('Tableau de bord des tâches', () => {
         await expect(emptyMsg).toBeVisible();
     });
 
-    test('Scénario 2 : les tâches chargées sont affichées dans le board', async ({ page }) => {
+    test('Scenario 2 : les taches chargees sont affichees dans le board', async ({ page }) => {
         await page.route(/\/api\/tasks\/board(\/.*|\?.*)?$/, route =>
             route.fulfill({
                 json: [
@@ -73,7 +73,7 @@ test.describe('Tableau de bord des tâches', () => {
         await expect(page.getByText('Vérification serveurs')).toBeVisible();
     });
 
-    test('Scénario 3 : une tâche validée affiche son statut visuellement', async ({ page }) => {
+    test('Scenario 3 : une tache validee affiche son statut visuellement', async ({ page }) => {
         await page.route(/\/api\/tasks\/board(\/.*|\?.*)?$/, route =>
             route.fulfill({
                 json: [
@@ -105,7 +105,7 @@ test.describe('Tableau de bord des tâches', () => {
         await expect(validatedBadge).toBeVisible();
     });
 
-    test('Scénario 4 : la route /tasks pointe bien vers le tableau de bord', async ({ page }) => {
+    test('Scenario 4 : la route /tasks pointe bien vers le tableau de bord', async ({ page }) => {
         await page.route(/\/api\/tasks\/board(\/.*|\?.*)?$/, route =>
             route.fulfill({ json: [] })
         );

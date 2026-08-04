@@ -100,10 +100,73 @@ class EnvironmentVariables {
 
   @IsOptional()
   @IsString()
+  VERSION_CHECK_DOCKER_IMAGE?: string;
+
+  @IsOptional()
+  @IsString()
+  TASKMASTER_IMAGE?: string;
+
+  @IsOptional()
+  @IsString()
   @MinLength(16, {
     message: 'BOOTSTRAP_SECRET must be at least 16 characters long',
   })
   BOOTSTRAP_SECRET?: string;
+
+  @IsOptional()
+  @IsString()
+  BACKEND_URL?: string;
+
+  @IsOptional()
+  @IsString()
+  FRONTEND_URL?: string;
+
+  @IsOptional()
+  @IsString()
+  RP_ID?: string;
+
+  @IsOptional()
+  @IsString()
+  OIDC_ALLOW_PRIVATE_IPS?: string;
+
+  @IsOptional()
+  @IsString()
+  AUTH_LOCKOUT_IP_WHITELIST?: string;
+
+  @IsOptional()
+  @IsString()
+  PROCEDURE_STORAGE_PATH?: string;
+
+  // Windows Server / bare-metal install support (see docs/windows-server-2019-local.md)
+  @IsOptional()
+  @IsString()
+  TASKMASTER_INSTALL_DIR?: string;
+
+  @IsOptional()
+  @IsString()
+  TASKMASTER_DATA_DIR?: string;
+
+  @IsOptional()
+  @IsString()
+  TASKMASTER_ENV_FILE?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  TASKMASTER_STARTUP_TIMEOUT_SECONDS = 60;
+
+  @IsOptional()
+  @IsString()
+  PG_BIN_PATH?: string;
+
+  @IsOptional()
+  @IsString()
+  PUPPETEER_EXECUTABLE_PATH?: string;
+
+  @IsOptional()
+  @Transform(({ value }) => value === true || value === 'true' || value === '1')
+  @IsBoolean()
+  OFFLINE_MODE = false;
 }
 
 export function validate(

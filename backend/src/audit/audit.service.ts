@@ -1,5 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { anonymizeIp } from '../common/utils/ip-anonymizer.util';
 import {
   AuditActionType,
   AuditCategory,
@@ -8,6 +9,8 @@ import {
 
 @Injectable()
 export class AuditService {
+  private readonly logger = new Logger(AuditService.name);
+
   constructor(private prisma: PrismaService) {}
 
   async log(payload: {
@@ -21,6 +24,8 @@ export class AuditService {
     ipAddress?: string;
   }) {
     try {
+      // GDPR Art. 5(1)(c) — anonymize IP before persistence (AUDIT.md #8, §15.3).
+      // Helper preserves null/undefined/"unknown" sentinel; bad inputs → null.
       await this.prisma.client.auditLog.create({
         data: {
           action: payload.action,
@@ -30,12 +35,21 @@ export class AuditService {
           category: payload.category,
           severity: payload.severity || AuditSeverity.INFO,
           details: payload.details ? JSON.stringify(payload.details) : null,
-          ipAddress: payload.ipAddress,
+          ipAddress: anonymizeIp(payload.ipAddress) ?? undefined,
         },
       });
     } catch (error) {
-      // Fail-safe: Audit logging should not crash the main application flow
-      console.error('Failed to create audit log', error);
+      // Fail-safe: audit logging must not crash the main application flow.
+      // Emit a structured log so ops can alert on missing audit entries
+      // (e.g., alert when `[AUDIT_LOG_FAILED]` appears in production logs).
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.error(
+        `[AUDIT_LOG_FAILED] action=${payload.action} category=${payload.category} ` +
+          `severity=${payload.severity || AuditSeverity.INFO} ` +
+          `actorId=${payload.actorId ?? 'null'} target=${payload.target ?? 'null'} ` +
+          `error="${message}"`,
+        error instanceof Error ? error.stack : undefined,
+      );
     }
   }
 

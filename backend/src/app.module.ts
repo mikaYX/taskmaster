@@ -24,6 +24,7 @@ import { HolidaysModule } from './holidays';
 import { validate } from './config';
 import { join } from 'path';
 import { AuditModule } from './audit/audit.module';
+import { getPublicDir } from './config/app-paths';
 
 import { RedisModule } from './common/redis/redis.module';
 import { QueueModule } from './queues/queue.module';
@@ -46,7 +47,24 @@ import { SystemModule } from './system';
       isGlobal: true,
       validate,
       cache: true,
-      envFilePath: [join(__dirname, '..', '..', '..', '.env'), '.env'],
+      // TASKMASTER_ENV_FILE lets a service wrapper (e.g. WinSW on Windows)
+      // pin an exact, ACL-restricted .env location. Falls back to the
+      // historical dev/Docker search path when unset - plus, on win32 only,
+      // the fixed installer convention path as a last resort. Confirmed on a
+      // real install that WinSW's <env> elements can silently fail to reach
+      // the child node.exe process (still unexplained - reproduced manually
+      // launching node.exe with the same env vars set directly, which
+      // worked fine), leaving TASKMASTER_ENV_FILE unset and the app unable
+      // to find its real config at all.
+      envFilePath: process.env.TASKMASTER_ENV_FILE
+        ? [process.env.TASKMASTER_ENV_FILE]
+        : [
+            join(__dirname, '..', '..', '..', '.env'),
+            '.env',
+            ...(process.platform === 'win32'
+              ? ['C:\\ProgramData\\Taskmaster\\config\\.env']
+              : []),
+          ],
     }),
     LoggerModule.forRootAsync({
       imports: [ConfigModule],
@@ -64,11 +82,26 @@ import { SystemModule } from './system';
                   target: 'pino-pretty',
                   options: { singleLine: true, colorize: true },
                 },
-            // Ne jamais logger les tokens d'auth
+            // Ne jamais logger les tokens d'auth — étendu au body sensible
+            // (AUDIT.md Finding #18). Les valeurs ciblées sont remplacées par
+            // `[Redacted]` dans tous les logs, y compris les niveaux debug.
             redact: [
               'req.headers.authorization',
               'req.headers.cookie',
               'req.headers["x-api-key"]',
+              'req.body.password',
+              'req.body.currentPassword',
+              'req.body.newPassword',
+              'req.body.confirmPassword',
+              'req.body.token',
+              'req.body.refreshToken',
+              'req.body.ssoTicket',
+              'req.body.sso_ticket',
+              'req.body.apiKey',
+              'req.body.mfaToken',
+              'req.body.totpToken',
+              'req.body.recoveryCode',
+              'res.headers["set-cookie"]',
             ],
             customProps: () => ({
               service: 'taskmaster-backend',
@@ -78,7 +111,7 @@ import { SystemModule } from './system';
       },
     }),
     ServeStaticModule.forRoot({
-      rootPath: join(process.cwd(), 'public'),
+      rootPath: getPublicDir(),
       serveRoot: '/public',
     }),
     ClsModule.forRoot({

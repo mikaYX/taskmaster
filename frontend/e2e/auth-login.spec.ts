@@ -10,7 +10,7 @@ async function setupBaseMocks(page: import('@playwright/test').Page) {
     );
 }
 
-test.describe('Authentification — page de connexion', () => {
+test.describe('Authentification - page de connexion', () => {
 
     test.beforeEach(async ({ page }) => {
         await setupBaseMocks(page);
@@ -21,7 +21,7 @@ test.describe('Authentification — page de connexion', () => {
         );
     });
 
-    test('Scénario 1 : page de login affichée pour un visiteur non authentifié', async ({ page }) => {
+    test('Scenario 1 : page de login affichee pour un visiteur non authentifie', async ({ page }) => {
         await page.goto('/');
 
         // L'utilisateur est redirigé vers /login
@@ -35,7 +35,7 @@ test.describe('Authentification — page de connexion', () => {
         await expect(page.getByRole('button', { name: /se connecter/i })).toBeVisible();
     });
 
-    test('Scénario 2 : connexion réussie redirige vers le tableau de bord', async ({ page }) => {
+    test('Scenario 2 : connexion reussie redirige vers le tableau de bord', async ({ page }) => {
         let sessionCalled = false;
 
         await page.route(/\/api\/auth\/login$/, async route => {
@@ -74,7 +74,7 @@ test.describe('Authentification — page de connexion', () => {
         await expect(page).not.toHaveURL(/\/login/);
     });
 
-    test("Scénario 3 : identifiants invalides affichent un message d'erreur", async ({ page }) => {
+    test("Scenario 3 : identifiants invalides affichent un message d'erreur", async ({ page }) => {
         await page.route(/\/api\/auth\/login$/, route =>
             route.fulfill({ status: 401, json: { message: 'Invalid credentials' } })
         );
@@ -90,7 +90,7 @@ test.describe('Authentification — page de connexion', () => {
         await expect(error).toBeVisible();
     });
 
-    test('Scénario 4 : utilisateur déjà connecté redirigé hors de /login', async ({ page }) => {
+    test('Scenario 4 : utilisateur deja connecte redirige hors de /login', async ({ page }) => {
         // Remplace le beforeEach : session déjà valide
         await page.route(/\/api\/auth\/session(\/.*|\?.*)?$/, route =>
             route.fulfill({

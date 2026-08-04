@@ -164,4 +164,53 @@ describe('AuditService', () => {
       });
     });
   });
+
+  describe('log() — GDPR IP anonymization (AUDIT.md #8 / §15.3)', () => {
+    it('masks the last octet of an IPv4 before insertion', async () => {
+      await service.log({
+        action: AuditAction.AUTH_LOGIN_FAILURE,
+        category: AuditCategory.AUTH,
+        ipAddress: '192.168.1.42',
+      });
+
+      expect(prismaService.client.auditLog.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({ ipAddress: '192.168.1.0' }),
+      });
+    });
+
+    it('masks the last 80 bits of an IPv6 before insertion', async () => {
+      await service.log({
+        action: AuditAction.AUTH_LOGIN_FAILURE,
+        category: AuditCategory.AUTH,
+        ipAddress: '2001:db8:abcd::1',
+      });
+
+      expect(prismaService.client.auditLog.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({ ipAddress: '2001:db8:abcd::' }),
+      });
+    });
+
+    it('preserves the "unknown" sentinel as-is', async () => {
+      await service.log({
+        action: AuditAction.AUTH_LOGIN_FAILURE,
+        category: AuditCategory.AUTH,
+        ipAddress: 'unknown',
+      });
+
+      expect(prismaService.client.auditLog.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({ ipAddress: 'unknown' }),
+      });
+    });
+
+    it('passes undefined through when no IP is supplied', async () => {
+      await service.log({
+        action: AuditAction.AUTH_LOGIN_SUCCESS,
+        category: AuditCategory.AUTH,
+      });
+
+      expect(prismaService.client.auditLog.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({ ipAddress: undefined }),
+      });
+    });
+  });
 });

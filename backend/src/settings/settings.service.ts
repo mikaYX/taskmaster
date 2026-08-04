@@ -11,9 +11,41 @@ import {
 } from './settings.registry';
 import { SettingResponseDto } from './dto';
 import parser from 'cron-parser';
-import { safeFetch } from '../common/utils/url-validator.util';
 
 const SENSITIVE_PLACEHOLDER = '••••••••';
+
+/**
+ * Whitelist of settings keys returned by `getPublicBranding()`.
+ *
+ * Public endpoint, NO authentication. Any key added here is observable by
+ * any anonymous visitor of the login page (AUDIT.md Finding #17). Strict
+ * review required for additions.
+ *
+ * - `app.title`, `app.subtitle`, `app.logoUrl`, `app.faviconUrl`: branding
+ *   visible on the login screen.
+ * - `ui.theme`: dark/light mode default — needed before login so the page
+ *   matches subsequent in-app appearance.
+ * - `auth.generic.enabled`, `auth.generic.oidc.providerName`: control whether
+ *   to render the SSO button and what label to show; the provider's display
+ *   name is intentionally public.
+ * - `auth.passkeys.enabled`: feature flag, controls passkey button rendering.
+ * - `addons.todolist.enabled`: sidebar feature flag read before auth so the
+ *   shell renders consistently.
+ *
+ * MUST NOT include: any `*.clientSecret`, `*.apiKey`, `*.password`,
+ * `*.privateKey`, `*.signingKey`, internal endpoints, DB URLs, etc.
+ */
+export const PUBLIC_BRANDING_KEYS = [
+  'app.title',
+  'app.subtitle',
+  'app.logoUrl',
+  'app.faviconUrl',
+  'ui.theme',
+  'auth.generic.enabled',
+  'auth.generic.oidc.providerName',
+  'auth.passkeys.enabled',
+  'addons.todolist.enabled',
+] as const;
 
 /**
  * Settings Service.
@@ -41,21 +73,15 @@ export class SettingsService {
   /**
    * Get public branding settings (no auth required).
    * Only returns non-sensitive branding settings for login page.
+   *
+   * AUDIT.md Finding #17: the list of public-facing settings keys is
+   * intentionally pinned here and exported as a read-only constant so any
+   * future addition is reviewable. Each key is justified inline — add a
+   * comment when extending the list and confirm the value is never sensitive.
    */
   async getPublicBranding(): Promise<Record<string, unknown>> {
-    const brandingKeys = [
-      'app.title',
-      'app.subtitle',
-      'app.logoUrl',
-      'app.faviconUrl',
-      'ui.theme',
-      'auth.generic.enabled',
-      'auth.generic.oidc.providerName',
-      'auth.passkeys.enabled',
-      'addons.todolist.enabled',
-    ];
     const stored = await this.prisma.client.config.findMany({
-      where: { key: { in: brandingKeys } },
+      where: { key: { in: [...PUBLIC_BRANDING_KEYS] } },
     });
 
     const result: Record<string, unknown> = {};
@@ -508,57 +534,6 @@ export class SettingsService {
       return JSON.parse(value);
     } catch {
       return value;
-    }
-  }
-
-  /**
-   * Submit feedback to GitHub.
-   */
-  async submitFeedback(
-    dto: any,
-    user: { username: string },
-  ): Promise<{ success: boolean }> {
-    const token = process.env.GITHUB_TOKEN;
-    const repo = process.env.GITHUB_REPO || 'Mika/taskmaster';
-
-    if (!token) {
-      this.logger.warn('GitHub feedback failed: No GITHUB_TOKEN configured.');
-      throw new BadRequestException('GitHub integration is not configured.');
-    }
-
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
-
-      const response = await safeFetch(
-        `https://api.github.com/repos/${repo}/issues`,
-        {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${token}`,
-            Accept: 'application/vnd.github.v3+json',
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            title: `[${dto.type.toUpperCase()}] ${dto.title}`,
-            body: `**From User:** ${user.username}\n\n**Type:** ${dto.type}\n\n**Description:**\n${dto.description}`,
-            labels: [dto.type, 'user-feedback'],
-          }),
-          signal: controller.signal as RequestInit['signal'],
-        },
-        { timeoutMs: 10000, allowHttp: false },
-      );
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        throw new Error(`GitHub API returned ${response.status}`);
-      }
-
-      return { success: true };
-    } catch (err: unknown) {
-      const errMsg = err instanceof Error ? err.message : String(err);
-      this.logger.error(`Failed to submit GitHub feedback: ${errMsg}`);
-      throw new BadRequestException('Failed to submit feedback at this time.');
     }
   }
 

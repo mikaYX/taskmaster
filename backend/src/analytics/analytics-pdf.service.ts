@@ -1,4 +1,5 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { existsSync } from 'fs';
 import * as puppeteer from 'puppeteer';
 import { AnalyticsService } from './analytics.service';
 import type { OverviewResponse, TaskComplianceItem } from './dto';
@@ -10,9 +11,49 @@ interface PdfGenerationData {
   endDate: string;
 }
 
+const WINDOWS_EDGE_PATHS = [
+  'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
+  'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe',
+];
+
+const LINUX_CHROMIUM_PATH = '/usr/bin/chromium-browser';
+
 @Injectable()
 export class AnalyticsPdfService {
   constructor(private readonly analyticsService: AnalyticsService) {}
+
+  /**
+   * Resolves a Puppeteer-launchable browser executable across platforms.
+   * PUPPETEER_EXECUTABLE_PATH always wins (lets an operator point at any
+   * browser explicitly). On Windows, we deliberately do not bundle a
+   * headless Chromium (installer size/maintenance) and instead detect the
+   * Microsoft Edge that ships with virtually every Windows Server 2019 host.
+   */
+  private resolveExecutablePath(): string | undefined {
+    const configured = process.env.PUPPETEER_EXECUTABLE_PATH;
+    if (configured && existsSync(configured)) {
+      return configured;
+    }
+
+    if (process.platform === 'win32') {
+      const edgePath = WINDOWS_EDGE_PATHS.find((p) => existsSync(p));
+      if (edgePath) {
+        return edgePath;
+      }
+      throw new InternalServerErrorException(
+        'PDF export requires Microsoft Edge or PUPPETEER_EXECUTABLE_PATH to ' +
+          'be set. Install Microsoft Edge, or set PUPPETEER_EXECUTABLE_PATH ' +
+          'in the Taskmaster .env to point at a compatible browser.',
+      );
+    }
+
+    if (existsSync(LINUX_CHROMIUM_PATH)) {
+      return LINUX_CHROMIUM_PATH;
+    }
+
+    // Fall back to Puppeteer's own bundled Chromium, if present.
+    return undefined;
+  }
 
   async generate(startDate: string, endDate: string): Promise<Buffer> {
     const [overview, tasks] = await Promise.all([
@@ -23,7 +64,7 @@ export class AnalyticsPdfService {
     const html = this.buildHtml({ overview, tasks, startDate, endDate });
 
     const browser = await puppeteer.launch({
-      executablePath: '/usr/bin/chromium-browser',
+      executablePath: this.resolveExecutablePath(),
       headless: true,
       args: [
         '--no-sandbox',
@@ -33,7 +74,8 @@ export class AnalyticsPdfService {
     });
 
     const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: 'networkidle0' });
+    await page.setContent(html, { waitUntil: 'domcontentloaded' });
+    await page.waitForNetworkIdle();
 
     const pdfBuffer = await page.pdf({
       format: 'A4',
@@ -97,9 +139,8 @@ export class AnalyticsPdfService {
 <head>
 <meta charset="utf-8">
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: 'Inter', sans-serif; color: #1e293b; background: #ffffff; }
+  body { font-family: -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1e293b; background: #ffffff; }
   
   .header {
     background: linear-gradient(135deg, #1e40af 0%, #3b82f6 50%, #06b6d4 100%);

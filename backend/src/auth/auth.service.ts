@@ -18,6 +18,7 @@ import { SettingsService } from '../settings/settings.service';
 import { OidcProfile } from './oidc.service';
 import { AzureAdProfile } from './azure-ad.service';
 import { SamlProfile } from './saml.service';
+import { BCRYPT_ROUNDS } from './auth.constants';
 
 /**
  * Token response structure.
@@ -808,7 +809,7 @@ export class AuthService {
    * Hashes a password using bcrypt.
    */
   async hashPassword(password: string): Promise<string> {
-    const saltRounds = 12;
+    const saltRounds = BCRYPT_ROUNDS;
     return bcrypt.hash(password, saltRounds);
   }
 

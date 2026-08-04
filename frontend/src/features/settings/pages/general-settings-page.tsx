@@ -34,12 +34,12 @@ import {
     CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 
-const WEEK_START_BY_COUNTRY: Record<string, string> = {
-    FR: 'Monday',
-    US: 'Sunday',
-    GB: 'Monday',
-    DE: 'Monday',
-    ES: 'Monday',
+const WEEK_START_BY_COUNTRY: Record<string, 'monday' | 'sunday'> = {
+    FR: 'monday',
+    US: 'sunday',
+    GB: 'monday',
+    DE: 'monday',
+    ES: 'monday',
 };
 
 const THEME_COLORS = {
@@ -92,6 +92,11 @@ export function GeneralSettingsPage() {
     });
 
     const isInitialized = useRef(false);
+    const calendarLocale = i18n.resolvedLanguage?.startsWith('fr') ? 'fr-FR' : 'en-GB';
+
+    const getCountryLabel = (countryCode: string) => t(`generalSettings.countries.${countryCode}`);
+    const getHolidaySourceLabel = (countryCode: string) => t(`generalSettings.holidaySources.${countryCode}`);
+    const getThemeColorLabel = (themeName: string) => t(`generalSettings.themeColors.${themeName}`);
 
     // Load settings only once
     useEffect(() => {
@@ -152,26 +157,26 @@ export function GeneralSettingsPage() {
         setLanguage(newLang);
         updateSetting({ key: 'ui.language', value: newLang });
         i18n.changeLanguage(newLang.toLowerCase());
-        toast.success('Language updated');
+        toast.success(t('generalSettings.languageUpdated'));
     };
 
     const handleCountryChange = (newCountry: string) => {
         setCountry(newCountry);
         updateSetting({ key: 'app.country', value: newCountry });
-        toast.success('Country updated');
+        toast.success(t('generalSettings.countryUpdated'));
     };
 
     const handleDisplayModeChange = (mode: 'light' | 'dark' | 'system') => {
         setDisplayMode(mode);
         setSystemTheme(mode);
         updateSetting({ key: 'ui.displayMode', value: mode });
-        toast.success('Display mode updated');
+        toast.success(t('generalSettings.displayModeUpdated'));
     };
 
     const handleColorThemeChange = (thm: string) => {
         setColorTheme(thm);
         updateSetting({ key: 'ui.theme', value: thm });
-        toast.success('Theme updated');
+        toast.success(t('generalSettings.themeUpdated'));
     };
 
     const handleDefaultStartTimeChange = (time: string) => {
@@ -180,7 +185,7 @@ export function GeneralSettingsPage() {
             updateSetting({ key: 'SCHEDULE_DEFAULT_START_TIME', value: time });
             // toast.success('Default start time updated'); // Handled organically to prevent toast spam
         } else if (time >= defaultEndTime) {
-            toast.error('Start time must be before end time');
+            toast.error(t('generalSettings.startTimeBeforeEnd'));
         }
     };
 
@@ -189,7 +194,7 @@ export function GeneralSettingsPage() {
         if (time && defaultStartTime < time) {
             updateSetting({ key: 'SCHEDULE_DEFAULT_END_TIME', value: time });
         } else if (defaultStartTime >= time) {
-            toast.error('End time must be after start time');
+            toast.error(t('generalSettings.endTimeAfterStart'));
         }
     };
 
@@ -234,9 +239,9 @@ export function GeneralSettingsPage() {
                 showAppTitle,
                 showAppSubtitle
             });
-            toast.success('Branding updated successfully');
+            toast.success(t('generalSettings.brandingUpdated'));
         } catch {
-            toast.error('Failed to update branding');
+            toast.error(t('generalSettings.brandingUpdateFailed'));
         }
     };
 
@@ -294,74 +299,69 @@ export function GeneralSettingsPage() {
             {/* LANGUAGE & REGION */}
             <div className="space-y-6">
                 <div>
-                    <h2 className="text-lg font-semibold">Language & Region</h2>
+                    <h2 className="text-lg font-semibold">{t('generalSettings.languageAndRegion')}</h2>
                     <p className="text-sm text-muted-foreground">
-
-                        Configure language and regional preferences
+                        {t('generalSettings.languageAndRegionDescription')}
                     </p>
                 </div>
 
                 <div className="grid md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                        <Label htmlFor="language">Language</Label>
+                        <Label htmlFor="language">{t('generalSettings.language')}</Label>
                         <Select value={language} onValueChange={handleLanguageChange}>
                             <SelectTrigger id="language">
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="en">English</SelectItem>
+                                <SelectItem value="en">{t('generalSettings.languages.en')}</SelectItem>
                                 <SelectItem value="fr">Français</SelectItem>
                             </SelectContent>
                         </Select>
                         <p className="text-xs text-muted-foreground">
-                            Changes are saved automatically and applied immediately
+                            {t('generalSettings.languageAutoSave')}
                         </p>
                     </div>
 
                     <div className="space-y-2">
-                        <Label htmlFor="country">Country / Region</Label>
+                        <Label htmlFor="country">{t('generalSettings.countryRegion')}</Label>
                         <Select value={country} onValueChange={handleCountryChange}>
                             <SelectTrigger id="country">
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="FR">France</SelectItem>
-                                <SelectItem value="US">United States</SelectItem>
-                                <SelectItem value="GB">United Kingdom</SelectItem>
-                                <SelectItem value="DE">Germany</SelectItem>
-                                <SelectItem value="ES">Spain</SelectItem>
+                                <SelectItem value="FR">{t('generalSettings.countries.FR')}</SelectItem>
+                                <SelectItem value="US">{t('generalSettings.countries.US')}</SelectItem>
+                                <SelectItem value="GB">{t('generalSettings.countries.GB')}</SelectItem>
+                                <SelectItem value="DE">{t('generalSettings.countries.DE')}</SelectItem>
+                                <SelectItem value="ES">{t('generalSettings.countries.ES')}</SelectItem>
                             </SelectContent>
                         </Select>
                         <p className="text-xs text-muted-foreground">
-                            Used for holidays, date formatting, and week start rules
+                            {t('generalSettings.countryRegionDescription')}
                         </p>
                     </div>
                 </div>
 
                 {/* Derived Rules */}
                 <div className="space-y-4">
-                    <h3 className="text-sm font-medium">Derived Rules</h3>
+                    <h3 className="text-sm font-medium">{t('generalSettings.derivedRules')}</h3>
                     <div className="grid md:grid-cols-2 gap-4">
                         <div className="rounded-lg border bg-muted/50 p-4">
-                            <div className="text-xs text-muted-foreground mb-1">Week starts on</div>
+                            <div className="text-xs text-muted-foreground mb-1">{t('generalSettings.weekStartsOn')}</div>
                             <div className="font-medium">
-                                {WEEK_START_BY_COUNTRY[country] || 'Monday'} ({country})
+                                {t(`generalSettings.weekdays.${WEEK_START_BY_COUNTRY[country] || 'monday'}`)} ({country})
                             </div>
                         </div>
 
                         <div className="rounded-lg border bg-muted/50 p-4">
-                            <div className="text-xs text-muted-foreground mb-1">Public holidays source</div>
+                            <div className="text-xs text-muted-foreground mb-1">{t('generalSettings.publicHolidaysSource')}</div>
                             <div className="font-medium">
-                                {country === 'FR' && 'France (FR – official public holidays)'}
-                                {country === 'US' && 'United States (US – federal holidays)'}
-                                {country === 'GB' && 'United Kingdom (GB – bank holidays)'}
-                                {country === 'DE' && 'Germany (DE – public holidays)'}
-                                {country === 'ES' && 'Spain (ES – national holidays)'}
+                                {getHolidaySourceLabel(country)}
                             </div>
                         </div>
                     </div>
                     <p className="text-xs text-muted-foreground">
-                        These settings are automatically determined by your selected country
+                        {t('generalSettings.derivedRulesDescription')}
                     </p>
                 </div>
 
@@ -371,10 +371,10 @@ export function GeneralSettingsPage() {
                         <div>
                             <h3 className="text-sm font-medium flex items-center gap-2">
                                 <Calendar className="h-4 w-4" />
-                                Public Holidays Preview
+                                {t('generalSettings.publicHolidaysPreview')}
                             </h3>
                             <p className="text-xs text-muted-foreground mt-1">
-                                These holidays are used to shift tasks when "Skip Holidays" is enabled
+                                {t('generalSettings.publicHolidaysPreviewDescription')}
                             </p>
                         </div>
 
@@ -382,7 +382,7 @@ export function GeneralSettingsPage() {
                         <CollapsibleTrigger asChild>
                             <Button variant="outline" size="sm">
                                 <ChevronDown className={`h-4 w-4 mr-2 transition-transform ${showHolidays ? 'rotate-180' : ''}`} />
-                                {showHolidays ? 'Hide' : 'Show'} Holidays
+                                {showHolidays ? t('generalSettings.hideHolidays') : t('generalSettings.showHolidays')}
                             </Button>
                         </CollapsibleTrigger>
                     </div>
@@ -416,10 +416,10 @@ export function GeneralSettingsPage() {
                             <div className="text-center p-8 border rounded-lg bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800">
                                 <Calendar className="h-8 w-8 mx-auto mb-3 text-amber-600 dark:text-amber-400" />
                                 <p className="text-sm font-medium text-amber-900 dark:text-amber-100 mb-1">
-                                    Holidays API not implemented
+                                    {t('generalSettings.holidaysApiNotImplemented')}
                                 </p>
                                 <p className="text-xs text-amber-700 dark:text-amber-300">
-                                    The backend endpoint GET /api/holidays needs to be implemented to display holidays data.
+                                    {t('generalSettings.holidaysApiNotImplementedDescription')}
                                 </p>
                             </div>
                         ) : holidaysData && holidaysData.holidays.length > 0 ? (
@@ -427,15 +427,15 @@ export function GeneralSettingsPage() {
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
-                                            <TableHead className="w-[140px]">Date</TableHead>
-                                            <TableHead>Holiday Name</TableHead>
+                                            <TableHead className="w-[140px]">{t('generalSettings.date')}</TableHead>
+                                            <TableHead>{t('generalSettings.holidayName')}</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
                                         {holidaysData.holidays.map((holiday, index) => (
                                             <TableRow key={index}>
                                                 <TableCell className="font-mono text-sm">
-                                                    {new Date(holiday.date).toLocaleDateString('en-GB', {
+                                                    {new Date(holiday.date).toLocaleDateString(calendarLocale, {
                                                         day: '2-digit',
                                                         month: 'short',
                                                         year: 'numeric',
@@ -451,7 +451,7 @@ export function GeneralSettingsPage() {
                             <div className="text-center p-8 border rounded-lg bg-muted/50">
                                 <Calendar className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
                                 <p className="text-sm text-muted-foreground">
-                                    No holidays data available for {country} in {selectedYear}
+                                    {t('generalSettings.noHolidaysData', { country: getCountryLabel(country), year: selectedYear })}
                                 </p>
                             </div>
                         )}
@@ -464,15 +464,15 @@ export function GeneralSettingsPage() {
             {/* SCHEDULING DEFAULTS */}
             <div className="space-y-6">
                 <div>
-                    <h2 className="text-lg font-semibold">Scheduling Defaults</h2>
+                    <h2 className="text-lg font-semibold">{t('generalSettings.schedulingDefaults')}</h2>
                     <p className="text-sm text-muted-foreground">
-                        Configure the global default time windows used for daily task execution
+                        {t('generalSettings.schedulingDefaultsDescription')}
                     </p>
                 </div>
 
                 <div className="grid md:grid-cols-2 gap-6">
                     <div className="space-y-3">
-                        <Label htmlFor="defaultStartTime">Default Start Time</Label>
+                        <Label htmlFor="defaultStartTime">{t('generalSettings.defaultStartTime')}</Label>
                         <Input
                             id="defaultStartTime"
                             type="time"
@@ -480,12 +480,12 @@ export function GeneralSettingsPage() {
                             onChange={(e) => handleDefaultStartTimeChange(e.target.value)}
                         />
                         <p className="text-xs text-muted-foreground">
-                            The globally applied start time for tasks
+                            {t('generalSettings.defaultStartTimeDescription')}
                         </p>
                     </div>
 
                     <div className="space-y-3">
-                        <Label htmlFor="defaultEndTime">Default End Time</Label>
+                        <Label htmlFor="defaultEndTime">{t('generalSettings.defaultEndTime')}</Label>
                         <Input
                             id="defaultEndTime"
                             type="time"
@@ -493,7 +493,7 @@ export function GeneralSettingsPage() {
                             onChange={(e) => handleDefaultEndTimeChange(e.target.value)}
                         />
                         <p className="text-xs text-muted-foreground">
-                            The globally applied end time for tasks
+                            {t('generalSettings.defaultEndTimeDescription')}
                         </p>
                     </div>
                 </div>
@@ -504,24 +504,24 @@ export function GeneralSettingsPage() {
             {/* BRANDING */}
             <div className="space-y-6">
                 <div>
-                    <h2 className="text-lg font-semibold">Branding</h2>
+                    <h2 className="text-lg font-semibold">{t('generalSettings.branding')}</h2>
                     <p className="text-sm text-muted-foreground">
-                        Customize your application's visual identity and naming
+                        {t('generalSettings.brandingDescription')}
                     </p>
                 </div>
 
                 {/* Application Naming */}
                 <div className="space-y-4">
-                    <h3 className="text-sm font-medium">Application Naming</h3>
+                    <h3 className="text-sm font-medium">{t('generalSettings.applicationNaming')}</h3>
 
                     <div className="grid md:grid-cols-2 gap-6">
                         <div className="space-y-3">
                             <div className="flex items-center justify-between">
-                                <Label htmlFor="appTitle">Application Title</Label>
+                                <Label htmlFor="appTitle">{t('generalSettings.appTitle')}</Label>
                                 <Switch
                                     checked={showAppTitle}
                                     onCheckedChange={setShowAppTitle}
-                                    aria-label="Toggle title visibility"
+                                    aria-label={t('generalSettings.toggleTitleVisibility')}
                                 />
                             </div>
                             <Input
@@ -534,35 +534,35 @@ export function GeneralSettingsPage() {
                                 className={!showAppTitle ? "opacity-50" : ""}
                             />
                             <p className="text-xs text-muted-foreground flex justify-between">
-                                <span>Displayed in header and sidebar</span>
+                                <span>{t('generalSettings.displayedInHeaderAndSidebar')}</span>
                                 <span className={showAppTitle ? "text-primary" : "text-muted-foreground"}>
-                                    {showAppTitle ? "Visible" : "Hidden"}
+                                    {showAppTitle ? t('generalSettings.visible') : t('generalSettings.hidden')}
                                 </span>
                             </p>
                         </div>
 
                         <div className="space-y-3">
                             <div className="flex items-center justify-between">
-                                <Label htmlFor="appSubtitle">Application Subtitle</Label>
+                                <Label htmlFor="appSubtitle">{t('generalSettings.appSubtitle')}</Label>
                                 <Switch
                                     checked={showAppSubtitle}
                                     onCheckedChange={setShowAppSubtitle}
-                                    aria-label="Toggle subtitle visibility"
+                                    aria-label={t('generalSettings.toggleSubtitleVisibility')}
                                 />
                             </div>
                             <Input
                                 id="appSubtitle"
                                 value={appSubtitle}
                                 onChange={(e) => setAppSubtitle(e.target.value)}
-                                placeholder="Your Company Name"
+                                placeholder={t('generalSettings.appSubtitlePlaceholder')}
                                 maxLength={100}
                                 disabled={!showAppSubtitle}
                                 className={!showAppSubtitle ? "opacity-50" : ""}
                             />
                             <p className="text-xs text-muted-foreground flex justify-between">
-                                <span>Secondary branding text</span>
+                                <span>{t('generalSettings.secondaryBrandingText')}</span>
                                 <span className={showAppSubtitle ? "text-primary" : "text-muted-foreground"}>
-                                    {showAppSubtitle ? "Visible" : "Hidden"}
+                                    {showAppSubtitle ? t('generalSettings.visible') : t('generalSettings.hidden')}
                                 </span>
                             </p>
                         </div>
@@ -573,18 +573,18 @@ export function GeneralSettingsPage() {
 
                 {/* Visual Identity */}
                 <div className="space-y-4">
-                    <h3 className="text-sm font-medium">Visual Identity</h3>
+                    <h3 className="text-sm font-medium">{t('generalSettings.visualIdentity')}</h3>
 
                     <div className="grid md:grid-cols-2 gap-6">
                         {/* Logo Upload */}
                         <div className="space-y-3">
-                            <Label>Application Logo</Label>
+                            <Label>{t('generalSettings.applicationLogo')}</Label>
                             <div className="space-y-2">
                                 {(logoUrl || logoFile) ? (
                                     <div className="relative border-2 border-dashed rounded-lg h-40 flex items-center justify-center bg-muted/50 overflow-hidden">
                                         <img
                                             src={(logoFile && logoPreviewDataUrl) ? logoPreviewDataUrl : logoUrl}
-                                            alt="Logo preview"
+                                            alt={t('generalSettings.logoPreviewAlt')}
                                             className="max-h-full max-w-full object-contain p-4"
                                         />
                                         <Button
@@ -599,7 +599,7 @@ export function GeneralSettingsPage() {
                                 ) : (
                                     <label className="border-2 border-dashed rounded-lg h-40 flex flex-col items-center justify-center cursor-pointer hover:bg-accent/50 transition-colors">
                                         <ImageUp className="h-8 w-8 text-muted-foreground mb-2" />
-                                        <span className="text-sm text-muted-foreground">Click to upload</span>
+                                        <span className="text-sm text-muted-foreground">{t('generalSettings.clickToUpload')}</span>
                                         <input
                                             type="file"
                                             className="hidden"
@@ -609,18 +609,18 @@ export function GeneralSettingsPage() {
                                     </label>
                                 )}
                             </div>
-                            <p className="text-xs text-muted-foreground">Used in header and sidebar</p>
+                            <p className="text-xs text-muted-foreground">{t('generalSettings.usedInHeaderAndSidebar')}</p>
                         </div>
 
                         {/* Favicon Upload */}
                         <div className="space-y-3">
-                            <Label>Favicon</Label>
+                            <Label>{t('generalSettings.favicon')}</Label>
                             <div className="space-y-2">
                                 {(faviconUrl || faviconFile) ? (
                                     <div className="relative border-2 border-dashed rounded-lg h-40 flex items-center justify-center bg-muted/50 overflow-hidden">
                                         <img
                                             src={(faviconFile && faviconPreviewDataUrl) ? faviconPreviewDataUrl : faviconUrl}
-                                            alt="Favicon preview"
+                                            alt={t('generalSettings.faviconPreviewAlt')}
                                             className="max-h-full max-w-full object-contain p-4"
                                         />
                                         <Button
@@ -635,7 +635,7 @@ export function GeneralSettingsPage() {
                                 ) : (
                                     <label className="border-2 border-dashed rounded-lg h-40 flex flex-col items-center justify-center cursor-pointer hover:bg-accent/50 transition-colors">
                                         <ImageUp className="h-8 w-8 text-muted-foreground mb-2" />
-                                        <span className="text-sm text-muted-foreground">Click to upload</span>
+                                        <span className="text-sm text-muted-foreground">{t('generalSettings.clickToUpload')}</span>
                                         <input
                                             type="file"
                                             className="hidden"
@@ -645,7 +645,7 @@ export function GeneralSettingsPage() {
                                     </label>
                                 )}
                             </div>
-                            <p className="text-xs text-muted-foreground">Used in browser tab</p>
+                            <p className="text-xs text-muted-foreground">{t('generalSettings.usedInBrowserTab')}</p>
                         </div>
                     </div>
                 </div>
@@ -657,7 +657,7 @@ export function GeneralSettingsPage() {
                         disabled={!hasUnsavedChanges || isUpdating}
                     >
                         {isUpdating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Save Branding Changes
+                        {t('generalSettings.saveBrandingChanges')}
                     </Button>
                 </div>
             </div>
@@ -695,15 +695,15 @@ export function GeneralSettingsPage() {
             {/* APPEARANCE */}
             <div className="space-y-6">
                 <div>
-                    <h2 className="text-lg font-semibold">Appearance</h2>
+                    <h2 className="text-lg font-semibold">{t('generalSettings.appearance')}</h2>
                     <p className="text-sm text-muted-foreground">
-                        Customize the look and feel of the application
+                        {t('generalSettings.appearanceDescription')}
                     </p>
                 </div>
 
                 {/* Display Mode */}
                 <div className="space-y-3">
-                    <Label>Display Mode</Label>
+                    <Label>{t('generalSettings.displayMode')}</Label>
                     <RadioGroup
                         value={displayMode}
                         onValueChange={(value) => handleDisplayModeChange(value as 'light' | 'dark' | 'system')}
@@ -719,7 +719,7 @@ export function GeneralSettingsPage() {
                                 )}
                             >
                                 <Sun className="mb-3 h-6 w-6" />
-                                <span className="text-sm font-medium">Light</span>
+                                <span className="text-sm font-medium">{t('generalSettings.displayModeLight')}</span>
                             </Label>
                         </div>
 
@@ -733,7 +733,7 @@ export function GeneralSettingsPage() {
                                 )}
                             >
                                 <Moon className="mb-3 h-6 w-6" />
-                                <span className="text-sm font-medium">Dark</span>
+                                <span className="text-sm font-medium">{t('generalSettings.displayModeDark')}</span>
                             </Label>
                         </div>
 
@@ -747,16 +747,16 @@ export function GeneralSettingsPage() {
                                 )}
                             >
                                 <Monitor className="mb-3 h-6 w-6" />
-                                <span className="text-sm font-medium">System</span>
+                                <span className="text-sm font-medium">{t('generalSettings.displayModeSystem')}</span>
                             </Label>
                         </div>
                     </RadioGroup>
-                    <p className="text-xs text-muted-foreground">Changes are saved automatically</p>
+                    <p className="text-xs text-muted-foreground">{t('generalSettings.languageAutoSave')}</p>
                 </div>
 
                 {/* Color Theme */}
                 <div className="space-y-3">
-                    <Label>Color Theme</Label>
+                    <Label>{t('generalSettings.theme')}</Label>
                     <div className="flex gap-3">
                         {Object.entries(THEME_COLORS).map(([name, color]) => (
                             <button
@@ -767,7 +767,7 @@ export function GeneralSettingsPage() {
                                     colorTheme === name ? 'border-foreground scale-110' : 'border-muted hover:scale-105'
                                 )}
                                 style={{ backgroundColor: color }}
-                                title={name.charAt(0).toUpperCase() + name.slice(1)}
+                                title={getThemeColorLabel(name)}
                             >
                                 {colorTheme === name && (
                                     <Check className="absolute inset-0 m-auto h-6 w-6 text-white drop-shadow-md" />
@@ -775,7 +775,7 @@ export function GeneralSettingsPage() {
                             </button>
                         ))}
                     </div>
-                    <p className="text-xs text-muted-foreground">Choose your preferred color scheme</p>
+                    <p className="text-xs text-muted-foreground">{t('generalSettings.themeDescription')}</p>
                 </div>
             </div>
         </div>

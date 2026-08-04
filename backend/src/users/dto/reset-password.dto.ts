@@ -1,4 +1,4 @@
-import { IsString } from 'class-validator';
+import { IsString, MaxLength } from 'class-validator';
 import { IsStrongPassword, IsNotCommonPassword } from '../../common/validators';
 
 /**
@@ -6,7 +6,7 @@ import { IsStrongPassword, IsNotCommonPassword } from '../../common/validators';
  */
 export class ResetPasswordDto {
   @IsString()
-  @IsString()
+  @MaxLength(128, { message: 'Password too long' })
   @IsStrongPassword()
   @IsNotCommonPassword()
   password!: string;

@@ -1,0 +1,19 @@
+# SHA-256 checksums for third-party installer payloads used by installer/build.ps1.
+# Format: <sha256>  <filename>   (two spaces, matching `Get-FileHash`/`sha256sum` output)
+#
+# postgresql-17-x64.exe is fetched automatically by build.ps1 from EnterpriseDB;
+# add its published hash here once you've pinned an exact PostgreSQL 17.x
+# point release to ship.
+#
+# memurai.msi must be placed in this directory manually (see README.md) —
+# add its hash here after downloading it from https://www.memurai.com.
+#
+# Example (replace with real values before building):
+# 0000000000000000000000000000000000000000000000000000000000000000  postgresql-17-x64.exe
+# 0000000000000000000000000000000000000000000000000000000000000000  memurai.msi
+
+# PostgreSQL 17.6-1 x64, downloaded from https://get.enterprisedb.com/postgresql/postgresql-17.6-1-windows-x64.exe
+0ffbd42f3777338ed629686349c905f37a657074c4da410b1e3ac61fe38d23a0  postgresql-17-x64.exe
+
+# Memurai for Redis v8.2-RC2 x64 (installer/payloads/Memurai-for-Redis-v8.2-RC2.msi, copied to memurai.msi)
+f1949f049f255bdeb49337f9dd89ba82d44e268f697f44a50a76f3b9fac0f7c7  memurai.msi

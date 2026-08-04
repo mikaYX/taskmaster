@@ -1,5 +1,7 @@
 export * from './cleanup-exports.job';
 export * from './cleanup-backups.job';
+export * from './cleanup-audit-logs.job';
+export * from './cleanup-refresh-tokens.job';
 export * from './health-check.job';
 export * from './auto-backup.job';
 export * from './auto-export.job';

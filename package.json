@@ -1,6 +1,6 @@
 {
   "name": "taskmaster",
-  "version": "1.0.7",
+  "version": "1.1.4",
   "description": "Taskmaster — Task management monorepo (NestJS + React)",
   "private": true,
   "workspaces": [
@@ -11,9 +11,10 @@
     "dev": "concurrently -n backend,frontend -c cyan,magenta \"npm -w backend run start:dev\" \"npm -w frontend run dev\"",
     "dev:backend": "npm -w backend run start:dev",
     "dev:frontend": "npm -w frontend run dev",
-    "build": "npm -w backend run build && npm -w frontend run build",
+    "build": "npm -w backend run build && npm -w frontend run build && npm run build:client",
     "build:backend": "npm -w backend run build",
     "build:frontend": "npm -w frontend run build",
+    "build:client": "node scripts/copy-frontend-dist.js",
     "test": "npm -w backend run test && npm -w frontend run test",
     "test:backend": "npm -w backend run test",
     "test:frontend": "npm -w frontend run test",
@@ -30,26 +31,33 @@
     "postinstall": "npm -w backend run db:generate"
   },
   "devDependencies": {
-    "concurrently": "^9.2.1"
+    "concurrently": "^9.2.4"
+  },
+  "engines": {
+    "node": ">=22 <25",
+    "npm": ">=10"
   },
   "overrides": {
     "lodash": "4.18.1",
     "path-to-regexp": "^8.4.0",
     "picomatch": "^4.0.4",
-    "hono": "^4.12.14",
-    "@hono/node-server": "^1.19.13",
+    "hono": "4.12.32",
+    "@hono/node-server": "^2.0.12",
     "@prisma/dev": {
-      "hono": "^4.12.14",
-      "@hono/node-server": "^1.19.13"
+      "hono": "4.12.32",
+      "@hono/node-server": "^2.0.12"
     },
+    "@babel/plugin-transform-modules-systemjs": "7.29.4",
+    "@babel/core": "^7.29.7",
     "@types/pg": "^8.18.0",
     "qs": "^6.15.0",
+    "rxjs": "7.8.2",
     "flatted": "^3.4.2",
     "file-type": "^21.3.2",
     "@nestjs/common": {
       "file-type": "^21.3.2"
     },
-    "undici": "^7.24.2",
+    "undici": "^7.29.0",
     "test-exclude": {
       "minimatch": "^3.1.2",
       "glob": "^8.1.0"
@@ -57,6 +65,8 @@
     "archiver-utils": {
       "glob": "^8.1.0"
     },
+    "fast-uri": "3.1.4",
+    "ip-address": "10.1.1",
     "jest-config": {
       "glob": "^8.1.0"
     },
@@ -66,11 +76,29 @@
     "minimatch": "^10.2.1",
     "tar": "^7.5.10",
     "terser": "^5.31.0",
-    "protobufjs": "^7.5.5",
+    "protobufjs": "^7.6.5",
     "@xmldom/xmldom": "^0.8.13",
-    "postcss": "^8.5.10",
+    "postcss": "^8.5.25",
     "basic-ftp": "^5.3.0",
     "gaxios": "^7.1.4",
-    "ip-address": "^10.1.1"
+    "shell-quote": "^1.10.0",
+    "@grpc/grpc-js": "^1.14.4",
+    "ws": "^8.21.1",
+    "valibot": "^1.4.2",
+    "body-parser": "^2.3.0",
+    "brace-expansion": "^5.0.9",
+    "multer": "^2.2.0",
+    "js-yaml": "^4.3.0"
+  },
+  "allowScripts": {
+    "@prisma/engines@7.9.1": true,
+    "@scarf/scarf@1.4.0": true,
+    "bcrypt": true,
+    "prisma@7.9.1": true,
+    "puppeteer@24.43.1": true,
+    "unrs-resolver@1.12.2": true,
+    "@swc/core@1.15.47": true,
+    "msgpackr-extract@3.0.4": true,
+    "protobufjs@7.6.5": true
   }
 }
