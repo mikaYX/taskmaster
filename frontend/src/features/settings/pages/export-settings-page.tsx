@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useMemo } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useQuery } from '@tanstack/react-query';
@@ -185,6 +185,7 @@ export function ExportSettingsPage() {
             }
         },
     });
+    const watchedExport = useWatch({ control: form.control });
 
     // Track form dirty state
     const isDirty = form.formState.isDirty;
@@ -292,14 +293,14 @@ export function ExportSettingsPage() {
         }
     };
 
-    const scheduleType = form.watch('autoExport.scheduleType');
-    const autoExportEnabled = form.watch('autoExport.enabled');
-    const emailEnabled = form.watch('autoExport.email.enabled');
-    const formats = form.watch('autoExport.formats');
+    const scheduleType = watchedExport.autoExport?.scheduleType;
+    const autoExportEnabled = watchedExport.autoExport?.enabled;
+    const emailEnabled = watchedExport.autoExport?.email?.enabled;
+    const formats = watchedExport.autoExport?.formats;
 
     // Date Range Calculation
-    const offsetFrom = form.watch('config.offsetFrom');
-    const offsetTo = form.watch('config.offsetTo');
+    const offsetFrom = watchedExport.config?.offsetFrom;
+    const offsetTo = watchedExport.config?.offsetTo;
     const today = new Date();
     const fromDate = new Date();
     fromDate.setDate(today.getDate() - (offsetFrom || 0));
@@ -314,23 +315,23 @@ export function ExportSettingsPage() {
                 return t('exportSettings.everyDayAtMidnight');
             case 'weekly':
                 return t('exportSettings.everyDayOfWeek', {
-                    day: getWeekdayLabel(form.watch('autoExport.dayOfWeek')),
+                    day: getWeekdayLabel(watchedExport.autoExport?.dayOfWeek ?? 1),
                 });
             case 'monthly': {
-                const mode = form.watch('autoExport.monthMode');
+                const mode = watchedExport.autoExport?.monthMode;
                 if (mode === 'last') return t('exportSettings.lastDayOfMonth');
                 if (mode === 'relative') {
                     return t('exportSettings.relativeMonthly', {
-                        position: getOrdinalLabel(form.watch('autoExport.weekOrdinal') ?? 'first'),
-                        day: getWeekdayLabel(form.watch('autoExport.dayOfWeek')),
+                        position: getOrdinalLabel(watchedExport.autoExport?.weekOrdinal ?? 'first'),
+                        day: getWeekdayLabel(watchedExport.autoExport?.dayOfWeek ?? 1),
                     });
                 }
                 return t('exportSettings.dayOfMonthRecurring', {
-                    day: form.watch('autoExport.dayOfMonth'),
+                    day: watchedExport.autoExport?.dayOfMonth,
                 });
             }
             case 'custom':
-                return form.watch('autoExport.cron');
+                return watchedExport.autoExport?.cron;
             default:
                 return t('exportSettings.notConfigured');
         }
@@ -527,7 +528,7 @@ export function ExportSettingsPage() {
                                             </FormItem>
                                         )} />
 
-                                        {form.watch('autoExport.monthMode') === 'specific' && (
+                                        {watchedExport.autoExport?.monthMode === 'specific' && (
                                             <FormField control={form.control} name="autoExport.dayOfMonth" render={({ field }) => (
                                                 <FormItem>
                                                     <FormLabel>{t('exportSettings.dayOfMonth')}</FormLabel>
@@ -536,7 +537,7 @@ export function ExportSettingsPage() {
                                             )} />
                                         )}
 
-                                        {form.watch('autoExport.monthMode') === 'relative' && (
+                                        {watchedExport.autoExport?.monthMode === 'relative' && (
                                             <div className="flex gap-4">
                                                 <FormField control={form.control} name="autoExport.weekOrdinal" render={({ field }) => (
                                                     <FormItem className="flex-1">
@@ -825,13 +826,13 @@ export function ExportSettingsPage() {
                                         <div className="space-y-2">
                                             <FormLabel>{t('recipients.label')}</FormLabel>
                                             <RecipientSelector
-                                                recipients={form.watch('autoExport.email.recipients')}
+                                                recipients={watchedExport.autoExport?.email?.recipients ?? []}
                                                 setRecipients={(vals) => {
                                                     const current = form.getValues('autoExport.email.recipients');
                                                     const next = typeof vals === 'function' ? vals(current) : vals;
                                                     form.setValue('autoExport.email.recipients', next);
                                                 }}
-                                                customEmails={form.watch('autoExport.email.customEmails').join(',')}
+                                                customEmails={(watchedExport.autoExport?.email?.customEmails ?? []).join(',')}
                                                 setCustomEmails={(val) => {
                                                     const current = form.getValues('autoExport.email.customEmails').join(',');
                                                     const next = typeof val === 'function' ? val(current) : val;
@@ -873,7 +874,7 @@ export function ExportSettingsPage() {
                                 <div>
                                     <p className="font-medium text-sm">{t('exportSettings.manualCleanup')}</p>
                                     <p className="text-xs text-muted-foreground">
-                                        {t('exportSettings.manualCleanupDescription', { days: form.watch('retention.days') })}
+                                        {t('exportSettings.manualCleanupDescription', { days: watchedExport.retention?.days })}
                                     </p>
                                 </div>
                                 <AlertDialog>
@@ -887,7 +888,7 @@ export function ExportSettingsPage() {
                                         <AlertDialogHeader>
                                             <AlertDialogTitle>{t('exportSettings.confirmCleanupTitle')}</AlertDialogTitle>
                                             <AlertDialogDescription>
-                                                {t('exportSettings.confirmCleanupDescription', { days: form.watch('retention.days') })}
+                                                {t('exportSettings.confirmCleanupDescription', { days: watchedExport.retention?.days })}
                                             </AlertDialogDescription>
                                         </AlertDialogHeader>
                                         <AlertDialogFooter>

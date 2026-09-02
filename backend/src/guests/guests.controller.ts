@@ -1,21 +1,19 @@
 import {
   Controller,
-  Get,
-  Post,
   Delete,
-  Patch,
-  Param,
-  ParseIntPipe,
-  UseGuards,
+  Get,
   HttpCode,
   HttpStatus,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Post,
+  UseGuards,
 } from '@nestjs/common';
-import { GuestsService } from './guests.service';
-import { JwtAuthGuard, RolesGuard, Roles, CurrentUser } from '../auth';
-import { Permission } from '../auth/permissions.enum';
+import { CurrentUser, JwtAuthGuard, Roles, RolesGuard } from '../auth';
 import { RequirePermission } from '../auth/decorators/require-permission.decorator';
-import { Audit } from '../audit/decorators/audit.decorator';
-import { AuditAction, AuditCategory } from '../audit/audit.constants';
+import { Permission } from '../auth/permissions.enum';
+import { GuestsService } from './guests.service';
 
 @Controller('guests')
 @UseGuards(JwtAuthGuard, RolesGuard)

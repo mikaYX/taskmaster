@@ -1,16 +1,15 @@
 import {
-  Injectable,
-  BadRequestException,
   ConflictException,
-  NotFoundException,
+  Injectable,
   Logger,
+  NotFoundException,
 } from '@nestjs/common';
-import { PrismaService } from '../prisma';
-import { AuthService } from '../auth';
 import { UserRole } from '@prisma/client';
-import { AuditService } from '../audit/audit.service';
-import { AuditAction, AuditCategory } from '../audit/audit.constants';
 import { randomBytes } from 'crypto';
+import { AuditAction, AuditCategory } from '../audit/audit.constants';
+import { AuditService } from '../audit/audit.service';
+import { AuthService } from '../auth';
+import { PrismaService } from '../prisma';
 
 @Injectable()
 export class GuestsService {

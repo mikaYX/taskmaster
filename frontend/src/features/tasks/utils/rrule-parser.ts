@@ -46,13 +46,13 @@ export const parseRRuleToForm = (rruleString: string | null | undefined): Partia
         // Map ByWeekday (Weekly)
         const byWeekday = toArray(options.byweekday);
         if (byWeekday.length > 0) {
-            formValues.byWeekday = byWeekday.map((w: any) => {
+            formValues.byWeekday = byWeekday.map((w) => {
                 // Check if w has .weekday (it might be a Weekday object)
                 if (w && typeof w === 'object' && 'weekday' in w) {
                     return w.weekday;
                 }
                 if (typeof w === 'number') return w;
-                return w.weekday; // Fallback
+                return ['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU'].indexOf(w);
             });
         }
 
@@ -62,7 +62,7 @@ export const parseRRuleToForm = (rruleString: string | null | undefined): Partia
             formValues.bySetPos = bySetPos[0];
         } else if (byWeekday.length === 1) {
             // Check if the single weekday has .n property (e.g. 3FR)
-            const w: any = byWeekday[0];
+            const w = byWeekday[0];
             if (w && typeof w === 'object' && w.n) {
                 formValues.bySetPos = w.n;
             }

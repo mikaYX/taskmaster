@@ -1,12 +1,11 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { HealthController } from './health.controller';
+import { ConfigService } from '@nestjs/config';
+import { Reflector } from '@nestjs/core';
 import { HealthCheckService, MemoryHealthIndicator } from '@nestjs/terminus';
+import { Test, TestingModule } from '@nestjs/testing';
+import { LocalNetworkGuard } from '../common/guards/local-network.guard';
+import { HealthController } from './health.controller';
 import { PrismaHealthIndicator } from './prisma.health';
 import { RedisHealthIndicator } from './redis.health';
-import { ConfigService } from '@nestjs/config';
-import { LocalNetworkGuard } from '../common/guards/local-network.guard';
-import { ExecutionContext } from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
 
 describe('HealthController', () => {
   let controller: HealthController;

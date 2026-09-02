@@ -1,17 +1,17 @@
 import {
-  Injectable,
-  ConflictException,
   BadRequestException,
+  ConflictException,
+  Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
-import { AuditService } from '../../audit/audit.service';
-import { CreateDelegationDto } from './dto/create-delegation.dto';
-import { UpdateDelegationDto } from './dto/update-delegation.dto';
 import { Prisma } from '@prisma/client';
 import { AuditAction, AuditCategory } from '../../audit/audit.constants';
+import { AuditService } from '../../audit/audit.service';
 import { EmailService } from '../../email/email.service';
+import { PrismaService } from '../../prisma/prisma.service';
 import { BeneficiaryResolverService } from './beneficiary-resolver.service';
+import { CreateDelegationDto } from './dto/create-delegation.dto';
+import { UpdateDelegationDto } from './dto/update-delegation.dto';
 
 @Injectable()
 export class DelegationsService {
@@ -207,7 +207,7 @@ export class DelegationsService {
 
     try {
       const txResult = await this.prisma.client.$transaction(async (tx) => {
-        const updatedDel = await tx.taskDelegation.update({
+        await tx.taskDelegation.update({
           where: { id },
           data: {
             startAt: dto.startAt ? new Date(dto.startAt) : undefined,
@@ -282,7 +282,7 @@ export class DelegationsService {
     taskId: number,
     id: number,
     adminId: number,
-    adminUsername: string,
+    _adminUsername: string,
   ) {
     const existing = await this.prisma.client.taskDelegation.findUnique({
       where: { id },

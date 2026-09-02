@@ -1,9 +1,9 @@
+import { ForbiddenException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { UsersService } from './users.service';
-import { PrismaService } from '../prisma';
-import { AuthService } from '../auth';
 import { AuditService } from '../audit/audit.service';
-import { ForbiddenException, ConflictException } from '@nestjs/common';
+import { AuthService } from '../auth';
+import { PrismaService } from '../prisma';
+import { UsersService } from './users.service';
 
 describe('UsersService - Privilege Escalation', () => {
   let service: UsersService;

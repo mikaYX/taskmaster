@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { addDays } from 'date-fns';
 import { RecurrenceService } from './recurrence.service';
-import { addDays, addHours } from 'date-fns';
 
 describe('RecurrenceService', () => {
   let service: RecurrenceService;

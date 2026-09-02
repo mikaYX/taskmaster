@@ -1,6 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { RecurrenceService } from './recurrence.service';
-import { toZonedTime } from 'date-fns-tz';
 
 describe('RecurrenceService V2 Hardening', () => {
   let service: RecurrenceService;

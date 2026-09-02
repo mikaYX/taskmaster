@@ -1,15 +1,15 @@
 import {
+  BadRequestException,
+  Inject,
   Injectable,
   Logger,
-  BadRequestException,
   UnauthorizedException,
-  Inject,
 } from '@nestjs/common';
-import { SettingsService } from '../settings/settings.service';
-import { REDIS_CLIENT } from '../common/redis/redis.module';
-import Redis from 'ioredis';
-import { SAML, SamlConfig, Profile } from '@node-saml/node-saml';
+import { Profile, SAML, SamlConfig } from '@node-saml/node-saml';
 import * as crypto from 'crypto';
+import Redis from 'ioredis';
+import { REDIS_CLIENT } from '../common/redis/redis.module';
+import { SettingsService } from '../settings/settings.service';
 
 export interface SamlProfile {
   email: string;
@@ -99,7 +99,7 @@ export class SamlService {
 
   async validateResponse(
     samlResponse: string,
-    relayState?: string,
+    _relayState?: string,
   ): Promise<SamlProfile> {
     const saml = await this.getSamlInstance();
 

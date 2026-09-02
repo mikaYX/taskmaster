@@ -1,7 +1,7 @@
-import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { Client } from 'ldapts';
-import { SettingsService } from '../settings/settings.service';
 import { TestLdapConnectionDto } from '../settings/dto/test-ldap.dto';
+import { SettingsService } from '../settings/settings.service';
 
 @Injectable()
 export class LdapService {
@@ -133,7 +133,7 @@ export class LdapService {
       );
       try {
         await client.unbind();
-      } catch (e) {
+      } catch {
         // ignore unbind error
       }
       return null;
@@ -175,7 +175,7 @@ export class LdapService {
       this.logger.error(`LDAP Test Connection Error: ${error.message}`);
       try {
         await client.unbind();
-      } catch (e) {
+      } catch {
         // ignore unbind error
       }
       return { success: false, message: error.message };

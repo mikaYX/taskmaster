@@ -85,7 +85,9 @@ describe('LoginPage', () => {
 
             await waitFor(() => {
                 expect(authApi.generatePasskeyAuthenticationOptions).toHaveBeenCalled();
-                expect(webauthn.startAuthentication).toHaveBeenCalledWith({ challenge: 'auth-challenge' });
+                expect(webauthn.startAuthentication).toHaveBeenCalledWith({
+                    optionsJSON: { challenge: 'auth-challenge' },
+                });
                 expect(authApi.verifyPasskeyAuthentication).toHaveBeenCalledWith(
                     { id: 'key-123' },
                     'session123'

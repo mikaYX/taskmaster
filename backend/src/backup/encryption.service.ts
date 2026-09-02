@@ -130,7 +130,7 @@ export class EncryptionService {
           const final = decipher.final();
           if (final.length > 0) this.push(final);
           callback();
-        } catch (err) {
+        } catch {
           callback(new Error('Decryption failed: Invalid Key or Auth Tag'));
         }
       },

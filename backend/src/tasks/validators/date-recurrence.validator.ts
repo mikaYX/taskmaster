@@ -35,7 +35,7 @@ export class IsValidRecurrenceDateConstraint implements ValidatorConstraintInter
         }
         break;
 
-      case 'WEEKLY':
+      case 'WEEKLY': {
         const previousWeekStart = startOfWeek(subWeeks(now, 1), {
           weekStartsOn: 1,
         });
@@ -43,20 +43,23 @@ export class IsValidRecurrenceDateConstraint implements ValidatorConstraintInter
           return false;
         }
         break;
+      }
 
-      case 'MONTHLY':
+      case 'MONTHLY': {
         const previousMonthStart = startOfMonth(subMonths(now, 1));
         if (dueDate && new Date(dueDate) < previousMonthStart) {
           return false;
         }
         break;
+      }
 
-      case 'YEARLY':
+      case 'YEARLY': {
         const previousYearStart = startOfYear(subYears(now, 1));
         if (dueDate && new Date(dueDate) < previousYearStart) {
           return false;
         }
         break;
+      }
 
       case 'CUSTOM':
       case 'CRON':
@@ -81,19 +84,22 @@ export class IsValidRecurrenceDateConstraint implements ValidatorConstraintInter
       case 'DAILY':
         return 'Daily tasks must have a start date of today or later';
 
-      case 'WEEKLY':
+      case 'WEEKLY': {
         const previousWeekStart = startOfWeek(subWeeks(now, 1), {
           weekStartsOn: 1,
         });
         return `Weekly tasks must have a due date no earlier than ${previousWeekStart.toISOString().split('T')[0]}`;
+      }
 
-      case 'MONTHLY':
+      case 'MONTHLY': {
         const previousMonthStart = startOfMonth(subMonths(now, 1));
         return `Monthly tasks must have a due date no earlier than ${previousMonthStart.toISOString().split('T')[0]}`;
+      }
 
-      case 'YEARLY':
+      case 'YEARLY': {
         const previousYearStart = startOfYear(subYears(now, 1));
         return `Yearly tasks must have a due date no earlier than ${previousYearStart.toISOString().split('T')[0]}`;
+      }
 
       case 'CUSTOM':
       case 'CRON':

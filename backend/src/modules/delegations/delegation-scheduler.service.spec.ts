@@ -1,15 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { DelegationSchedulerService } from './delegation-scheduler.service';
-import { PrismaService } from '../../prisma/prisma.service';
-import { BeneficiaryResolverService } from './beneficiary-resolver.service';
 import { EmailService } from '../../email/email.service';
+import { PrismaService } from '../../prisma/prisma.service';
 import { SettingsService } from '../../settings/settings.service';
+import { BeneficiaryResolverService } from './beneficiary-resolver.service';
+import { DelegationSchedulerService } from './delegation-scheduler.service';
 
 describe('DelegationSchedulerService', () => {
   let service: DelegationSchedulerService;
-  let prismaService: PrismaService;
-  let emailService: EmailService;
-  let beneficiaryResolverService: BeneficiaryResolverService;
 
   const mockPrisma = {
     client: {
@@ -50,11 +47,6 @@ describe('DelegationSchedulerService', () => {
 
     service = module.get<DelegationSchedulerService>(
       DelegationSchedulerService,
-    );
-    prismaService = module.get<PrismaService>(PrismaService);
-    emailService = module.get<EmailService>(EmailService);
-    beneficiaryResolverService = module.get<BeneficiaryResolverService>(
-      BeneficiaryResolverService,
     );
 
     jest.clearAllMocks();

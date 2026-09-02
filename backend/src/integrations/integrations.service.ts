@@ -1,15 +1,15 @@
 import {
-  Injectable,
-  Logger,
   BadRequestException,
   ForbiddenException,
+  Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
+import { Permission } from '../auth/permissions.enum';
 import { PrismaService } from '../prisma/prisma.service';
+import { StatusService } from '../status/status.service';
 import { TasksService } from '../tasks/tasks.service';
 import { IncomingWebhookDto } from './dto/incoming-webhook.dto';
-import { StatusService } from '../status/status.service';
-import { Permission } from '../auth/permissions.enum';
 
 /**
  * Mapping of webhook actions to required Permission scopes.
@@ -144,7 +144,7 @@ export class IntegrationsService {
     }
   }
 
-  private async createTaskAction(dto: IncomingWebhookDto, user: any) {
+  private async createTaskAction(dto: IncomingWebhookDto, _user: any) {
     const { name, description, periodicity, startDate } = dto.payload;
 
     if (!name || !periodicity || !startDate) {

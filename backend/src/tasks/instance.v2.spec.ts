@@ -1,13 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { SettingsService } from '../settings/settings.service';
 import { InstanceService } from './instance.service';
 import { RecurrenceService } from './recurrence.service';
-import { SettingsService } from '../settings/settings.service';
-import { Task } from '@prisma/client';
 
 describe('InstanceService V2 Hardening', () => {
   let service: InstanceService;
-  let recurrenceService: RecurrenceService;
-  let settingsService: SettingsService;
 
   const mockRecurrenceService = {
     getInstancesInRange: jest.fn(),
@@ -27,8 +24,6 @@ describe('InstanceService V2 Hardening', () => {
     }).compile();
 
     service = module.get<InstanceService>(InstanceService);
-    recurrenceService = module.get<RecurrenceService>(RecurrenceService);
-    settingsService = module.get<SettingsService>(SettingsService);
   });
 
   afterEach(() => {

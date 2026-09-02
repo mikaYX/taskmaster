@@ -1,6 +1,7 @@
 import { PipeTransform, Injectable, BadRequestException } from '@nestjs/common';
 import type { FileTypeResult } from 'file-type';
 import * as fs from 'fs';
+import { extname } from 'path';
 
 /** file-type v16 : fromBuffer / fromFile ; v21+ : fileTypeFromBuffer / fileTypeFromFile (résolution npm différente selon contexte). */
 type FileTypeModuleLike = {
@@ -13,6 +14,11 @@ type FileTypeModuleLike = {
   ) => Promise<FileTypeResult | undefined>;
   fileTypeFromFile?: (path: string) => Promise<FileTypeResult | undefined>;
 };
+
+type FileTypeModuleLoader = () => Promise<FileTypeModuleLike>;
+
+const loadFileTypeModule: FileTypeModuleLoader = async () =>
+  (await import('file-type')) as unknown as FileTypeModuleLike;
 
 function resolveFileTypeDetectors(mod: FileTypeModuleLike) {
   const fromBuffer = mod.fileTypeFromBuffer ?? mod.fromBuffer;
@@ -34,7 +40,10 @@ export interface FileValidationOptions {
 
 @Injectable()
 export class FileValidationPipe implements PipeTransform {
-  constructor(private readonly options: FileValidationOptions) {}
+  constructor(
+    private readonly options: FileValidationOptions,
+    private readonly fileTypeModuleLoader: FileTypeModuleLoader = loadFileTypeModule,
+  ) {}
 
   async transform(value: any) {
     if (!value) {
@@ -53,7 +62,7 @@ export class FileValidationPipe implements PipeTransform {
     }
 
     // ESM-only selon version : import dynamique + support v16 et v21 (Docker vs workspace)
-    const ft = (await import('file-type')) as unknown as FileTypeModuleLike;
+    const ft = await this.fileTypeModuleLoader();
     const { fromBuffer, fromFile } = resolveFileTypeDetectors(ft);
 
     let detectedType: FileTypeResult | undefined;
@@ -78,8 +87,7 @@ export class FileValidationPipe implements PipeTransform {
         );
       }
       if (this.options.allowedExtensionsWhenUndefined && value.originalname) {
-        const path = require('path');
-        const ext = path.extname(value.originalname).toLowerCase();
+        const ext = extname(value.originalname).toLowerCase();
         if (!this.options.allowedExtensionsWhenUndefined.includes(ext)) {
           if (value.path && fs.existsSync(value.path))
             fs.unlinkSync(value.path);

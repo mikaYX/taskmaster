@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { authApi } from '@/api';
 import { useAuthStore } from '@/stores';
-import type { LoginDto, UserRole, UserSite, VerifyMfaLoginDto } from '@/api/types';
+import type { LoginDto, Session, UserRole, UserSite, VerifyMfaLoginDto } from '@/api/types';
 
 /**
  * Query keys for auth.
@@ -17,7 +17,7 @@ export const authKeys = {
  *
  * @param enabled - Whether to automatically fetch the session (default: true)
  */
-function normalizeSession(session: any): { id: number; role: UserRole; groups: number[], permissions: string[], sites: UserSite[], passkeysEnabled: boolean, passkeyPolicy: 'disabled' | 'optional' | 'required', hasPasskey: boolean } | null {
+function normalizeSession(session: Session): { id: number; role: UserRole; groups: number[], permissions: string[], sites: UserSite[], passkeysEnabled: boolean, passkeyPolicy: 'disabled' | 'optional' | 'required', hasPasskey: boolean } | null {
     if (!session || !session.valid) return null;
 
     const userSource = session.user || session;
@@ -34,12 +34,12 @@ function normalizeSession(session: any): { id: number; role: UserRole; groups: n
         groups = session.user.groupIds;
     } else if (session.groupIds && Array.isArray(session.groupIds)) {
         groups = session.groupIds;
-    } else if (Array.isArray(session.groups) && session.groups.length > 0 && session.groups.every((g: any) => typeof g === 'number')) {
+    } else if (Array.isArray(session.groups) && session.groups.length > 0 && session.groups.every((g) => typeof g === 'number')) {
         groups = session.groups;
     } else if (session.user?.groups && Array.isArray(session.user.groups)) {
-        groups = session.user.groups.filter((g: any) => typeof g === 'number');
+        groups = session.user.groups.filter((g) => typeof g === 'number');
     } else if (Array.isArray(session.groups)) {
-        groups = session.groups.filter((g: any) => typeof g === 'number');
+        groups = session.groups.filter((g) => typeof g === 'number');
     }
 
     let permissions: string[] = [];
@@ -52,7 +52,7 @@ function normalizeSession(session: any): { id: number; role: UserRole; groups: n
     let sites: UserSite[] = [];
     const rawSites = session.user?.sites || session.sites;
     if (Array.isArray(rawSites)) {
-        sites = rawSites.map((s: any) => ({
+        sites = rawSites.map((s) => ({
             siteId: s.siteId,
             siteName: s.siteName,
             siteCode: s.siteCode,
@@ -64,7 +64,7 @@ function normalizeSession(session: any): { id: number; role: UserRole; groups: n
     const passkeyPolicy = userSource.passkeyPolicy ?? 'disabled';
     const hasPasskey = userSource.hasPasskey ?? false;
 
-    return { id, role: role as UserRole, groups, permissions, sites, passkeysEnabled, passkeyPolicy, hasPasskey };
+    return { id, role, groups, permissions, sites, passkeysEnabled, passkeyPolicy, hasPasskey };
 }
 
 /**
@@ -164,7 +164,7 @@ export function usePasskeyLogin() {
         mutationFn: async () => {
             const { startAuthentication } = await import('@simplewebauthn/browser');
             const { options, sessionId } = await authApi.generatePasskeyAuthenticationOptions();
-            const attResp = await startAuthentication(options);
+            const attResp = await startAuthentication({ optionsJSON: options });
             return authApi.verifyPasskeyAuthentication(attResp, sessionId);
         },
         onSuccess: async () => {

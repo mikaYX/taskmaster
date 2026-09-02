@@ -20,7 +20,14 @@ export interface Schedule {
     updatedAt: string;
 }
 
+export interface CreateScheduleItem {
+    taskId: number;
+    siteId?: string;
+    label?: string;
+    recurrenceMode: 'ON_SCHEDULE' | 'FROM_COMPLETION';
+}
+
 export const schedulesApi = {
     getAll: () => http.get<Schedule[]>('/schedules'),
-    createBulk: (payload: { items: any[] }) => http.post<{ createdCount: number; ids: number[] }>('/schedules/bulk', payload),
+    createBulk: (payload: { items: CreateScheduleItem[] }) => http.post<{ createdCount: number; ids: number[] }>('/schedules/bulk', payload),
 };

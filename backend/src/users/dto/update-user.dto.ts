@@ -1,12 +1,11 @@
+import { UserRole } from '@prisma/client';
 import {
-  IsString,
-  IsOptional,
   IsEmail,
   IsEnum,
-  MinLength,
+  IsOptional,
+  IsString,
   MaxLength,
 } from 'class-validator';
-import { UserRole } from '@prisma/client';
 
 /**
  * DTO for updating an existing user.

@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, Allow } from 'class-validator';
+import { Allow, IsString } from 'class-validator';
 
 /**
  * DTO for setting a configuration value.

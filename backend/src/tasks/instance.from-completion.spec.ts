@@ -1,12 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { InstanceService, FromCompletionContext } from './instance.service';
-import { RecurrenceService } from './recurrence.service';
-import { SettingsService } from '../settings/settings.service';
 import { Task } from '@prisma/client';
+import { SettingsService } from '../settings/settings.service';
+import { FromCompletionContext, InstanceService } from './instance.service';
+import { RecurrenceService } from './recurrence.service';
 
 describe('InstanceService (FROM_COMPLETION Logic)', () => {
   let service: InstanceService;
-  let recurrenceService: RecurrenceService;
 
   const mockSettingsService = {
     getRawValue: jest.fn(),
@@ -46,7 +45,6 @@ describe('InstanceService (FROM_COMPLETION Logic)', () => {
     }).compile();
 
     service = module.get<InstanceService>(InstanceService);
-    recurrenceService = module.get<RecurrenceService>(RecurrenceService);
   });
 
   describe('Strict Blocking Rules', () => {

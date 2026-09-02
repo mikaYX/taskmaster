@@ -61,7 +61,9 @@ describe('PasskeysManageDialog', () => {
 
     it('adds a passkey successfully', async () => {
         vi.mocked(authApi.listPasskeys).mockResolvedValue([]);
-        vi.mocked(authApi.generatePasskeyRegistrationOptions).mockResolvedValue({ challenge: 'test' });
+        vi.mocked(authApi.generatePasskeyRegistrationOptions).mockResolvedValue(
+            { challenge: 'test' } as Awaited<ReturnType<typeof authApi.generatePasskeyRegistrationOptions>>,
+        );
         vi.mocked(webauthn.startRegistration).mockResolvedValue({ id: 'new-key' } as unknown as webauthn.RegistrationResponseJSON);
         vi.mocked(authApi.verifyPasskeyRegistration).mockResolvedValue({ verified: true });
 

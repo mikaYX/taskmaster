@@ -1,52 +1,49 @@
 import {
-  Controller,
-  Get,
-  Post,
-  Put,
-  Delete,
-  Patch,
+  BadRequestException,
   Body,
-  Param,
-  Query,
-  ParseIntPipe,
-  ParseBoolPipe,
-  UseGuards,
+  Controller,
+  Delete,
+  Get,
   HttpCode,
   HttpStatus,
-  BadRequestException,
-  UploadedFile,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Post,
+  Put,
+  Query,
   Res,
   StreamableFile,
+  UploadedFile,
+  UseGuards,
 } from '@nestjs/common';
-import * as fs from 'fs';
-import type { Response } from 'express';
-import { FileInterceptor } from '@nestjs/platform-express';
-import { extname } from 'path';
 import { ConfigService } from '@nestjs/config';
-import { ProcedureStorageService } from './procedure-storage.service';
-import { Roles } from '../auth/decorators/roles.decorator';
-import { RequirePermission } from '../auth/decorators/require-permission.decorator';
-import { Permission } from '../auth/permissions.enum';
-import { Role } from '../enums/role.enum';
-import { Audit } from '../audit/decorators/audit.decorator';
+import { FileInterceptor } from '@nestjs/platform-express';
+import type { Response } from 'express';
+import * as fs from 'fs';
+import { extname } from 'path';
 import { AuditAction, AuditCategory } from '../audit/audit.constants';
+import { Audit } from '../audit/decorators/audit.decorator';
+import { RequirePermission } from '../auth/decorators/require-permission.decorator';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { Permission } from '../auth/permissions.enum';
+import { ProcedureStorageService } from './procedure-storage.service';
 import { TasksService } from './tasks.service';
 
-import {
-  CreateTaskDto,
-  UpdateTaskDto,
-  ManageAssignmentsDto,
-  CreateDelegationDto,
-  OverrideOccurrenceDto,
-  GetTasksQueryDto,
-} from './dto';
-import { JwtAuthGuard, RolesGuard, CurrentUser } from '../auth';
+import { UseInterceptors } from '@nestjs/common';
+import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { CurrentUser, RolesGuard } from '../auth';
 import { CompositeAuthGuard } from '../auth/guards/composite-auth.guard';
 import type { JwtPayload } from '../auth/strategies/jwt.strategy';
 import { IdempotencyInterceptor } from '../common/interceptors/idempotency.interceptor';
-import { UseInterceptors } from '@nestjs/common';
-import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { FileValidationPipe } from '../common/pipes/file-validation.pipe';
+import {
+  CreateTaskDto,
+  GetTasksQueryDto,
+  ManageAssignmentsDto,
+  OverrideOccurrenceDto,
+  UpdateTaskDto,
+} from './dto';
 
 /**
  * Tasks Controller.

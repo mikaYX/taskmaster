@@ -326,7 +326,7 @@ describe('SettingsController', () => {
 
     beforeEach(() => {
       (safeFetch as jest.Mock).mockReset();
-      const crypto = require('crypto');
+      const crypto = jest.requireActual<typeof import('crypto')>('crypto');
       cryptoSpy = jest
         .spyOn(crypto, 'X509Certificate')
         .mockImplementation(() => ({}));

@@ -25,6 +25,7 @@ import { useUsers } from '@/hooks/use-users';
 import { useGroups } from '@/hooks/use-groups';
 import { useTaskDelegations, useCreateDelegation, useDeleteDelegation } from '@/hooks/use-tasks';
 import { toast } from 'sonner';
+import { getErrorMessage } from '@/api/http';
 
 interface TaskDelegationsSheetProps {
     task: Task | undefined;
@@ -113,9 +114,8 @@ export function TaskDelegationsSheet({ task, open, onOpenChange }: TaskDelegatio
                     toast.success('Delegation created successfully');
                     resetForm();
                 },
-                onError: (error: any) => {
-                    const msg = error?.response?.data?.message || 'Failed to create delegation';
-                    toast.error(msg);
+                onError: (error: unknown) => {
+                    toast.error(getErrorMessage(error, 'Failed to create delegation'));
                 },
             }
         );

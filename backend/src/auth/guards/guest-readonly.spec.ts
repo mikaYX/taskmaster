@@ -1,6 +1,5 @@
-import { RolesGuard } from './roles.guard';
-import { Reflector } from '@nestjs/core';
 import { ForbiddenException } from '@nestjs/common';
+import { RolesGuard } from './roles.guard';
 
 function makeContext(method: string, role: string) {
   const request = { method, user: { role, permissions: [] } };

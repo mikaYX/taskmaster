@@ -140,7 +140,7 @@ export function GeneralSettingsPage() {
             }, 0);
             isInitialized.current = true;
         }
-    }, [settings.length]);
+    }, [getSetting, settings.length]);
 
     const hasUnsavedChanges =
         appTitle !== initialBranding.appTitle ||

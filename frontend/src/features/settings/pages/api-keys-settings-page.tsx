@@ -36,6 +36,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { cn } from '@/lib/utils';
+import { getErrorMessage } from '@/api/http';
 
 const AVAILABLE_SCOPES = [
     { value: 'task:read', label: 'Lecture Tâches' },
@@ -100,8 +101,8 @@ export function ApiKeysSettingsPage() {
             setNewKey(res.apiKey);
             fetchKeys();
             toast.success('Clé API générée avec succès');
-        } catch (err: any) {
-            toast.error(err.response?.data?.message || 'Erreur lors de la création');
+        } catch (err: unknown) {
+            toast.error(getErrorMessage(err, 'Erreur lors de la création'));
         }
     };
 
@@ -113,8 +114,8 @@ export function ApiKeysSettingsPage() {
             setCreateOpen(true); // Re-open dialog to show new key
             fetchKeys();
             toast.success('Clé API régénérée');
-        } catch (err: any) {
-            toast.error(err.response?.data?.message || 'Erreur lors de la rotation');
+        } catch (err: unknown) {
+            toast.error(getErrorMessage(err, 'Erreur lors de la rotation'));
         }
     };
 
@@ -189,7 +190,7 @@ export function ApiKeysSettingsPage() {
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
                     </div>
-                    <Select value={statusFilter} onValueChange={(val: any) => setStatusFilter(val)}>
+                    <Select value={statusFilter} onValueChange={(val: 'all' | 'active' | 'revoked') => setStatusFilter(val)}>
                         <SelectTrigger className="w-[150px]">
                             <Filter className="mr-2 h-4 w-4 text-muted-foreground" />
                             <SelectValue placeholder="Statut" />

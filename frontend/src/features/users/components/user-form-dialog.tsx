@@ -112,7 +112,7 @@ export function UserFormDialog({ open, onOpenChange, userToEdit }: UserFormDialo
                     lastname,
                     email: userToEdit?.username || '',
                     role,
-                    siteId: (userToEdit as any)?.siteId || sites[0]?.id,
+                    siteId: userToEdit?.siteId || sites[0]?.id,
                 });
             }
         }

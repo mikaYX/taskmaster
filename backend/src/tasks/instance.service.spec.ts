@@ -1,8 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { SettingsService } from '../settings/settings.service';
 import { InstanceService } from './instance.service';
 import { RecurrenceService } from './recurrence.service';
-import { SettingsService } from '../settings/settings.service';
-import { startOfDay, addDays } from 'date-fns';
 
 describe('InstanceService', () => {
   let service: InstanceService;

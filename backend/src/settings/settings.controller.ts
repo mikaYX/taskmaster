@@ -1,48 +1,45 @@
 import {
-  Controller,
-  Get,
-  Post,
-  Delete,
+  BadRequestException,
   Body,
-  Param,
-  UseGuards,
+  Controller,
+  Delete,
+  forwardRef,
+  Get,
   HttpCode,
   HttpStatus,
   Inject,
-  forwardRef,
-  UseInterceptors,
-  UploadedFile,
-  BadRequestException,
   Logger,
+  Param,
+  Post,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import * as crypto from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
-import * as crypto from 'crypto';
-import { Issuer } from 'openid-client';
-import { ConfidentialClientApplication } from '@azure/msal-node';
-import { SAML } from '@node-saml/node-saml';
-import { FileInterceptor } from '@nestjs/platform-express';
-import { SettingsService } from './settings.service';
-import {
-  SetSettingDto,
-  TestEmailDto,
-  CronPreviewDto,
-  TestLdapConnectionDto,
-  TestGoogleDto,
-  TestAzureDto,
-  TestSamlDto,
-  TestOidcDto,
-} from './dto';
-import { JwtAuthGuard, RolesGuard } from '../auth/guards';
-import { Roles, CurrentUser } from '../auth/decorators';
-import type { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
+import { CurrentUser, Roles } from '../auth/decorators';
 import { RequirePermission } from '../auth/decorators/require-permission.decorator';
-import { Permission } from '../auth/permissions.enum';
-import { getUploadsDir } from '../config/app-paths';
-import { EmailService } from '../email';
+import { JwtAuthGuard, RolesGuard } from '../auth/guards';
+import type { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 import { LdapService } from '../auth/ldap.service';
+import { Permission } from '../auth/permissions.enum';
 import { FileValidationPipe } from '../common/pipes/file-validation.pipe';
 import { safeFetch } from '../common/utils/url-validator.util';
+import { getUploadsDir } from '../config/app-paths';
+import { EmailService } from '../email';
+import {
+  CronPreviewDto,
+  SetSettingDto,
+  TestAzureDto,
+  TestEmailDto,
+  TestGoogleDto,
+  TestLdapConnectionDto,
+  TestOidcDto,
+  TestSamlDto,
+} from './dto';
+import { SettingsService } from './settings.service';
 
 /**
  * Settings Controller.
@@ -217,7 +214,7 @@ export class SettingsController {
   @Roles('SUPER_ADMIN')
   @RequirePermission(Permission.SETTINGS_WRITE)
   @HttpCode(HttpStatus.OK)
-  async testGoogleConnection(@Body() dto: TestGoogleDto) {
+  async testGoogleConnection(@Body() _dto: TestGoogleDto) {
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000);

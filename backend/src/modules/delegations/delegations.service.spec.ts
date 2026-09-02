@@ -1,20 +1,14 @@
+import { BadRequestException, ConflictException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { DelegationsService } from './delegations.service';
-import { PrismaService } from '../../prisma/prisma.service';
 import { AuditService } from '../../audit/audit.service';
 import { EmailService } from '../../email/email.service';
+import { PrismaService } from '../../prisma/prisma.service';
 import { BeneficiaryResolverService } from './beneficiary-resolver.service';
-import {
-  ConflictException,
-  BadRequestException,
-  NotFoundException,
-} from '@nestjs/common';
+import { DelegationsService } from './delegations.service';
 import { CreateDelegationDto } from './dto/create-delegation.dto';
 
 describe('DelegationsService', () => {
   let service: DelegationsService;
-  let prisma: PrismaService;
-  let auditService: AuditService;
 
   const mockPrismaService: any = {
     client: {
@@ -69,8 +63,6 @@ describe('DelegationsService', () => {
     }).compile();
 
     service = module.get<DelegationsService>(DelegationsService);
-    prisma = module.get<PrismaService>(PrismaService);
-    auditService = module.get<AuditService>(AuditService);
   });
 
   afterEach(() => {

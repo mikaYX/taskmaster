@@ -1,14 +1,13 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { TasksService } from './tasks.service';
-import { PrismaService } from '../prisma';
 import { ConfigService } from '@nestjs/config';
+import { Test, TestingModule } from '@nestjs/testing';
+import { AuditService } from '../audit/audit.service';
+import { BeneficiaryResolverService } from '../modules/delegations/beneficiary-resolver.service';
+import { PrismaService } from '../prisma';
 import { SettingsService } from '../settings/settings.service';
 import { InstanceService } from './instance.service';
-import { RecurrenceService } from './recurrence.service';
-import { AuditService } from '../audit/audit.service';
-import { NotFoundException } from '@nestjs/common';
 import { ProcedureStorageService } from './procedure-storage.service';
-import { BeneficiaryResolverService } from '../modules/delegations/beneficiary-resolver.service';
+import { RecurrenceService } from './recurrence.service';
+import { TasksService } from './tasks.service';
 
 describe('TasksService Update (V2)', () => {
   let service: TasksService;

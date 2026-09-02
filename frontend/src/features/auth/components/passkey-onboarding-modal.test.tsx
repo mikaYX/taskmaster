@@ -118,7 +118,9 @@ describe('PasskeyOnboardingModal', () => {
     });
 
     it('handles add passkey flow successfully', async () => {
-        vi.mocked(authApi.generatePasskeyRegistrationOptions).mockResolvedValue({ challenge: 'test' });
+        vi.mocked(authApi.generatePasskeyRegistrationOptions).mockResolvedValue(
+            { challenge: 'test' } as Awaited<ReturnType<typeof authApi.generatePasskeyRegistrationOptions>>,
+        );
         vi.mocked(webauthn.startRegistration).mockResolvedValue({ id: 'new-key' } as unknown as webauthn.RegistrationResponseJSON);
         vi.mocked(authApi.verifyPasskeyRegistration).mockResolvedValue({ verified: true });
         vi.mocked(authApi.getSession).mockResolvedValue({ hasPasskey: true } as never);
@@ -147,7 +149,9 @@ describe('PasskeyOnboardingModal', () => {
     });
 
     it('handles WebAuthn cancellation gracefully without alert', async () => {
-        vi.mocked(authApi.generatePasskeyRegistrationOptions).mockResolvedValue({ challenge: 'test' });
+        vi.mocked(authApi.generatePasskeyRegistrationOptions).mockResolvedValue(
+            { challenge: 'test' } as Awaited<ReturnType<typeof authApi.generatePasskeyRegistrationOptions>>,
+        );
 
         // Simulate NotAllowedError (user cancelled)
         const cancelError = new Error('Cancelled');

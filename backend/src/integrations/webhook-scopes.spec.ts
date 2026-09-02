@@ -1,17 +1,12 @@
-import {
-  ForbiddenException,
-  BadRequestException,
-  NotFoundException,
-} from '@nestjs/common';
-import { Test, TestingModule } from '@nestjs/testing';
+import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import { Test, TestingModule } from '@nestjs/testing';
 import { ScopesGuard } from '../auth/guards/scopes.guard';
-import { IntegrationsService } from './integrations.service';
-import { PrismaService } from '../prisma/prisma.service';
-import { TasksService } from '../tasks/tasks.service';
-import { StatusService } from '../status/status.service';
 import { Permission } from '../auth/permissions.enum';
-import { SCOPES_KEY } from '../auth/decorators/require-scopes.decorator';
+import { PrismaService } from '../prisma/prisma.service';
+import { StatusService } from '../status/status.service';
+import { TasksService } from '../tasks/tasks.service';
+import { IntegrationsService } from './integrations.service';
 
 // ─── ScopesGuard Tests ──────────────────────────────────────────────
 

@@ -1,16 +1,16 @@
 import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { SchedulerRegistry } from '@nestjs/schedule';
 import { SettingsService } from '../settings';
+import { AuditScheduler } from './audit.scheduler';
 import {
-  CleanupExportsJob,
-  CleanupBackupsJob,
-  HealthCheckJob,
-  AutoExportJob,
   AutoBackupJob,
+  AutoExportJob,
+  CleanupBackupsJob,
+  CleanupExportsJob,
+  HealthCheckJob,
   MissingTasksNotificationJob,
   ReminderNotificationJob,
 } from './jobs';
-import { AuditScheduler } from './audit.scheduler';
 
 @Injectable()
 export class SchedulerService implements OnApplicationBootstrap {
@@ -102,7 +102,7 @@ export class SchedulerService implements OnApplicationBootstrap {
         } else {
           nextRun = nextDate as unknown as Date;
         }
-      } catch (e) {
+      } catch {
         // Job might be stopped or invalid
       }
 
@@ -193,7 +193,7 @@ export class SchedulerService implements OnApplicationBootstrap {
         this.disabledJobs.delete(name);
         return { success: true, enabled: true, message: `Job ${name} started` };
       }
-    } catch (e) {
+    } catch {
       return {
         success: false,
         enabled: false,

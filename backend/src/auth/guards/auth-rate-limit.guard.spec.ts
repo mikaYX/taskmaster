@@ -1,13 +1,8 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import { ExecutionContext, HttpException, HttpStatus } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { HttpException, HttpStatus } from '@nestjs/common';
-import { ExecutionContext } from '@nestjs/common';
-import {
-  AuthRateLimitGuard,
-  AuthRateLimitType,
-  AUTH_RATE_LIMIT_KEY,
-} from './auth-rate-limit.guard';
+import { Test, TestingModule } from '@nestjs/testing';
 import { REDIS_CLIENT } from '../../common/redis/redis.module';
+import { AuthRateLimitGuard, AuthRateLimitType } from './auth-rate-limit.guard';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 

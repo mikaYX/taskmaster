@@ -26,7 +26,7 @@ interface ScheduleItem {
 }
 
 interface BulkScheduleCreatorProps {
-    existingSchedules?: { taskId: number }[]; // To detecting conflicts
+    existingSchedules?: { taskId: number; status?: string }[]; // To detecting conflicts
     trigger?: React.ReactNode;
 }
 
@@ -53,7 +53,7 @@ export function BulkScheduleCreator({ existingSchedules = [], trigger }: BulkSch
     const existingTaskIds = useMemo(() => {
         return new Set(
             existingSchedules
-                .filter(s => (s as any).status === 'ACTIVE') // safely access status if type is loose, or cast properly
+                .filter(s => s.status === 'ACTIVE')
                 .map(s => s.taskId)
         );
     }, [existingSchedules]);
@@ -99,7 +99,7 @@ export function BulkScheduleCreator({ existingSchedules = [], trigger }: BulkSch
                     siteId: i.siteId,
                     label: i.label,
                     // Default values controlled by backend/task definition
-                    recurrenceMode: 'ON_SCHEDULE',
+                    recurrenceMode: 'ON_SCHEDULE' as const,
                 }))
             };
             return schedulesApi.createBulk(payload);

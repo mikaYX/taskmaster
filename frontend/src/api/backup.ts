@@ -6,6 +6,8 @@ export interface BackupFile {
     createdAt: string;
 }
 
+export type BackupManifest = Record<string, unknown>;
+
 export const backupApi = {
     /**
      * List available backups.
@@ -57,7 +59,7 @@ export const backupApi = {
         http.get<{
             isValid: boolean;
             needsDecryptionKey: boolean;
-            manifest?: any;
+            manifest?: BackupManifest;
             error?: string;
             details?: string;
         }>(`/backup/validate/${filename}`),
@@ -72,7 +74,7 @@ export const backupApi = {
         return http.post<{
             isValid: boolean;
             needsDecryptionKey: boolean;
-            manifest?: any;
+            manifest?: BackupManifest;
             error?: string;
             details?: string;
             tempFilename: string;

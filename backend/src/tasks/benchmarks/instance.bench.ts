@@ -1,5 +1,4 @@
 import { InstanceService } from '../instance.service';
-import { Task } from '@prisma/client';
 
 // Mock Dependencies
 const recurrenceMock = { getInstancesInRange: () => [] } as any;
@@ -32,7 +31,8 @@ let totalInstances = 0;
 for (let i = 0; i < COUNT; i++) {
   // Consume iterator entirely to measure full generation cost
   const iterator = service.computeInstances(task, START, END, 'FR');
-  for (const _ of iterator) {
+  for (const instance of iterator) {
+    void instance;
     totalInstances++;
   }
 }

@@ -8,8 +8,9 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { TriangleAlert, Upload, Loader2, ShieldCheck, KeyRound, X, Database, FolderArchive, Lock } from 'lucide-react';
-import type { BackupFile } from '@/api/backup';
+import type { BackupFile, BackupManifest } from '@/api/backup';
 import { backupApi } from '@/api/backup';
+import { getErrorMessage } from '@/api/http';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -41,7 +42,7 @@ export const RestoreZone = forwardRef<RestoreZoneRef, RestoreZoneProps>(
         const [validationResult, setValidationResult] = useState<{
             isValid: boolean;
             needsDecryptionKey: boolean;
-            manifest?: any;
+            manifest?: BackupManifest;
             error?: string;
             details?: string;
             // For external files
@@ -78,11 +79,11 @@ export const RestoreZone = forwardRef<RestoreZoneRef, RestoreZoneProps>(
                 if (result.needsDecryptionKey) {
                     toast.warning("Ce backup nécessite une clé de déchiffrement.");
                 }
-            } catch (error: any) {
+            } catch (error: unknown) {
                 setValidationResult({
                     isValid: false,
                     needsDecryptionKey: false,
-                    error: error.data?.message || error.message || "Erreur de validation"
+                    error: getErrorMessage(error, "Erreur de validation")
                 });
             } finally {
                 setValidating(false);
@@ -116,11 +117,11 @@ export const RestoreZone = forwardRef<RestoreZoneRef, RestoreZoneProps>(
                     toast.error(result.error || "Fichier invalide");
                 }
 
-            } catch (error: any) {
+            } catch (error: unknown) {
                 setValidationResult({
                     isValid: false,
                     needsDecryptionKey: false,
-                    error: error.data?.message || error.message || "Échec de l'analyse du fichier"
+                    error: getErrorMessage(error, "Échec de l'analyse du fichier")
                 });
                 toast.error("Fichier externe refusé");
             } finally {
@@ -156,10 +157,9 @@ export const RestoreZone = forwardRef<RestoreZoneRef, RestoreZoneProps>(
                 setTimeout(() => {
                     window.location.href = '/login';
                 }, 2000);
-            } catch (error: any) {
+            } catch (error: unknown) {
                 console.error('Restore error:', error);
-                const msg = error.data?.error || error.data?.message || error.message || 'Échec de la restauration.';
-                toast.error(msg);
+                toast.error(getErrorMessage(error, 'Échec de la restauration.'));
                 setIsRestoring(false);
             }
         };
@@ -299,8 +299,8 @@ export const RestoreZone = forwardRef<RestoreZoneRef, RestoreZoneProps>(
                                                     <div>
                                                         <h5 className="font-medium text-green-700 dark:text-green-400">Backup Vérifié</h5>
                                                         <p className="text-sm text-muted-foreground">
-                                                            Version App : {validationResult.manifest?.appVersion || 'Inconnue'} •
-                                                            Type : {validationResult.manifest?.type || 'Système'}
+                                                            Version App : {String(validationResult.manifest?.appVersion || 'Inconnue')} •
+                                                            Type : {String(validationResult.manifest?.type || 'Système')}
                                                         </p>
                                                     </div>
                                                 </div>
@@ -504,4 +504,3 @@ export const RestoreZone = forwardRef<RestoreZoneRef, RestoreZoneProps>(
 );
 
 RestoreZone.displayName = 'RestoreZone';
-

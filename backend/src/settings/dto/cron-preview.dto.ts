@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsOptional } from 'class-validator';
+import { IsOptional, IsString } from 'class-validator';
 
 export class CronPreviewDto {
   @IsString()

@@ -1,12 +1,11 @@
+import { InjectQueue } from '@nestjs/bullmq';
 import {
   Injectable,
-  Logger,
   InternalServerErrorException,
-  OnModuleInit,
-  OnModuleDestroy,
+  Logger,
   NotFoundException,
+  OnModuleInit,
 } from '@nestjs/common';
-import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { BackupLogicService, type BackupSourceType } from './backup.logic';
 

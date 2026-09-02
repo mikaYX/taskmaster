@@ -1,13 +1,5 @@
-import {
-  IsString,
-  IsEnum,
-  IsBoolean,
-  IsOptional,
-  IsJSON,
-  ValidateNested,
-} from 'class-validator';
-import { Type } from 'class-transformer';
 import { NotificationChannelType } from '@prisma/client';
+import { IsBoolean, IsEnum, IsOptional, IsString } from 'class-validator';
 
 export class CreateNotificationChannelDto {
   @IsEnum(NotificationChannelType)

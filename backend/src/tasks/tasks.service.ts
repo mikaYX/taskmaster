@@ -8,6 +8,7 @@ import { PrismaService } from '../prisma';
 import { ConfigService } from '@nestjs/config';
 import { SettingsService } from '../settings/settings.service';
 import { formatInTimeZone } from 'date-fns-tz';
+import { subDays } from 'date-fns';
 import {
   InstanceService,
   VirtualInstance,
@@ -535,7 +536,7 @@ export class TasksService {
     };
 
     if (options?.onlyUrgent) {
-      const threeDaysAgo = require('date-fns').subDays(new Date(), 3);
+      const threeDaysAgo = subDays(new Date(), 3);
       whereClause.instanceDate = { lt: threeDaysAgo };
     }
 

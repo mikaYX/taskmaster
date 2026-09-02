@@ -1,13 +1,13 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { TasksService } from './tasks.service';
-import { PrismaService } from '../prisma';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { Test, TestingModule } from '@nestjs/testing';
+import { AuditService } from '../audit/audit.service';
+import { BeneficiaryResolverService } from '../modules/delegations/beneficiary-resolver.service';
+import { PrismaService } from '../prisma';
 import { SettingsService } from '../settings/settings.service';
 import { InstanceService } from './instance.service';
-import { AuditService } from '../audit/audit.service';
 import { ProcedureStorageService } from './procedure-storage.service';
-import { BeneficiaryResolverService } from '../modules/delegations/beneficiary-resolver.service';
-import { NotFoundException, BadRequestException, Logger } from '@nestjs/common';
+import { TasksService } from './tasks.service';
 
 // Helper pour créer un task mock
 const createMockTask = (overrides?: Partial<any>): any => ({

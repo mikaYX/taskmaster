@@ -1,16 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { SettingsService } from './settings.service';
+import { AuditService } from '../audit/audit.service';
 import { PrismaService } from '../prisma';
 import { EncryptionService } from './encryption.service';
-import { AuditService } from '../audit/audit.service';
-import { BadRequestException } from '@nestjs/common';
-import { clear } from 'console';
+import { SettingsService } from './settings.service';
 
 describe('SettingsService', () => {
   let service: SettingsService;
   let prisma: any;
-  let encryption: any;
-  let audit: any;
 
   beforeEach(async () => {
     const mockPrisma = {
@@ -43,8 +39,6 @@ describe('SettingsService', () => {
 
     service = module.get<SettingsService>(SettingsService);
     prisma = module.get(PrismaService);
-    encryption = module.get(EncryptionService);
-    audit = module.get(AuditService);
   });
 
   afterEach(() => {

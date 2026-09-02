@@ -1,14 +1,12 @@
 import {
   CanActivate,
   ExecutionContext,
+  ForbiddenException,
   Injectable,
   Logger,
-  ForbiddenException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Request } from 'express';
-import * as net from 'net';
-import { isPrivateIp } from '../utils/url-validator.util';
 
 @Injectable()
 export class LocalNetworkGuard implements CanActivate {

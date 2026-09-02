@@ -1,24 +1,18 @@
 import { useEffect } from 'react';
 import { useSettings } from '@/features/settings/hooks/use-settings';
 
+const THEMES: Record<string, { primary: string; ring: string }> = {
+    blue: { primary: 'hsl(199 89% 48%)', ring: 'hsl(199 89% 48%)' },
+    green: { primary: 'hsl(158 84% 39%)', ring: 'hsl(158 84% 39%)' },
+    purple: { primary: 'hsl(271 91% 65%)', ring: 'hsl(271 91% 65%)' },
+    orange: { primary: 'hsl(24 95% 53%)', ring: 'hsl(24 95% 53%)' },
+};
+
 export function DynamicBranding() {
     const { getSetting } = useSettings();
     const faviconUrl = getSetting('app.faviconUrl');
     const appTitle = getSetting('app.title');
     const colorTheme = getSetting('ui.theme');
-
-    // Theme HSL definitions
-    const THEMES: Record<string, { primary: string; ring: string }> = {
-        // 'default' uses index.css values (Legacy Blue)
-        // 'blue' -> Sky 500
-        blue: { primary: 'hsl(199 89% 48%)', ring: 'hsl(199 89% 48%)' },
-        // 'green' -> Emerald 500
-        green: { primary: 'hsl(158 84% 39%)', ring: 'hsl(158 84% 39%)' },
-        // 'purple' -> Purple 500
-        purple: { primary: 'hsl(271 91% 65%)', ring: 'hsl(271 91% 65%)' },
-        // 'orange' -> Orange 500
-        orange: { primary: 'hsl(24 95% 53%)', ring: 'hsl(24 95% 53%)' },
-    };
 
     useEffect(() => {
         // Try to load from localStorage first to prevent flash

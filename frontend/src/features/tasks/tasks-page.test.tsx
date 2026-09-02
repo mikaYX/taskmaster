@@ -6,6 +6,9 @@ import { TasksPage } from './tasks-page';
 import { useTasks } from '@/hooks/use-tasks';
 import React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import type { ReactNode } from 'react';
+
+type UseTasksResult = ReturnType<typeof useTasks>;
 
 // Mock dependecies
 vi.mock('@/hooks/use-tasks', () => ({
@@ -21,10 +24,10 @@ vi.mock('./components/task-delegations-sheet', () => ({ TaskDelegationsSheet: ()
 
 // Mock Shadcn Tooltip to avoid Radix UI internal jsdom incompatibilities and render content immediately
 vi.mock('@/components/ui/tooltip', () => ({
-    TooltipProvider: ({ children }: any) => <div>{children}</div>,
-    Tooltip: ({ children }: any) => <div>{children}</div>,
-    TooltipTrigger: ({ children }: any) => <div>{children}</div>,
-    TooltipContent: ({ children }: any) => <div>{children}</div>,
+    TooltipProvider: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+    Tooltip: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+    TooltipTrigger: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+    TooltipContent: ({ children }: { children: ReactNode }) => <div>{children}</div>,
 }));
 
 describe('TasksPage - Delegations Tooltip', () => {
@@ -69,7 +72,7 @@ describe('TasksPage - Delegations Tooltip', () => {
                 updatedAt: new Date().toISOString()
             }],
             isLoading: false,
-        } as any);
+        } as unknown as UseTasksResult);
 
         renderWithRouter(<TasksPage />);
 
@@ -89,7 +92,7 @@ describe('TasksPage - Delegations Tooltip', () => {
                 }],
             }],
             isLoading: false,
-        } as any);
+        } as unknown as UseTasksResult);
 
         renderWithRouter(<TasksPage />);
 
@@ -111,7 +114,7 @@ describe('TasksPage - Delegations Tooltip', () => {
                 ],
             }],
             isLoading: false,
-        } as any);
+        } as unknown as UseTasksResult);
 
         renderWithRouter(<TasksPage />);
 
@@ -135,7 +138,7 @@ describe('TasksPage - Delegations Tooltip', () => {
                 }],
             }],
             isLoading: false,
-        } as any);
+        } as unknown as UseTasksResult);
 
         renderWithRouter(<TasksPage />);
 
@@ -172,7 +175,7 @@ describe('TasksPage - Delegations Tooltip', () => {
                 }],
             }],
             isLoading: false,
-        } as any);
+        } as unknown as UseTasksResult);
 
         renderWithRouter(<TasksPage />);
 

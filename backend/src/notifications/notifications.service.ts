@@ -1,21 +1,21 @@
 import {
-  Injectable,
-  NotFoundException,
   BadRequestException,
+  Injectable,
   Logger,
+  NotFoundException,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
+import { safeFetch } from '../common/utils/url-validator.util';
+import { EmailService } from '../email/email.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { EncryptionService } from '../settings/encryption.service';
-import { EmailService } from '../email/email.service';
 import { SettingsService } from '../settings/settings.service';
-import { PushService } from './push.service';
 import {
   CreateNotificationChannelDto,
   UpdateNotificationChannelDto,
 } from './dto/channel.dto';
 import { SaveTaskNotificationsDto } from './dto/task-notification.dto';
-import { Prisma } from '@prisma/client';
-import { safeFetch } from '../common/utils/url-validator.util';
+import { PushService } from './push.service';
 
 @Injectable()
 export class NotificationsService {
@@ -118,7 +118,6 @@ export class NotificationsService {
         );
       }
 
-      const config = channel.config as Record<string, any>;
       // For testing, we pass temporary config to EmailService or rely on a unified send method.
       // Here we assume EmailService can be instructed to send a test email.
       // In a real scenario, EmailService might need tweaking to accept dynamic SMTP configs,
@@ -253,7 +252,7 @@ export class NotificationsService {
         if (notif.channel.config) {
           try {
             config = JSON.parse(this.encryption.decrypt(notif.channel.config));
-          } catch (e) {
+          } catch {
             this.logger.error(
               `Failed to decrypt config for channel ${notif.channelId}`,
             );
@@ -401,7 +400,7 @@ export class NotificationsService {
           .replace(/{{taskName}}/g, taskName)
           .replace(/{{eventLabel}}/g, eventLabel);
         body = strPayload;
-      } catch (e) {
+      } catch {
         body = JSON.stringify({ message: text });
       }
     } else {
@@ -478,7 +477,7 @@ export class NotificationsService {
       try {
         const jsonStr = this.encryption.decrypt(channel.config);
         decryptedConfig = JSON.parse(jsonStr);
-      } catch (e) {
+      } catch {
         // If decryption fails (e.g., secret changed), return an empty object or a marker
         decryptedConfig = { error: 'Failed to decrypt config' };
       }

@@ -1,10 +1,6 @@
-import {
-  Injectable,
-  UnauthorizedException,
-  BadRequestException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
+import { createHash, randomBytes, timingSafeEqual } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
-import { randomBytes, createHash, timingSafeEqual } from 'crypto';
 import { Permission } from './permissions.enum';
 
 @Injectable()

@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.5] - 2026-09-02
+
+### Security
+- Updated direct and transitive npm dependencies across the root, backend, and frontend workspaces; all production and development audits now report `0 vulnerabilities`.
+- Upgraded security-sensitive packages including Axios, FormData, Multer, Nodemailer, ProtobufJS, React Router, Undici, and WebSocket dependencies to patched releases.
+
+### Changed
+- Cleared the existing lint backlog across the backend and frontend without disabling the underlying rules; both workspaces now lint with `0 warnings` and `0 errors`.
+- Updated frontend WebAuthn calls for the SimpleWebAuthn v13 API and tightened types across authentication, settings, schedules, tasks, and shared API code.
+- Updated Puppeteer integration for the current ESM-compatible release while preserving lazy loading of the analytics PDF renderer.
+
+### Fixed
+- Reworked file upload type detection behind an injectable ESM loader, fixing the seven Jest failures caused by `file-type` without changing production magic-byte validation.
+- Updated affected tests and mocks for current dependency APIs; the complete backend and frontend test suites now pass.
+
+### Verification
+- NPM audit: `0 vulnerabilities`.
+- Lint: `0 warnings`, `0 errors`.
+- Typecheck and production build: pass.
+- Tests: backend `516/516`; frontend `93/93`.
+- Production `file-type` loader smoke test: pass.
+
 ## [1.1.4] - 2026-08-04
 
 ### Fixed

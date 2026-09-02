@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { toast } from 'sonner';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { SettingsSection } from '../components/settings-section';
 import { useSettings } from '../hooks/use-settings';
@@ -29,6 +29,7 @@ import {
     FormMessage,
 } from "@/components/ui/form";
 import { useTranslation } from 'react-i18next';
+import { z } from 'zod';
 
 export function EmailSettingsPage() {
     const { t } = useTranslation();
@@ -50,6 +51,8 @@ export function EmailSettingsPage() {
             reminders: { enabled: false, offsetHours: 1, offsetMinutes: 0, recipients: [] as string[], customEmails: [] as string[] },
         },
     });
+    const emailEnabled = useWatch({ control: form.control, name: 'enabled' });
+    const emailProvider = useWatch({ control: form.control, name: 'provider' });
 
     // Helper to parse boolean settings
     const toBool = (val: unknown) => val === true || val === 'true';
@@ -60,7 +63,7 @@ export function EmailSettingsPage() {
             isInitialized.current = true;
             form.reset({
                 enabled: toBool(getSetting('email.enabled')),
-                provider: (getSetting('email.provider') as any) || 'smtp',
+                provider: (getSetting('email.provider') as 'smtp' | 'mailgun' | 'mailjet' | 'sendgrid') || 'smtp',
                 smtp: {
                     host: getSetting('email.smtp.host') || '',
                     port: parseInt(getSetting('email.smtp.port') || '587'),
@@ -90,37 +93,37 @@ export function EmailSettingsPage() {
             });
             setTestEmailTo(getSetting('email.recipients') || '');
         }
-    }, [settings.length]);
+    }, [form, getSetting, settings.length]);
 
 
 
-    const onSubmit = (data: any) => {
+    const onSubmit = (data: z.infer<typeof emailSettingsSchema>) => {
         // Global
         updateSetting({ key: 'email.enabled', value: data.enabled });
         updateSetting({ key: 'email.provider', value: data.provider });
 
         let fromAddress = '';
-        if (data.provider === 'smtp') fromAddress = data.smtp?.from;
-        else if (data.provider === 'mailgun') fromAddress = data.mailgun?.from;
-        else if (data.provider === 'mailjet') fromAddress = data.mailjet?.from;
-        else if (data.provider === 'sendgrid') fromAddress = data.sendgrid?.from;
+        if (data.provider === 'smtp') fromAddress = data.smtp?.from ?? '';
+        else if (data.provider === 'mailgun') fromAddress = data.mailgun?.from ?? '';
+        else if (data.provider === 'mailjet') fromAddress = data.mailjet?.from ?? '';
+        else if (data.provider === 'sendgrid') fromAddress = data.sendgrid?.from ?? '';
 
         updateSetting({ key: 'email.from', value: fromAddress || '' });
 
         // Provider specific
         if (data.provider === 'smtp') {
-            updateSetting({ key: 'email.smtp.host', value: data.smtp.host });
-            updateSetting({ key: 'email.smtp.port', value: data.smtp.port });
-            updateSetting({ key: 'email.smtp.user', value: data.smtp.user });
-            updateSetting({ key: 'email.smtp.password', value: data.smtp.pass });
+            updateSetting({ key: 'email.smtp.host', value: data.smtp?.host ?? '' });
+            updateSetting({ key: 'email.smtp.port', value: data.smtp?.port ?? 587 });
+            updateSetting({ key: 'email.smtp.user', value: data.smtp?.user ?? '' });
+            updateSetting({ key: 'email.smtp.password', value: data.smtp?.pass ?? '' });
         } else if (data.provider === 'mailgun') {
-            updateSetting({ key: 'email.mailgun.apiKey', value: data.mailgun.apiKey });
-            updateSetting({ key: 'email.mailgun.domain', value: data.mailgun.domain });
+            updateSetting({ key: 'email.mailgun.apiKey', value: data.mailgun?.apiKey ?? '' });
+            updateSetting({ key: 'email.mailgun.domain', value: data.mailgun?.domain ?? '' });
         } else if (data.provider === 'mailjet') {
-            updateSetting({ key: 'email.mailjet.apiKey', value: data.mailjet.apiKey });
-            updateSetting({ key: 'email.mailjet.secretKey', value: data.mailjet.secretKey });
+            updateSetting({ key: 'email.mailjet.apiKey', value: data.mailjet?.apiKey ?? '' });
+            updateSetting({ key: 'email.mailjet.secretKey', value: data.mailjet?.secretKey ?? '' });
         } else if (data.provider === 'sendgrid') {
-            updateSetting({ key: 'email.sendgrid.apiKey', value: data.sendgrid.apiKey });
+            updateSetting({ key: 'email.sendgrid.apiKey', value: data.sendgrid?.apiKey ?? '' });
         }
 
         // alerts / reminders : gérés dans l’onglet Notifications, pas sauvegardés ici
@@ -164,7 +167,7 @@ export function EmailSettingsPage() {
                         />
                     </SettingsSection>
 
-                    {form.watch('enabled') && (
+                    {emailEnabled && (
                         <>
                             {/* Provider */}
                             <SettingsSection title={t('email.provider')}>
@@ -240,7 +243,7 @@ export function EmailSettingsPage() {
                             </SettingsSection>
 
                             {/* SMTP Config */}
-                            {form.watch('provider') === 'smtp' && (
+                            {emailProvider === 'smtp' && (
                                         <SettingsSection title={t('emailSettings.smtpConfiguration')}>
                                     <div className="grid grid-cols-2 gap-4">
                                         <FormField control={form.control} name="smtp.host" render={({ field }) => (
@@ -266,7 +269,7 @@ export function EmailSettingsPage() {
                             )}
 
                             {/* Mailgun Config */}
-                            {form.watch('provider') === 'mailgun' && (
+                            {emailProvider === 'mailgun' && (
                                         <SettingsSection title={t('emailSettings.mailgunConfiguration')}>
                                     <div className="grid gap-4">
                                         <FormField control={form.control} name="mailgun.apiKey" render={({ field }) => (
@@ -286,7 +289,7 @@ export function EmailSettingsPage() {
                             )}
 
                             {/* Mailjet Config */}
-                            {form.watch('provider') === 'mailjet' && (
+                            {emailProvider === 'mailjet' && (
                                         <SettingsSection title={t('emailSettings.mailjetConfiguration')}>
                                     <div className="grid gap-4">
                                         <FormField control={form.control} name="mailjet.apiKey" render={({ field }) => (
@@ -306,7 +309,7 @@ export function EmailSettingsPage() {
                             )}
 
                             {/* SendGrid Config */}
-                            {form.watch('provider') === 'sendgrid' && (
+                            {emailProvider === 'sendgrid' && (
                                         <SettingsSection title={t('emailSettings.sendgridConfiguration')}>
                                     <div className="grid gap-4">
                                         <FormField control={form.control} name="sendgrid.apiKey" render={({ field }) => (

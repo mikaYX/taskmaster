@@ -1,31 +1,31 @@
 import {
+  BadRequestException,
+  Body,
   Controller,
-  Get,
-  Post,
   Delete,
-  Param,
-  Res,
-  UseGuards,
+  Get,
   HttpCode,
   HttpStatus,
-  Body,
-  UseInterceptors,
-  UploadedFile,
+  Inject,
+  Param,
+  Post,
   StreamableFile,
-  BadRequestException,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
+  forwardRef,
 } from '@nestjs/common';
-import type { Response } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
+import { createReadStream } from 'fs';
 import { extname } from 'path';
-import { BackupService } from './backup.service';
-import { ExportService } from './export.service';
-import { JwtAuthGuard, RolesGuard, Roles } from '../auth';
-import { Inject, forwardRef } from '@nestjs/common';
-import { EmailService } from '../email';
-import { SettingsService } from '../settings';
+import { JwtAuthGuard, Roles, RolesGuard } from '../auth';
 import { IdempotencyInterceptor } from '../common/interceptors/idempotency.interceptor';
 import { FileValidationPipe } from '../common/pipes/file-validation.pipe';
+import { EmailService } from '../email';
+import { SettingsService } from '../settings';
+import { BackupService } from './backup.service';
+import { ExportService } from './export.service';
 
 // Local definition to avoid global namespace issues with Express.Multer.File
 interface MulterFile {
@@ -225,20 +225,19 @@ export class BackupController {
 
   @Get('download/:filename')
   async download(@Param('filename') filename: string): Promise<StreamableFile> {
-    const fs = require('fs');
     let filepath: string;
 
     if (filename.startsWith('export_')) {
       try {
         filepath = this.exportService.getExportPath(filename);
-      } catch (e) {
+      } catch {
         throw new BadRequestException('File not found');
       }
     } else {
       filepath = await this.backupService.getBackupPath(filename);
     }
 
-    const file = fs.createReadStream(filepath);
+    const file = createReadStream(filepath);
     return new StreamableFile(file, {
       type: 'application/octet-stream',
       disposition: `attachment; filename="${filename}"`,

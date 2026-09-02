@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ScheduleService } from './schedule.service';
 import { PrismaService } from '../prisma';
 import { SettingsService } from '../settings/settings.service';
+import { ScheduleService } from './schedule.service';
 
 describe('createBulk — perf benchmark', () => {
   let service: ScheduleService;
@@ -65,7 +65,7 @@ describe('createBulk — perf benchmark', () => {
 
       mockPrisma.client.task.findMany.mockResolvedValue(taskIds);
 
-      const results = items.map((it, j) => ({
+      const results = items.map((it) => ({
         id: counter++,
         taskId: it.taskId,
         recurrenceMode: it.recurrenceMode,

@@ -17,6 +17,16 @@ export class ApiError extends Error {
     }
 }
 
+export function getErrorMessage(error: unknown, fallback: string): string {
+    if (error instanceof ApiError && error.data && typeof error.data === 'object') {
+        const data = error.data as { message?: unknown; error?: unknown };
+        if (typeof data.message === 'string') return data.message;
+        if (typeof data.error === 'string') return data.error;
+    }
+    if (error instanceof Error && error.message) return error.message;
+    return fallback;
+}
+
 /**
  * Base HTTP client configuration.
  */

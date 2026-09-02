@@ -1,20 +1,19 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { ConfigService } from '@nestjs/config';
 import {
   ConflictException,
   ForbiddenException,
   HttpException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { Test, TestingModule } from '@nestjs/testing';
+import { REDIS_CLIENT } from '../common/redis/redis.module';
+import { PrismaService } from '../prisma';
 import { SetupGuard } from './setup.guard';
 import { SetupService } from './setup.service';
-import { PrismaService } from '../prisma';
-import { REDIS_CLIENT } from '../common/redis/redis.module';
 
 // ─── SetupGuard Tests ───────────────────────────────────────────────
 
 describe('SetupGuard', () => {
   let guard: SetupGuard;
-  let configService: ConfigService;
   let redisSet: jest.Mock;
 
   const mockConfigService = {
@@ -47,7 +46,6 @@ describe('SetupGuard', () => {
     }).compile();
 
     guard = module.get<SetupGuard>(SetupGuard);
-    configService = module.get<ConfigService>(ConfigService);
   });
 
   it('should reject when BOOTSTRAP_SECRET is not configured', async () => {

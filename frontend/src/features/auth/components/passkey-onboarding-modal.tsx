@@ -94,7 +94,7 @@ export function PasskeyOnboardingModal({
     const addMutation = useMutation({
         mutationFn: async (name: string) => {
             const options = await authApi.generatePasskeyRegistrationOptions();
-            const attResp = await startRegistration(options);
+            const attResp = await startRegistration({ optionsJSON: options });
             const verifyRes = await authApi.verifyPasskeyRegistration({
                 response: attResp,
                 name: name,

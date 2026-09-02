@@ -20,7 +20,18 @@ export default defineConfig([
       globals: globals.browser,
     },
     rules: {
-      'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
+      'react-refresh/only-export-components': ['warn', {
+        allowConstantExport: true,
+        allowExportNames: [
+          'badgeVariants',
+          'buttonVariants',
+          'queryClient',
+          'tabsListVariants',
+          'useFormField',
+          'useSidebar',
+          'useTheme',
+        ],
+      }],
       '@typescript-eslint/no-explicit-any': 'warn',
       // Prévention du reverse-tabnabbing : tout <a target="_blank"> doit porter rel="noopener noreferrer".
       // Note : ce sélecteur signale l'absence totale d'attribut `rel`. Les

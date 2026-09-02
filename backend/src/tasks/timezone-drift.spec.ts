@@ -1,13 +1,13 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { TasksService } from './tasks.service';
-import { PrismaService } from '../prisma';
 import { ConfigService } from '@nestjs/config';
+import { Test, TestingModule } from '@nestjs/testing';
+import { formatInTimeZone } from 'date-fns-tz';
+import { AuditService } from '../audit/audit.service';
+import { BeneficiaryResolverService } from '../modules/delegations/beneficiary-resolver.service';
+import { PrismaService } from '../prisma';
 import { SettingsService } from '../settings/settings.service';
 import { InstanceService } from './instance.service';
-import { AuditService } from '../audit/audit.service';
 import { ProcedureStorageService } from './procedure-storage.service';
-import { BeneficiaryResolverService } from '../modules/delegations/beneficiary-resolver.service';
-import { formatInTimeZone } from 'date-fns-tz';
+import { TasksService } from './tasks.service';
 
 describe('TasksService Timezone Drift (Non-Regression)', () => {
   let service: TasksService;
@@ -55,7 +55,6 @@ describe('TasksService Timezone Drift (Non-Regression)', () => {
   it('should format instanceDate correctly for Europe/Paris (UTC+1) - 4 Mars 2026 case', async () => {
     // 1. Setup a date that is March 4th 00:00 in Paris, which is March 3rd 23:00 UTC
     const parisTimezone = 'Europe/Paris';
-    const dateStr = '2026-03-04T00:00:00';
     // Create actual Date object (which will be treated as UTC by Node if no Z and we use Date.UTC or similar,
     // but here we want the exact timestamp)
     const dateAtMidnightParis = new Date('2026-03-03T23:00:00Z');

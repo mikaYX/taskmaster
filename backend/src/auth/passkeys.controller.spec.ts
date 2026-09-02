@@ -1,10 +1,9 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
+import { Test, TestingModule } from '@nestjs/testing';
+import { Role } from '../enums/role.enum';
+import { AuthService } from './auth.service';
 import { PasskeysController } from './passkeys.controller';
 import { PasskeysService } from './passkeys.service';
-import { AuthService } from './auth.service';
-import { User } from '@prisma/client';
-import { Role } from '../enums/role.enum';
 
 describe('PasskeysController', () => {
   let controller: PasskeysController;

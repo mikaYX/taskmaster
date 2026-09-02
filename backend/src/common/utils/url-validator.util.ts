@@ -1,9 +1,9 @@
+import { AbortController } from 'abort-controller';
 import * as dns from 'dns';
 import * as http from 'http';
 import * as https from 'https';
 import * as net from 'net';
 import fetch, { RequestInit, Response } from 'node-fetch';
-import { AbortController } from 'abort-controller';
 
 /**
  * Options for URL Validation
@@ -92,7 +92,7 @@ export async function validateUrl(
   let parsedUrl: URL;
   try {
     parsedUrl = new URL(targetUrl);
-  } catch (error) {
+  } catch {
     throw new Error('Invalid URL format');
   }
 

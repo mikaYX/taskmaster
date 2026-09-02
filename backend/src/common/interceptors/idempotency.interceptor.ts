@@ -1,16 +1,16 @@
 import {
-  Injectable,
-  NestInterceptor,
-  ExecutionContext,
   CallHandler,
   ConflictException,
-  Logger,
+  ExecutionContext,
   Inject,
+  Injectable,
+  Logger,
+  NestInterceptor,
 } from '@nestjs/common';
-import { Observable, of, throwError, from } from 'rxjs';
-import { catchError, tap, switchMap, map } from 'rxjs/operators';
-import Redis from 'ioredis';
 import { Request, Response } from 'express';
+import Redis from 'ioredis';
+import { from, Observable, of, throwError } from 'rxjs';
+import { catchError, map, switchMap } from 'rxjs/operators';
 import { REDIS_CLIENT } from '../redis/redis.module';
 
 @Injectable()

@@ -1,6 +1,5 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { existsSync } from 'fs';
-import * as puppeteer from 'puppeteer';
 import { AnalyticsService } from './analytics.service';
 import type { OverviewResponse, TaskComplianceItem } from './dto';
 
@@ -56,6 +55,7 @@ export class AnalyticsPdfService {
   }
 
   async generate(startDate: string, endDate: string): Promise<Buffer> {
+    const puppeteer = await import('puppeteer');
     const [overview, tasks] = await Promise.all([
       this.analyticsService.getOverview(startDate, endDate),
       this.analyticsService.getByTask(startDate, endDate, 9999),

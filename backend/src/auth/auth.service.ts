@@ -1,24 +1,24 @@
 import {
-  Injectable,
-  UnauthorizedException,
   BadRequestException,
-  Logger,
   Inject,
+  Injectable,
+  Logger,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import Redis from 'ioredis';
 import { REDIS_CLIENT } from '../common/redis/redis.module';
 import { PrismaService } from '../prisma';
-import { RefreshTokenService } from './refresh-token.service';
-import { JwtPayload, UserSitePayload } from './strategies/jwt.strategy';
-import { MfaService } from './mfa.service';
-import { LdapService } from './ldap.service';
 import { SettingsService } from '../settings/settings.service';
-import { OidcProfile } from './oidc.service';
-import { AzureAdProfile } from './azure-ad.service';
-import { SamlProfile } from './saml.service';
 import { BCRYPT_ROUNDS } from './auth.constants';
+import { AzureAdProfile } from './azure-ad.service';
+import { LdapService } from './ldap.service';
+import { MfaService } from './mfa.service';
+import { OidcProfile } from './oidc.service';
+import { RefreshTokenService } from './refresh-token.service';
+import { SamlProfile } from './saml.service';
+import { JwtPayload, UserSitePayload } from './strategies/jwt.strategy';
 
 /**
  * Token response structure.
@@ -632,7 +632,7 @@ export class AuthService {
     let payload;
     try {
       payload = this.jwtService.verify(mfaToken);
-    } catch (e) {
+    } catch {
       throw new UnauthorizedException('Invalid or expired MFA token');
     }
 

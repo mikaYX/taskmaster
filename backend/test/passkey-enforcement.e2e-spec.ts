@@ -1,14 +1,13 @@
-import * as dotenv from 'dotenv';
-dotenv.config({ path: '../.env' });
-import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
-import request from 'supertest';
-import { PrismaService } from '../src/prisma/prisma.service';
+import { Test, TestingModule } from '@nestjs/testing';
 import * as bcrypt from 'bcrypt';
-import * as crypto from 'crypto';
-import { SettingsService } from '../src/settings/settings.service';
+import * as dotenv from 'dotenv';
+import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { REDIS_CLIENT } from '../src/common/redis/redis.module';
+import { PrismaService } from '../src/prisma/prisma.service';
+import { SettingsService } from '../src/settings/settings.service';
+dotenv.config({ path: '../.env' });
 
 describe('Passkeys Hard Enforcement (E2E)', () => {
   let app: INestApplication;

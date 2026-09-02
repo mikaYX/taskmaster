@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useSettings } from '../hooks/use-settings';
@@ -34,6 +34,16 @@ import { useTranslation } from 'react-i18next';
 
 type AuthCapabilities = Record<string, { implemented: boolean; configured: boolean; enabled: boolean; effectiveEnabled: boolean }> | null;
 type AuthTestResults = Record<string, { status: 'idle' | 'testing' | 'success' | 'error' | 'timeout'; message?: string }>;
+interface ProviderConfigSnapshot {
+    azureAd?: { tenantId?: string; clientId?: string; clientSecret?: string };
+    google?: { clientId?: string; clientSecret?: string };
+    generic?: {
+        type?: 'oidc' | 'saml';
+        oidc?: { issuer?: string; clientId?: string; clientSecret?: string };
+        saml?: { entityId?: string; ssoUrl?: string; x509?: string };
+    };
+    ldap?: { url?: string; bindDn?: string; bindPassword?: string; searchBase?: string };
+}
 
 // Hoisted out of AuthSettingsPage (react-hooks/static-components) — components
 // must not be declared during render, so state used to come from closures is
@@ -202,17 +212,17 @@ export function AuthSettingsPage() {
             },
         },
     });
+    const authValues = useWatch({ control: form.control });
 
     // Reset status when form changes
     useEffect(() => {
-        const subscription = form.watch((_value, { name }) => {
+        return form.subscribe({ formState: { values: true }, callback: ({ name }) => {
             if (name?.startsWith('azureAd')) setTestResults(prev => ({ ...prev, azure: { status: 'idle' } }));
             if (name?.startsWith('google')) setTestResults(prev => ({ ...prev, google: { status: 'idle' } }));
             if (name?.startsWith('generic')) setTestResults(prev => ({ ...prev, oidc: { status: 'idle' }, saml: { status: 'idle' } }));
             if (name?.startsWith('ldap')) setTestResults(prev => ({ ...prev, ldap: { status: 'idle' } }));
-        });
-        return () => subscription.unsubscribe();
-    }, [form, form.watch]);
+        }});
+    }, [form]);
 
     // Load settings into form
     useEffect(() => {
@@ -433,8 +443,8 @@ export function AuthSettingsPage() {
     }
 
     // Determine MFA Policy based on state
-    const mfaMethods = form.watch('mfa.methods') || [];
-    const mfaRequired = form.watch('mfa.required');
+    const mfaMethods = authValues.mfa?.methods || [];
+    const mfaRequired = authValues.mfa?.required;
     const mfaPolicy = (mfaMethods.length === 0) ? 'disabled' : (mfaRequired ? 'required' : 'optional');
 
     const handleMfaPolicyChange = (val: string) => {
@@ -451,7 +461,7 @@ export function AuthSettingsPage() {
     };
 
     // Validation Logic
-    const validateProviderConfig = (type: string, data: z.infer<typeof authSettingsSchema>) => {
+    const validateProviderConfig = (type: string, data: ProviderConfigSnapshot) => {
         const missing: string[] = [];
         let isValid = true;
 
@@ -568,10 +578,10 @@ export function AuthSettingsPage() {
     };
 
     // Current config checks
-    const azureValidation = validateProviderConfig('azure', form.watch());
-    const googleValidation = validateProviderConfig('google', form.watch());
-    const oidcValidation = validateProviderConfig('oidc', form.watch());
-    const ldapValidation = validateProviderConfig('ldap', form.watch());
+    const azureValidation = validateProviderConfig('azure', authValues);
+    const googleValidation = validateProviderConfig('google', authValues);
+    const oidcValidation = validateProviderConfig('oidc', authValues);
+    const ldapValidation = validateProviderConfig('ldap', authValues);
 
     // Is form dirty?
     const isDirty = form.formState.isDirty;
@@ -630,7 +640,7 @@ export function AuthSettingsPage() {
                                                 <TabsTrigger value="azure" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none shadow-none pb-2 bg-transparent text-muted-foreground data-[state=active]:text-foreground">
                                                     Azure AD
                                                     {/* Status Dot */}
-                                                    {form.watch('azureAd.enabled') && (
+                                                    {authValues.azureAd?.enabled && (
                                                         <div className={cn("ml-2 h-2 w-2 rounded-full", azureValidation.isValid ? "bg-green-500" : "bg-amber-500")} />
                                                     )}
                                                 </TabsTrigger>
@@ -642,7 +652,7 @@ export function AuthSettingsPage() {
                                             <TooltipTrigger asChild>
                                                 <TabsTrigger value="google" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none shadow-none pb-2 bg-transparent text-muted-foreground data-[state=active]:text-foreground">
                                                     Google Workspace
-                                                    {form.watch('google.enabled') && (
+                                                    {authValues.google?.enabled && (
                                                         <div className={cn("ml-2 h-2 w-2 rounded-full", googleValidation.isValid ? "bg-green-500" : "bg-amber-500")} />
                                                     )}
                                                 </TabsTrigger>
@@ -654,7 +664,7 @@ export function AuthSettingsPage() {
                                             <TooltipTrigger asChild>
                                                 <TabsTrigger value="oidc" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none shadow-none pb-2 bg-transparent text-muted-foreground data-[state=active]:text-foreground">
                                                     OIDC / SAML
-                                                    {form.watch('generic.enabled') && (
+                                                    {authValues.generic?.enabled && (
                                                         <div className={cn("ml-2 h-2 w-2 rounded-full", oidcValidation.isValid ? "bg-green-500" : "bg-amber-500")} />
                                                     )}
                                                 </TabsTrigger>
@@ -666,7 +676,7 @@ export function AuthSettingsPage() {
                                             <TooltipTrigger asChild>
                                                 <TabsTrigger value="ldap" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none shadow-none pb-2 bg-transparent text-muted-foreground data-[state=active]:text-foreground">
                                                     LDAP
-                                                    {form.watch('ldap.enabled') && (
+                                                    {authValues.ldap?.enabled && (
                                                         <div className={cn("ml-2 h-2 w-2 rounded-full", ldapValidation.isValid ? "bg-green-500" : "bg-amber-500")} />
                                                     )}
                                                 </TabsTrigger>
@@ -683,8 +693,8 @@ export function AuthSettingsPage() {
                                                     <div className="space-y-1">
                                                         <CardTitle className="flex items-center gap-2">
                                                             {t('authPage.providers.azure.title')}
-                                                            <ProviderBadge capabilityKey="azure_ad" type="azure" isEnabled={form.watch('azureAd.enabled')} capabilities={capabilities} testResults={testResults} />
-                                                            {form.watch('azureAd.enabled') && !azureValidation.isValid && (
+                                                            <ProviderBadge capabilityKey="azure_ad" type="azure" isEnabled={Boolean(authValues.azureAd?.enabled)} capabilities={capabilities} testResults={testResults} />
+                                                            {authValues.azureAd?.enabled && !azureValidation.isValid && (
                                                                 <Badge variant="outline" className="ml-2 border-amber-500 text-amber-500">{t('authPage.incompleteConfiguration')}</Badge>
                                                             )}
                                                         </CardTitle>
@@ -703,7 +713,7 @@ export function AuthSettingsPage() {
                                                     />
                                                 </div>
                                             </CardHeader>
-                                            {form.watch('azureAd.enabled') && (
+                                            {authValues.azureAd?.enabled && (
                                                 <CardContent className="space-y-6">
                                                     {!azureValidation.isValid && (
                                                         <div className="rounded-md bg-amber-50 p-3 text-sm text-amber-800 dark:bg-amber-950/30 dark:text-amber-400">
@@ -774,8 +784,8 @@ export function AuthSettingsPage() {
                                                     <div className="space-y-1">
                                                         <CardTitle className="flex items-center gap-2">
                                                             {t('authPage.providers.google.title')}
-                                                            <ProviderBadge capabilityKey="google_workspace" type="google" isEnabled={form.watch('google.enabled')} capabilities={capabilities} testResults={testResults} />
-                                                            {form.watch('google.enabled') && !googleValidation.isValid && (
+                                                            <ProviderBadge capabilityKey="google_workspace" type="google" isEnabled={Boolean(authValues.google?.enabled)} capabilities={capabilities} testResults={testResults} />
+                                                            {authValues.google?.enabled && !googleValidation.isValid && (
                                                                 <Badge variant="outline" className="ml-2 border-amber-500 text-amber-500">{t('authPage.incompleteConfiguration')}</Badge>
                                                             )}
                                                         </CardTitle>
@@ -792,7 +802,7 @@ export function AuthSettingsPage() {
                                                     />
                                                 </div>
                                             </CardHeader>
-                                            {form.watch('google.enabled') && (
+                                            {authValues.google?.enabled && (
                                                 <CardContent className="space-y-6">
                                                     {!googleValidation.isValid && (
                                                         <div className="rounded-md bg-amber-50 p-3 text-sm text-amber-800 dark:bg-amber-950/30 dark:text-amber-400">
@@ -862,8 +872,8 @@ export function AuthSettingsPage() {
                                                     <div className="space-y-1">
                                                         <CardTitle className="flex items-center gap-2">
                                                             {t('authPage.providers.generic.title')}
-                                                            <ProviderBadge capabilityKey={form.watch('generic.type') === 'saml' ? 'saml' : 'oidc_generic'} type={form.watch('generic.type') === 'saml' ? 'saml' : 'oidc'} isEnabled={form.watch('generic.enabled')} capabilities={capabilities} testResults={testResults} />
-                                                            {form.watch('generic.enabled') && !oidcValidation.isValid && (
+                                                            <ProviderBadge capabilityKey={authValues.generic?.type === 'saml' ? 'saml' : 'oidc_generic'} type={authValues.generic?.type === 'saml' ? 'saml' : 'oidc'} isEnabled={Boolean(authValues.generic?.enabled)} capabilities={capabilities} testResults={testResults} />
+                                                            {authValues.generic?.enabled && !oidcValidation.isValid && (
                                                                 <Badge variant="outline" className="ml-2 border-amber-500 text-amber-500">{t('authPage.incompleteConfiguration')}</Badge>
                                                             )}
                                                         </CardTitle>
@@ -874,17 +884,17 @@ export function AuthSettingsPage() {
                                                         name="generic.enabled"
                                                         render={({ field }) => (
                                                             <FormItem>
-                                                                <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} disabled={isProviderDisabled(form.watch('generic.type') === 'saml' ? 'saml' : 'oidc_generic')} /></FormControl>
+                                                                <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} disabled={isProviderDisabled(authValues.generic?.type === 'saml' ? 'saml' : 'oidc_generic')} /></FormControl>
                                                             </FormItem>
                                                         )}
                                                     />
                                                 </div>
                                             </CardHeader>
-                                            {form.watch('generic.enabled') && (
+                                            {authValues.generic?.enabled && (
                                                 <CardContent className="space-y-6">
                                                     {!oidcValidation.isValid && (
                                                         <div className="rounded-md bg-amber-50 p-3 text-sm text-amber-800 dark:bg-amber-950/30 dark:text-amber-400">
-                                                            {t('authPage.providers.generic.requiredFields', { protocol: form.watch('generic.type') === 'oidc' ? 'OIDC' : 'SAML' })}
+                                                            {t('authPage.providers.generic.requiredFields', { protocol: authValues.generic?.type === 'oidc' ? 'OIDC' : 'SAML' })}
                                                         </div>
                                                     )}
                                                     <FormField
@@ -903,7 +913,7 @@ export function AuthSettingsPage() {
                                                             </FormItem>
                                                         )}
                                                     />
-                                                    {form.watch('generic.type') === 'oidc' ? (
+                                                    {authValues.generic?.type === 'oidc' ? (
                                                         <div className="space-y-4 border-l-2 border-primary/20 pl-4">
                                                             <FormField
                                                                 control={form.control}
@@ -1004,7 +1014,7 @@ export function AuthSettingsPage() {
                                                             />
                                                         </div>
                                                     )}
-                                                    <TestResultAlert type={form.watch('generic.type') === 'saml' ? 'saml' : 'oidc'} testResults={testResults} />
+                                                    <TestResultAlert type={authValues.generic?.type === 'saml' ? 'saml' : 'oidc'} testResults={testResults} />
                                                     <div className="flex justify-end pt-2">
                                                         <Button
                                                             type="button"
@@ -1034,8 +1044,8 @@ export function AuthSettingsPage() {
                                                     <div className="space-y-1">
                                                         <CardTitle className="flex items-center gap-2">
                                                             {t('authPage.providers.ldap.title')}
-                                                            <ProviderBadge capabilityKey="ldap" type="ldap" isEnabled={form.watch('ldap.enabled')} capabilities={capabilities} testResults={testResults} />
-                                                            {form.watch('ldap.enabled') && !ldapValidation.isValid && (
+                                                            <ProviderBadge capabilityKey="ldap" type="ldap" isEnabled={Boolean(authValues.ldap?.enabled)} capabilities={capabilities} testResults={testResults} />
+                                                            {authValues.ldap?.enabled && !ldapValidation.isValid && (
                                                                 <Badge variant="outline" className="ml-2 border-amber-500 text-amber-500">{t('authPage.incompleteConfiguration')}</Badge>
                                                             )}
                                                         </CardTitle>
@@ -1052,7 +1062,7 @@ export function AuthSettingsPage() {
                                                     />
                                                 </div>
                                             </CardHeader>
-                                            {form.watch('ldap.enabled') && (
+                                            {authValues.ldap?.enabled && (
                                                 <CardContent className="space-y-6">
                                                     {!ldapValidation.isValid && (
                                                         <div className="rounded-md bg-amber-50 p-3 text-sm text-amber-800 dark:bg-amber-950/30 dark:text-amber-400">
@@ -1178,11 +1188,11 @@ export function AuthSettingsPage() {
                                     <Card className={cn(
                                         "relative cursor-pointer transition-all border-2",
                                         mfaPolicy === 'disabled' ? "opacity-50 grayscale" : "hover:border-primary/50",
-                                        form.watch('mfa.methods')?.includes('authenticator') ? "border-primary bg-primary/5" : "border-transparent"
+                                        authValues.mfa?.methods?.includes('authenticator') ? "border-primary bg-primary/5" : "border-transparent"
                                     )}>
                                         <div className="absolute top-2 right-2">
                                             <Checkbox
-                                                checked={form.watch('mfa.methods')?.includes('authenticator')}
+                                                checked={authValues.mfa?.methods?.includes('authenticator')}
                                                 disabled={mfaPolicy === 'disabled'}
                                                 onCheckedChange={(checked) => {
                                                     const current = form.getValues('mfa.methods') || [];
@@ -1210,11 +1220,11 @@ export function AuthSettingsPage() {
                                         mfaPolicy === 'disabled' || !emailConfigStatus?.enabled || !emailConfigStatus?.configValid
                                             ? "opacity-50 grayscale cursor-not-allowed"
                                             : "cursor-pointer hover:border-primary/50",
-                                        form.watch('mfa.methods')?.includes('email') ? "border-primary bg-primary/5" : "border-transparent"
+                                        authValues.mfa?.methods?.includes('email') ? "border-primary bg-primary/5" : "border-transparent"
                                     )}>
                                         <div className="absolute top-2 right-2">
                                             <Checkbox
-                                                checked={form.watch('mfa.methods')?.includes('email')}
+                                                checked={authValues.mfa?.methods?.includes('email')}
                                                 disabled={mfaPolicy === 'disabled' || !emailConfigStatus?.enabled || !emailConfigStatus?.configValid}
                                                 onCheckedChange={(checked) => {
                                                     const current = form.getValues('mfa.methods') || [];
@@ -1303,7 +1313,7 @@ export function AuthSettingsPage() {
                                         />
                                     </div>
                                 </CardHeader>
-                                {form.watch('passkeys.enabled') && (
+                                {authValues.passkeys?.enabled && (
                                     <CardContent className="space-y-6 animate-in fade-in slide-in-from-top-2">
                                         {/* Inline Alert - New */}
                                         <div className="bg-primary/10 text-primary-900 dark:text-primary-100 rounded-md p-3 flex gap-3 text-sm items-start border border-primary/20">
@@ -1354,7 +1364,7 @@ export function AuthSettingsPage() {
                         <TabsContent value="requirements" className="space-y-6">
                             <div className={cn(
                                 "relative rounded-xl border bg-gradient-to-br from-background to-muted/30 overflow-hidden transition-all duration-300",
-                                (mfaPolicy === 'disabled' && !form.watch('passkeys.enabled')) && "opacity-50 pointer-events-none"
+                                (mfaPolicy === 'disabled' && !authValues.passkeys?.enabled) && "opacity-50 pointer-events-none"
                             )}>
                                 {/* Decorative accent */}
                                 <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary/60 via-primary to-primary/60" />
@@ -1376,7 +1386,7 @@ export function AuthSettingsPage() {
                                     </div>
 
                                     {/* Disabled state message */}
-                                    {(mfaPolicy === 'disabled' && !form.watch('passkeys.enabled')) && (
+                                    {(mfaPolicy === 'disabled' && !authValues.passkeys?.enabled) && (
                                         <div className="flex items-center gap-3 p-4 rounded-lg bg-muted/50 border border-dashed">
                                             <Info className="h-5 w-5 text-blue-500 shrink-0" />
                                             <p className="text-sm text-muted-foreground">
@@ -1386,7 +1396,7 @@ export function AuthSettingsPage() {
                                     )}
 
                                     {/* Requirements Grid */}
-                                    {(mfaPolicy !== 'disabled' || form.watch('passkeys.enabled')) && (
+                                    {(mfaPolicy !== 'disabled' || authValues.passkeys?.enabled) && (
                                         <div className="grid gap-4">
                                             {/* Admin Role */}
                                             <div className="group relative p-5 rounded-lg border bg-card hover:shadow-md transition-all duration-200">
@@ -1407,33 +1417,33 @@ export function AuthSettingsPage() {
                                                         {mfaPolicy !== 'disabled' && (
                                                             <Button
                                                                 type="button"
-                                                                variant={form.watch('requirements.admin.mfa') ? 'default' : 'outline'}
+                                                                variant={authValues.requirements?.admin?.mfa ? 'default' : 'outline'}
                                                                 size="sm"
                                                                 className={cn(
                                                                     "gap-2 transition-all",
-                                                                    form.watch('requirements.admin.mfa') && "bg-primary text-primary-foreground"
+                                                                    authValues.requirements?.admin?.mfa && "bg-primary text-primary-foreground"
                                                                 )}
-                                                                onClick={() => form.setValue('requirements.admin.mfa', !form.watch('requirements.admin.mfa'))}
+                                                                onClick={() => form.setValue('requirements.admin.mfa', !authValues.requirements?.admin?.mfa)}
                                                             >
                                                                 <Smartphone className="h-4 w-4" />
                                                                 MFA
-                                                                {form.watch('requirements.admin.mfa') && <CheckCircle2 className="h-3.5 w-3.5" />}
+                                                                {authValues.requirements?.admin?.mfa && <CheckCircle2 className="h-3.5 w-3.5" />}
                                                             </Button>
                                                         )}
-                                                        {form.watch('passkeys.enabled') && (
+                                                        {authValues.passkeys?.enabled && (
                                                             <Button
                                                                 type="button"
-                                                                variant={form.watch('requirements.admin.passkeys') ? 'default' : 'outline'}
+                                                                variant={authValues.requirements?.admin?.passkeys ? 'default' : 'outline'}
                                                                 size="sm"
                                                                 className={cn(
                                                                     "gap-2 transition-all",
-                                                                    form.watch('requirements.admin.passkeys') && "bg-primary text-primary-foreground"
+                                                                    authValues.requirements?.admin?.passkeys && "bg-primary text-primary-foreground"
                                                                 )}
-                                                                onClick={() => form.setValue('requirements.admin.passkeys', !form.watch('requirements.admin.passkeys'))}
+                                                                onClick={() => form.setValue('requirements.admin.passkeys', !authValues.requirements?.admin?.passkeys)}
                                                             >
                                                                 <Key className="h-4 w-4" />
                                                                 Passkeys
-                                                                {form.watch('requirements.admin.passkeys') && <CheckCircle2 className="h-3.5 w-3.5" />}
+                                                                {authValues.requirements?.admin?.passkeys && <CheckCircle2 className="h-3.5 w-3.5" />}
                                                             </Button>
                                                         )}
                                                     </div>
@@ -1459,33 +1469,33 @@ export function AuthSettingsPage() {
                                                         {mfaPolicy !== 'disabled' && (
                                                             <Button
                                                                 type="button"
-                                                                variant={form.watch('requirements.user.mfa') ? 'default' : 'outline'}
+                                                                variant={authValues.requirements?.user?.mfa ? 'default' : 'outline'}
                                                                 size="sm"
                                                                 className={cn(
                                                                     "gap-2 transition-all",
-                                                                    form.watch('requirements.user.mfa') && "bg-primary text-primary-foreground"
+                                                                    authValues.requirements?.user?.mfa && "bg-primary text-primary-foreground"
                                                                 )}
-                                                                onClick={() => form.setValue('requirements.user.mfa', !form.watch('requirements.user.mfa'))}
+                                                                onClick={() => form.setValue('requirements.user.mfa', !authValues.requirements?.user?.mfa)}
                                                             >
                                                                 <Smartphone className="h-4 w-4" />
                                                                 MFA
-                                                                {form.watch('requirements.user.mfa') && <CheckCircle2 className="h-3.5 w-3.5" />}
+                                                                {authValues.requirements?.user?.mfa && <CheckCircle2 className="h-3.5 w-3.5" />}
                                                             </Button>
                                                         )}
-                                                        {form.watch('passkeys.enabled') && (
+                                                        {authValues.passkeys?.enabled && (
                                                             <Button
                                                                 type="button"
-                                                                variant={form.watch('requirements.user.passkeys') ? 'default' : 'outline'}
+                                                                variant={authValues.requirements?.user?.passkeys ? 'default' : 'outline'}
                                                                 size="sm"
                                                                 className={cn(
                                                                     "gap-2 transition-all",
-                                                                    form.watch('requirements.user.passkeys') && "bg-primary text-primary-foreground"
+                                                                    authValues.requirements?.user?.passkeys && "bg-primary text-primary-foreground"
                                                                 )}
-                                                                onClick={() => form.setValue('requirements.user.passkeys', !form.watch('requirements.user.passkeys'))}
+                                                                onClick={() => form.setValue('requirements.user.passkeys', !authValues.requirements?.user?.passkeys)}
                                                             >
                                                                 <Key className="h-4 w-4" />
                                                                 Passkeys
-                                                                {form.watch('requirements.user.passkeys') && <CheckCircle2 className="h-3.5 w-3.5" />}
+                                                                {authValues.requirements?.user?.passkeys && <CheckCircle2 className="h-3.5 w-3.5" />}
                                                             </Button>
                                                         )}
                                                     </div>
@@ -1495,7 +1505,7 @@ export function AuthSettingsPage() {
                                     )}
 
                                     {/* Info footer */}
-                                    {(mfaPolicy !== 'disabled' || form.watch('passkeys.enabled')) && (
+                                    {(mfaPolicy !== 'disabled' || authValues.passkeys?.enabled) && (
                                         <p className="text-xs text-muted-foreground pt-2 border-t">
                                             {t('authPage.nextLoginPrompt')}
                                         </p>

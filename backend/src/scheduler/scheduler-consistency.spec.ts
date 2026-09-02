@@ -1,24 +1,23 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { SchedulerService } from './scheduler.service';
 import { SchedulerRegistry } from '@nestjs/schedule';
+import { Test, TestingModule } from '@nestjs/testing';
 import { SettingsService } from '../settings';
+import { AuditScheduler } from './audit.scheduler';
 import {
-  CleanupExportsJob,
-  CleanupBackupsJob,
-  HealthCheckJob,
-  AutoExportJob,
   AutoBackupJob,
+  AutoExportJob,
+  CleanupBackupsJob,
+  CleanupExportsJob,
+  HealthCheckJob,
   MissingTasksNotificationJob,
   ReminderNotificationJob,
 } from './jobs';
-import { AuditScheduler } from './audit.scheduler';
+import { SchedulerService } from './scheduler.service';
 
 describe('Scheduler Service - Global Toggle Consistency', () => {
   let service: SchedulerService;
   let settingsService: SettingsService;
-  let registry: SchedulerRegistry;
 
-  const mockJob = (name: string) => ({
+  const mockJob = (_name: string) => ({
     _isActive: true, // Physiquement "actif" dans le thread
     cronTime: { source: '0 0 * * *' },
     nextDate: () => new Date(),
@@ -57,7 +56,6 @@ describe('Scheduler Service - Global Toggle Consistency', () => {
 
     service = module.get<SchedulerService>(SchedulerService);
     settingsService = module.get<SettingsService>(SettingsService);
-    registry = module.get<SchedulerRegistry>(SchedulerRegistry);
   });
 
   it('should return enabled: false for all jobs when scheduler.enabled is false', async () => {

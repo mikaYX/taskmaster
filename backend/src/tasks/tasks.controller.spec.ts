@@ -1,10 +1,10 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
-import { TasksController } from './tasks.controller';
-import { ProcedureStorageService } from './procedure-storage.service';
-import { TasksService } from './tasks.service';
-import { CompositeAuthGuard } from '../auth/guards/composite-auth.guard';
+import { Test, TestingModule } from '@nestjs/testing';
 import { RolesGuard } from '../auth';
+import { CompositeAuthGuard } from '../auth/guards/composite-auth.guard';
+import { ProcedureStorageService } from './procedure-storage.service';
+import { TasksController } from './tasks.controller';
+import { TasksService } from './tasks.service';
 
 describe('TasksController', () => {
   let controller: TasksController;
@@ -14,7 +14,6 @@ describe('TasksController', () => {
     const mockTasksService = {
       run: jest.fn(),
     };
-    const mockDelegationsService = {};
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [TasksController],

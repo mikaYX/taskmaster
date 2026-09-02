@@ -393,18 +393,24 @@ export interface Session {
   id?: number;
   username?: string;
   fullname?: string | null;
-  role?: string;
+  role?: UserRole;
   groups?: number[]; // Strict contract for use-auth.ts
   groupIds?: number[]; // Added for S3.1
+  permissions?: string[];
+  sites?: UserSite[];
+  passkeysEnabled?: boolean;
+  passkeyPolicy?: 'disabled' | 'optional' | 'required';
+  hasPasskey?: boolean;
 
   // New nested structure
   user?: {
     id: number;
     username: string;
     fullname: string | null;
-    role: string;
+    role: UserRole;
     permissions: string[];
     groupIds?: number[];
+    groups?: number[];
     sites?: UserSite[];
     passkeysEnabled: boolean;
     passkeyPolicy: 'disabled' | 'optional' | 'required';

@@ -11,5 +11,13 @@ declare module 'cron-parser' {
         hasPrev(): boolean;
     }
 
-    export function parseExpression(expression: string, options?: any): CronExpression;
+    export interface CronExpressionOptions {
+        currentDate?: Date | string | number;
+        endDate?: Date | string | number;
+        iterator?: boolean;
+        strict?: boolean;
+        tz?: string;
+    }
+
+    export function parseExpression(expression: string, options?: CronExpressionOptions): CronExpression;
 }

@@ -8,9 +8,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { Lock } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import type { z } from 'zod';
+import { backupSettingsSchema } from '../schemas/settings-schemas';
+
+type BackupSettingsFormValues = z.infer<typeof backupSettingsSchema>;
 
 interface BackupScheduleProps {
-    form: UseFormReturn<any>;
+    form: UseFormReturn<BackupSettingsFormValues>;
 }
 
 export function BackupSchedule({ form }: BackupScheduleProps) {

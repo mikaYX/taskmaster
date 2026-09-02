@@ -1,8 +1,8 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
-import { ScheduleService } from './schedule.service';
+import { Test, TestingModule } from '@nestjs/testing';
 import { PrismaService } from '../prisma';
 import { SettingsService } from '../settings/settings.service';
+import { ScheduleService } from './schedule.service';
 
 describe('ScheduleService', () => {
   let service: ScheduleService;
@@ -44,7 +44,6 @@ describe('ScheduleService', () => {
   afterEach(() => jest.clearAllMocks());
 
   const enableFlag = () => mockSettings.getRawValue.mockResolvedValue(true);
-  const disableFlag = () => mockSettings.getRawValue.mockResolvedValue(false);
 
   const mockSchedule = {
     id: 1,

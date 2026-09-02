@@ -1,12 +1,11 @@
-import Holidays from 'date-holidays';
 import {
   addDays,
   isWeekend as isWeekendFns,
   startOfWeek,
   subDays,
-  toDate,
 } from 'date-fns';
-import { toZonedTime, fromZonedTime } from 'date-fns-tz';
+import { fromZonedTime, toZonedTime } from 'date-fns-tz';
+import Holidays from 'date-holidays';
 
 // ==================== CONFIGURATION ====================
 
@@ -40,7 +39,7 @@ export function getTimeZoneForCountry(country: string): string {
 }
 
 export function nowInTimeZone(country: string): Date {
-  const tz = getTimeZoneForCountry(country);
+  getTimeZoneForCountry(country);
   const now = new Date();
   // This is tricky in JS. We usually want the "Wall Clock" time components.
   // Ideally we keep everything in UTC or Dates, but for "Is today holiday?", inputs are usually Dates.

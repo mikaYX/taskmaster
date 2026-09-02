@@ -1,14 +1,14 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { TasksService } from './tasks.service'; // IDE Sync
-import { PrismaService } from '../prisma';
+import { BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { Test, TestingModule } from '@nestjs/testing';
+import { AuditService } from '../audit/audit.service';
+import { BeneficiaryResolverService } from '../modules/delegations/beneficiary-resolver.service';
+import { PrismaService } from '../prisma';
 import { SettingsService } from '../settings/settings.service';
 import { InstanceService } from './instance.service';
-import { RecurrenceService } from './recurrence.service';
-import { AuditService } from '../audit/audit.service';
-import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { ProcedureStorageService } from './procedure-storage.service';
-import { BeneficiaryResolverService } from '../modules/delegations/beneficiary-resolver.service';
+import { RecurrenceService } from './recurrence.service';
+import { TasksService } from './tasks.service'; // IDE Sync
 
 describe('TasksService Recurrence Validation', () => {
   let service: TasksService;
@@ -88,7 +88,7 @@ describe('TasksService Recurrence Validation', () => {
     });
 
     it('should throw if FROM_COMPLETION is used (flag is ON) but NO RRULE', async () => {
-      settings.getRawValue.mockImplementation((key: string) =>
+      settings.getRawValue.mockImplementation((_key: string) =>
         Promise.resolve(true),
       ); // All ON
 
@@ -105,7 +105,7 @@ describe('TasksService Recurrence Validation', () => {
     });
 
     it('should succeed if FROM_COMPLETION is used (flag is ON) with RRULE', async () => {
-      settings.getRawValue.mockImplementation((key: string) =>
+      settings.getRawValue.mockImplementation((_key: string) =>
         Promise.resolve(true),
       ); // All ON
       prisma.client.task.create.mockResolvedValue({
@@ -144,7 +144,7 @@ describe('TasksService Recurrence Validation', () => {
     });
 
     it('should throw if FROM_COMPLETION is used (flag is ON) but NO RRULE and Task has NO RRULE', async () => {
-      settings.getRawValue.mockImplementation((key: string) =>
+      settings.getRawValue.mockImplementation((_key: string) =>
         Promise.resolve(true),
       );
       prisma.client.task.findUnique.mockResolvedValue(mockTask); // mockTask has null rrule
@@ -158,7 +158,7 @@ describe('TasksService Recurrence Validation', () => {
     });
 
     it('should succeed if FROM_COMPLETION is used (flag is ON) and Task HAS RRULE', async () => {
-      settings.getRawValue.mockImplementation((key: string) =>
+      settings.getRawValue.mockImplementation((_key: string) =>
         Promise.resolve(true),
       );
       const existingTaskWithRRule = { ...mockTask, rrule: 'FREQ=DAILY' };
@@ -194,7 +194,7 @@ describe('TasksService Recurrence Validation', () => {
     it('should cap preview at 10 instances (global cap)', async () => {
       settings.getRawValue.mockResolvedValue(true);
 
-      const mockInstances = Array.from({ length: 15 }, (_, i) => ({
+      const mockInstances = Array.from({ length: 15 }, () => ({
         taskId: 0,
         date: new Date(),
         originalDate: new Date(),

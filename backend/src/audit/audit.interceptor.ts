@@ -1,20 +1,16 @@
 import {
-  Injectable,
-  NestInterceptor,
-  ExecutionContext,
   CallHandler,
+  ExecutionContext,
+  Injectable,
   Logger,
+  NestInterceptor,
 } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
+import { AuditSeverity } from './audit.constants';
 import { AuditService } from './audit.service';
-import {
-  AuditActionType,
-  AuditCategory,
-  AuditSeverity,
-} from './audit.constants';
-import { Reflector } from '@nestjs/core';
-import { AuditDecoratorOptions, AUDIT_KEY } from './decorators/audit.decorator';
+import { AUDIT_KEY, AuditDecoratorOptions } from './decorators/audit.decorator';
 
 @Injectable()
 export class AuditInterceptor implements NestInterceptor {

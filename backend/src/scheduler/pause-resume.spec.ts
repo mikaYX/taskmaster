@@ -1,17 +1,17 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { SchedulerService } from './scheduler.service';
 import { SchedulerRegistry } from '@nestjs/schedule';
+import { Test, TestingModule } from '@nestjs/testing';
 import { SettingsService } from '../settings';
+import { AuditScheduler } from './audit.scheduler';
 import {
-  CleanupExportsJob,
-  CleanupBackupsJob,
-  HealthCheckJob,
-  AutoExportJob,
   AutoBackupJob,
+  AutoExportJob,
+  CleanupBackupsJob,
+  CleanupExportsJob,
+  HealthCheckJob,
   MissingTasksNotificationJob,
   ReminderNotificationJob,
 } from './jobs';
-import { AuditScheduler } from './audit.scheduler';
+import { SchedulerService } from './scheduler.service';
 
 const mockJob = () => ({
   start: jest.fn(),
@@ -66,7 +66,6 @@ describe('SchedulerService (Pause/Resume)', () => {
   });
 
   it('should track paused job in disabledJobs and return enabled:false', () => {
-    const { module } = makeModule(true) as any;
     // Direct instantiation test for toggleJob use disabledJobs
     const job = mockJob();
     const service = new SchedulerService(

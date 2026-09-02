@@ -1,17 +1,16 @@
+import { ConfigService } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
-import { EmailService } from './email.service';
 import { SettingsService } from '../settings';
+import { EmailService } from './email.service';
 import {
-  SmtpProvider,
   MailgunProvider,
   MailjetProvider,
   SendGridProvider,
+  SmtpProvider,
 } from './providers';
-import { ConfigService } from '@nestjs/config';
 
 describe('EmailService Circuit Breaker', () => {
   let service: EmailService;
-  let smtpProvider: SmtpProvider;
 
   const mockSettingsService = {
     getRawValue: jest.fn(),
@@ -38,7 +37,6 @@ describe('EmailService Circuit Breaker', () => {
     }).compile();
 
     service = module.get<EmailService>(EmailService);
-    smtpProvider = module.get<SmtpProvider>(SmtpProvider);
 
     // Reset mocks
     jest.clearAllMocks();

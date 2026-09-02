@@ -1,6 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { RRule, RRuleSet, rrulestr } from 'rrule';
-import { addMinutes } from 'date-fns';
+import { RRule } from 'rrule';
 
 @Injectable()
 export class RecurrenceService {

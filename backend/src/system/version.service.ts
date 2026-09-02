@@ -1,10 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { readFileSync } from 'fs';
+import { type RequestInit, Response } from 'node-fetch';
 import { join } from 'path';
 import * as semver from 'semver';
 import { safeFetch } from '../common/utils/url-validator.util';
-import { type RequestInit, Response } from 'node-fetch';
 import { getAppPackageJsonPath } from '../config/app-paths';
 
 const GITHUB_API_BASE = 'https://api.github.com/repos';
@@ -37,8 +37,6 @@ const DOCKER_HUB_HOSTS = new Set([
   'index.docker.io',
   'registry-1.docker.io',
 ]);
-
-type VersionSourceType = 'github' | 'docker-hub';
 
 interface GitHubVersionSource {
   type: 'github';

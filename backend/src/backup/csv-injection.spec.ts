@@ -1,11 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ExportService } from './export.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { EncryptionService } from './encryption.service';
+import { ExportService } from './export.service';
 
 describe('CSV Injection Protection (M3)', () => {
   let service: ExportService;
-  let prisma: PrismaService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -29,7 +28,6 @@ describe('CSV Injection Protection (M3)', () => {
     }).compile();
 
     service = module.get<ExportService>(ExportService);
-    prisma = module.get<PrismaService>(PrismaService);
   });
 
   it('should escape dangerous characters at the start of a cell', () => {

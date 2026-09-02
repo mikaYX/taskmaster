@@ -64,14 +64,10 @@ export function BackupHistoryTable({ backups, onRefresh, canRunFull, isDirty, on
                 async () => {
                     const response = await backupApi.download(filename);
 
-                    let blob: Blob;
-                    if (response instanceof Blob) {
-                        blob = response;
-                    } else if ((response as any).data instanceof Blob) {
-                        blob = (response as any).data;
-                    } else {
+                    if (!(response instanceof Blob)) {
                         throw new Error(t('backupHistory.invalidDownloadResponse'));
                     }
+                    const blob = response;
 
                     const url = window.URL.createObjectURL(blob);
                     const a = document.createElement('a');

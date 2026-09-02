@@ -1,11 +1,11 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
-import request from 'supertest';
-import { AppModule } from '../src/app.module';
-import { PrismaService } from '../src/prisma/prisma.service';
+import { Test, TestingModule } from '@nestjs/testing';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
+import request from 'supertest';
+import { AppModule } from '../src/app.module';
 import { REDIS_CLIENT } from '../src/common/redis/redis.module';
+import { PrismaService } from '../src/prisma/prisma.service';
 import { mockState } from './mock-state';
 
 jest.mock('openid-client', () => {
@@ -23,7 +23,7 @@ jest.mock('openid-client', () => {
             .mockReturnValue({ state: 'mock-state', code: 'mock-code' });
           callback = jest.fn().mockImplementation(() => {
             return {
-              claims: () => require('./mock-state').mockState.googleClaims,
+              claims: () => mockState.googleClaims,
             };
           });
         },
@@ -47,7 +47,7 @@ jest.mock('@azure/msal-node', () => {
         );
       acquireTokenByCode = jest.fn().mockImplementation(() => {
         return {
-          idTokenClaims: require('./mock-state').mockState.azureClaims,
+          idTokenClaims: mockState.azureClaims,
         };
       });
     },
@@ -62,7 +62,7 @@ jest.mock('@node-saml/node-saml', () => {
         .fn()
         .mockResolvedValue('https://idp.example.com/sso?SAMLRequest=mock');
       validatePostResponseAsync = jest.fn().mockImplementation(() => {
-        const profile = require('./mock-state').mockState.samlProfile;
+        const profile = mockState.samlProfile;
         if (!profile) throw new Error('Invalid signature');
         return { profile };
       });
@@ -372,7 +372,7 @@ describe('Auth Flow Non-Regression (E2E)', () => {
 
       mockState.azureClaims.tid = 'some-other-tenant';
       mockState.azureClaims.email = 'multi@azure.com';
-      const res = await request(app.getHttpServer())
+      await request(app.getHttpServer())
         .get('/auth/azure/callback?code=mock-code&state=mock-state')
         .expect(302);
 

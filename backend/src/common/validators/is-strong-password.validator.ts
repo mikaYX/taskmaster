@@ -1,14 +1,14 @@
 import {
+  registerDecorator,
+  ValidationArguments,
+  ValidationOptions,
   ValidatorConstraint,
   ValidatorConstraintInterface,
-  ValidationArguments,
-  registerDecorator,
-  ValidationOptions,
 } from 'class-validator';
 
 @ValidatorConstraint({ async: false })
 export class IsStrongPasswordConstraint implements ValidatorConstraintInterface {
-  validate(password: string, args: ValidationArguments) {
+  validate(password: string, _args: ValidationArguments) {
     if (!password) return false;
     // Min 12 chars, 1 uppercase, 1 lowercase, 1 number, 1 special char
     const strongRegex = new RegExp(
@@ -17,7 +17,7 @@ export class IsStrongPasswordConstraint implements ValidatorConstraintInterface 
     return strongRegex.test(password);
   }
 
-  defaultMessage(args: ValidationArguments) {
+  defaultMessage(_args: ValidationArguments) {
     return 'Password too weak. Must be at least 12 characters, include uppercase, lowercase, number, and special character.';
   }
 }

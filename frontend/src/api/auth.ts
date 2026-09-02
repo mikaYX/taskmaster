@@ -1,5 +1,11 @@
 import { http } from './http';
 import type {
+    AuthenticationResponseJSON,
+    PublicKeyCredentialCreationOptionsJSON,
+    PublicKeyCredentialRequestOptionsJSON,
+    RegistrationResponseJSON,
+} from '@simplewebauthn/browser';
+import type {
     LoginDto,
     LoginResponse,
     AuthSessionResponse,
@@ -66,12 +72,12 @@ export const authApi = {
     deletePasskey: (id: string) =>
         http.delete<{ success: boolean }>(`/auth/passkeys/${id}`),
     generatePasskeyRegistrationOptions: () =>
-        http.get<any>('/auth/passkeys/register/options'),
-    verifyPasskeyRegistration: (payload: { response: any, name?: string }) =>
+        http.get<PublicKeyCredentialCreationOptionsJSON>('/auth/passkeys/register/options'),
+    verifyPasskeyRegistration: (payload: { response: RegistrationResponseJSON, name?: string }) =>
         http.post<{ verified: boolean }>('/auth/passkeys/register/verify', payload),
     generatePasskeyAuthenticationOptions: () =>
-        http.get<{ options: any, sessionId: string }>('/auth/passkeys/login/options'),
-    verifyPasskeyAuthentication: (response: any, sessionId: string) =>
+        http.get<{ options: PublicKeyCredentialRequestOptionsJSON, sessionId: string }>('/auth/passkeys/login/options'),
+    verifyPasskeyAuthentication: (response: AuthenticationResponseJSON, sessionId: string) =>
         http.post<AuthSessionResponse>('/auth/passkeys/login/verify', { response, sessionId }),
 
     exchangeSsoTicket: (ssoTicket: string) =>

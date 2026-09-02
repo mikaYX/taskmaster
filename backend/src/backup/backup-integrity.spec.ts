@@ -1,19 +1,15 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { BackupLogicService } from './backup.logic';
 import { ConfigService } from '@nestjs/config';
-import { SettingsService } from '../settings';
-import { EncryptionService } from './encryption.service';
-import {
-  InternalServerErrorException,
-  BadRequestException,
-} from '@nestjs/common';
+import { Test, TestingModule } from '@nestjs/testing';
+import * as crypto from 'crypto';
+import { PassThrough } from 'stream';
 import * as fs from 'fs';
 import * as path from 'path';
-import * as crypto from 'crypto';
+import { SettingsService } from '../settings';
+import { BackupLogicService } from './backup.logic';
+import { EncryptionService } from './encryption.service';
 
 describe('Backup Integrity (M6)', () => {
   let service: BackupLogicService;
-  let configService: ConfigService;
   const backupDir = path.join(process.cwd(), 'backups', 'test_integrity');
   const secret = 'test-crypto-key-32-chars-at-least-!!!';
 
@@ -49,19 +45,14 @@ describe('Backup Integrity (M6)', () => {
         {
           provide: EncryptionService,
           useValue: {
-            createEncryptStream: jest.fn(
-              () => new (require('stream').PassThrough)(),
-            ),
-            createDecryptStream: jest.fn(
-              () => new (require('stream').PassThrough)(),
-            ),
+            createEncryptStream: jest.fn(() => new PassThrough()),
+            createDecryptStream: jest.fn(() => new PassThrough()),
           },
         },
       ],
     }).compile();
 
     service = module.get<BackupLogicService>(BackupLogicService);
-    configService = module.get<ConfigService>(ConfigService);
   });
 
   async function createFakeBackup(

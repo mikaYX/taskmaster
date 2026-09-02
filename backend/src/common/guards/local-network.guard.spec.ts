@@ -1,7 +1,6 @@
-import { LocalNetworkGuard } from './local-network.guard';
-import { ConfigService } from '@nestjs/config';
 import { ExecutionContext, ForbiddenException } from '@nestjs/common';
-import { Request } from 'express';
+import { ConfigService } from '@nestjs/config';
+import { LocalNetworkGuard } from './local-network.guard';
 
 describe('LocalNetworkGuard', () => {
   let guard: LocalNetworkGuard;

@@ -1,3 +1,5 @@
+import { EventEmitter } from 'events';
+
 /**
  * Setup file for E2E tests.
  * Ensures that necessary environment variables are set to avoid validation failures.
@@ -31,7 +33,6 @@ if (!process.env.REDIS_URL) {
 
 // Mock ioredis to avoid connection errors during tests
 jest.mock('ioredis', () => {
-  const EventEmitter = require('events');
   type RedisEntry = { value: string; expiresAt?: number };
 
   class MockRedis extends EventEmitter {

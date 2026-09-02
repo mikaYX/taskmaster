@@ -1,21 +1,20 @@
 import {
-  Injectable,
   BadRequestException,
   Inject,
+  Injectable,
   Logger,
 } from '@nestjs/common';
-import { PrismaService } from '../prisma';
-import { REDIS_CLIENT } from '../common/redis/redis.module';
-import Redis from 'ioredis';
+import { User } from '@prisma/client';
 import {
-  generateRegistrationOptions,
-  verifyRegistrationResponse,
   generateAuthenticationOptions,
+  generateRegistrationOptions,
   verifyAuthenticationResponse,
+  verifyRegistrationResponse,
 } from '@simplewebauthn/server';
-import { User, Passkey } from '@prisma/client';
 import { Request } from 'express';
-import { randomBytes } from 'crypto';
+import Redis from 'ioredis';
+import { REDIS_CLIENT } from '../common/redis/redis.module';
+import { PrismaService } from '../prisma';
 
 @Injectable()
 export class PasskeysService {
@@ -72,7 +71,7 @@ export class PasskeysService {
     user: User,
     body: any,
     name: string | undefined,
-    req: Request,
+    _req: Request,
   ) {
     const expectedChallenge = await this.redis.get(
       `passkey:challenge:reg:${user.id}`,
@@ -150,7 +149,7 @@ export class PasskeysService {
   async verifyAuthentication(
     body: any,
     sessionId: string,
-    req: Request,
+    _req: Request,
   ): Promise<User> {
     const expectedChallenge = await this.redis.get(
       `passkey:challenge:auth:${sessionId}`,

@@ -2,27 +2,8 @@ import { BadRequestException } from '@nestjs/common';
 import { FileValidationPipe } from './file-validation.pipe';
 import * as fs from 'fs';
 
-// file-type is ESM-only — create a virtual mock for Jest's CJS resolution
 const mockFromBuffer = jest.fn();
 const mockFromFile = jest.fn();
-
-jest.mock(
-  'file-type',
-  () => ({
-    __esModule: true,
-    default: {
-      fromBuffer: mockFromBuffer,
-      fromFile: mockFromFile,
-      fileTypeFromBuffer: mockFromBuffer,
-      fileTypeFromFile: mockFromFile,
-    },
-    fromBuffer: mockFromBuffer,
-    fromFile: mockFromFile,
-    fileTypeFromBuffer: mockFromBuffer,
-    fileTypeFromFile: mockFromFile,
-  }),
-  { virtual: true },
-);
 
 jest.mock('fs');
 
@@ -34,10 +15,16 @@ describe('FileValidationPipe', () => {
   });
 
   const createPipe = (options = {}) => {
-    return new FileValidationPipe({
-      allowedMimeTypes: ['image/png', 'image/jpeg'],
-      ...options,
-    });
+    return new FileValidationPipe(
+      {
+        allowedMimeTypes: ['image/png', 'image/jpeg'],
+        ...options,
+      },
+      async () => ({
+        fileTypeFromBuffer: mockFromBuffer,
+        fileTypeFromFile: mockFromFile,
+      }),
+    );
   };
 
   it('should throw if no file is provided', async () => {
