@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.6] - 2026-09-28
+
+### Fixed
+- Installer upgrades now reuse the existing configuration: `orchestrate-install.ps1` detects a previous install via its `.env` and keeps the real `DATABASE_URL`, `REDIS_URL` and `PORT` instead of rebuilding them from the MSI defaults (which previously pointed `prisma migrate deploy` at the wrong database). The PostgreSQL role/database creation step is skipped on upgrade.
+- The MSI wizard skips `TaskmasterConfigDlg` on upgrade (`WIX_UPGRADE_DETECTED`).
+- Start Menu shortcut: WiX's `CreateShortcuts` stalled for ~60 s and never wrote `Taskmaster.lnk` for an `http://` target. The installer now writes a plain `Taskmaster.url` itself (with the resolved port), and a new `CleanupStartMenuFolder` action removes it on uninstall so the folder is deleted.
+- Shortcut component key path moved from `HKCU` to `HKMU` to match the per-machine install scope.
+
 ## [1.1.5] - 2026-09-02
 
 ### Security

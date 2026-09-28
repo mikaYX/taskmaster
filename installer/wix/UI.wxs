@@ -18,6 +18,11 @@
   install (RunOrchestrateInstall's own prerequisite check), which already
   fails fast with a clear message if unreachable.
 
+  TaskmasterConfigDlg is skipped entirely on upgrade (WIX_UPGRADE_DETECTED,
+  see the Publish overrides below) - orchestrate-install.ps1 detects the
+  existing installation itself (its .env already exists) and reuses the
+  real DATABASE_URL/REDIS_URL/PORT from it instead of these fields.
+
   Cannot be built in this environment — see Product.wxs for details.
 -->
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
@@ -103,9 +108,25 @@
            VerifyReadyDlg, skipping this dialog entirely (confirmed: it only
            worked when navigating Back, since VerifyReadyDlg/Back's competing
            library entry for a fresh install is order=1, below this row's
-           order=2). Order="10" guarantees this fires last and wins. -->
-      <Publish Dialog="InstallDirDlg" Control="Next" Event="NewDialog" Value="TaskmasterConfigDlg" Order="10" Condition="1" />
-      <Publish Dialog="VerifyReadyDlg" Control="Back" Event="NewDialog" Value="TaskmasterConfigDlg" Order="2" Condition="1" />
+           order=2). Order="10" guarantees this fires last and wins.
+
+           WIX_UPGRADE_DETECTED is set automatically by the <MajorUpgrade>
+           element (Product.wxs) via its generated FindRelatedProducts/
+           UpgradeVersion search - which WiX schedules in InstallUISequence
+           as well as InstallExecuteSequence specifically so it's available
+           this early, before InstallDirDlg is even shown - whenever an
+           earlier Taskmaster version is already on the machine. Gating
+           these two overrides on "NOT WIX_UPGRADE_DETECTED" makes them not
+           fire on an upgrade, so the library's own unconditional order=4/
+           order=1 entries win instead and the wizard goes straight from
+           InstallDirDlg to VerifyReadyDlg (and back), skipping
+           TaskmasterConfigDlg entirely - the port/PostgreSQL/Redis fields
+           are meaningless to re-collect on an upgrade since
+           orchestrate-install.ps1 (Product.wxs's RunOrchestrateInstall)
+           reads the real values back out of the existing
+           ProgramData\Taskmaster\config\.env instead of using them. -->
+      <Publish Dialog="InstallDirDlg" Control="Next" Event="NewDialog" Value="TaskmasterConfigDlg" Order="10" Condition="NOT WIX_UPGRADE_DETECTED" />
+      <Publish Dialog="VerifyReadyDlg" Control="Back" Event="NewDialog" Value="TaskmasterConfigDlg" Order="2" Condition="NOT WIX_UPGRADE_DETECTED" />
     </UI>
   </Fragment>
 </Wix>

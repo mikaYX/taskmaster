@@ -144,6 +144,33 @@ function New-EnvFileIfMissing {
     return $true
 }
 
+function Read-EnvFile {
+    <#
+      Parses an existing KEY=VALUE .env file (as written by New-EnvFileIfMissing)
+      into a hashtable. Used by orchestrate-install.ps1 to detect an upgrade
+      (the .env from a previous install already exists) and reuse its
+      DATABASE_URL/REDIS_URL/PORT instead of whatever defaults the MSI
+      properties carry when TaskmasterConfigDlg is skipped on upgrade (see
+      UI.wxs's WIX_UPGRADE_DETECTED condition). Splits only on the first '='
+      so a value containing '=' (e.g. a DSN query string) is not truncated.
+      Returns an empty hashtable, never $null, when the file doesn't exist.
+    #>
+    param(
+        [Parameter(Mandatory)] [string] $Path
+    )
+    $values = @{}
+    if (-not (Test-Path $Path)) { return $values }
+    foreach ($line in Get-Content -Path $Path -Encoding UTF8) {
+        if (-not $line -or $line.TrimStart().StartsWith('#')) { continue }
+        $idx = $line.IndexOf('=')
+        if ($idx -lt 1) { continue }
+        $key = $line.Substring(0, $idx).Trim()
+        $value = $line.Substring($idx + 1)
+        $values[$key] = $value
+    }
+    return $values
+}
+
 function Wait-ForTcpPort {
     <# Blocks until host:port accepts a TCP connection, or throws after TimeoutSeconds. #>
     param(

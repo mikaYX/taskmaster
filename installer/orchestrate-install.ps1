@@ -85,21 +85,54 @@ try {
     . (Join-Path $PSScriptRoot 'common\Taskmaster.Common.ps1')
     Assert-WindowsX64
 
-    if ($PostgresMode -eq 'Existing' -and $PostgresPassword) {
+    # ---- Upgrade detection: reuse the existing .env instead of re-asking --
+    # $envFilePath's location (ProgramData, not the chosen install dir) is
+    # fixed regardless of TASKMASTERROOT, so its mere presence is a reliable,
+    # self-contained signal that Taskmaster is already installed - this
+    # doesn't depend on the MSI's own WIX_UPGRADE_DETECTED property (used by
+    # UI.wxs to skip TaskmasterConfigDlg) being plumbed through here at all.
+    # This matters because RunOrchestrateInstall (Product.wxs) still runs on
+    # every upgrade, and without this override it would rebuild
+    # DATABASE_URL/REDIS_URL/PORT from the MSI properties' hardcoded defaults
+    # (localhost/5432/taskmaster/3000...) - exactly the values
+    # TaskmasterConfigDlg is now skipped and never collects on upgrade - and
+    # run `prisma migrate deploy` against the wrong target instead of the
+    # real production database this instance has actually been using.
+    $isUpgrade = Test-Path $envFilePath
+    $existingEnv = @{}
+    if ($isUpgrade) {
+        Write-Stage 'Installation existante detectee : reutilisation de la configuration (.env) existante...'
+        $existingEnv = Read-EnvFile -Path $envFilePath
+    }
+
+    if ($isUpgrade -and $existingEnv['DATABASE_URL']) {
+        $ExistingDatabaseUrl = $existingEnv['DATABASE_URL']
+        $PostgresMode = 'Existing'
+    } elseif ($PostgresMode -eq 'Existing' -and $PostgresPassword) {
         $encodedUser = ConvertTo-DsnEncoded $PostgresUser
         $encodedPassword = ConvertTo-DsnEncoded $PostgresPassword
         $ExistingDatabaseUrl = "postgresql://$encodedUser`:$encodedPassword@${PostgresDbHost}:$PostgresDbPort/$PostgresDb"
     }
-    if ($RedisMode -eq 'Existing' -and -not $ExistingRedisUrl) {
+    if ($isUpgrade -and $existingEnv['REDIS_URL']) {
+        $ExistingRedisUrl = $existingEnv['REDIS_URL']
+        $RedisMode = 'Existing'
+    } elseif ($RedisMode -eq 'Existing' -and -not $ExistingRedisUrl) {
         $ExistingRedisUrl = "redis://${RedisDbHost}:$RedisDbPort"
+    }
+    if ($isUpgrade -and $existingEnv['PORT']) {
+        $Port = [int] $existingEnv['PORT']
     }
 
     # ---- Existing PostgreSQL: create/update the app's own role+database --
     # Runs BEFORE the prerequisite auth check below, which logs in AS the
     # app role - that would always fail on a brand-new role otherwise.
     # Skipped entirely (previous behaviour) when no admin password was
-    # supplied - the DBA is assumed to have already created everything.
-    if ($PostgresMode -eq 'Existing' -and $PostgresAdminPassword) {
+    # supplied - the DBA is assumed to have already created everything -
+    # and unconditionally skipped on upgrade: the role/database were already
+    # created by the original install, and re-running this against
+    # freshly-defaulted admin credentials (blank, since TaskmasterConfigDlg
+    # is skipped on upgrade) would do nothing useful anyway.
+    if (-not $isUpgrade -and $PostgresMode -eq 'Existing' -and $PostgresAdminPassword) {
         Write-Stage 'Creation/mise a jour du role et de la base PostgreSQL (acces admin)...'
         $encodedAdminUser = ConvertTo-DsnEncoded $PostgresAdminUser
         $encodedAdminPassword = ConvertTo-DsnEncoded $PostgresAdminPassword
@@ -244,6 +277,35 @@ try {
     if ($PostgresMode -eq 'Local') { $serviceDependencies += 'postgresql-x64-17' }
     if ($RedisMode -eq 'Local') { $serviceDependencies += 'Memurai' }
     & (Join-Path $PSScriptRoot 'service\install-service.ps1') -ServiceDir $serviceDir -Dependencies $serviceDependencies
+
+    # ---- Start Menu shortcut: write it here, not via MSI's CreateShortcuts -
+    # Product.wxs's ShortcutGroup deliberately authors NO <Shortcut> element
+    # (only CreateFolder/RemoveFolder for the empty "Taskmaster" folder) -
+    # WiX's own CreateShortcuts standard action was confirmed on a real
+    # install (fresh AND upgrade) to stall for ~60 seconds and then silently
+    # move on WITHOUT ever writing Taskmaster.lnk, whenever the shortcut's
+    # Target is a bare http:// URL rather than a local file path - almost
+    # certainly the underlying IShellLink/IPersistFile COM machinery
+    # stalling on URL moniker resolution under the SYSTEM account Windows
+    # Installer's deferred actions run as (no default browser/profile
+    # there). A .url (Internet Shortcut) file is a plain
+    # [InternetShortcut]-format INI text file - Explorer renders and
+    # launches it exactly like a .lnk, but Set-Content needs no COM/shell
+    # APIs at all, so it can't hit the same stall. Writing it here (rather
+    # than as an MSI File) also means it always carries the REAL resolved
+    # $Port (the upgrade-detection override above), not whatever
+    # TASKMASTER_PORT happened to hold had a standard MSI action rendered
+    # it instead. Cosmetic only (the app itself already listens on the
+    # correct $Port regardless), so a failure here is logged but never
+    # fails the install.
+    try {
+        $shortcutDir = Join-Path ([Environment]::GetFolderPath('CommonPrograms')) 'Taskmaster'
+        New-Item -ItemType Directory -Path $shortcutDir -Force | Out-Null
+        $shortcutPath = Join-Path $shortcutDir 'Taskmaster.url'
+        Set-Content -Path $shortcutPath -Value @('[InternetShortcut]', "URL=$backendUrl/") -Encoding ASCII
+    } catch {
+        Write-Host "AVERTISSEMENT : impossible de creer/mettre a jour le raccourci du menu Demarrer ($($_.Exception.Message))." -ForegroundColor Yellow
+    }
 
     # ---- Health check ----------------------------------------------------
     Write-Stage 'Controle de sante...'

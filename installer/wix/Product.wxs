@@ -154,15 +154,34 @@
     </ComponentGroup>
 
     <!-- ================= Start Menu shortcut ================= -->
+    <!-- No <Shortcut> element here (removed - see git history for the
+         previous attempt) - WiX's own CreateShortcuts standard action was
+         confirmed on a real install (fresh AND upgrade, x2) to hang for
+         ~60 seconds and then silently move on WITHOUT ever writing
+         Taskmaster.lnk, whenever the shortcut's Target is a bare http://
+         URL rather than a local file path - almost certainly the
+         underlying IShellLink/IPersistFile COM machinery stalling on a URL
+         moniker resolution under the SYSTEM account Windows Installer's
+         deferred actions run as (no default browser/profile there). This
+         component now only creates/removes the empty Start Menu folder;
+         orchestrate-install.ps1 writes the actual shortcut itself, as a
+         plain .url (Internet Shortcut) text file - Explorer renders/
+         launches a .url exactly like a .lnk, but Set-Content needs no
+         COM/shell APIs at all, so it can't hit the same stall. This also
+         means the shortcut always carries the REAL resolved port (see
+         orchestrate-install.ps1's upgrade-detection override), not
+         whatever TASKMASTER_PORT happened to hold when a standard MSI
+         action ran.
+         KeyPath is HKMU, not the originally-authored hardcoded HKCU: this
+         Package is Scope="perMachine", so its deferred/standard actions
+         all run elevated as NT AUTHORITY\SYSTEM, never impersonating the
+         admin running msiexec - an HKCU write in that context lands in
+         SYSTEM's own profile hive, never the real user's. -->
     <ComponentGroup Id="ShortcutGroup" Directory="TASKMASTERSTARTMENU">
       <Component Id="StartMenuShortcut" Guid="6a1f9d3e-6b7a-4b7c-9a0e-1a2b3c4d5e70">
-        <Shortcut Id="TaskmasterShortcut"
-                  Name="Taskmaster"
-                  Description="Ouvrir Taskmaster"
-                  Target="http://localhost:[TASKMASTER_PORT]/"
-                  WorkingDirectory="APPFOLDER" />
+        <CreateFolder Directory="TASKMASTERSTARTMENU" />
         <RemoveFolder Id="RemoveStartMenuFolder" Directory="TASKMASTERSTARTMENU" On="uninstall" />
-        <RegistryValue Root="HKCU" Key="Software\Taskmaster" Name="shortcut_installed" Type="integer" Value="1" KeyPath="yes" />
+        <RegistryValue Root="HKMU" Key="Software\Taskmaster" Name="shortcut_installed" Type="integer" Value="1" KeyPath="yes" />
       </Component>
     </ComponentGroup>
 
@@ -398,6 +417,19 @@
     <CustomAction Id="CleanupNodeFolder" Execute="deferred" Return="ignore" Impersonate="no"
                   ExeCommand="[CleanupNodeFolderCmd]" Directory="NODEFOLDER" />
 
+    <!-- Same reasoning as CleanupAppFolderCmd/CleanupNodeFolderCmd above,
+         for Taskmaster.url (written directly by orchestrate-install.ps1
+         into TASKMASTERSTARTMENU - see ShortcutGroup's own comment): clears
+         the folder's contents so RemoveFolder (ShortcutGroup's Component,
+         On="uninstall") can actually remove the now-empty directory instead
+         of silently failing on a non-empty one. -->
+    <SetProperty Id="CleanupStartMenuFolderCmd"
+                 Value="&quot;[System64Folder]WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -Command &quot;Get-ChildItem -LiteralPath '[TASKMASTERSTARTMENU]' -Force | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue&quot;"
+                 Sequence="execute"
+                 Before="CleanupStartMenuFolder" />
+    <CustomAction Id="CleanupStartMenuFolder" Execute="deferred" Return="ignore" Impersonate="no"
+                  ExeCommand="[CleanupStartMenuFolderCmd]" Directory="TASKMASTERSTARTMENU" />
+
     <InstallExecuteSequence>
       <!-- Stop the service before files are replaced (fresh install: no-op, service doesn't exist yet). -->
       <Custom Action="UninstallService" Before="RemoveFiles" Condition='REMOVE~="ALL" OR (Installed AND NOT REINSTALL)' />
@@ -413,6 +445,14 @@
            truth, exactly as before this change - zero behavior change for
            the already-verified Setup.exe path. -->
       <Custom Action="RunOrchestrateInstall" After="InstallService" Condition="NOT REMOVE AND NOT BURNMSIINSTALL" />
+      <!-- Taskmaster.url (written directly by orchestrate-install.ps1, not
+           an MSI File - see ShortcutGroup's own comment for why) is
+           invisible to MSI's own file tracking, same reasoning as
+           CleanupAppFolder/CleanupNodeFolder above - without this,
+           RemoveFolder (ShortcutGroup's Component) silently fails to
+           remove the "Taskmaster" Start Menu folder on uninstall because
+           it's never actually empty. -->
+      <Custom Action="CleanupStartMenuFolder" After="UninstallService" Condition='REMOVE~="ALL"' />
     </InstallExecuteSequence>
 
     <!-- ================= Feature tree ================= -->
