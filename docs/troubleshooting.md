@@ -157,3 +157,20 @@ Les sauvegardes `FULL` incluent les uploads et les procédures du dossier de don
 y compris un éventuel `PROCEDURE_STORAGE_PATH` personnalisé. Les secrets `.env`
 restent exclus : conserver la clé de chiffrement séparément. Une erreur de rétention
 est journalisée sans supprimer la nouvelle sauvegarde achevée.
+
+## La fenêtre de changement de mot de passe ne s’affiche pas après réinitialisation
+
+La réinitialisation depuis la gestion des utilisateurs marque le compte avec
+`mustChangePassword=true`. La session doit ensuite transmettre ce champ au
+navigateur. Le serveur invalide désormais son cache après la réinitialisation
+et après une connexion réussie ; les anciens caches dépourvus de ce champ sont
+reconstruits. Une session déjà ouverte est revérifiée au retour dans l’onglet.
+
+Après installation du correctif, se reconnecter avec le mot de passe temporaire
+fourni lors de la réinitialisation. C’est également ce mot de passe temporaire
+qu’il faut saisir dans **Mot de passe actuel** pour choisir le nouveau.
+Le changement de mot de passe précède l’enrôlement passkey si les deux sont requis.
+
+Une remise à zéro complète de la base et la création du premier compte dans le
+Setup Wizard constituent un autre parcours : le mot de passe est choisi par
+l’utilisateur à la création, sans réinitialisation administrative préalable.

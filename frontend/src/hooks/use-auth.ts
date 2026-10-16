@@ -1,3 +1,4 @@
+import { ApiError } from '@/api/http';
 import { assertPasskeyOrigin } from '@/lib/passkeys';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { authApi } from '@/api';
@@ -64,7 +65,7 @@ function normalizeSession(session: Session): { id: number; role: UserRole; group
     const passkeysEnabled = userSource.passkeysEnabled ?? false;
     const passkeyPolicy = userSource.passkeyPolicy ?? 'disabled';
     const hasPasskey = userSource.hasPasskey ?? false;
-    const mustChangePassword = userSource.mustChangePassword ?? false;
+    const mustChangePassword = userSource.mustChangePassword ?? session.mustChangePassword ?? false;
 
     return { id, role, groups, permissions, sites, passkeysEnabled, passkeyPolicy, hasPasskey, mustChangePassword };
 }
@@ -84,7 +85,7 @@ export function useSession(enabled: boolean = true) {
     return useQuery({
         queryKey: authKeys.session,
         queryFn: async () => {
-            setLoading(true);
+            if (!useAuthStore.getState().isAuthenticated) setLoading(true);
             try {
                 const session = await authApi.getSession();
                 const normalized = normalizeSession(session);
@@ -95,13 +96,14 @@ export function useSession(enabled: boolean = true) {
                     clearSession();
                 }
                 return session;
-            } catch {
-                clearSession();
-                throw new Error('Session expired');
+            } catch (error) {
+                if (!useAuthStore.getState().isAuthenticated || (error instanceof ApiError && [401, 403].includes(error.status))) clearSession();
+                throw error;
             }
         },
         enabled,
         retry: false,
+        refetchOnWindowFocus: 'always',
         staleTime: 5 * 60 * 1000, // 5 minutes
     });
 }

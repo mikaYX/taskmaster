@@ -355,6 +355,25 @@ describe('AuthService', () => {
       });
     });
 
+    it('rebuilds cached sessions from before the password renewal field existed', async () => {
+      mockRedis.get.mockResolvedValue(
+        JSON.stringify({ id: 1, role: 'USER', passkeyPolicy: 'disabled' }),
+      );
+      prismaClient.user.findFirst.mockResolvedValue({
+        ...mockUserBase,
+        mustChangePassword: true,
+      });
+      expect((await service.getSession(1))?.mustChangePassword).toBe(true);
+      expect(prismaClient.user.findFirst).toHaveBeenCalled();
+    });
+    it('invalidates a previously cached session at successful login', async () => {
+      prismaClient.user.findFirst.mockResolvedValue({
+        ...mockUserBase,
+        mustChangePassword: true,
+      });
+      expect((await service.completeLogin(1)).mustChangePassword).toBe(true);
+      expect(mockRedis.del).toHaveBeenCalledWith('session:1');
+    });
     it('should return passkeysEnabled=false if auth.passkeys.enabled is false', async () => {
       prismaClient.user.findFirst.mockResolvedValue(mockUserBase);
       mockSettingsService.get.mockResolvedValue({ value: 'false' });

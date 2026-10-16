@@ -341,6 +341,7 @@ export class UsersService {
       },
     });
 
+    await this.authService.invalidateSession(id);
     this.logger.log(`Password reset for user: ${user.username} (ID: ${id})`);
   }
 

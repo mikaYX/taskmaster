@@ -347,6 +347,7 @@ export class AuthService {
       ipAddress,
     );
 
+    await this.invalidateSession(user.id);
     this.logger.log(`User login completed: ${user.username}`);
 
     return {
@@ -862,7 +863,10 @@ export class AuthService {
     try {
       const cached = await this.redis.get(cacheKey);
       if (cached) {
-        return JSON.parse(cached);
+        const session = JSON.parse(cached);
+        // Old deployments cached sessions without the password-renewal flag.
+        if (session && typeof session.mustChangePassword === 'boolean')
+          return session;
       }
     } catch (error) {
       this.logger.warn(`Redis error in getSession: ${error.message}`);
@@ -1016,7 +1020,7 @@ export class AuthService {
     return session;
   }
 
-  private async invalidateSession(userId: number): Promise<void> {
+  async invalidateSession(userId: number): Promise<void> {
     try {
       await this.redis.del(`session:${userId}`);
     } catch (error) {

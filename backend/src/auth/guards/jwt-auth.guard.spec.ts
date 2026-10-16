@@ -1,3 +1,4 @@
+import { AuthController } from '../auth.controller';
 import { ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { ClsService } from 'nestjs-cls';
@@ -85,6 +86,22 @@ describe('JwtAuthGuard Passkey Enforcement', () => {
     const context = mockExecutionContext({ sub: 1 });
     const result = await guard.canActivate(context);
     expect(result).toBe(true);
+    expect(authService.getSession).not.toHaveBeenCalled();
+  });
+  it('allows the real password route before required passkey enrollment', async () => {
+    const realGuard = new JwtAuthGuard(
+      clsService,
+      new Reflector(),
+      authService,
+    );
+    authService.getSession.mockResolvedValue({
+      passkeyPolicy: 'required',
+      hasPasskey: false,
+    } as any);
+    const context = mockExecutionContext({ sub: 1 });
+    context.getHandler = () => AuthController.prototype.changePassword;
+    context.getClass = () => AuthController;
+    await expect(realGuard.canActivate(context)).resolves.toBe(true);
     expect(authService.getSession).not.toHaveBeenCalled();
   });
 });

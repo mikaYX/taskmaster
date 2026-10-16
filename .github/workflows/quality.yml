@@ -38,7 +38,7 @@ jobs:
       - run: npm run build
       - run: npm -w frontend exec -- playwright install --with-deps chromium --only-shell
       - name: Application browser regressions
-        run: npm -w frontend exec -- playwright test e2e/task-board.spec.ts e2e/passkey-onboarding.spec.ts e2e/profile.spec.ts e2e/navigation-access.spec.ts --workers=1
+        run: npm -w frontend exec -- playwright test e2e/task-board.spec.ts e2e/passkey-onboarding.spec.ts e2e/profile.spec.ts e2e/navigation-access.spec.ts e2e/password-renewal.spec.ts --workers=1
       - uses: actions/upload-artifact@v4
         if: failure()
         with:

@@ -206,6 +206,7 @@ export class AuthController {
       fullname: session.fullname,
       role: session.role,
       groups: session.groupIds,
+      mustChangePassword: session.mustChangePassword,
       passkeysEnabled: session.passkeysEnabled,
       passkeyPolicy: session.passkeyPolicy,
       hasPasskey: session.hasPasskey,
@@ -262,6 +263,7 @@ export class AuthController {
   }
 
   @Post('password')
+  @PasskeyExempt()
   @Audit({
     action: AuditAction.USER_PASSWORD_CHANGED,
     category: AuditCategory.USER,

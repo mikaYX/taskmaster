@@ -26,6 +26,7 @@ describe('UsersService - Privilege Escalation', () => {
 
   const mockAuthService = {
     hashPassword: jest.fn().mockResolvedValue('hashed_password'),
+    invalidateSession: jest.fn().mockResolvedValue(undefined),
   };
 
   const mockAuditService = {
@@ -145,5 +146,18 @@ describe('UsersService - Privilege Escalation', () => {
 
       expect(mockPrisma.client.user.create).toHaveBeenCalled();
     });
+  });
+  it('invalidates the target session after an administrative password reset', async () => {
+    mockPrisma.client.user.findFirst.mockResolvedValue({
+      id: 2,
+      username: 'operator',
+      authProvider: 'LOCAL',
+    });
+    await service.resetPassword(2, 'Temporary!Password42');
+    expect(mockPrisma.client.user.update).toHaveBeenCalledWith({
+      where: { id: 2 },
+      data: { passwordHash: 'hashed_password', mustChangePassword: true },
+    });
+    expect(mockAuthService.invalidateSession).toHaveBeenCalledWith(2);
   });
 });
