@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Accounts marked for password renewal are prompted before passkey onboarding and normal application use.
 - Execution evidence stays private and scoped to the task, occurrence, user and site; corrective action filters retain server-side access checks.
 - The Windows service wrapper download is checked against a pinned SHA-256 instead of an optional placeholder.
+- Dependency audit: `npm audit --omit=dev` reports 0 vulnerabilities. Upgraded `nodemailer` to 10.1.2 and NestJS core packages to 11.2.7; pinned patched `proxy-addr`, `shell-quote`, `handlebars`, `undici`, `@grpc/grpc-js`, `fast-uri`, `multer`, `brace-expansion`, `js-yaml`, `moment`, `source-map-js` and `fast-copy`. The only remaining advisory (`braces`, GHSA-vfj7-8cjw-p6xm) affects development tooling only and has no patched release yet.
 
 ### Fixed
 - Windows service backups resolve PostgreSQL tools and data paths explicitly, await closed file handles and publish completed archives atomically.
