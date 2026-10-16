@@ -59,4 +59,23 @@ describe('SettingsService', () => {
       expect(result.ldap.implemented).toBe(true);
     });
   });
+  it('exposes display flags through the public allowlist without adding secrets', async () => {
+    prisma.client.config.findMany.mockResolvedValue([
+      { key: 'app.showTitle', value: '"false"' },
+      { key: 'app.showSubtitle', value: '"true"' },
+    ]);
+    expect(await service.getPublicBranding()).toEqual({
+      'app.showTitle': 'false',
+      'app.showSubtitle': 'true',
+    });
+    const keys = prisma.client.config.findMany.mock.calls[0][0].where.key.in;
+    expect(keys).toEqual(
+      expect.arrayContaining(['app.showTitle', 'app.showSubtitle']),
+    );
+    expect(
+      keys.some((key) =>
+        /secret|password|apiKey|database|privateKey/i.test(key),
+      ),
+    ).toBe(false);
+  });
 });

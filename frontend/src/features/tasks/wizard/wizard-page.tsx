@@ -59,7 +59,7 @@ export default function WizardPage() {
         let valid = false;
 
         if (currentStep === 0) {
-            valid = await trigger(['name', 'description', 'periodicity', 'procedureUrl']);
+            valid = await trigger(['name', 'description', 'periodicity', 'procedureUrl', 'executionChecklist']);
         } else if (currentStep === 1) {
             const p = getValues('periodicity');
             // Cast strictly to known keys
@@ -108,6 +108,7 @@ export default function WizardPage() {
             const payload: CreateTaskDto = {
                 name: data.name,
                 description: data.description,
+                executionChecklist: data.executionChecklist ?? [],
                 periodicity: data.periodicity,
                 priority: data.priority,
                 startDate: data.startDate ? format(data.startDate, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),

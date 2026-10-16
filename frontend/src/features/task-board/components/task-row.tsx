@@ -1,21 +1,24 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
-import { Check, X, ExternalLink, Users, Building2, FileText, AlertTriangle } from 'lucide-react';
+import { Check, X, ExternalLink, Users, Building2, FileText, AlertTriangle, Loader2 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import type { BoardItem, TaskStatusValue } from '@/api/types';
 import { useAuthStore } from '@/stores/auth-store';
 import { tasksApi } from "@/api/tasks";
 import { useMutation } from "@tanstack/react-query";
-import { FailTaskDialog } from '@/features/tasks/components/fail-task-dialog';
+import { ExecutionDialog } from './execution-dialog';
 import { format, parseISO, isPast, isBefore, subHours, isSameDay } from 'date-fns';
-import { fr } from 'date-fns/locale';
+import { fr, enUS } from 'date-fns/locale';
+import type { Locale } from 'date-fns';
 
 interface TaskRowProps {
     item: BoardItem;
     onStatusChange: (data: { taskId: number; date: string; status: TaskStatusValue; comment?: string }) => void;
     onAdminAction?: (item: BoardItem) => void;
     readonly?: boolean;
+    isUpdating?: boolean;
+    compact?: boolean;
 }
 
 const PERIODICITY_STYLES: Record<string, string> = {
@@ -73,18 +76,20 @@ function StatusBadge({ status, className }: { status: string; className?: string
 }
 
 /** Affiche date et heure, format fixe pour colonne justifiée (même taille visuelle). */
-function formatDateTimeRange(startStr: string, endStr: string): string {
+function formatDateTimeRange(startStr: string, endStr: string, locale: Locale): string {
     const start = parseISO(startStr);
     const end = parseISO(endStr);
     const fmt = "dd MMM HH:mm";
     if (isSameDay(start, end)) {
-        return `${format(start, 'dd MMM', { locale: fr })} ${format(start, 'HH:mm')} – ${format(end, 'HH:mm')}`;
+        return `${format(start, 'dd MMM', { locale })} ${format(start, 'HH:mm')} – ${format(end, 'HH:mm')}`;
     }
-    return `${format(start, fmt, { locale: fr })} – ${format(end, fmt, { locale: fr })}`;
+    return `${format(start, fmt, { locale })} – ${format(end, fmt, { locale })}`;
 }
 
-export function TaskRow({ item, onStatusChange, onAdminAction, readonly }: TaskRowProps) {
-    const [isFailDialogOpen, setIsFailDialogOpen] = useState(false);
+export function TaskRow({ item, onStatusChange, onAdminAction, readonly, isUpdating = false, compact = false }: TaskRowProps) {
+    const { t, i18n } = useTranslation();
+    const locale = i18n.resolvedLanguage?.startsWith('fr') ? fr : enUS;
+    const [executionStatus, setExecutionStatus] = useState<'SUCCESS' | 'FAILED' | 'REPORT' | null>(null);
     const { role } = useAuthStore();
     const isRunning = item.status === 'RUNNING';
     const isAdmin = role === 'ADMIN';
@@ -122,8 +127,8 @@ export function TaskRow({ item, onStatusChange, onAdminAction, readonly }: TaskR
 
     return (
         <>
-            <div className={`flex flex-col border-b border-border/50 last:border-b-0 hover:bg-muted/30 transition-colors group ${isExpired ? 'opacity-40' : ''}`}>
-                <div className="flex items-center gap-4 px-5 py-3">
+            <div aria-busy={isUpdating} data-testid={`task-row-${item.taskId}-${item.instanceDate}`} className={`flex flex-col border-b border-border/50 last:border-b-0 hover:bg-muted/30 transition-colors group ${isExpired ? 'opacity-40' : ''}`}>
+                <div className={`flex items-center gap-4 px-5 ${compact ? 'py-1.5' : 'py-3'}`}>
 
                     {/* Colonne badges (type + statut), même largeur pour tous */}
                     <div
@@ -131,7 +136,7 @@ export function TaskRow({ item, onStatusChange, onAdminAction, readonly }: TaskR
                         style={{ width: BADGE_COLUMN_WIDTH }}
                     >
                         <span className={`text-[10px] h-[22px] rounded-full border font-semibold inline-flex items-center justify-center leading-none w-full uppercase ${getPeriodicityClass(item.periodicity)}`}>
-                            {getPeriodicityLabel(item.periodicity)}
+                            {t(`taskBoard.periodicity_${getPeriodicityLabel(item.periodicity)}`, { defaultValue: item.periodicity })}
                         </span>
                         <StatusBadge status={item.status} />
                     </div>
@@ -141,22 +146,22 @@ export function TaskRow({ item, onStatusChange, onAdminAction, readonly }: TaskR
                         <div className="shrink-0 w-[72px] flex justify-center">
                             {item.priority === 'CRITICAL' && (
                                 <span className="text-[9px] h-[22px] px-2 rounded font-bold text-rose-400 bg-rose-500/20 border border-rose-400/30 uppercase tracking-wide inline-flex items-center justify-center w-full">
-                                    Critical
+                                    {t('taskBoard.priorityCritical')}
                                 </span>
                             )}
                             {item.priority === 'HIGH' && (
                                 <span className="text-[9px] h-[22px] px-2 rounded font-bold text-orange-400 bg-orange-500/20 border border-orange-400/30 uppercase tracking-wide inline-flex items-center justify-center w-full">
-                                    High
+                                    {t('taskBoard.priorityHigh')}
                                 </span>
                             )}
                             {item.priority === 'MEDIUM' && (
                                 <span className="text-[9px] h-[22px] px-2 rounded font-bold text-emerald-400 bg-emerald-500/20 border border-emerald-400/30 uppercase tracking-wide inline-flex items-center justify-center w-full">
-                                    Medium
+                                    {t('taskBoard.priorityMedium')}
                                 </span>
                             )}
                             {item.priority === 'LOW' && (
                                 <span className="text-[9px] h-[22px] px-2 rounded font-bold text-blue-400 bg-blue-500/20 border border-blue-400/30 uppercase tracking-wide inline-flex items-center justify-center w-full">
-                                    Low
+                                    {t('taskBoard.priorityLow')}
                                 </span>
                             )}
                         </div>
@@ -164,8 +169,8 @@ export function TaskRow({ item, onStatusChange, onAdminAction, readonly }: TaskR
 
                     {/* Titre + description + assignés */}
                     <div className="flex-1 min-w-0">
-                        <p className="font-medium text-[13px] text-foreground truncate">{item.taskName}</p>
-                        {item.description && (
+                        <p title={compact ? item.description : undefined} className="font-medium text-[13px] text-foreground truncate">{item.taskName}</p>
+                        {!compact && item.description && (
                             <p className="text-[11px] text-muted-foreground/70 line-clamp-1 mt-0.5">{item.description}</p>
                         )}
                         {(item.assignedUsers.length > 0 || item.assignedGroups.length > 0) && (
@@ -190,13 +195,13 @@ export function TaskRow({ item, onStatusChange, onAdminAction, readonly }: TaskR
                         style={{ width: 220 }}
                     >
                         <span className="whitespace-nowrap">
-                            {formatDateTimeRange(item.periodStart, item.periodEnd)}
+                            {formatDateTimeRange(item.periodStart, item.periodEnd, locale)}
                         </span>
                         {isUrgent && (
-                            <span className="text-[10px] text-amber-400 font-semibold mt-0.5">urgent</span>
+                            <span className="text-[10px] text-amber-400 font-semibold mt-0.5">{t('taskBoard.urgent')}</span>
                         )}
                         {isExpired && (
-                            <span className="text-[10px] text-muted-foreground/60 font-semibold mt-0.5">en attente d'audit</span>
+                            <span className="text-[10px] text-muted-foreground/60 font-semibold mt-0.5">{t('taskBoard.awaitingAudit')}</span>
                         )}
                         {item.validation?.byUsername && (
                             <span className="text-[10px] text-muted-foreground/50 mt-0.5 truncate max-w-full">
@@ -213,7 +218,7 @@ export function TaskRow({ item, onStatusChange, onAdminAction, readonly }: TaskR
                                     variant="ghost"
                                     size="icon"
                                     className="h-8 w-8 text-muted-foreground/50 hover:text-foreground transition-colors"
-                                    title={item.procedureUrl.startsWith('local:') ? "Télécharger la procédure" : "Ouvrir le lien web"}
+                                    title={item.procedureUrl.startsWith('local:') ? t('taskBoard.downloadProcedure') : t('taskBoard.openProcedure')}
                                     asChild={!item.procedureUrl.startsWith('local:')}
                                     onClick={item.procedureUrl.startsWith('local:') ? handleDownloadClick : undefined}
                                     disabled={downloadMutation.isPending}
@@ -235,20 +240,26 @@ export function TaskRow({ item, onStatusChange, onAdminAction, readonly }: TaskR
                                     variant="ghost"
                                     size="icon"
                                     className="h-8 w-8 rounded-lg text-emerald-500 hover:text-emerald-400 hover:bg-emerald-500/10"
-                                    onClick={() => onStatusChange({ taskId: item.taskId, date: item.instanceDate, status: 'SUCCESS' })}
+                                    disabled={isUpdating}
+                                    aria-label={t('taskBoard.validateTask', { name: item.taskName })}
+                                    onClick={() => item.executionChecklist?.length ? setExecutionStatus('SUCCESS') : onStatusChange({ taskId: item.taskId, date: item.instanceDate, status: 'SUCCESS' })}
                                 >
-                                    <Check className="h-4 w-4" />
+                                    <>{isUpdating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}</>
                                 </Button>
                                 <Button
                                     variant="ghost"
                                     size="icon"
                                     className="h-8 w-8 rounded-lg text-rose-500 hover:text-rose-400 hover:bg-rose-500/10"
-                                    onClick={() => setIsFailDialogOpen(true)}
+                                    disabled={isUpdating}
+                                    aria-label={t('taskBoard.failTask', { name: item.taskName })}
+                                    onClick={() => setExecutionStatus('FAILED')}
                                 >
                                     <X className="h-4 w-4" />
                                 </Button>
                             </div>
                         )}
+
+                        {isTerminal && !!item.executionRecord?.length && <Button variant="outline" size="sm" onClick={() => setExecutionStatus('REPORT')}>{t('execution.report')}</Button>}
 
                         {!readonly && isAdmin && isTerminal && (
                             <Button
@@ -257,7 +268,7 @@ export function TaskRow({ item, onStatusChange, onAdminAction, readonly }: TaskR
                                 className="h-8 text-xs text-muted-foreground/50 opacity-0 group-hover:opacity-100 transition-opacity hover:text-foreground"
                                 onClick={() => onAdminAction?.(item)}
                             >
-                                Éditer
+                                {t('common.edit')}
                             </Button>
                         )}
                     </div>
@@ -267,7 +278,7 @@ export function TaskRow({ item, onStatusChange, onAdminAction, readonly }: TaskR
                     <div className="px-16 pb-3">
                         <Alert variant="destructive" className="py-2 bg-rose-500/10 text-rose-400 border-rose-500/20">
                             <AlertTriangle className="h-4 w-4" />
-                            <AlertTitle className="text-xs font-semibold mb-1">Détails de l'échec</AlertTitle>
+                            <AlertTitle className="text-xs font-semibold mb-1">{t('taskBoard.failureDetails')}</AlertTitle>
                             <AlertDescription className="text-xs opacity-90">
                                 {item.validation.comment}
                             </AlertDescription>
@@ -276,11 +287,8 @@ export function TaskRow({ item, onStatusChange, onAdminAction, readonly }: TaskR
                 )}
             </div>
 
-            <FailTaskDialog
-                open={isFailDialogOpen}
-                onOpenChange={setIsFailDialogOpen}
-                onConfirm={(comment) => onStatusChange({ taskId: item.taskId, date: item.instanceDate, status: 'FAILED', comment })}
-            />
+            {executionStatus && <ExecutionDialog item={item} status={executionStatus === 'FAILED' ? 'FAILED' : 'SUCCESS'} readOnly={executionStatus === 'REPORT'} onClose={() => setExecutionStatus(null)} />}
+
         </>
     );
 }

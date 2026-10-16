@@ -100,6 +100,7 @@
         </Directory>
         <Directory Id="STORAGEFOLDER" Name="storage">
           <Directory Id="PROCEDURESFOLDER" Name="procedures" />
+          <Directory Id="EVIDENCEFOLDER" Name="evidence" />
         </Directory>
         <Directory Id="BACKUPSFOLDER" Name="backups" />
         <Directory Id="LOGSFOLDER" Name="logs" />
@@ -138,6 +139,11 @@
       </Component>
       <Component Id="ProceduresFolderComponent" Guid="6a1f9d3e-6b7a-4b7c-9a0e-1a2b3c4d5e63">
         <CreateFolder Directory="PROCEDURESFOLDER">
+          <util:PermissionEx User="NT AUTHORITY\LocalService" GenericAll="yes" />
+        </CreateFolder>
+      </Component>
+      <Component Id="EvidenceFolderComponent" Guid="5cb81e0c-4558-4116-954c-1fb3f384c707">
+        <CreateFolder Directory="EVIDENCEFOLDER">
           <util:PermissionEx User="NT AUTHORITY\LocalService" GenericAll="yes" />
         </CreateFolder>
       </Component>
@@ -192,6 +198,7 @@
          unprivileged) UI sequence into the elevated deferred custom action
          below - see RunOrchestrateInstallCmd. -->
     <Property Id="TASKMASTER_PORT" Value="3000" Secure="yes" />
+    <Property Id="TASKMASTER_PUBLIC_URL" Secure="yes" />
 
     <!-- ================= Existing PostgreSQL/Redis (standalone msiexec only) =====
          Collected by TaskmasterConfigDlg (UI.wxs) or overridable from the
@@ -371,7 +378,7 @@
          Same trailing "\\" -> escaped-quote reasoning as ExtractAppArchiveCmd
          above applies to the ...FOLDER]\&quot; occurrences below. -->
     <SetProperty Id="RunOrchestrateInstallCmd"
-                 Value="&quot;[System64Folder]WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File &quot;[#OrchestrateInstallPs1]&quot; -Port [TASKMASTER_PORT] -InstallDir &quot;[APPFOLDER]\&quot; -DataDir &quot;[TASKMASTERDATAROOT]\&quot; -PostgresMode Existing -PostgresDbHost &quot;[POSTGRES_DB_HOST]&quot; -PostgresDbPort [POSTGRES_DB_PORT] -PostgresDb &quot;[POSTGRES_DB_NAME]&quot; -PostgresUser &quot;[POSTGRES_DB_USER]&quot; -PostgresPassword &quot;[POSTGRES_DB_PASSWORD]&quot; -PostgresAdminUser &quot;[POSTGRES_ADMIN_USER]&quot; -PostgresAdminPassword &quot;[POSTGRES_ADMIN_PASSWORD]&quot; -RedisMode Existing -RedisDbHost &quot;[REDIS_DB_HOST]&quot; -RedisDbPort [REDIS_DB_PORT]"
+                 Value="&quot;[System64Folder]WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File &quot;[#OrchestrateInstallPs1]&quot; -Port [TASKMASTER_PORT] -PublicUrl &quot;[TASKMASTER_PUBLIC_URL]&quot; -InstallDir &quot;[APPFOLDER]\&quot; -DataDir &quot;[TASKMASTERDATAROOT]\&quot; -PostgresMode Existing -PostgresDbHost &quot;[POSTGRES_DB_HOST]&quot; -PostgresDbPort [POSTGRES_DB_PORT] -PostgresDb &quot;[POSTGRES_DB_NAME]&quot; -PostgresUser &quot;[POSTGRES_DB_USER]&quot; -PostgresPassword &quot;[POSTGRES_DB_PASSWORD]&quot; -PostgresAdminUser &quot;[POSTGRES_ADMIN_USER]&quot; -PostgresAdminPassword &quot;[POSTGRES_ADMIN_PASSWORD]&quot; -RedisMode Existing -RedisDbHost &quot;[REDIS_DB_HOST]&quot; -RedisDbPort [REDIS_DB_PORT]"
                  Sequence="execute"
                  Before="RunOrchestrateInstall" />
     <CustomAction Id="RunOrchestrateInstall" Execute="deferred" Return="check" Impersonate="no"

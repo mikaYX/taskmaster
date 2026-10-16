@@ -40,6 +40,7 @@ export function useSettings() {
         mutationFn: settingsApi.set,
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['settings'] });
+            queryClient.invalidateQueries({ queryKey: ['public-branding'] });
             toast.success(t('common.saveSuccess'));
         },
         onError: (error) => {
@@ -53,6 +54,7 @@ export function useSettings() {
         mutationFn: settingsApi.setBulk,
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['settings'] });
+            queryClient.invalidateQueries({ queryKey: ['public-branding'] });
             toast.success(t('common.saveSuccess'));
         },
         onError: (error) => {

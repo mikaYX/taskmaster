@@ -17,6 +17,8 @@ param(
     [int] $Port = 3000,
     [ValidateSet('Local', 'Lan')] [string] $AccessMode = 'Local',
     [string] $HostName = 'localhost',
+    # Public HTTPS origin when the service is behind a reverse proxy.
+    [string] $PublicUrl,
     [string] $DataDir = 'C:\ProgramData\Taskmaster',
     [string] $InstallDir = 'C:\Program Files\Taskmaster\app',
 
@@ -123,6 +125,9 @@ try {
         $Port = [int] $existingEnv['PORT']
     }
 
+    $backendUrl = Resolve-TaskmasterPublicUrl -PublicUrl $PublicUrl -HostName $HostName -Port $Port `
+        -IsUpgrade:$isUpgrade -ExistingUrl $existingEnv['FRONTEND_URL']
+
     # ---- Existing PostgreSQL: create/update the app's own role+database --
     # Runs BEFORE the prerequisite auth check below, which logs in AS the
     # app role - that would always fail on a brand-new role otherwise.
@@ -199,7 +204,6 @@ try {
     }
 
     # ---- Secrets + .env (only written if it doesn't already exist) --------
-    $backendUrl = "http://$($HostName):$Port"
     $envValues = [ordered]@{
         NODE_ENV                 = 'production'
         PORT                     = $Port

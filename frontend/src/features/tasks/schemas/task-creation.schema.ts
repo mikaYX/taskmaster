@@ -16,6 +16,12 @@ const notificationsSchema = z.object({
 
 const baseSchema = z.object({
     name: z.string().min(3, "Name must be at least 3 characters").max(50, "Name must be less than 50 characters"),
+    executionChecklist: z.array(z.object({
+        id: z.string().regex(/^[a-zA-Z0-9_-]{1,64}$/),
+        label: z.string().trim().min(1).max(255),
+        kind: z.enum(['CHECK', 'TEXT', 'NUMBER', 'PHOTO']),
+        required: z.boolean(),
+    })).max(50).optional(),
     description: z.string().min(5, "Description must be at least 5 characters"),
     priority: priorityEnum.default('MEDIUM'),
     procedureMode: z.enum(['URL', 'UPLOAD']).default('URL'),

@@ -13,6 +13,7 @@ interface AuthState {
     passkeysEnabled: boolean;
     passkeyPolicy: 'disabled' | 'optional' | 'required';
     hasPasskey: boolean;
+    mustChangePassword: boolean;
 
     setSession: (
         userId: number,
@@ -22,7 +23,8 @@ interface AuthState {
         sites?: UserSite[],
         passkeysEnabled?: boolean,
         passkeyPolicy?: 'disabled' | 'optional' | 'required',
-        hasPasskey?: boolean
+        hasPasskey?: boolean,
+        mustChangePassword?: boolean
     ) => void;
     clearSession: () => void;
     setLoading: (loading: boolean) => void;
@@ -41,8 +43,9 @@ export const useAuthStore = create<AuthState>()(
             passkeysEnabled: false,
             passkeyPolicy: 'disabled',
             hasPasskey: false,
+            mustChangePassword: false,
 
-            setSession: (userId, role, groups, permissions, sites = [], passkeysEnabled = false, passkeyPolicy = 'disabled', hasPasskey = false) =>
+            setSession: (userId, role, groups, permissions, sites = [], passkeysEnabled = false, passkeyPolicy = 'disabled', hasPasskey = false, mustChangePassword = false) =>
                 set({
                     isAuthenticated: true,
                     isLoading: false,
@@ -54,6 +57,7 @@ export const useAuthStore = create<AuthState>()(
                     passkeysEnabled,
                     passkeyPolicy,
                     hasPasskey,
+                    mustChangePassword,
                 }),
 
             clearSession: () =>
@@ -68,6 +72,7 @@ export const useAuthStore = create<AuthState>()(
                     passkeysEnabled: false,
                     passkeyPolicy: 'disabled',
                     hasPasskey: false,
+                    mustChangePassword: false,
                 }),
 
             setLoading: (loading) =>

@@ -67,6 +67,7 @@ export function EditTaskPage() {
             const formValues: Partial<CreateTaskFormValues> = {
                 name: task.name,
                 description: task.description || '',
+                executionChecklist: task.executionChecklist ?? [],
                 priority: task.priority ?? 'MEDIUM',
                 procedureMode: isUpload ? 'UPLOAD' : 'URL',
                 procedureUrl: isUpload ? undefined : (task.procedureUrl || undefined),
@@ -119,6 +120,7 @@ export function EditTaskPage() {
             const payload: UpdateTaskDto = {
                 name: data.name,
                 description: data.description,
+                executionChecklist: data.executionChecklist ?? [],
                 periodicity: data.periodicity,
                 priority: data.priority,
                 startDate: data.startDate ? format(data.startDate, 'yyyy-MM-dd') : undefined,

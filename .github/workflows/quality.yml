@@ -1,0 +1,132 @@
+name: Quality and regression checks
+
+on:
+  pull_request:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+env:
+  # Placeholder for Prisma generation; the isolated PostgreSQL job overrides it.
+  DATABASE_URL: postgresql://taskmaster:test@127.0.0.1:5432/taskmaster?schema=public
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quality-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      # Run ESLint without --fix: a check must not modify source files.
+      - run: npm -w backend exec -- eslint "{src,apps,libs,test}/**/*.ts"
+      - run: npm -w frontend run lint
+      - run: npm -w frontend run check:i18n
+      - run: npm -w backend test -- --runInBand
+      - run: npm -w frontend test
+      - run: npm run build
+      - run: npm -w frontend exec -- playwright install --with-deps chromium --only-shell
+      - name: Application browser regressions
+        run: npm -w frontend exec -- playwright test e2e/task-board.spec.ts e2e/passkey-onboarding.spec.ts e2e/profile.spec.ts e2e/navigation-access.spec.ts --workers=1
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: browser-test-results
+          path: frontend/test-results/
+          retention-days: 7
+
+  windows-backups:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    env:
+      TASKMASTER_DATA_DIR: ${{ runner.temp }}/taskmaster-data
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Windows installer public URL checks
+        shell: powershell
+        run: ./installer/test-public-url.ps1
+      - name: Windows verification failure and redaction checks
+        shell: powershell
+        run: ./installer/test-verify-report.ps1
+      - name: Windows backup and archive regressions
+        run: npm -w backend test -- --runInBand src/backup
+
+  execution-postgres:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      DATABASE_URL: postgresql://postgres:execution-test@127.0.0.1:5432/taskmaster_execution_test
+      TASKMASTER_EXECUTION_TEST_DATABASE_URL: postgresql://postgres:execution-test@127.0.0.1:5432/taskmaster_execution_test
+    services:
+      postgres:
+        image: postgres:18.1-alpine
+        env:
+          POSTGRES_PASSWORD: execution-test
+          POSTGRES_DB: taskmaster_execution_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Prepare isolated execution test schema
+        run: npm -w backend exec -- prisma migrate diff --from-empty --to-schema prisma/schema.prisma --script --output /tmp/taskmaster-execution-test-schema.sql
+      - run: npm -w backend exec -- prisma db execute --file /tmp/taskmaster-execution-test-schema.sql
+      - name: PostgreSQL execution and rollback checks
+        run: npm -w backend run test:execution:postgres
+
+  upgrade-backup-postgres:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      DATABASE_URL: postgresql://postgres:upgrade-test@127.0.0.1:5432/taskmaster_upgrade_test
+      TASKMASTER_UPGRADE_TEST_DATABASE_URL: postgresql://postgres:upgrade-test@127.0.0.1:5432/taskmaster_upgrade_test
+      PG_BIN_PATH: /usr/lib/postgresql/16/bin
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: upgrade-test
+          POSTGRES_DB: taskmaster_upgrade_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Install matching native PostgreSQL tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client-16
+      - name: Legacy migration and native dump/restore regression
+        run: npm -w backend run test:upgrade:postgres

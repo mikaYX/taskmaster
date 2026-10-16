@@ -94,6 +94,45 @@ qui serait un chantier nettement plus lourd. Conséquence concrète :
 `http://localhost:3000/` (ou l'URL configurée). Créez le premier compte
 `SUPER_ADMIN` via le Setup Wizard web existant de Taskmaster.
 
+## URL publique et passkeys
+
+Pour une nouvelle installation via le MSI, renseigner **URL publique
+(facultatif)** dans le dialogue de configuration si l'application sera ouverte
+avec une adresse différente de `http://localhost:3000`. Exemple :
+`https://taskmaster.itiz-cpt-eu.local`. Utiliser l'adresse de chaque installation,
+sans chemin ni paramètres. Sans valeur, le fonctionnement local reste inchangé.
+
+Avec le bootstrapper, transmettre la variable correspondante :
+
+```powershell
+.\Taskmaster-Setup-<version>-x64.exe PUBLIC_URL="https://taches.exemple.fr"
+```
+
+Pour un déploiement MSI silencieux, utiliser
+`TASKMASTER_PUBLIC_URL="https://taches.exemple.fr"` avec les autres propriétés
+requises pour PostgreSQL et Redis. Cette URL est transmise aux valeurs
+`FRONTEND_URL`, `BACKEND_URL` et `CORS_ORIGIN` lors de la création initiale du
+`.env`, ainsi qu'au raccourci du menu Démarrer. Elle ne change pas le port
+interne du service et ne configure ni reverse proxy ni certificat TLS.
+
+Une mise à jour conserve le `.env` existant, même si une autre URL est transmise
+à l'installateur. Le raccourci réutilise alors l'URL publique existante. Pour
+modifier une adresse déjà installée, suivre la
+[configuration passkey](authentication.md#passkeys--url-publique-et-service-windows).
+
+Vérifications sur une VM Windows avant livraison :
+
+- Installer avec une URL HTTPS publique ; vérifier le `.env`, le raccourci et
+  l'enrôlement passkey depuis cette adresse avec un certificat approuvé.
+- Mettre à jour avec une autre valeur d'URL : la configuration et le raccourci
+  doivent conserver l'adresse précédente.
+- Installer sans URL publique : l'accès local habituel doit fonctionner.
+- Vérifier qu'une URL avec identifiants, chemin ou paramètres est refusée avant
+  le provisionnement de la base.
+
+Le script `installer/test-public-url.ps1` vérifie la résolution et la validation
+des URL sans installer de service ni modifier la configuration du poste.
+
 ## Emplacements sur disque
 
 ```
@@ -183,6 +222,12 @@ de licence).
 
 ## Tester une installation
 
+Le build actuel produit un MSI pour des prérequis déjà installés. Suivre la
+[recette du candidat Windows](windows-release-checklist.md) et utiliser
+`installer/verify-installation.ps1` après installation ou mise à jour.
+La commande historique ci-dessous concerne uniquement un ancien `Setup.exe`.
+
+
 ```powershell
 .\installer\test-install.ps1 -SetupExePath 'C:\...\Taskmaster-Setup-1.1.3-x64.exe'
 ```
@@ -193,11 +238,12 @@ script que sur une VM jetable — il installe de vrais services Windows.
 
 ## Limites connues / ce qui doit être validé sur une vraie machine Windows
 
-Ce document et l'ensemble de `installer/` ont été rédigés et vérifiés
-statiquement dans un environnement de développement Linux, qui ne permet ni
-de construire (`wix build`), ni d'exécuter ces scripts PowerShell, ni
-d'installer un service Windows réel. Doivent être validés sur un Windows
-Server 2019 x64 réel avant toute mise en production :
+Les fichiers WiX sont contrôlés statiquement et les fonctions de résolution
+d'URL sont testées avec PowerShell 7 dans l'environnement Linux de développement.
+Le workflow de qualité prévoit aussi leur exécution avec Windows PowerShell.
+Ces contrôles ne valident pas la construction du MSI ni l'installation des
+services. Doivent être validés sur un Windows Server 2019 x64 réel avant
+toute mise en production :
 
 - La construction effective du `.msi`/`.exe` (`installer/build.ps1`) et en
   particulier la stratégie de `node_modules` de production sous npm

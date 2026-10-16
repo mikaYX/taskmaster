@@ -1,9 +1,12 @@
+import type { Prisma } from '@prisma/client';
 export class BoardItem {
   taskId: number;
   taskName: string;
   description?: string;
   periodicity: string;
   procedureUrl?: string;
+  executionChecklist?: Prisma.JsonValue;
+  executionRecord?: Prisma.JsonValue;
   priority?: string;
   project?: string;
   category?: string;

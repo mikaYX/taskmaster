@@ -128,3 +128,36 @@ Notes :
 - [`./AUTH_CI_TESTING.md`](./AUTH_CI_TESTING.md)
 - [`./AUTH_GRACE_WINDOW_HARDENING.md`](./AUTH_GRACE_WINDOW_HARDENING.md)
 - [`./incident_runbook.md`](./incident_runbook.md)
+
+### Passkeys : URL publique et service Windows
+
+Le RP ID est automatiquement déduit du domaine de `FRONTEND_URL` si `RP_ID`
+n’est pas défini. Il n’est jamais déduit des en-têtes envoyés par le navigateur.
+Chaque installation doit donc renseigner sa propre URL publique.
+Par exemple, pour `https://taskmaster.itiz-cpt-eu.local` :
+
+```dotenv
+FRONTEND_URL=https://taskmaster.itiz-cpt-eu.local
+```
+
+Laisser `RP_ID` absent permet de déduire `taskmaster.itiz-cpt-eu.local`.
+Si un `RP_ID` explicite est nécessaire, utiliser uniquement le domaine, sans
+`https://`, port ni chemin. Conserver un RP ID existant compatible : les clés
+créées pour un autre domaine ne peuvent pas être transférées automatiquement.
+HTTPS et un certificat approuvé par le navigateur sont nécessaires hors localhost.
+Une adresse IP ne convient pas pour le RP ID.
+
+Sous Windows, modifier `C:\ProgramData\Taskmaster\config\.env`, puis redémarrer
+le service Taskmaster. L’installateur conserve ce fichier lors des mises à jour :
+une ancienne valeur `localhost` doit donc être corrigée sur le serveur.
+Vérifier aussi `BACKEND_URL` et `CORS_ORIGIN` selon l’adresse publique utilisée.
+Pour une nouvelle installation, le MSI propose un champ **URL publique** et
+`Setup.exe` accepte la variable `PUBLIC_URL`. Le script `orchestrate-install.ps1` accepte `-PublicUrl "https://votre-domaine"`
+pour une nouvelle installation ; ce paramètre ne remplace pas un `.env` existant.
+Il décrit l’URL publique et ne configure pas le certificat ni le proxy HTTPS.
+
+L’erreur `'rp.id' cannot be used with the current origin` indique généralement
+que le domaine configuré ne correspond pas au domaine ouvert dans le navigateur.
+Ouvrir l’adresse publique configurée, puis réessayer après redémarrage du service.
+Les règles de correspondance sont décrites dans la
+[documentation WebAuthn](https://developer.mozilla.org/en-US/docs/Web/API/PublicKeyCredentialCreationOptions).

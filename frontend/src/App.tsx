@@ -2,7 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from '@/components/theme-provider';
 import { QueryProvider } from '@/lib/query-provider';
 import { SessionInitializer } from '@/components/session-initializer';
-import { AuthGuard, GuestGuard, NoGuestGuard } from '@/components/auth-guard';
+import { AuthGuard, GuestGuard, NoGuestGuard, SuperAdminGuard } from '@/components/auth-guard';
 import { SetupGuard } from '@/components/setup-guard';
 import { AppLayout } from '@/components/app-layout';
 import { LoginPage } from '@/features/auth';
@@ -21,6 +21,7 @@ import {
 import { lazy, Suspense } from 'react';
 
 const TaskBoardPage = lazy(() => import('@/features/task-board').then(m => ({ default: m.TaskBoardPage })));
+const CorrectiveActionsPage = lazy(() => import('@/features/corrective-actions/corrective-actions-page'));
 const TodosPage = lazy(() => import('@/features/todos/todos-page').then(m => ({ default: m.TodosPage })));
 const AnalyticsPage = lazy(() => import('@/features/analytics').then(m => ({ default: m.AnalyticsPage })));
 
@@ -105,6 +106,7 @@ function App() {
                   </AuthGuard>
                 }
               >
+                <Route path="/corrective-actions" element={<NoGuestGuard><ErrorBoundary variant="section" context="Actions correctives"><Suspense fallback={<PageSkeleton />}><CorrectiveActionsPage /></Suspense></ErrorBoundary></NoGuestGuard>} />
                 {/* Task Board = Main operational screen (LEGACY_AUDIT.md) */}
                 <Route path="/" element={<ErrorBoundary variant="section" context="Tableau de bord"><Suspense fallback={<TaskBoardSkeleton />}><TaskBoardPage /></Suspense></ErrorBoundary>} />
                 <Route path="/tasks" element={<ErrorBoundary variant="section" context="Tableau de bord"><Suspense fallback={<TaskBoardSkeleton />}><TaskBoardPage /></Suspense></ErrorBoundary>} />
@@ -120,16 +122,16 @@ function App() {
                 <Route path="/task-definitions/:id/edit" element={<NoGuestGuard><ErrorBoundary variant="section" context="Édition tâche"><Suspense fallback={<PageSkeleton />}><EditTaskPage /></Suspense></ErrorBoundary></NoGuestGuard>} />
 
                 <Route path="/exports" element={<NoGuestGuard><ErrorBoundary variant="section" context="Exports"><Suspense fallback={<SettingsSkeleton />}><ExportSettingsPage /></Suspense></ErrorBoundary></NoGuestGuard>} />
-                <Route path="/backups" element={<NoGuestGuard><ErrorBoundary variant="section" context="Sauvegardes"><Suspense fallback={<SettingsSkeleton />}><BackupSettingsPage /></Suspense></ErrorBoundary></NoGuestGuard>} />
+                <Route path="/backups" element={<SuperAdminGuard><ErrorBoundary variant="section" context="Sauvegardes"><Suspense fallback={<SettingsSkeleton />}><BackupSettingsPage /></Suspense></ErrorBoundary></SuperAdminGuard>} />
 
                 {/* Settings with tab navigation */}
-                <Route path="/settings" element={<NoGuestGuard><ErrorBoundary variant="section" context="Paramètres"><Suspense fallback={<SettingsSkeleton />}><SettingsPage /></Suspense></ErrorBoundary></NoGuestGuard>} />
+                <Route path="/settings" element={<SuperAdminGuard><ErrorBoundary variant="section" context="Paramètres"><Suspense fallback={<SettingsSkeleton />}><SettingsPage /></Suspense></ErrorBoundary></SuperAdminGuard>} />
 
                 {/* User Profile */}
                 <Route path="/profile" element={<ErrorBoundary variant="section" context="Profil"><Suspense fallback={<ProfileSkeleton />}><ProfilePage /></Suspense></ErrorBoundary>} />
 
                 {/* Admin Routes */}
-                <Route path="/admin" element={<NoGuestGuard><ErrorBoundary variant="section" context="Administration"><Suspense fallback={<TablePageSkeleton />}><AdminLayout /></Suspense></ErrorBoundary></NoGuestGuard>}>
+                <Route path="/admin" element={<SuperAdminGuard><ErrorBoundary variant="section" context="Administration"><Suspense fallback={<TablePageSkeleton />}><AdminLayout /></Suspense></ErrorBoundary></SuperAdminGuard>}>
                   <Route index element={<Navigate to="/admin/audit" replace />} />
                   <Route path="audit" element={<Suspense fallback={<TablePageSkeleton />}><AuditLogPage /></Suspense>} />
                 </Route>

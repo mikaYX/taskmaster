@@ -5,7 +5,7 @@ import {
   InternalServerErrorException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { join, resolve as pathResolve } from 'path';
+import { join } from 'path';
 import {
   existsSync,
   mkdirSync,
@@ -13,6 +13,7 @@ import {
   statSync,
   unlinkSync,
   createWriteStream,
+  writeFileSync,
   createReadStream,
   rmSync,
   readFileSync,
@@ -24,16 +25,22 @@ import {
   copyFileSync,
   renameSync,
 } from 'fs';
-import { exec } from 'child_process';
-import { promisify } from 'util';
+import { spawn } from 'child_process';
+import { pipeline } from 'stream/promises';
 import * as archiver from 'archiver';
 import * as crypto from 'crypto';
 import { SettingsService } from '../settings';
 import { EncryptionService } from './encryption.service';
 
-const execAsync = promisify(exec);
-const DEFAULT_BACKUP_DIR = join(process.cwd(), 'backups', 'system');
-const TEMP_UPLOADS_DIR = join(process.cwd(), 'backups', 'temp_uploads');
+import {
+  getBackupSystemDir,
+  getBackupTempUploadsDir,
+  getPgBinaryPath,
+  getProcedureStorageDir,
+  getEvidenceStorageDir,
+  getUploadsDir,
+  resolveDataPath,
+} from '../config/app-paths';
 
 export type BackupSourceType = 'backup_name' | 'temp_upload_path';
 
@@ -76,10 +83,10 @@ export class BackupLogicService {
     const settingPath = await this.settings.getRawValue<string>('backup.path');
     const configPath = this.configService.get<string>('BACKUP_STORAGE_PATH');
 
-    const rawPath = settingPath || configPath || DEFAULT_BACKUP_DIR;
+    const rawPath = settingPath || configPath || getBackupSystemDir();
 
-    // Resolve relative path to absolute based on current process cwd
-    const absolutePath = pathResolve(process.cwd(), rawPath);
+    // Resolve relative paths against the writable service data root.
+    const absolutePath = resolveDataPath(rawPath);
 
     if (!existsSync(absolutePath)) {
       this.logger.log(`Creating backup storage directory: ${absolutePath}`);
@@ -109,6 +116,7 @@ export class BackupLogicService {
     // Final encrypted file path
     const finalFilename = `${backupName}.tar.gz.enc`;
     const finalPath = join(backupDir, finalFilename);
+    const partialPath = `${finalPath}.partial`;
 
     try {
       mkdirSync(tempDir, { recursive: true });
@@ -124,7 +132,6 @@ export class BackupLogicService {
         appVersion: process.env.npm_package_version || 'unknown',
         checksum: 'pending', // Calculated during streaming
       };
-      const { writeFileSync } = await import('fs');
       writeFileSync(
         join(tempDir, 'manifest.json'),
         JSON.stringify(manifest, null, 2),
@@ -136,14 +143,15 @@ export class BackupLogicService {
       }
 
       // 4. Create Archive & Encrypt Stream
-      await this.archiveAndEncrypt(tempDir, finalPath);
+      await this.archiveAndEncrypt(tempDir, partialPath);
 
       // 4.5 Sign Archive with HMAC SHA256
       const hmacKey = this.configService.get<string>('BACKUP_ENCRYPTION_KEY');
       if (!hmacKey)
         throw new InternalServerErrorException('Missing BACKUP_ENCRYPTION_KEY');
-      const signature = await this.signFile(finalPath, hmacKey);
-      appendFileSync(finalPath, Buffer.from(signature + '##HMAC##', 'utf8'));
+      const signature = await this.signFile(partialPath, hmacKey);
+      appendFileSync(partialPath, Buffer.from(signature + '##HMAC##', 'utf8'));
+      renameSync(partialPath, finalPath);
 
       // 5. Cleanup Temp
       rmSync(tempDir, { recursive: true, force: true });
@@ -153,8 +161,14 @@ export class BackupLogicService {
         `Backup created successfully: ${finalFilename} (${(stats.size / 1024 / 1024).toFixed(2)} MB)`,
       );
 
-      // 6. Retention Cleanup
-      await this.cleanupExpired();
+      // A retention failure must not delete a successfully signed backup.
+      try {
+        await this.cleanupExpired();
+      } catch (error) {
+        this.logger.warn(
+          `Backup created, but retention cleanup failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        );
+      }
 
       return {
         filename: finalFilename,
@@ -179,6 +193,7 @@ export class BackupLogicService {
       // Cleanup artifacts on failure
       if (existsSync(tempDir))
         rmSync(tempDir, { recursive: true, force: true });
+      if (existsSync(partialPath)) unlinkSync(partialPath);
       if (existsSync(finalPath)) unlinkSync(finalPath);
       throw new InternalServerErrorException(
         'Backup creation failed: ' +
@@ -187,106 +202,133 @@ export class BackupLogicService {
     }
   }
 
-  private async dumpDatabase(targetDir: string): Promise<void> {
+  /** Run directly, without cmd.exe/sh quoting or binary stdout conversion. */
+  private async runTool(
+    executable: string,
+    args: string[],
+    env: NodeJS.ProcessEnv = process.env,
+    outputPath?: string,
+  ): Promise<void> {
+    const outputFd = outputPath ? openSync(outputPath, 'w') : undefined;
+    try {
+      await new Promise<void>((resolve, reject) => {
+        const child = spawn(executable, args, {
+          env,
+          windowsHide: true,
+          timeout: 300000,
+          stdio: ['ignore', outputFd ?? 'ignore', 'pipe'],
+        });
+        let stderr = '';
+        child.stderr?.on('data', (chunk: Buffer) => {
+          stderr = (stderr + chunk.toString()).slice(-65536);
+        });
+        let spawnError: Error | undefined;
+        child.on('error', (error) => {
+          spawnError = error;
+        });
+        // close fires after stdio is closed, including after a spawn error.
+        child.on('close', (code, signal) => {
+          if (spawnError) return reject(spawnError);
+          if (code === 0) return resolve();
+          const detail =
+            stderr.trim() || `exit code ${code}, signal ${signal ?? 'none'}`;
+          reject(new Error(detail));
+        });
+      });
+    } finally {
+      if (outputFd !== undefined) closeSync(outputFd);
+    }
+  }
+
+  private getDatabaseEnv(): NodeJS.ProcessEnv {
     const databaseUrl = this.configService.get<string>('DATABASE_URL');
     if (!databaseUrl)
       throw new BadRequestException('DATABASE_URL not configured');
-
-    const dumpPath = join(targetDir, 'db.dump');
-    let env: NodeJS.ProcessEnv = { ...process.env };
-    let command = '';
-
+    let url: URL;
     try {
-      const url = new URL(databaseUrl);
-      env = {
-        ...process.env,
-        PGPASSWORD: url.password,
-        PGUSER: url.username,
-        PGHOST: url.hostname,
-        PGPORT: url.port,
-        PGDATABASE: url.pathname.substring(1),
-      };
-      command = `pg_dump --format=c --file="${dumpPath}"`;
+      url = new URL(databaseUrl);
+      if (!['postgres:', 'postgresql:'].includes(url.protocol))
+        throw new Error();
     } catch {
-      this.logger.warn(
-        'Could not parse DATABASE_URL, falling back to full connection string in command',
+      throw new BadRequestException(
+        'DATABASE_URL must be a valid PostgreSQL URL',
       );
-      command = `pg_dump "${databaseUrl}" --format=c --file="${dumpPath}"`;
     }
+    return {
+      ...process.env,
+      PGPASSWORD: decodeURIComponent(url.password),
+      PGUSER: decodeURIComponent(url.username),
+      PGHOST: url.hostname.replace(/^\[|\]$/g, ''),
+      PGPORT: url.port || '5432',
+      PGDATABASE: decodeURIComponent(url.pathname.substring(1)),
+      PGCONNECT_TIMEOUT: '15',
+      ...(url.searchParams.has('sslmode')
+        ? { PGSSLMODE: url.searchParams.get('sslmode')! }
+        : {}),
+    };
+  }
 
+  private safeToolError(error: unknown, env: NodeJS.ProcessEnv): string {
+    let message = error instanceof Error ? error.message : String(error);
+    for (const secret of [
+      env.PGPASSWORD,
+      this.configService.get<string>('DATABASE_URL'),
+    ]) {
+      if (secret) message = message.split(secret).join('****');
+    }
+    return message;
+  }
+
+  private async dumpDatabase(targetDir: string): Promise<void> {
+    const env = this.getDatabaseEnv();
+    const dumpPath = join(targetDir, 'db.dump');
+    const binary = getPgBinaryPath('pg_dump');
     try {
-      this.logger.log(`Executing: ${command.replace(/\/\/.*@/, '//****@')}`);
-      await execAsync(command, {
-        timeout: 300000,
-        env,
-      });
-    } catch (e: unknown) {
-      const execError = e as { message?: string; stderr?: string };
-      const fullError = (execError.message || '') + (execError.stderr || '');
-
-      this.logger.warn(
-        `Primary pg_dump failed. Error preview: ${fullError.substring(0, 150)}...`,
-      );
-
-      if (
-        fullError.includes('server version mismatch') ||
-        fullError.includes('not recognized') ||
-        fullError.includes('pas reconnu') ||
-        fullError.includes('ENOENT') ||
-        fullError.includes('command not found')
-      ) {
-        const containerCandidates =
-          this.getDockerPgDumpContainerCandidates(env);
-        const passwordEnv = env.PGPASSWORD
-          ? `-e PGPASSWORD="${env.PGPASSWORD}"`
-          : '';
-        const fallbackErrors: string[] = [];
-
-        this.logger.warn(
-          `Attempting fallback using Docker containers: ${containerCandidates.join(', ')}`,
-        );
-
-        for (const containerName of containerCandidates) {
-          try {
-            const dockerCmd = `docker exec ${passwordEnv} ${containerName} pg_dump -U "${env.PGUSER || 'taskmaster'}" --format=c "${env.PGDATABASE || 'taskmaster'}" > "${dumpPath}"`;
-
-            this.logger.log(
-              `Executing Docker fallback on container: ${containerName}`,
-            );
-            await execAsync(dockerCmd, { timeout: 300000 });
-            this.logger.log(
-              `Fallback to Docker pg_dump succeeded on ${containerName}`,
-            );
-            return;
-          } catch (dockerError: unknown) {
-            const execDockerError = dockerError as {
-              message?: string;
-              stderr?: string;
-            };
-            const msg =
-              execDockerError.stderr ||
-              execDockerError.message ||
-              'Unknown Docker fallback error';
-
-            fallbackErrors.push(`${containerName}: ${msg.trim()}`);
-            this.logger.warn(
-              `Docker pg_dump fallback failed on ${containerName}: ${msg}`,
-            );
-          }
-        }
-
-        const fallbackMessage =
-          fallbackErrors.join(' | ') ||
-          'No Docker fallback candidates resolved. Configure BACKUP_DOCKER_CONTAINER to override the container name.';
-
-        this.logger.error(`Docker fallback failed: ${fallbackMessage}`);
-        throw new Error(
-          `Database dump failed (pg_dump mismatch + Docker fallback failed: ${fallbackMessage})`,
-        );
+      await this.runTool(binary, ['--format=c', '--file', dumpPath], env);
+    } catch (error) {
+      const message = this.safeToolError(error, env);
+      const code = (error as NodeJS.ErrnoException).code;
+      if (code !== 'ENOENT' && !message.includes('server version mismatch')) {
+        throw new Error(`pg_dump failed: ${message}`);
       }
 
-      this.logger.error('pg_dump failed with unhandled error', e);
-      throw e;
+      const fallbackErrors: string[] = [];
+      for (const container of this.getDockerPgDumpContainerCandidates(env)) {
+        try {
+          // Docker inherits PGPASSWORD from env; never put its value in argv.
+          await this.runTool(
+            'docker',
+            [
+              'exec',
+              '-e',
+              'PGPASSWORD',
+              container,
+              'pg_dump',
+              '-U',
+              env.PGUSER || 'taskmaster',
+              '--format=c',
+              env.PGDATABASE || 'taskmaster',
+            ],
+            env,
+            dumpPath,
+          );
+          if (statSync(dumpPath).size === 0)
+            throw new Error('Docker pg_dump produced an empty dump');
+          return;
+        } catch (dockerError) {
+          fallbackErrors.push(
+            `${container}: ${this.safeToolError(dockerError, env)}`,
+          );
+        }
+      }
+      throw new Error(
+        `Database dump failed: ${message}. Check PG_BIN_PATH (PostgreSQL bin directory), ` +
+          `the PostgreSQL client version and service account permissions. ` +
+          `Docker fallback failed: ${fallbackErrors.join(' | ')}`,
+      );
+    }
+    if (!existsSync(dumpPath) || statSync(dumpPath).size === 0) {
+      throw new Error('pg_dump produced an empty database dump');
     }
   }
 
@@ -320,8 +362,8 @@ export class BackupLogicService {
   }
 
   private collectSystemArtifacts(targetDir: string): void {
-    // Current CWD is backend/. Uploads are in public/uploads/
-    const uploadsSrc = join(process.cwd(), 'public', 'uploads');
+    // Resolve artifacts from the same data root as uploads and procedures.
+    const uploadsSrc = getUploadsDir();
 
     this.logger.log(`Collecting artifacts from: ${uploadsSrc}`);
 
@@ -332,9 +374,15 @@ export class BackupLogicService {
         this.logger.log('Uploads collected successfully');
       } catch (err) {
         this.logger.error('Failed to copy uploads', err);
-        // We don't throw here to allow backup to continue even if some files fail
+        throw err; // A FULL snapshot must not silently omit files.
       }
     }
+
+    const evidenceSrc = getEvidenceStorageDir(false);
+    if (existsSync(evidenceSrc))
+      cpSync(evidenceSrc, join(targetDir, 'evidence'), { recursive: true });
+    const proceduresSrc = getProcedureStorageDir();
+    cpSync(proceduresSrc, join(targetDir, 'procedures'), { recursive: true });
 
     // SECURITY (AUDIT.md Finding #4): .env is NEVER included in a FULL backup.
     // Rationale: an exfiltrated archive must not bootstrap an attack — the .env
@@ -351,24 +399,17 @@ export class BackupLogicService {
     sourceDir: string,
     destPath: string,
   ): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const output = createWriteStream(destPath);
-      const encrypt = this.encryptionService.createEncryptStream(); // Default: Use ENV key
-
-      const archive = archiver.default('tar', {
-        gzip: true,
-        gzipOptions: { level: 9 },
-      });
-
-      output.on('finish', resolve);
-      output.on('error', reject);
-      encrypt.on('error', reject);
-      archive.on('error', reject);
-
-      archive.pipe(encrypt).pipe(output);
-      archive.directory(sourceDir, false);
-      void archive.finalize();
+    const archive = archiver.default('tar', {
+      gzip: true,
+      gzipOptions: { level: 9 },
     });
+    const completion = pipeline(
+      archive,
+      this.encryptionService.createEncryptStream(),
+      createWriteStream(destPath),
+    );
+    archive.directory(sourceDir, false);
+    await Promise.all([completion, archive.finalize()]);
   }
 
   async listBackups() {
@@ -452,7 +493,7 @@ export class BackupLogicService {
       throw new BadRequestException('Invalid temp filename');
     }
 
-    const tempPath = join(TEMP_UPLOADS_DIR, filename);
+    const tempPath = join(getBackupTempUploadsDir(), filename);
     if (!existsSync(tempPath)) {
       throw new BadRequestException('Temp backup file not found');
     }
@@ -565,7 +606,7 @@ export class BackupLogicService {
           filepath,
           extractDir,
           undefined,
-          'manifest.json',
+          ['manifest.json', 'db.dump'],
           sigStatus.hasSignature,
         );
       } catch (e: unknown) {
@@ -594,6 +635,7 @@ export class BackupLogicService {
 
       const manifestContent = readFileSync(manifestPath, 'utf-8');
       const manifest = JSON.parse(manifestContent) as { appVersion?: string };
+      this.requireDatabaseDump(extractDir);
       const currentVersion = process.env.npm_package_version || 'unknown';
       const versionMismatch = manifest.appVersion !== currentVersion;
 
@@ -616,6 +658,18 @@ export class BackupLogicService {
       if (existsSync(tempDir))
         rmSync(tempDir, { recursive: true, force: true });
     }
+  }
+
+  private requireDatabaseDump(directory: string): string {
+    const dumpPath = join(directory, 'db.dump');
+    if (
+      !existsSync(dumpPath) ||
+      !statSync(dumpPath).isFile() ||
+      statSync(dumpPath).size === 0
+    ) {
+      throw new BadRequestException('Invalid Backup: Missing or empty db.dump');
+    }
+    return dumpPath;
   }
 
   async restoreSystemSnapshot(
@@ -665,6 +719,7 @@ export class BackupLogicService {
       const manifestContent = readFileSync(manifestPath, 'utf-8');
       const manifest = JSON.parse(manifestContent) as { appVersion?: string };
 
+      const dumpPath = this.requireDatabaseDump(extractDir);
       const currentVersion = process.env.npm_package_version || 'unknown';
       if (manifest.appVersion !== currentVersion && !options.force) {
         throw new BadRequestException(
@@ -673,18 +728,26 @@ export class BackupLogicService {
       }
 
       if (existsSync(join(extractDir, 'uploads'))) {
-        const destUploads = join(process.cwd(), 'uploads');
+        const destUploads = getUploadsDir();
         if (existsSync(destUploads))
           rmSync(destUploads, { recursive: true, force: true });
         cpSync(join(extractDir, 'uploads'), destUploads, { recursive: true });
       }
 
-      const dumpPath = join(extractDir, 'db.dump');
-      if (existsSync(dumpPath)) {
-        await this.restoreDatabase(dumpPath);
-      } else {
-        this.logger.warn('No db.dump found in backup');
+      if (existsSync(join(extractDir, 'evidence'))) {
+        cpSync(join(extractDir, 'evidence'), getEvidenceStorageDir(), {
+          recursive: true,
+        });
       }
+
+      if (existsSync(join(extractDir, 'procedures'))) {
+        const destProcedures = getProcedureStorageDir();
+        cpSync(join(extractDir, 'procedures'), destProcedures, {
+          recursive: true,
+        });
+      }
+
+      await this.restoreDatabase(dumpPath);
 
       return { status: 'success', message: 'System restored successfully' };
     } catch (error) {
@@ -707,91 +770,70 @@ export class BackupLogicService {
     inputPath: string,
     outputDir: string,
     key?: string,
-    fileToExtract?: string,
+    fileToExtract?: string | string[],
     hasSignature: boolean = false,
   ): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const stats = statSync(inputPath);
-      // Strip the 72 bytes of signature if present, else read the whole file
-      const streamEnd = hasSignature ? Math.max(0, stats.size - 73) : undefined;
+    const stats = statSync(inputPath);
+    const streamEnd = hasSignature ? Math.max(0, stats.size - 73) : undefined;
+    const tempTar = join(outputDir, '../temp.tar.gz');
+    const isEncrypted = inputPath.endsWith('.enc');
+    try {
+      // Initialize the decryptor before opening files, and await closed handles
+      // before extraction/cleanup (required on Windows).
+      const decrypt = isEncrypted
+        ? this.encryptionService.createDecryptStream(key)
+        : undefined;
       const input = createReadStream(
         inputPath,
         streamEnd !== undefined ? { end: streamEnd } : undefined,
       );
-      const isEncrypted = inputPath.endsWith('.enc');
-
-      let stream: import('stream').Readable = input;
-      if (isEncrypted) {
-        try {
-          const decrypt = this.encryptionService.createDecryptStream(key);
-          stream = input.pipe(decrypt) as import('stream').Readable;
-        } catch {
-          return reject(
-            new BadRequestException(
-              'Decryption initialization failed. Key might be missing.',
-            ),
-          );
-        }
+      const output = createWriteStream(tempTar);
+      try {
+        if (decrypt) await pipeline(input, decrypt, output);
+        else await pipeline(input, output);
+      } catch {
+        throw new BadRequestException(
+          isEncrypted
+            ? 'Decryption failed. Invalid key or corrupt file.'
+            : 'Stream processing failed',
+        );
       }
-
-      const tempTar = join(outputDir, '../temp.tar.gz');
-      const outTar = createWriteStream(tempTar);
-
-      stream.pipe(outTar);
-
-      stream.on('error', (e: unknown) => {
-        const err = e instanceof Error ? e : new Error(String(e));
-        this.logger.error(`Stream error: ${err.message}`, err.stack);
-        if (isEncrypted) {
-          reject(
-            new BadRequestException(
-              'Decryption failed. Invalid key or corrupt file.',
-            ),
-          );
-        } else {
-          reject(
-            new BadRequestException(`Stream processing failed: ${err.message}`),
-          );
-        }
-      });
-
-      outTar.on('finish', () => {
-        void (async () => {
-          try {
-            const tarCmd = fileToExtract
-              ? `tar -xzf "${tempTar}" -C "${outputDir}" "${fileToExtract}"`
-              : `tar -xzf "${tempTar}" -C "${outputDir}"`;
-
-            await execAsync(tarCmd);
-            resolve();
-          } catch {
-            if (fileToExtract) {
-              reject(
-                new BadRequestException(
-                  `Could not extract ${fileToExtract} from archive`,
-                ),
-              );
-            } else {
-              reject(new BadRequestException('Archive extraction failed'));
-            }
-          } finally {
-            if (existsSync(tempTar)) unlinkSync(tempTar);
-          }
-        })();
-      });
-      outTar.on('error', reject);
-    });
+      await this.runTool('tar', [
+        '-xzf',
+        tempTar,
+        '-C',
+        outputDir,
+        ...(fileToExtract
+          ? Array.isArray(fileToExtract)
+            ? fileToExtract
+            : [fileToExtract]
+          : []),
+      ]);
+    } finally {
+      if (existsSync(tempTar)) unlinkSync(tempTar);
+    }
   }
 
   private async restoreDatabase(dumpPath: string): Promise<void> {
-    const databaseUrl = this.configService.get<string>('DATABASE_URL');
+    const env = this.getDatabaseEnv();
     try {
-      await execAsync(
-        `pg_restore --clean --if-exists --no-owner --dbname="${databaseUrl}" "${dumpPath}"`,
+      await this.runTool(
+        getPgBinaryPath('pg_restore'),
+        [
+          '--clean',
+          '--if-exists',
+          '--no-owner',
+          '--exit-on-error',
+          '--dbname',
+          env.PGDATABASE || 'taskmaster',
+          dumpPath,
+        ],
+        env,
       );
-    } catch (e) {
-      this.logger.error('pg_restore failed', e);
-      throw new Error('Database restore failed');
+    } catch (error) {
+      throw new Error(
+        `Database restore failed: ${this.safeToolError(error, env)}. Check PG_BIN_PATH and service account permissions.`,
+      );
     }
   }
 

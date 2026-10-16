@@ -19,6 +19,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { createReadStream } from 'fs';
 import { extname } from 'path';
+import { getBackupTempUploadsDir } from '../config/app-paths';
 import { JwtAuthGuard, Roles, RolesGuard } from '../auth';
 import { IdempotencyInterceptor } from '../common/interceptors/idempotency.interceptor';
 import { FileValidationPipe } from '../common/pipes/file-validation.pipe';
@@ -74,7 +75,7 @@ export class BackupController {
   @UseInterceptors(
     FileInterceptor('file', {
       storage: diskStorage({
-        destination: './backups/temp_uploads',
+        destination: (_req, _file, cb) => cb(null, getBackupTempUploadsDir()),
         filename: (req: any, file: any, cb: any) => {
           const randomName = Array(32)
             .fill(null)
@@ -134,7 +135,7 @@ export class BackupController {
   @UseInterceptors(
     FileInterceptor('file', {
       storage: diskStorage({
-        destination: './backups/temp_uploads',
+        destination: (_req, _file, cb) => cb(null, getBackupTempUploadsDir()),
         filename: (req: any, file: any, cb: any) => {
           const randomName = Array(32)
             .fill(null)
@@ -191,7 +192,7 @@ export class BackupController {
   @UseInterceptors(
     FileInterceptor('file', {
       storage: diskStorage({
-        destination: './backups', // Note: For async, we should probably upload to temp first, but Queue can move from here if name collision handled logic.
+        destination: (_req, _file, cb) => cb(null, getBackupTempUploadsDir()),
         filename: (req: any, file: any, cb: any) => {
           // We use original name but might face collision if not careful.
           // LogicService handles collision check.

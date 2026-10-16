@@ -1,3 +1,4 @@
+import { passkeyErrorMessage } from '@/lib/passkeys';
 import { useState, useEffect, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -114,7 +115,7 @@ export function LoginPage() {
 
                 // Exclude the cancellation error where the user closes the biometric prompt
                 if (error?.name !== 'NotAllowedError') {
-                    toast.error(t('auth.passkeyFailed'));
+                    toast.error(passkeyErrorMessage(error, t('auth.passkeyFailed')));
                 }
             },
         });

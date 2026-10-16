@@ -5,6 +5,13 @@ test.describe('Passkey Onboarding Modal', () => {
     // Configure default mocks for every test
     test.beforeEach(async ({ context }) => {
 
+        await context.addInitScript(() => localStorage.setItem('taskmaster-language', 'en'));
+        await context.route(/^https?:\/\/[^/]+\/api\//, route => {
+            const path = new URL(route.request().url()).pathname;
+            return route.fulfill({ json: path === '/api/health' ? { status: 'ok', db: 'up' }
+                : path === '/api/tasks/board' ? { items: [], total: 0 } : [] });
+        });
+
         // Mock Setup Status
         await context.route(/\/api\/setup\/status(\/.*|\?.*)?$/, async route => {
             await route.fulfill({ json: { needsSetup: false } });
@@ -40,7 +47,9 @@ test.describe('Passkey Onboarding Modal', () => {
                             response: {
                                 clientDataJSON: new ArrayBuffer(0),
                                 attestationObject: new ArrayBuffer(0),
+                                getTransports: () => ['internal'],
                             },
+                            getClientExtensionResults: () => ({}),
                             type: 'public-key'
                         };
                     },
@@ -66,7 +75,7 @@ test.describe('Passkey Onboarding Modal', () => {
             });
         });
 
-        await page.goto('/tasks');
+        await page.goto('/');
 
         // Modal should appear
         const modal = page.getByRole('dialog', { name: /Setup a Passkey/i });
@@ -123,13 +132,15 @@ test.describe('Passkey Onboarding Modal', () => {
             });
         });
 
-        await page.goto('/tasks');
+        await page.goto('/');
 
         const modal = page.getByRole('dialog', { name: /Setup a Passkey/i });
         await expect(modal).toBeVisible();
 
         const configBtn = page.getByRole('button', { name: /Configure Now/i });
         await configBtn.click();
+        await page.getByLabel('Device Name', { exact: true }).fill('Test device');
+        await page.getByRole('button', { name: 'Create Passkey', exact: true }).click();
 
         // Wait for modal to disappear (since we mocked credentials.create and verify route)
         await expect(modal).not.toBeVisible();
@@ -157,7 +168,7 @@ test.describe('Passkey Onboarding Modal', () => {
         });
 
         await context.route(/\/api\/auth\/passkeys\/register\/options$/, async route => {
-            await route.fulfill({ json: { challenge: 'chal', rp: { id: 'localhost', name: 'rp' }, user: { id: '1', name: 'p', displayName: 'p' }, pubKeyCredParams: [] } });
+            await route.fulfill({ json: { challenge: 'chal', rp: { id: 'localhost', name: 'rp' }, user: { id: 'dXNlcg', name: 'p', displayName: 'p' }, pubKeyCredParams: [] } });
         });
 
         await context.route(/\/api\/auth\/passkeys\/register\/verify$/, async route => {
@@ -168,8 +179,8 @@ test.describe('Passkey Onboarding Modal', () => {
         const pageA = page; // use the default page
         const pageB = await context.newPage();
 
-        await pageA.goto('/tasks');
-        await pageB.goto('/tasks');
+        await pageA.goto('/');
+        await pageB.goto('/');
 
         const modalA = pageA.getByRole('dialog', { name: /Setup a Passkey/i });
         const modalB = pageB.getByRole('dialog', { name: /Setup a Passkey/i });
@@ -180,6 +191,8 @@ test.describe('Passkey Onboarding Modal', () => {
         // Enroll in Page A
         const configBtnA = pageA.getByRole('button', { name: /Configure Now/i });
         await configBtnA.click();
+        await pageA.getByLabel('Device Name', { exact: true }).fill('Test device');
+        await pageA.getByRole('button', { name: 'Create Passkey', exact: true }).click();
 
         // Modals should close in both pages due to BroadcastChannel / refetch
         await expect(modalA).not.toBeVisible();
@@ -201,7 +214,7 @@ test.describe('Passkey Onboarding Modal', () => {
             });
         });
 
-        await page.goto('/tasks');
+        await page.goto('/');
 
         // Modal should never appear
         const modal = page.getByRole('dialog', { name: /Setup a Passkey/i });

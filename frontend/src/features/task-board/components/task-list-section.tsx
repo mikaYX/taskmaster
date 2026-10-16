@@ -12,9 +12,10 @@ interface TaskListSectionProps {
     onStatusChange: (data: { taskId: number; date: string; status: TaskStatusValue; comment?: string }) => void;
     onAdminAction?: (item: BoardItem) => void;
     readonly?: boolean;
+    compact?: boolean;
 }
 
-export function TaskListSection({ title, items, emptyMessage, onStatusChange, onAdminAction, readonly }: TaskListSectionProps) {
+export function TaskListSection({ title, items, emptyMessage, onStatusChange, onAdminAction, readonly, compact }: TaskListSectionProps) {
     const slug = title.toLowerCase().replace(/[^a-z0-0]/g, '-');
     const storageKey = `taskboard-section-expanded-${slug}`;
 
@@ -65,6 +66,7 @@ export function TaskListSection({ title, items, emptyMessage, onStatusChange, on
                                     item={item}
                                     onStatusChange={onStatusChange}
                                     onAdminAction={onAdminAction}
+                                    compact={compact}
                                     readonly={readonly}
                                 />
                             ))

@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  Logger,
+  BadRequestException,
+} from '@nestjs/common';
 import { TaskStatus } from '@prisma/client';
 import { PrismaService } from '../prisma';
 import { UpsertStatusDto, StatusResponseDto, toStatusResponse } from './dto';
@@ -33,9 +38,19 @@ export class StatusService {
     // Verify task exists
     const task = await this.prisma.client.task.findUnique({
       where: { id: dto.taskId },
-      select: { id: true },
+      select: { id: true, executionChecklist: true },
     });
     if (!task) throw new NotFoundException(`Task ${dto.taskId} not found`);
+
+    if (
+      dto.status === 'SUCCESS' &&
+      Array.isArray(task.executionChecklist) &&
+      task.executionChecklist.length
+    ) {
+      throw new BadRequestException(
+        'Use the task validation endpoint to complete its checklist',
+      );
+    }
 
     const instanceDate = new Date(dto.instanceDate);
 

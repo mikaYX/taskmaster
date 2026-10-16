@@ -1,9 +1,28 @@
 import { validateUrl, isPrivateIp, safeFetch } from './url-validator.util';
 import fetch from 'node-fetch';
+import * as dns from 'dns';
 
 jest.mock('node-fetch');
+jest.mock('dns', () => ({ ...jest.requireActual('dns'), lookup: jest.fn() }));
 
 describe('UrlValidator', () => {
+  beforeEach(() => {
+    (dns.lookup as jest.Mock).mockImplementation(((
+      hostname: string,
+      callback: (error: Error | null, address: string, family: number) => void,
+    ) => {
+      const address =
+        hostname === 'localhost'
+          ? '127.0.0.1'
+          : hostname === '169.254.169.254'
+            ? hostname
+            : '203.0.113.10';
+      callback(null, address, 4);
+    }) as typeof dns.lookup);
+  });
+
+  afterEach(() => jest.restoreAllMocks());
+
   describe('isPrivateIp', () => {
     it('should identify IPv4 loopback', () => {
       expect(isPrivateIp('127.0.0.1')).toBe(true);

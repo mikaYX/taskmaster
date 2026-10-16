@@ -128,3 +128,32 @@ Notes :
 
 - [`../README.md`](../README.md)
 - [`../SETUP.md`](../SETUP.md)
+
+
+### Une sauvegarde échoue après une installation Windows (service)
+
+Le service utilise `TASKMASTER_DATA_DIR` (par défaut `C:\ProgramData\Taskmaster`)
+pour les fichiers modifiables. Un chemin de sauvegarde relatif, par exemple
+`./backups`, est résolu à partir de ce dossier. Un chemin absolu configuré dans
+les paramètres reste prioritaire. Le compte du service doit pouvoir créer,
+modifier et supprimer les fichiers à cet emplacement. Pour un partage réseau,
+vérifier les droits du compte du service et utiliser un chemin UNC ; les lecteurs
+réseau montés dans une session administrateur ne sont pas nécessairement visibles
+par le service.
+
+`PG_BIN_PATH` doit désigner le dossier `bin` PostgreSQL installé, par exemple
+`C:\Program Files\PostgreSQL\18\bin` (sans guillemets dans la valeur).
+L'installateur le renseigne ; les sauvegardes utilisent directement
+`pg_dump.exe` et les restaurations `pg_restore.exe` dans ce dossier, sans dépendre
+du `PATH` de la session interactive. La version de `pg_dump` doit être compatible
+avec celle du serveur. Redémarrer le service après un changement de configuration.
+
+La fenêtre de sauvegarde attend désormais la fin du traitement et affiche son
+erreur en cas d'échec ; l'acceptation dans la file d'attente n'est pas une réussite.
+Une archive n'apparaît dans l'historique qu'après chiffrement et signature.
+Si le suivi est interrompu, consulter l'historique avant de relancer une sauvegarde.
+
+Les sauvegardes `FULL` incluent les uploads et les procédures du dossier de données,
+y compris un éventuel `PROCEDURE_STORAGE_PATH` personnalisé. Les secrets `.env`
+restent exclus : conserver la clé de chiffrement séparément. Une erreur de rétention
+est journalisée sans supprimer la nouvelle sauvegarde achevée.

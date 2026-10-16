@@ -24,7 +24,7 @@ interface MfaSetupDialogProps {
 }
 
 export function MfaSetupDialog({ open, onOpenChange, isEnforced, hasExistingMfa }: MfaSetupDialogProps) {
-    useTranslation();
+    const { t } = useTranslation();
     const [isLoading, setIsLoading] = useState(false);
     const [step, setStep] = useState<'methods' | 'totp-setup' | 'backup-codes' | 'manage'>(
         hasExistingMfa ? 'manage' : 'methods'
@@ -282,13 +282,13 @@ export function MfaSetupDialog({ open, onOpenChange, isEnforced, hasExistingMfa 
                         </div>
 
                         <div className="space-y-2">
-                            <Button
+                            {backupCodes.length > 0 ? <Button
                                 variant="outline"
                                 className="w-full"
                                 onClick={() => setStep('backup-codes')}
                             >
                                 View Backup Codes
-                            </Button>
+                            </Button> : <p className="text-sm text-muted-foreground">{t('profileSettings.recoveryCodesNote')}</p>}
 
                             {!isEnforced && (
                                 <Button

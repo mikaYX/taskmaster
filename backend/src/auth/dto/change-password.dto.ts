@@ -1,4 +1,4 @@
-import { IsString, MaxLength } from 'class-validator';
+import { IsNotEmpty, IsString, MaxLength } from 'class-validator';
 import { IsStrongPassword, IsNotCommonPassword } from '../../common/validators';
 
 /**
@@ -7,6 +7,11 @@ import { IsStrongPassword, IsNotCommonPassword } from '../../common/validators';
  * (max 128 chars; bcrypt truncates at 72 bytes anyway).
  */
 export class ChangePasswordDto {
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(128, { message: 'Password too long' })
+  currentPassword!: string;
+
   @IsString()
   @MaxLength(128, { message: 'Password too long' })
   @IsStrongPassword()

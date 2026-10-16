@@ -439,4 +439,49 @@ describe('AuthService', () => {
       });
     });
   });
+
+  describe('changePassword()', () => {
+    const localUser = {
+      id: 7,
+      deletedAt: null,
+      authProvider: 'LOCAL',
+      passwordHash: 'old-hash',
+    };
+
+    beforeEach(() => {
+      prismaClient.user.findUnique.mockResolvedValue(localUser);
+      prismaClient.user.update.mockResolvedValue({});
+      (bcrypt.hash as jest.Mock).mockResolvedValue('new-hash');
+    });
+
+    it('rejects a wrong current password without touching the hash', async () => {
+      (bcrypt.compare as jest.Mock).mockResolvedValue(false);
+
+      await expect(
+        service.changePassword(7, 'NewPassw0rd!!x', 'wrong'),
+      ).rejects.toThrow('Current password is incorrect');
+      expect(prismaClient.user.update).not.toHaveBeenCalled();
+    });
+
+    it('rejects a new password identical to the current one', async () => {
+      (bcrypt.compare as jest.Mock).mockResolvedValue(true);
+
+      await expect(
+        service.changePassword(7, 'SamePassw0rd!!', 'SamePassw0rd!!'),
+      ).rejects.toThrow('must be different');
+      expect(prismaClient.user.update).not.toHaveBeenCalled();
+    });
+
+    it('stores the new hash and clears mustChangePassword', async () => {
+      (bcrypt.compare as jest.Mock).mockResolvedValue(true);
+
+      await service.changePassword(7, 'NewPassw0rd!!x', 'OldPassw0rd!!x');
+
+      expect(bcrypt.compare).toHaveBeenCalledWith('OldPassw0rd!!x', 'old-hash');
+      expect(prismaClient.user.update).toHaveBeenCalledWith({
+        where: { id: 7 },
+        data: { passwordHash: 'new-hash', mustChangePassword: false },
+      });
+    });
+  });
 });

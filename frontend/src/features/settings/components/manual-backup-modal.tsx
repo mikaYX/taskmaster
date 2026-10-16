@@ -1,5 +1,6 @@
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -19,25 +20,49 @@ interface ManualBackupModalProps {
 export function ManualBackupModal({ open, onOpenChange, onSuccess, canRunFull }: ManualBackupModalProps) {
     const { t } = useTranslation();
     const [type, setType] = useState<'DB' | 'FULL'>('DB');
-    const [isLoading, setIsLoading] = useState(false);
+    const [isStarting, setIsStarting] = useState(false);
+    const [jobId, setJobId] = useState<string | null>(null);
+    const notifiedJob = useRef<string | null>(null);
+    const job = useQuery({
+        queryKey: ['backup-job', jobId],
+        queryFn: () => backupApi.getJobStatus(jobId!),
+        enabled: jobId !== null,
+        refetchInterval: query => ['completed', 'failed'].includes(query.state.data?.state ?? '') ? false : 2000,
+        refetchIntervalInBackground: true,
+        retry: 2,
+    });
+    const terminal = job.data?.state === 'completed' || job.data?.state === 'failed';
+    const isLoading = isStarting || (jobId !== null && !terminal && !job.isError);
+
+    useEffect(() => {
+        if (!jobId || !terminal || notifiedJob.current === jobId) return;
+        notifiedJob.current = jobId;
+        if (job.data?.state === 'completed') {
+            toast.success(t('backupModal.completed'));
+            onSuccess();
+            onOpenChange(false);
+        } else {
+            toast.error(t('backupModal.failed'));
+        }
+    }, [jobId, terminal, job.data?.state, onSuccess, onOpenChange, t]);
 
     const handleRun = async () => {
-        setIsLoading(true);
+        if (isLoading) return;
+        setIsStarting(true);
+        setJobId(null);
         try {
-            await backupApi.createSystem(type);
-            toast.success(type === 'DB' ? t('backupModal.startedDatabase') : t('backupModal.startedFullSystem'));
-            onOpenChange(false);
-            onSuccess();
+            const result = await backupApi.createSystem(type);
+            setJobId(result.jobId);
         } catch (e) {
             console.error(e);
             toast.error(t('backupModal.startFailed'));
         } finally {
-            setIsLoading(false);
+            setIsStarting(false);
         }
     };
 
     return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
+        <Dialog open={open} onOpenChange={value => { if (!isLoading) onOpenChange(value); }}>
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>{t('backupModal.title')}</DialogTitle>
@@ -49,10 +74,10 @@ export function ManualBackupModal({ open, onOpenChange, onSuccess, canRunFull }:
                 <div className="py-4 space-y-4">
                     <RadioGroup
                         value={type}
-                        onValueChange={(v) => !canRunFull ? undefined : setType(v as 'DB' | 'FULL')}
+                        onValueChange={(v) => !canRunFull || isLoading ? undefined : setType(v as 'DB' | 'FULL')}
                     >
                         <div className={`flex items-start space-x-3 border rounded-lg p-3 ${!canRunFull ? 'opacity-50 cursor-not-allowed bg-muted' : 'cursor-pointer hover:bg-muted/50'} ${type === 'DB' && canRunFull ? 'border-primary ring-1 ring-primary' : ''}`}>
-                            <RadioGroupItem value="DB" id="type-db" className="mt-1" disabled={!canRunFull} />
+                            <RadioGroupItem value="DB" id="type-db" className="mt-1" disabled={!canRunFull || isLoading} />
                             <div className="grid gap-1.5 leading-none">
                                 <Label htmlFor="type-db" className={`font-semibold flex items-center gap-2 ${!canRunFull ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
                                     <Database className="h-4 w-4" /> {t('backupModal.databaseOnly')}
@@ -64,7 +89,7 @@ export function ManualBackupModal({ open, onOpenChange, onSuccess, canRunFull }:
                         </div>
 
                         <div className={`flex items-start space-x-3 border rounded-lg p-3 ${!canRunFull ? 'opacity-50 cursor-not-allowed bg-muted' : 'cursor-pointer hover:bg-muted/50'} ${type === 'FULL' && canRunFull ? 'border-primary ring-1 ring-primary' : ''}`}>
-                            <RadioGroupItem value="FULL" id="type-full" className="mt-1" disabled={!canRunFull} />
+                            <RadioGroupItem value="FULL" id="type-full" className="mt-1" disabled={!canRunFull || isLoading} />
                             <div className="grid gap-1.5 leading-none">
                                 <Label htmlFor="type-full" className={`font-semibold flex items-center gap-2 ${!canRunFull ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
                                     <FolderArchive className="h-4 w-4" /> {t('backupModal.systemSnapshot')}
@@ -85,8 +110,11 @@ export function ManualBackupModal({ open, onOpenChange, onSuccess, canRunFull }:
                     )}
                 </div>
 
+                {isLoading && <p role="status" className="text-sm text-muted-foreground">{t('backupModal.running')}</p>}
+                {job.data?.state === 'failed' && <p role="alert" className="text-sm text-destructive break-words">{t('backupModal.failed')}{job.data.error ? ` : ${job.data.error}` : ''}</p>}
+                {job.isError && <p role="alert" className="text-sm text-destructive">{t('backupModal.monitorFailed')}</p>}
                 <DialogFooter>
-                    <Button variant="outline" onClick={() => onOpenChange(false)}>{t('common.cancel')}</Button>
+                    <Button variant="outline" disabled={isLoading} onClick={() => onOpenChange(false)}>{t('common.cancel')}</Button>
                     <Button onClick={handleRun} disabled={isLoading || !canRunFull}>
                         {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         {t('backupModal.runBackup')}

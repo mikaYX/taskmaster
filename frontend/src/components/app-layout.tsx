@@ -5,9 +5,10 @@ import { AppSidebar } from '@/components/app-sidebar';
 import { AppHeader } from '@/components/app-header';
 import { TodoFab } from '@/components/todos/todo-fab';
 import { PasskeyOnboardingModal } from '@/features/auth/components/passkey-onboarding-modal';
+import { ChangePasswordDialog } from '@/features/profile/components/change-password-dialog';
 import { useAuthStore } from '@/stores';
 import { useState, useEffect } from 'react';
-import { useSettings } from '@/features/settings/hooks/use-settings';
+import { usePublicBranding } from '@/hooks/use-public-branding';
 import { useUIStore } from '@/stores/ui-store';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
@@ -23,7 +24,7 @@ interface AppLayoutProps {
  * Based on Figma reference.
  */
 export function AppLayout({ titleKey = 'nav.taskBoard', subtitleKey }: AppLayoutProps) {
-    const { isAuthenticated, passkeysEnabled, passkeyPolicy, hasPasskey, role } = useAuthStore();
+    const { isAuthenticated, passkeysEnabled, passkeyPolicy, hasPasskey, role, mustChangePassword } = useAuthStore();
     const { isTvMode, setIsTvMode } = useUIStore();
     const [isDismissed, setIsDismissed] = useState(() => !!sessionStorage.getItem('passkey_setup_dismissed'));
 
@@ -32,11 +33,15 @@ export function AppLayout({ titleKey = 'nav.taskBoard', subtitleKey }: AppLayout
             setIsTvMode(true);
         }
     }, [role, isTvMode, setIsTvMode]);
-    const { getSettingAsBool } = useSettings();
+    const { getSettingAsBool } = usePublicBranding();
     const showTodos = getSettingAsBool('addons.todolist.enabled');
 
+    const showForcedPasswordChange = Boolean(isAuthenticated && mustChangePassword);
+
+    // The password change comes first; the passkey prompt shows once it is done.
     const showPasskeyModal = Boolean(
         isAuthenticated &&
+        !mustChangePassword &&
         passkeysEnabled &&
         !hasPasskey &&
         passkeyPolicy !== 'disabled' &&
@@ -65,6 +70,12 @@ export function AppLayout({ titleKey = 'nav.taskBoard', subtitleKey }: AppLayout
             </SidebarInset>
 
             {showTodos && <TodoFab />}
+
+            <ChangePasswordDialog
+                forced
+                open={showForcedPasswordChange}
+                onOpenChange={() => { /* closed by the store once the password is changed */ }}
+            />
 
             {passkeyPolicy !== 'disabled' && (
                 <PasskeyOnboardingModal

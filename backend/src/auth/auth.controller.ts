@@ -272,7 +272,11 @@ export class AuthController {
     @CurrentUser('sub') userId: number,
     @Body() dto: ChangePasswordDto,
   ) {
-    await this.authService.changePassword(userId, dto.password);
+    await this.authService.changePassword(
+      userId,
+      dto.password,
+      dto.currentPassword,
+    );
     return { ok: true };
   }
 

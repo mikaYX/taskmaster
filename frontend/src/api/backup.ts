@@ -112,7 +112,11 @@ export const backupApi = {
      * Trigger a system snapshot (Full or DB).
      */
     createSystem: (type: 'DB' | 'FULL' = 'FULL') =>
-        http.post<{ filename: string }>('/backup/system', { type }),
+        http.post<{ jobId: string; status: string }>('/backup/system', { type }),
+
+    getJobStatus: (jobId: string) => http.get<{
+        jobId: string; state: string; error?: string; result?: { filename: string };
+    }>(`/backup/status/${encodeURIComponent(jobId)}`),
 
     /**
      * Trigger a business data export.
@@ -127,5 +131,5 @@ export const backupApi = {
         http.delete(`/backup/${filename}`),
 
     // Deprecated alias for legacy calls if any
-    create: () => http.post<{ filename: string }>('/backup/system', { type: 'FULL' }),
+    create: () => http.post<{ jobId: string; status: string }>('/backup/system', { type: 'FULL' }),
 };

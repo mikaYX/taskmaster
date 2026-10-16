@@ -115,3 +115,9 @@ export function getPgBinaryPath(binaryName: 'pg_dump' | 'pg_restore'): string {
     process.platform === 'win32' ? `${binaryName}.exe` : binaryName;
   return binDir ? join(binDir, exeName) : exeName;
 }
+
+/** Private photos used as task execution evidence. */
+export function getEvidenceStorageDir(create = true): string {
+  const dir = join(getDataDir(), 'storage', 'evidence');
+  return create ? ensureDir(dir) : dir;
+}

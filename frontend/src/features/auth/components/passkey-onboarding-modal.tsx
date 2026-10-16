@@ -1,3 +1,4 @@
+import { assertPasskeyOrigin, passkeyErrorMessage } from '@/lib/passkeys';
 import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -94,6 +95,7 @@ export function PasskeyOnboardingModal({
     const addMutation = useMutation({
         mutationFn: async (name: string) => {
             const options = await authApi.generatePasskeyRegistrationOptions();
+            assertPasskeyOrigin(options.rp?.id);
             const attResp = await startRegistration({ optionsJSON: options });
             const verifyRes = await authApi.verifyPasskeyRegistration({
                 response: attResp,
@@ -137,7 +139,7 @@ export function PasskeyOnboardingModal({
                 toast.error(t('auth.passkeyRegistrationCancelled', 'Passkey registration cancelled'));
                 return;
             }
-            toast.error(error?.response?.data?.message || t('auth.passkeyAddFailed', 'Failed to add passkey'));
+            toast.error(passkeyErrorMessage(err, t('auth.passkeyAddFailed', 'Failed to add passkey')));
         },
     });
 

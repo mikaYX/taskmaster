@@ -5,6 +5,42 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.0] - 2026-10-16
+
+### Added
+- Optional execution checklists, private photo evidence, and corrective actions tied to task occurrences.
+- Saved board views scoped to the browser, account and site, plus compact board density.
+- Corrective action search, assignee/overdue filters, and server pagination.
+- Self-service display-name updates and the actual MFA state in the profile.
+- Windows MSI public-URL input and a non-destructive installation verification script.
+- Interactive local PostgreSQL reset utility for Windows administration, with explicit confirmation and optional backup; execution remains a manual administrative operation.
+- Regression workflows for Windows backups, browser access, PostgreSQL execution, legacy migration and native backup/restore; manual Windows MSI candidate build.
+
+### Security
+- Password changes require the current password and reject reuse of that password; the client displays the shared password requirements.
+- Accounts marked for password renewal are prompted before passkey onboarding and normal application use.
+- Execution evidence stays private and scoped to the task, occurrence, user and site; corrective action filters retain server-side access checks.
+- The Windows service wrapper download is checked against a pinned SHA-256 instead of an optional placeholder.
+
+### Fixed
+- Windows service backups resolve PostgreSQL tools and data paths explicitly, await closed file handles and publish completed archives atomically.
+- Manual backup success is displayed only after the background job finishes; full backups include procedures and private evidence.
+- Restore rejects archives with a missing or empty database dump before copying application artifacts.
+- Passkeys derive the RP domain from the configured public frontend URL unless a compatible explicit RP ID is provided.
+- Application branding uses only public settings and resets cleared cached values; administration navigation matches server access rules.
+- Existing configuration and the public shortcut URL are preserved on installer upgrades.
+
+### Deployment
+- Apply the additive `20261016000000_task_execution` migration after a verified backup. Existing tasks default to an empty checklist.
+- Existing installations must configure `FRONTEND_URL` with their own public HTTPS origin. Remove or correct an incompatible `RP_ID=localhost`, then restart the service; upgrades preserve the existing `.env`.
+- Windows MSI build/installation, actual service-account backup/restore and browser passkey acceptance will be validated separately on a Windows machine before production deployment; see `docs/windows-release-checklist.md`.
+
+### Verification
+- Backend: 590 passing tests; frontend: 111 passing tests; operational board, profile, passkeys and navigation: 23 passing browser scenarios.
+- Isolated PostgreSQL: 6 execution/access tests and 3 legacy-migration/native dump-and-restore tests passed. The upgrade scenario uses the installer’s `prisma migrate deploy` command and verifies preserved data and restored artifacts.
+- Typecheck, lint and production application build passed. Existing frontend bundle-size and mixed-import warnings remain.
+- Windows scripts and workflow syntax checked locally; no MSI build or Windows acceptance result is claimed from the Linux development environment.
+
 ## [1.1.6] - 2026-09-28
 
 ### Security

@@ -46,6 +46,9 @@ model User {
   groupMemberships          UserGroupMembership[]
   sites                     UserSiteAssignment[]
   todos                     Todo[]
+  taskEvidence              TaskEvidence[]
+  correctiveAssignments     CorrectiveAction[] @relation("CorrectiveAssignee")
+  correctiveReports         CorrectiveAction[] @relation("CorrectiveCreator")
 
   @@index([email])
   @@index([externalId])
@@ -161,6 +164,7 @@ model Task {
   periodicity             String                   @db.VarChar(50)
   description             String
   procedureUrl            String?                  @map("procedure_url")
+  executionChecklist      Json                     @default("[]") @map("execution_checklist")
   startDate               DateTime                 @map("start_date") @db.Date
   endDate                 DateTime?                @map("end_date") @db.Date
   activeUntil             DateTime?                @map("active_until") @db.Date
@@ -191,6 +195,8 @@ model Task {
   groupAssignments        TaskGroupAssignment[]
   taskNotifications       TaskNotification[]
   overrides               TaskOccurrenceOverride[]
+  evidence                TaskEvidence[]
+  correctiveActions       CorrectiveAction[]
   deletedByUser           User?                    @relation("TaskDeletedBy", fields: [deletedBy], references: [id])
   site                    Site                     @relation(fields: [siteId], references: [id])
 
@@ -322,6 +328,7 @@ model Status {
   comment           String?
   updatedByUserId   Int?       @map("updated_by_user_id")
   updatedByUsername String?    @map("updated_by_username") @db.VarChar(255)
+  executionRecord   Json?      @map("execution_record")
   updatedAt         DateTime   @updatedAt @map("updated_at")
   task              Task       @relation(fields: [taskId], references: [id], onDelete: Cascade)
   updatedBy         User?      @relation(fields: [updatedByUserId], references: [id])
@@ -479,4 +486,43 @@ model Todo {
 enum TodoScope {
   PRIVATE
   COLLECTIVE
+}
+
+
+model TaskEvidence {
+  id           String   @id @default(uuid()) @db.Uuid
+  taskId       Int      @map("task_id")
+  instanceDate DateTime @map("instance_date") @db.Date
+  uploaderId   Int      @map("uploader_id")
+  mimeType     String   @map("mime_type") @db.VarChar(50)
+  size         Int
+  createdAt    DateTime @default(now()) @map("created_at")
+  task         Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  uploader     User     @relation(fields: [uploaderId], references: [id])
+
+  @@index([taskId, instanceDate])
+  @@map("task_evidence")
+}
+
+model CorrectiveAction {
+  id           Int       @id @default(autoincrement())
+  taskId       Int       @map("task_id")
+  instanceDate DateTime  @map("instance_date") @db.Date
+  title        String    @db.VarChar(255)
+  assigneeId   Int       @map("assignee_id")
+  createdById  Int       @map("created_by_id")
+  dueDate      DateTime? @map("due_date") @db.Date
+  state        String    @default("OPEN") @db.VarChar(20)
+  resolution   String?
+  closedAt     DateTime? @map("closed_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  task         Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  assignee     User      @relation("CorrectiveAssignee", fields: [assigneeId], references: [id])
+  createdBy    User      @relation("CorrectiveCreator", fields: [createdById], references: [id])
+
+  @@unique([taskId, instanceDate])
+  @@index([assigneeId, state])
+  @@index([state, dueDate])
+  @@map("corrective_actions")
 }

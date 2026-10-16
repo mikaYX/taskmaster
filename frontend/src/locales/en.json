@@ -54,7 +54,9 @@
         "signInToAccount": "Sign in to your account",
         "loginFailed": "Login failed. Please check your credentials.",
         "invalidMfa": "Invalid MFA code.",
-        "passkeyFailed": "Passkey login failed."
+        "passkeyFailed": "Passkey login failed.",
+        "passkeyOriginError": "Passkey unavailable on {{origin}} with configured domain {{rpID}}. Check HTTPS and FRONTEND_URL in the server configuration, then restart the service.",
+        "passkeyConfigError": "Passkey configuration does not match the public address. Check FRONTEND_URL and RP_ID (domain without protocol or port), then restart the service."
     },
     "settingsValidation": {
         "countryRequired": "Country code is required",
@@ -82,7 +84,8 @@
         "settings": "Settings",
         "analytics": "Analytics",
         "analyticsGroup": "Analytics",
-        "todoList": "Todo List"
+        "todoList": "Todo List",
+        "correctiveActions": "Corrective actions"
     },
     "auditLog": {
         "title": "Audit Log",
@@ -182,7 +185,54 @@
         "statusMissing": "Missing",
         "inProgress": "In progress",
         "taskCount": "{{count}} task",
-        "taskCount_other": "{{count}} tasks"
+        "taskCount_other": "{{count}} tasks",
+        "totalCount_one": "{{count}} task in total",
+        "totalCount_other": "{{count}} tasks in total",
+        "offline": "Offline",
+        "refreshFailed": "Refresh failed",
+        "refreshing": "Refreshing…",
+        "connected": "Connected",
+        "lastSynced": "Last synced: {{time}}",
+        "loadError": "Unable to load the task board",
+        "tvDisplay": "TV DISPLAY MODE",
+        "readOnly": "(READ ONLY)",
+        "exitTv": "Exit TV mode",
+        "heading": "Task board",
+        "tvMode": "TV mode",
+        "chooseDate": "Choose a date",
+        "clear": "Clear",
+        "allUsers": "All users",
+        "allGroups": "All groups",
+        "user": "User",
+        "group": "Group",
+        "noActiveTasks": "No active tasks for this period",
+        "noCompletedTasks": "No completed tasks for this period",
+        "completed": "Completed",
+        "runningLabel": "in progress",
+        "urgentLabel_one": "urgent",
+        "urgentLabel_other": "urgent",
+        "completedLabel": "completed",
+        "preset0": "Today",
+        "preset1": "7d",
+        "preset2": "30d",
+        "preset3": "90d",
+        "validateTask": "Complete {{name}}",
+        "failTask": "Report failure for {{name}}",
+        "downloadProcedure": "Download procedure",
+        "openProcedure": "Open procedure",
+        "awaitingAudit": "awaiting audit",
+        "urgent": "urgent",
+        "failureDetails": "Failure details",
+        "priorityCritical": "Critical",
+        "priorityHigh": "High",
+        "priorityMedium": "Medium",
+        "priorityLow": "Low",
+        "periodicity_daily": "Daily",
+        "periodicity_weekly": "Weekly",
+        "periodicity_monthly": "Monthly",
+        "periodicity_yearly": "Yearly",
+        "periodicity_once": "Once",
+        "failOptionalDescription": "Please explain why the task failed (optional)"
     },
     "dashboard": {
         "welcome": "Welcome",
@@ -742,7 +792,11 @@
         "systemDescription": "Includes Database + Config + Uploaded Files + Secrets.",
         "requiresEncryptionKey": "Requires Encryption Key.",
         "disabledMissingKey": "Backups are disabled because BACKUP_ENCRYPTION_KEY is missing.",
-        "runBackup": "Run Backup"
+        "runBackup": "Run Backup",
+        "completed": "Backup completed and available in history",
+        "failed": "Backup failed",
+        "running": "Backup in progress…",
+        "monitorFailed": "Unable to monitor the backup. Check its status before starting another one."
     },
     "backupHistory": {
         "title": "System Backups ({{count}})",
@@ -1136,7 +1190,31 @@
         "day": "day"
     },
     "profile": {
-        "myProfile": "My Profile"
+        "myProfile": "My Profile",
+        "changePassword": {
+            "title": "Change Password",
+            "description": "Update your password to keep your account secure.",
+            "forcedTitle": "Choose a new password",
+            "forcedDescription": "For security reasons, you must replace your temporary password before continuing.",
+            "current": "Current Password",
+            "new": "New Password",
+            "confirm": "Confirm New Password",
+            "cancel": "Cancel",
+            "submit": "Change Password",
+            "success": "Password changed successfully",
+            "rules": {
+                "length": "At least 12 characters",
+                "lowercase": "A lowercase letter",
+                "uppercase": "An uppercase letter (anywhere in the password)",
+                "digit": "A number",
+                "special": "A special character (any character that is not a letter or a number)"
+            },
+            "errors": {
+                "weak": "The new password does not meet all the requirements.",
+                "mismatch": "Passwords do not match",
+                "failed": "Failed to change password"
+            }
+        }
     },
     "sites": {
         "selectSite": "Select site",
@@ -1184,5 +1262,82 @@
         "goHome": "Back to home",
         "errorDetails": "Error details",
         "context": "Context: {{context}}"
+    },
+    "execution": {
+        "checklist": "Execution checklist",
+        "optionalDescription": "Optional. Required steps must be completed before marking a task as successful.",
+        "stepLabel": "Step {{number}} label",
+        "stepKind": "Step {{number}} type",
+        "required": "Required",
+        "removeStep": "Remove step {{number}}",
+        "addStep": "Add a step",
+        "kind": {
+            "CHECK": "Checkbox",
+            "TEXT": "Text",
+            "NUMBER": "Measurement",
+            "PHOTO": "Photo"
+        },
+        "report": "Execution report",
+        "complete": "Complete task",
+        "viewPhoto": "Download photo",
+        "checked": "Completed",
+        "unchecked": "Not completed",
+        "photoReady": "Photo saved",
+        "photoLimit": "PNG, JPEG or WebP, up to 5 MB",
+        "uploadFailed": "Unable to save the photo",
+        "downloadFailed": "Unable to download the photo",
+        "comment": "Comment (optional)",
+        "createCorrectiveAction": "Create a corrective action",
+        "actionTitle": "Action to take",
+        "dueDate": "Due date (optional)",
+        "assignee": "Assignee",
+        "myself": "Myself",
+        "saving": "Saving…",
+        "correctiveActions": "Corrective actions",
+        "correctiveDescription": "Follow up on failed checks. Closing an action preserves the failure status of the original check.",
+        "state": {
+            "OPEN": "Open",
+            "CLOSED": "Closed"
+        },
+        "noActions": "No actions in this category.",
+        "resolution": "Resolution",
+        "closeAction": "Close action",
+        "reopenAction": "Reopen action",
+        "overdue": "Overdue",
+        "loadFailed": "Unable to load actions",
+        "updateFailed": "Unable to update this action",
+        "listLimit": "The first 500 actions are displayed.",
+        "labelRequired": "A label is required.",
+        "search": "Search actions, tasks or assignees",
+        "onlyMine": "My actions",
+        "onlyOverdue": "Overdue only",
+        "pagination": "Corrective action pagination",
+        "pageSummary": "Page {{page}} of {{pages}} · {{total}} action(s)"
+    },
+    "boardViews": {
+        "title": "Saved views",
+        "description": "Save filters and layout for this account and site in this browser. Relative date ranges are recalculated when a view is applied.",
+        "name": "View name",
+        "save": "Save current view",
+        "delete": "Delete view {{name}}",
+        "empty": "No saved views yet.",
+        "duplicate": "A view already uses this name.",
+        "limit": "You can save up to 20 views.",
+        "compact": "Compact layout",
+        "storageUnavailable": "Preferences remain usable, but cannot be saved in this browser."
+    },
+    "profileSettings": {
+        "saved": "Profile saved",
+        "saveFailed": "Could not save your profile",
+        "loadFailed": "Could not load your profile",
+        "manageMfa": "Manage MFA",
+        "configureMfa": "Configure MFA",
+        "recoveryCodesNote": "Recovery codes are shown only when enabling MFA. Keep them in a safe place.",
+        "passkeyNote": "Use a device authenticator or a security key. Available options depend on your device and browser."
+    },
+    "access": {
+        "deniedTitle": "Access denied",
+        "deniedDescription": "Your account does not have permission to access this page.",
+        "backToBoard": "Back to the board"
     }
 }

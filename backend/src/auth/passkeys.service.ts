@@ -15,16 +15,12 @@ import { Request } from 'express';
 import Redis from 'ioredis';
 import { REDIS_CLIENT } from '../common/redis/redis.module';
 import { PrismaService } from '../prisma';
+import { resolvePasskeyConfig } from './passkey-config';
 
 @Injectable()
 export class PasskeysService {
   private readonly logger = new Logger(PasskeysService.name);
   private readonly rpName = 'Taskmaster';
-  private readonly rpID = process.env.RP_ID || 'localhost';
-  private readonly expectedOrigin = process.env.FRONTEND_URL || [
-    'http://localhost:5173',
-    'http://localhost:3000',
-  ];
 
   constructor(
     private readonly prisma: PrismaService,
@@ -41,7 +37,7 @@ export class PasskeysService {
 
     const options = await generateRegistrationOptions({
       rpName: this.rpName,
-      rpID: this.rpID,
+      rpID: resolvePasskeyConfig().rpID,
       userID: Buffer.from(user.id.toString(), 'utf8'),
       userName: user.username,
       attestationType: 'none',
@@ -85,8 +81,8 @@ export class PasskeysService {
       verification = await verifyRegistrationResponse({
         response: body,
         expectedChallenge,
-        expectedOrigin: this.getExpectedOrigin(),
-        expectedRPID: this.rpID,
+        expectedOrigin: resolvePasskeyConfig().expectedOrigin,
+        expectedRPID: resolvePasskeyConfig().rpID,
       });
     } catch (error: any) {
       this.logger.error('Passkey verification failed', error);
@@ -125,7 +121,7 @@ export class PasskeysService {
    */
   async generateAuthenticationOptions() {
     const options = await generateAuthenticationOptions({
-      rpID: this.rpID,
+      rpID: resolvePasskeyConfig().rpID,
       userVerification: 'preferred',
     });
 
@@ -175,8 +171,8 @@ export class PasskeysService {
       verification = await verifyAuthenticationResponse({
         response: body,
         expectedChallenge,
-        expectedOrigin: this.getExpectedOrigin(),
-        expectedRPID: this.rpID,
+        expectedOrigin: resolvePasskeyConfig().expectedOrigin,
+        expectedRPID: resolvePasskeyConfig().rpID,
         credential: {
           id: passkey.id,
           publicKey: passkey.publicKey,
@@ -235,10 +231,5 @@ export class PasskeysService {
     await this.prisma.client.passkey.delete({ where: { id } });
     await this.redis.del(`session:${userId}`);
     return { success: true };
-  }
-
-  private getExpectedOrigin(): string[] {
-    if (Array.isArray(this.expectedOrigin)) return this.expectedOrigin;
-    return [this.expectedOrigin];
   }
 }

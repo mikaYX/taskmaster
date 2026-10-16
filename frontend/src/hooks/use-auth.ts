@@ -1,3 +1,4 @@
+import { assertPasskeyOrigin } from '@/lib/passkeys';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { authApi } from '@/api';
 import { useAuthStore } from '@/stores';
@@ -17,7 +18,7 @@ export const authKeys = {
  *
  * @param enabled - Whether to automatically fetch the session (default: true)
  */
-function normalizeSession(session: Session): { id: number; role: UserRole; groups: number[], permissions: string[], sites: UserSite[], passkeysEnabled: boolean, passkeyPolicy: 'disabled' | 'optional' | 'required', hasPasskey: boolean } | null {
+function normalizeSession(session: Session): { id: number; role: UserRole; groups: number[], permissions: string[], sites: UserSite[], passkeysEnabled: boolean, passkeyPolicy: 'disabled' | 'optional' | 'required', hasPasskey: boolean, mustChangePassword: boolean } | null {
     if (!session || !session.valid) return null;
 
     const userSource = session.user || session;
@@ -63,8 +64,9 @@ function normalizeSession(session: Session): { id: number; role: UserRole; group
     const passkeysEnabled = userSource.passkeysEnabled ?? false;
     const passkeyPolicy = userSource.passkeyPolicy ?? 'disabled';
     const hasPasskey = userSource.hasPasskey ?? false;
+    const mustChangePassword = userSource.mustChangePassword ?? false;
 
-    return { id, role, groups, permissions, sites, passkeysEnabled, passkeyPolicy, hasPasskey };
+    return { id, role, groups, permissions, sites, passkeysEnabled, passkeyPolicy, hasPasskey, mustChangePassword };
 }
 
 /**
@@ -88,7 +90,7 @@ export function useSession(enabled: boolean = true) {
                 const normalized = normalizeSession(session);
 
                 if (normalized) {
-                    setSession(normalized.id, normalized.role, normalized.groups, normalized.permissions, normalized.sites, normalized.passkeysEnabled, normalized.passkeyPolicy, normalized.hasPasskey);
+                    setSession(normalized.id, normalized.role, normalized.groups, normalized.permissions, normalized.sites, normalized.passkeysEnabled, normalized.passkeyPolicy, normalized.hasPasskey, normalized.mustChangePassword);
                 } else {
                     clearSession();
                 }
@@ -123,7 +125,7 @@ export function useLogin() {
             const normalized = normalizeSession(session);
 
             if (normalized) {
-                setSession(normalized.id, normalized.role, normalized.groups, normalized.permissions, normalized.sites, normalized.passkeysEnabled, normalized.passkeyPolicy, normalized.hasPasskey);
+                setSession(normalized.id, normalized.role, normalized.groups, normalized.permissions, normalized.sites, normalized.passkeysEnabled, normalized.passkeyPolicy, normalized.hasPasskey, normalized.mustChangePassword);
             }
 
             queryClient.invalidateQueries({ queryKey: authKeys.session });
@@ -145,7 +147,7 @@ export function useVerifyMfaLogin() {
             const normalized = normalizeSession(session);
 
             if (normalized) {
-                setSession(normalized.id, normalized.role, normalized.groups, normalized.permissions, normalized.sites, normalized.passkeysEnabled, normalized.passkeyPolicy, normalized.hasPasskey);
+                setSession(normalized.id, normalized.role, normalized.groups, normalized.permissions, normalized.sites, normalized.passkeysEnabled, normalized.passkeyPolicy, normalized.hasPasskey, normalized.mustChangePassword);
             }
 
             queryClient.invalidateQueries({ queryKey: authKeys.session });
@@ -164,6 +166,7 @@ export function usePasskeyLogin() {
         mutationFn: async () => {
             const { startAuthentication } = await import('@simplewebauthn/browser');
             const { options, sessionId } = await authApi.generatePasskeyAuthenticationOptions();
+            assertPasskeyOrigin(options.rpId);
             const attResp = await startAuthentication({ optionsJSON: options });
             return authApi.verifyPasskeyAuthentication(attResp, sessionId);
         },
@@ -172,7 +175,7 @@ export function usePasskeyLogin() {
             const normalized = normalizeSession(session);
 
             if (normalized) {
-                setSession(normalized.id, normalized.role, normalized.groups, normalized.permissions, normalized.sites, normalized.passkeysEnabled, normalized.passkeyPolicy, normalized.hasPasskey);
+                setSession(normalized.id, normalized.role, normalized.groups, normalized.permissions, normalized.sites, normalized.passkeysEnabled, normalized.passkeyPolicy, normalized.hasPasskey, normalized.mustChangePassword);
             }
 
             queryClient.invalidateQueries({ queryKey: authKeys.session });

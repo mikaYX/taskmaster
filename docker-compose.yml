@@ -53,6 +53,7 @@ services:
       - app_backups:/app/backups
       - app_uploads:/app/public/uploads
       - app_procedures:/app/storage/procedures
+      - app_evidence:/app/storage/evidence
     depends_on:
       postgres:
         condition: service_healthy
@@ -65,3 +66,4 @@ volumes:
   app_backups:
   app_uploads:
   app_procedures:
+  app_evidence:

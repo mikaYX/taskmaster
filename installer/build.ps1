@@ -279,14 +279,11 @@ Rename-Item -Path $extractedNodeDir -NewName 'node'
 Write-Stage 'Telechargement de WinSW (v2.12.0, Apache-2.0)...'
 $winswVersion = '2.12.0'
 $winswUrl = "https://github.com/winsw/winsw/releases/download/v$winswVersion/WinSW-x64.exe"
-$winswExpectedSha256 = 'REPLACE_WITH_PINNED_SHA256_FOR_WINSW_v2.12.0_x64' # pin before first real build
+# Observed from the official v2.12.0 GitHub release asset on 2026-10-16.
+$winswExpectedSha256 = '05b82d46ad331cc16bdc00de5c6332c1ef818df8ceefcd49c726553209b3a0da'
 $winswPath = Join-Path $stagingRoot 'service\taskmaster-service.exe'
 Invoke-WebRequest -Uri $winswUrl -OutFile $winswPath
-if ($winswExpectedSha256 -notlike 'REPLACE_WITH_*') {
-    Assert-FileHash -Path $winswPath -ExpectedSha256 $winswExpectedSha256
-} else {
-    Write-Warning 'WinSW SHA-256 pin is a placeholder - set $winswExpectedSha256 before a real/release build.'
-}
+Assert-FileHash -Path $winswPath -ExpectedSha256 $winswExpectedSha256
 Copy-Item (Join-Path $PSScriptRoot 'service\taskmaster-service.xml') (Join-Path $stagingRoot 'service\taskmaster-service.xml')
 
 # install-service.ps1/uninstall-service.ps1 are embedded as real MSI File
@@ -345,7 +342,7 @@ Write-Stage 'Calcul de la somme SHA-256...'
 $sumsPath = Join-Path $distRoot 'SHA256SUMS'
 @(
     (Get-FileHash -Path $msiPath -Algorithm SHA256)
-) | ForEach-Object { "$($_.Hash.ToLowerInvariant())  $(Split-Path $_.Path -Leaf)" } | Set-Content $sumsPath
+) | ForEach-Object { "$($_.Hash.ToLowerInvariant())  $(Split-Path $_.Path -Leaf)" } | Set-Content -Path $sumsPath -Encoding ASCII
 
 # ---- 12. Optional Authenticode signing --------------------------------------
 if ($Sign) {
@@ -359,7 +356,7 @@ if ($Sign) {
     # Never echo the password; recompute checksum post-signing.
     @(
         (Get-FileHash -Path $msiPath -Algorithm SHA256)
-    ) | ForEach-Object { "$($_.Hash.ToLowerInvariant())  $(Split-Path $_.Path -Leaf)" } | Set-Content $sumsPath
+    ) | ForEach-Object { "$($_.Hash.ToLowerInvariant())  $(Split-Path $_.Path -Leaf)" } | Set-Content -Path $sumsPath -Encoding ASCII
 }
 
 Write-Stage "Termine : $msiPath"

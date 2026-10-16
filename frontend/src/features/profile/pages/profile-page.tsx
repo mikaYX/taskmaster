@@ -1,9 +1,12 @@
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { usersApi } from '@/api/users';
+import { userKeys } from '@/hooks/use-users';
+import { getErrorMessage } from '@/api/http';
 import { useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useShallow } from 'zustand/react/shallow';
 import { useAuthStore } from '@/stores';
-import { useUsers, useUploadMyAvatar } from '@/hooks/use-users';
-import { useSettings } from '@/features/settings/hooks/use-settings';
+import { useOwnProfile, useUploadMyAvatar } from '@/hooks/use-users';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
@@ -18,7 +21,13 @@ import { MfaSetupDialog } from '../components/mfa-setup-dialog';
 import { PasskeysManageDialog } from '../components/passkeys-manage-dialog';
 
 export function ProfilePage() {
-    useTranslation();
+    const scope = useAuthStore(state => `${state.userId}:${state.role}`);
+    return <ProfileWorkspace key={scope} />;
+}
+
+function ProfileWorkspace() {
+    const { t } = useTranslation();
+    const client = useQueryClient();
     const { userId, passkeysEnabled, passkeyPolicy, hasPasskey, role: currentRole } = useAuthStore(
         useShallow((state) => ({
             userId: state.userId,
@@ -29,8 +38,19 @@ export function ProfilePage() {
         })),
     );
     const isGuest = currentRole === 'GUEST';
-    const { data: users, isLoading: usersLoading } = useUsers();
-    const { getSetting, isLoading: settingsLoading } = useSettings();
+    const profileKey = ['own-profile', userId, currentRole];
+    const profile = useOwnProfile();
+    const [fullname, setFullname] = useState<string | null>(null);
+    const saveProfile = useMutation({
+        mutationFn: usersApi.updateOwnProfile,
+        onSuccess: data => {
+            client.setQueryData(profileKey, data);
+            client.invalidateQueries({ queryKey: userKeys.lists() });
+            setFullname(null);
+            toast.success(t('profileSettings.saved'));
+        },
+        onError: error => toast.error(getErrorMessage(error, t('profileSettings.saveFailed'))),
+    });
     const uploadAvatar = useUploadMyAvatar();
     const avatarInputRef = useRef<HTMLInputElement>(null);
 
@@ -39,26 +59,25 @@ export function ProfilePage() {
     const [isPasskeysDialogOpen, setIsPasskeysDialogOpen] = useState(false);
     const [localAvatarSrc, setLocalAvatarSrc] = useState<string | undefined>(undefined);
 
-    const currentUser = users?.find(u => u.id === userId);
+    const currentUser = profile.data;
     // avatarUrl is a path like /public/uploads/..., served outside /api — strip /api suffix from base URL
     const storageBase = (import.meta.env.VITE_API_URL ?? '').replace(/\/api\/?$/, '');
     const remoteAvatarSrc = currentUser?.avatarUrl ? `${storageBase}${currentUser.avatarUrl}` : undefined;
     const avatarSrc = localAvatarSrc ?? remoteAvatarSrc;
     const displayName = currentUser?.fullname || currentUser?.username || 'User';
     const email = currentUser?.email || '';
-    const role = currentUser?.role || 'USER';
+    const role = currentUser?.role || currentRole || 'USER';
     const initials = displayName.substring(0, 2).toUpperCase();
 
     // Get security settings from admin configuration
     const mfaEnabled = true; // Always available if methods are configured, fallback to enforcing checks
-    const mfaEnforced = getSetting('auth.mfa.required') === 'true';
+    const mfaEnforced = currentUser?.mfaRequired ?? false;
 
     // Passkey enforcement dynamically from backend session
     const passkeysEnforced = passkeyPolicy === 'required';
     const userHasPasskeys = hasPasskey;
 
-    // TODO: Get user's actual MFA status from backend
-    const userHasMfa = false; // Replace with actual API call
+    const userHasMfa = currentUser?.mfaEnabled ?? false;
 
     const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -78,16 +97,22 @@ export function ProfilePage() {
             setLocalAvatarSrc(undefined);
             toast.error("Échec de la mise à jour de l'avatar");
         }
+        URL.revokeObjectURL(objectUrl);
         e.target.value = '';
     };
 
-    if (usersLoading || settingsLoading) {
+    if (profile.isLoading) {
         return (
             <div className="flex items-center justify-center h-screen">
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
         );
     }
+
+    if (profile.isError) return <div role="alert" className="space-y-3 p-6">
+        <p>{t('profileSettings.loadFailed')}</p>
+        <Button onClick={() => profile.refetch()}>{t('common.retry')}</Button>
+    </div>;
 
     return (
         <div className="w-full flex justify-center px-4">
@@ -160,9 +185,11 @@ export function ProfilePage() {
                             <Label htmlFor="fullname">Full Name</Label>
                             <Input
                                 id="fullname"
-                                defaultValue={currentUser?.fullname ?? ''}
+                                value={fullname ?? currentUser?.fullname ?? ''}
+                                onChange={event => setFullname(event.target.value)}
+                                maxLength={255}
                                 placeholder="Your full name"
-                                disabled={isGuest}
+                                disabled={isGuest || saveProfile.isPending}
                                 className={isGuest ? "bg-muted" : ""}
                             />
                             <p className="text-sm text-muted-foreground">
@@ -206,7 +233,10 @@ export function ProfilePage() {
 
                     {!isGuest && (
                         <div className="flex justify-end">
-                            <Button>Save Changes</Button>
+                            <Button disabled={saveProfile.isPending || fullname === null || fullname.trim() === (currentUser?.fullname ?? '')}
+                                onClick={() => saveProfile.mutate(fullname ?? currentUser?.fullname ?? '')}>
+                                {saveProfile.isPending ? t('common.loading') : t('common.save')}
+                            </Button>
                         </div>
                     )}
                 </CardContent>
@@ -270,7 +300,7 @@ export function ProfilePage() {
                                     variant={userHasMfa ? 'outline' : 'default'}
                                     onClick={() => setIsMfaDialogOpen(true)}
                                 >
-                                    {userHasMfa ? 'Manage MFA' : 'Configure MFA'}
+                                    {t(userHasMfa ? 'profileSettings.manageMfa' : 'profileSettings.configureMfa')}
                                 </Button>
                             )}
                         </div>
@@ -319,8 +349,7 @@ export function ProfilePage() {
 
                         {passkeysEnabled && (
                             <div className="rounded-lg bg-muted p-3 text-sm text-muted-foreground">
-                                <strong>Note:</strong> Passkeys are stored on your device and never leave it.
-                                They provide the most secure way to sign in.
+                                {t('profileSettings.passkeyNote')}
                             </div>
                         )}
                     </div>
@@ -333,12 +362,12 @@ export function ProfilePage() {
                 onOpenChange={setIsPasswordDialogOpen}
             />
 
-            <MfaSetupDialog
+            {isMfaDialogOpen && <MfaSetupDialog
                 open={isMfaDialogOpen}
-                onOpenChange={setIsMfaDialogOpen}
+                onOpenChange={open => { setIsMfaDialogOpen(open); if (!open) client.invalidateQueries({ queryKey: profileKey }); }}
                 isEnforced={mfaEnforced}
                 hasExistingMfa={userHasMfa}
-            />
+            />}
 
             <PasskeysManageDialog
                 open={isPasskeysDialogOpen}

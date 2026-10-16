@@ -1,3 +1,4 @@
+import type { Prisma } from '@prisma/client';
 /**
  * Task response DTO.
  */
@@ -7,6 +8,7 @@ export class TaskResponseDto {
   periodicity!: string;
   description!: string;
   procedureUrl!: string | null;
+  executionChecklist?: Prisma.JsonValue;
   startDate!: Date;
   endDate!: Date | null;
   activeUntil!: Date | null;
@@ -63,6 +65,7 @@ export function toTaskResponse(task: {
   periodicity: string;
   description: string;
   procedureUrl: string | null;
+  executionChecklist?: Prisma.JsonValue;
   startDate: Date;
   endDate: Date | null;
   activeUntil: Date | null;
@@ -106,6 +109,7 @@ export function toTaskResponse(task: {
     periodicity: task.periodicity,
     description: task.description,
     procedureUrl: task.procedureUrl,
+    executionChecklist: task.executionChecklist ?? [],
     startDate: task.startDate,
     endDate: task.endDate,
     activeUntil: task.activeUntil,

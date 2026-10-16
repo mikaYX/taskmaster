@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { usersApi } from '@/api/users';
+import { useAuthStore } from '@/stores/auth-store';
 import type { CreateUserDto, UpdateUserDto } from '@/api/types';
 
 export const userKeys = {
@@ -9,6 +10,12 @@ export const userKeys = {
     details: () => [...userKeys.all, 'detail'] as const,
     detail: (id: number) => [...userKeys.details(), id] as const,
 };
+
+export function useOwnProfile() {
+    const userId = useAuthStore(state => state.userId);
+    const role = useAuthStore(state => state.role);
+    return useQuery({ queryKey: ['own-profile', userId, role], queryFn: usersApi.getOwnProfile, enabled: !!userId && role !== 'GUEST' });
+}
 
 export function useUsers(includeDeleted = false) {
     return useQuery({
@@ -42,11 +49,13 @@ export function useUpdateUser() {
 
 export function useUploadMyAvatar() {
     const queryClient = useQueryClient();
+    const userId = useAuthStore(state => state.userId);
 
     return useMutation({
         mutationFn: (file: File) => usersApi.uploadMyAvatar(file),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: userKeys.lists() });
+            queryClient.invalidateQueries({ queryKey: ['own-profile', userId] });
         },
     });
 }

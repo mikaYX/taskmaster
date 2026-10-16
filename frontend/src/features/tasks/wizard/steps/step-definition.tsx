@@ -1,3 +1,4 @@
+import { ChecklistEditor } from '../../components/checklist-editor';
 import { useFormContext } from "react-hook-form";
 import type { CreateTaskFormValues } from "../../schemas/task-creation.schema";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -176,7 +177,8 @@ export function StepDefinition() {
                         fieldState.error ? <p className="text-sm font-medium text-destructive">{fieldState.error.message}</p> : <></>
                     )}
                 />
-            </div>
+                <ChecklistEditor value={watch("executionChecklist") ?? []} onChange={value => setValue("executionChecklist", value, { shouldDirty: true, shouldValidate: true })} />
+        </div>
         </div >
     );
 }

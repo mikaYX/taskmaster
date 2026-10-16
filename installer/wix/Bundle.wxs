@@ -53,6 +53,7 @@
     <!-- ================= Overridable install choices (defaults = the simple path) ================= -->
     <Variable Name="PORT" Type="numeric" Value="3000" bal:Overridable="yes" />
     <Variable Name="ACCESS_MODE" Type="string" Value="Local" bal:Overridable="yes" /> <!-- Local | Lan -->
+    <Variable Name="PUBLIC_URL" Type="string" Value="" bal:Overridable="yes" />
     <Variable Name="HOST_NAME" Type="string" Value="localhost" bal:Overridable="yes" />
     <Variable Name="DATA_DIR" Type="string" Value="C:\ProgramData\Taskmaster" bal:Overridable="yes" />
 
@@ -124,6 +125,7 @@
                   SourceFile="!(bindpath.staging)\Taskmaster.msi"
                   Vital="yes">
         <MsiProperty Name="TASKMASTER_PORT" Value="[PORT]" />
+        <MsiProperty Name="TASKMASTER_PUBLIC_URL" Value="[PUBLIC_URL]" />
       </MsiPackage>
 
       <!-- Post-MSI orchestration: secrets, .env, Prisma migration, service
@@ -153,7 +155,7 @@
                   DetectCondition="0"
                   Permanent="yes"
                   Vital="yes"
-                  InstallArguments="-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File &quot;C:\Program Files\Taskmaster\orchestrate-install.ps1&quot; -Port [PORT] -AccessMode [ACCESS_MODE] -HostName [HOST_NAME] -DataDir &quot;[DATA_DIR]&quot; -PostgresMode [POSTGRES_MODE] -ExistingDatabaseUrl &quot;[EXISTING_DATABASE_URL]&quot; -ExistingPgBinPath &quot;[EXISTING_PG_BIN_PATH]&quot; -RedisMode [REDIS_MODE] -ExistingRedisUrl &quot;[EXISTING_REDIS_URL]&quot;" />
+                  InstallArguments="-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File &quot;C:\Program Files\Taskmaster\orchestrate-install.ps1&quot; -Port [PORT] -AccessMode [ACCESS_MODE] -HostName [HOST_NAME] -PublicUrl &quot;[PUBLIC_URL]&quot; -DataDir &quot;[DATA_DIR]&quot; -PostgresMode [POSTGRES_MODE] -ExistingDatabaseUrl &quot;[EXISTING_DATABASE_URL]&quot; -ExistingPgBinPath &quot;[EXISTING_PG_BIN_PATH]&quot; -RedisMode [REDIS_MODE] -ExistingRedisUrl &quot;[EXISTING_REDIS_URL]&quot;" />
     </Chain>
   </Bundle>
 </Wix>

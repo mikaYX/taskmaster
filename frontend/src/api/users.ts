@@ -9,7 +9,11 @@ import type {
 /**
  * Users API module.
  */
+export type OwnProfile = Pick<User, 'id' | 'username' | 'fullname' | 'email' | 'role' | 'avatarUrl'> & { mfaEnabled: boolean; mfaRequired: boolean };
+
 export const usersApi = {
+    getOwnProfile: () => http.get<OwnProfile>('/users/me/profile'),
+    updateOwnProfile: (fullname: string) => http.patch<OwnProfile>('/users/me/profile', { fullname }),
     /**
      * Get all users (paginated).
      */

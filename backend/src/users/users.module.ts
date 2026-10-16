@@ -1,3 +1,4 @@
+import { SettingsModule } from '../settings/settings.module';
 import { Module } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { UsersController } from './users.controller';
@@ -17,7 +18,7 @@ import { AuthModule } from '../auth';
  * - AuthModule for password hashing
  */
 @Module({
-  imports: [AuthModule],
+  imports: [AuthModule, SettingsModule],
   controllers: [UsersController, UsersMeController],
   providers: [UsersService],
   exports: [UsersService],

@@ -1,3 +1,4 @@
+import { SettingsService } from '../settings/settings.service';
 import {
   Injectable,
   NotFoundException,
@@ -42,7 +43,44 @@ export class UsersService {
     private readonly prisma: PrismaService,
     private readonly authService: AuthService,
     private readonly auditService: AuditService,
+    private readonly settings: SettingsService,
   ) {}
+
+  private readonly profileSelect = {
+    id: true,
+    username: true,
+    fullname: true,
+    email: true,
+    role: true,
+    avatarUrl: true,
+    mfaEnabled: true,
+  } as const;
+
+  async getOwnProfile(userId: number) {
+    const user = await this.prisma.client.user.findFirst({
+      where: { id: userId, deletedAt: null },
+      select: this.profileSelect,
+    });
+    if (!user) throw new NotFoundException('User not found');
+    return {
+      ...user,
+      mfaRequired:
+        String(await this.settings.getRawValue('auth.mfa.required')) === 'true',
+    };
+  }
+
+  async updateOwnProfile(userId: number, fullname: string) {
+    const user = await this.prisma.client.user.update({
+      where: { id: userId, deletedAt: null },
+      data: { fullname: fullname.trim() || null },
+      select: this.profileSelect,
+    });
+    return {
+      ...user,
+      mfaRequired:
+        String(await this.settings.getRawValue('auth.mfa.required')) === 'true',
+    };
+  }
 
   /**
    * Get all active users (excludes soft-deleted).

@@ -765,7 +765,11 @@ export class AuthService {
   /**
    * Changes user password.
    */
-  async changePassword(userId: number, newPassword: string): Promise<void> {
+  async changePassword(
+    userId: number,
+    newPassword: string,
+    currentPassword: string,
+  ): Promise<void> {
     const user = await this.prisma.client.user.findUnique({
       where: { id: userId },
     });
@@ -777,6 +781,21 @@ export class AuthService {
     if (user.authProvider !== 'LOCAL') {
       throw new BadRequestException(
         'Cannot change password for external authentication provider',
+      );
+    }
+
+    const currentIsValid =
+      !!user.passwordHash &&
+      (await this.verifyPassword(currentPassword, user.passwordHash));
+    if (!currentIsValid) {
+      // 400 (not 401): the session is valid, only the supplied password is wrong,
+      // and a 401 would make the client attempt a token refresh / logout.
+      throw new BadRequestException('Current password is incorrect');
+    }
+
+    if (currentPassword === newPassword) {
+      throw new BadRequestException(
+        'New password must be different from the current password',
       );
     }
 

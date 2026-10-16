@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { join } from 'path';
+import { getBackupExportsDir } from '../config/app-paths';
 import {
   createWriteStream,
   mkdirSync,
@@ -21,7 +22,7 @@ export interface ExportOptions {
 @Injectable()
 export class ExportService {
   private readonly logger = new Logger(ExportService.name);
-  private readonly EXPORT_DIR = join(process.cwd(), 'backups', 'exports');
+  private readonly EXPORT_DIR = getBackupExportsDir();
 
   constructor(
     private readonly prisma: PrismaService,

@@ -1,6 +1,6 @@
 {
   "name": "backend",
-  "version": "1.1.6",
+  "version": "1.7.0",
   "description": "",
   "author": "",
   "private": true,
@@ -24,7 +24,9 @@
     "db:generate": "node scripts/prisma-generate.js",
     "db:seed-test-tasks": "ts-node --project tsconfig.json -r tsconfig-paths/register prisma/seed-test-tasks.ts",
     "db:seed-demo": "ts-node --project tsconfig.json -r tsconfig-paths/register prisma/seed-demo-for-docs.ts",
-    "postinstall": "node scripts/prisma-generate.js"
+    "postinstall": "node scripts/prisma-generate.js",
+    "test:execution:postgres": "npx jest --config ./test/jest-execution-postgres.json --runInBand",
+    "test:upgrade:postgres": "npx jest --config ./test/jest-upgrade-postgres.json --runInBand"
   },
   "dependencies": {
     "@azure/msal-node": "^5.1.5",

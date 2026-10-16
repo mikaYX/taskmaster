@@ -1,5 +1,8 @@
 import {
   Controller,
+  Get,
+  Patch,
+  Body,
   Post,
   UseGuards,
   HttpCode,
@@ -19,6 +22,9 @@ import * as path from 'path';
 import { UsersService } from './users.service';
 import { JwtAuthGuard, RolesGuard, Roles, CurrentUser } from '../auth';
 import type { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
+import { UpdateProfileDto } from './dto/update-profile.dto';
+import { Audit } from '../audit/decorators/audit.decorator';
+import { AuditAction, AuditCategory } from '../audit/audit.constants';
 import { getUploadsDir } from '../config/app-paths';
 
 /**
@@ -32,6 +38,20 @@ export class UsersMeController {
   private readonly logger = new Logger(UsersMeController.name);
 
   constructor(private readonly usersService: UsersService) {}
+
+  @Get('profile')
+  profile(@CurrentUser() user: JwtPayload) {
+    return this.usersService.getOwnProfile(user.sub);
+  }
+
+  @Patch('profile')
+  @Audit({ action: AuditAction.USER_UPDATED, category: AuditCategory.USER })
+  updateProfile(
+    @CurrentUser() user: JwtPayload,
+    @Body() dto: UpdateProfileDto,
+  ) {
+    return this.usersService.updateOwnProfile(user.sub, dto.fullname);
+  }
 
   @Post('avatar')
   @UseInterceptors(

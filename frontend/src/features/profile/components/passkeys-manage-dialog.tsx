@@ -1,3 +1,4 @@
+import { assertPasskeyOrigin, passkeyErrorMessage } from '@/lib/passkeys';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -26,7 +27,6 @@ import {
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { startRegistration } from '@simplewebauthn/browser';
 import { authApi } from '@/api/auth';
-import { getErrorMessage } from '@/api/http';
 
 interface PasskeysManageDialogProps {
     open: boolean;
@@ -58,6 +58,7 @@ export function PasskeysManageDialog({
     const addMutation = useMutation({
         mutationFn: async (name: string) => {
             const options = await authApi.generatePasskeyRegistrationOptions();
+            assertPasskeyOrigin(options.rp?.id);
             const attResp = await startRegistration({ optionsJSON: options });
             const verifyRes = await authApi.verifyPasskeyRegistration({
                 response: attResp,
@@ -74,7 +75,7 @@ export function PasskeysManageDialog({
             setStep('list');
         },
         onError: (err: unknown) => {
-            toast.error(getErrorMessage(err, 'Failed to add passkey'));
+            toast.error(passkeyErrorMessage(err, 'Failed to add passkey'));
         },
     });
 

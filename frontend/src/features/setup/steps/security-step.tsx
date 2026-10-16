@@ -5,6 +5,15 @@ import { Label } from '@/components/ui/label';
 import { ApiError } from '@/api/http';
 import { useSetupStore } from '@/stores';
 import { Shield, Eye, EyeOff, Mail } from 'lucide-react';
+import { PASSWORD_RULES } from '@/lib/password-policy';
+
+const RULE_LABELS: Record<(typeof PASSWORD_RULES)[number]['key'], string> = {
+    length: 'at least 12 characters',
+    lowercase: 'a lowercase letter',
+    uppercase: 'an uppercase letter (anywhere in the password)',
+    digit: 'a number',
+    special: 'a special character (any character that is not a letter or a number)',
+};
 
 interface SecurityStepProps {
     onNext: () => void;
@@ -53,10 +62,6 @@ export function SecurityStep({ onNext, onBack }: SecurityStepProps) {
         return /\S+@\S+\.\S+/.test(email);
     };
 
-    const isStrongPassword = (password: string) => {
-        return /^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*])(?=.{12,})/.test(password);
-    };
-
     const handleSubmit = async () => {
         setError('');
 
@@ -65,8 +70,9 @@ export function SecurityStep({ onNext, onBack }: SecurityStepProps) {
             return;
         }
 
-        if (!isStrongPassword(password)) {
-            setError('Password must be at least 12 characters and include an uppercase letter, a lowercase letter, a number, and a special character (!@#$%^&*)');
+        const missing = PASSWORD_RULES.filter((rule) => !rule.test(password));
+        if (missing.length > 0) {
+            setError(`Password is missing: ${missing.map((rule) => RULE_LABELS[rule.key]).join(', ')}.`);
             return;
         }
 
@@ -175,7 +181,7 @@ export function SecurityStep({ onNext, onBack }: SecurityStepProps) {
                         </Button>
                     </div>
                     <p className="text-[0.8rem] text-muted-foreground">
-                        At least 12 characters, with uppercase, lowercase, a number, and a special character (!@#$%^&*).
+                        At least 12 characters, with uppercase, lowercase, a number, and a special character (any character that is not a letter or a number). They can be in any position.
                     </p>
                 </div>
 

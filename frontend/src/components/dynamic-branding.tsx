@@ -1,5 +1,5 @@
-import { useEffect } from 'react';
-import { useSettings } from '@/features/settings/hooks/use-settings';
+import { useEffect, useRef } from 'react';
+import { usePublicBranding } from '@/hooks/use-public-branding';
 
 const THEMES: Record<string, { primary: string; ring: string }> = {
     blue: { primary: 'hsl(199 89% 48%)', ring: 'hsl(199 89% 48%)' },
@@ -8,68 +8,54 @@ const THEMES: Record<string, { primary: string; ring: string }> = {
     orange: { primary: 'hsl(24 95% 53%)', ring: 'hsl(24 95% 53%)' },
 };
 
+function readCache(key: string) {
+    try { return localStorage.getItem(key); } catch { return null; }
+}
+
+function saveCache(key: string, value?: string) {
+    try {
+        if (value) localStorage.setItem(key, value);
+        else localStorage.removeItem(key);
+    } catch { /* Branding must work when browser storage is unavailable. */ }
+}
+
 export function DynamicBranding() {
-    const { getSetting } = useSettings();
+    const { getSetting, isSuccess } = usePublicBranding();
     const faviconUrl = getSetting('app.faviconUrl');
     const appTitle = getSetting('app.title');
     const colorTheme = getSetting('ui.theme');
+    const defaultFavicon = useRef(document.querySelector("link[rel~='icon']")?.getAttribute('href') || '/vite.svg');
 
     useEffect(() => {
-        // Try to load from localStorage first to prevent flash
-        const cachedFavicon = localStorage.getItem('app.faviconUrl');
-        const urlToUse = faviconUrl || cachedFavicon;
-
-        if (urlToUse) {
-            // Find existing favicon or create new ones
-            let link: HTMLLinkElement | null = document.querySelector("link[rel~='icon']");
-            if (!link) {
-                link = document.createElement('link');
-                link.rel = 'icon';
-                document.head.appendChild(link);
-            }
-            link.href = urlToUse;
+        const url = (isSuccess ? faviconUrl : readCache('app.faviconUrl')) || defaultFavicon.current;
+        let link: HTMLLinkElement | null = document.querySelector("link[rel~='icon']");
+        if (!link) {
+            link = document.createElement('link');
+            link.rel = 'icon';
+            document.head.appendChild(link);
         }
-
-        if (faviconUrl) {
-            localStorage.setItem('app.faviconUrl', faviconUrl);
-        }
-    }, [faviconUrl]);
+        link.href = url;
+        if (isSuccess) saveCache('app.faviconUrl', faviconUrl);
+    }, [faviconUrl, isSuccess]);
 
     useEffect(() => {
-        // Try to load from localStorage first
-        const cachedTitle = localStorage.getItem('app.title');
-
-        if (appTitle) {
-            document.title = appTitle;
-            localStorage.setItem('app.title', appTitle);
-        } else if (cachedTitle) {
-            document.title = cachedTitle;
-        }
-    }, [appTitle]);
+        document.title = (isSuccess ? appTitle : readCache('app.title')) || 'Taskmaster';
+        if (isSuccess) saveCache('app.title', appTitle);
+    }, [appTitle, isSuccess]);
 
     useEffect(() => {
-        // 1. Get theme to use (Settings > Cache > Default)
-        const cachedTheme = localStorage.getItem('ui.theme');
-        const themeToUse = colorTheme || cachedTheme || 'default';
-
-        // 2. Apply theme
+        const theme = (isSuccess ? colorTheme : readCache('ui.theme')) || 'default';
+        const colors = THEMES[theme];
         const root = document.documentElement;
-        if (themeToUse !== 'default' && THEMES[themeToUse]) {
-            const themeColors = THEMES[themeToUse];
-            root.style.setProperty('--primary', themeColors.primary);
-            root.style.setProperty('--ring', themeColors.ring);
-            // Also update charts if needed, but primary is most important
+        if (colors) {
+            root.style.setProperty('--primary', colors.primary);
+            root.style.setProperty('--ring', colors.ring);
         } else {
-            // Revert to CSS defaults
             root.style.removeProperty('--primary');
             root.style.removeProperty('--ring');
         }
-
-        // 3. Update cache if we have a fresh value from settings
-        if (colorTheme) {
-            localStorage.setItem('ui.theme', colorTheme);
-        }
-    }, [colorTheme]);
+        if (isSuccess) saveCache('ui.theme', colorTheme);
+    }, [colorTheme, isSuccess]);
 
     return null;
 }

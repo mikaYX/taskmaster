@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
     Dialog,
     DialogContent,
@@ -17,6 +18,7 @@ interface FailTaskDialogProps {
 }
 
 export function FailTaskDialog({ open, onOpenChange, onConfirm }: FailTaskDialogProps) {
+    const { t } = useTranslation();
     const [comment, setComment] = useState('');
 
     const handleConfirm = () => {
@@ -35,9 +37,9 @@ export function FailTaskDialog({ open, onOpenChange, onConfirm }: FailTaskDialog
         >
             <DialogContent className="sm:max-w-md">
                 <DialogHeader>
-                    <DialogTitle>Signaler un échec</DialogTitle>
+                    <DialogTitle>{t('taskBoard.failDialogTitle')}</DialogTitle>
                     <DialogDescription>
-                        Veuillez indiquer pourquoi la tâche a échoué (optionnel)
+                        {t('taskBoard.failOptionalDescription')}
                     </DialogDescription>
                 </DialogHeader>
 
@@ -45,20 +47,20 @@ export function FailTaskDialog({ open, onOpenChange, onConfirm }: FailTaskDialog
                     <Textarea
                         value={comment}
                         onChange={(e) => setComment(e.target.value)}
-                        placeholder="Saisissez votre commentaire ici..."
+                        placeholder={t('taskBoard.failCommentPlaceholder')}
                         className="min-h-[100px]"
                     />
                 </div>
 
                 <DialogFooter>
                     <Button variant="outline" onClick={() => onOpenChange(false)}>
-                        Annuler
+                        {t('common.cancel')}
                     </Button>
                     <Button
                         variant="destructive"
                         onClick={handleConfirm}
                     >
-                        Confirmer l'échec
+                        {t('taskBoard.confirmFail')}
                     </Button>
                 </DialogFooter>
             </DialogContent>

@@ -134,13 +134,14 @@ RUN rm -rf /usr/local/lib/node_modules/npm && \
 RUN install -d -o node -g node \
     /app/backups \
     /app/public/uploads \
-    /app/storage/procedures
+    /app/storage/procedures \
+    /app/storage/evidence
 
 COPY --chown=node:node docker-entrypoint.sh /app/docker-entrypoint.sh
 # Supprimer les CRLF (Windows) pour éviter "no such file or directory" sous Linux
 RUN sed -i 's/\r$//' /app/docker-entrypoint.sh && chmod +x /app/docker-entrypoint.sh
 
-VOLUME ["/app/backups", "/app/public/uploads", "/app/storage/procedures"]
+VOLUME ["/app/backups", "/app/public/uploads", "/app/storage/procedures", "/app/storage/evidence"]
 
 USER node
 EXPOSE 3000

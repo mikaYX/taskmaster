@@ -142,6 +142,7 @@ export interface Task {
   }[];
 
   procedureUrl: string | null;
+  executionChecklist?: ChecklistStep[];
   priority: TaskPriority;
 
   // New Fields
@@ -167,6 +168,29 @@ export interface Task {
   deletedBy: number | null;
 }
 
+export interface ChecklistStep {
+  id: string;
+  label: string;
+  kind: 'CHECK' | 'TEXT' | 'NUMBER' | 'PHOTO';
+  required: boolean;
+}
+export interface ExecutionAnswer { id: string; value: string | number | boolean }
+export interface ExecutionAnswerSnapshot extends ChecklistStep { value: string | number | boolean }
+export interface ExecutionSubmission {
+  executionAnswers?: ExecutionAnswer[];
+  correctiveAction?: { title: string; dueDate?: string; assigneeId?: number };
+}
+export interface StatusUpdateInput extends ExecutionSubmission {
+  taskId: number; date: string; status: TaskStatusValue; comment?: string;
+}
+export interface CorrectiveAction {
+  id: number; taskId: number; instanceDate: string; title: string;
+  assigneeId: number; createdById: number; dueDate: string | null;
+  state: 'OPEN' | 'CLOSED'; resolution: string | null; closedAt: string | null;
+  task: { name: string; siteId: number };
+  assignee: { id: number; username: string; fullname: string | null };
+}
+
 export interface CreateTaskDto {
   name: string;
   description: string;
@@ -176,6 +200,7 @@ export interface CreateTaskDto {
   startDate: string;
   endDate?: string;
   procedureUrl?: string;
+  executionChecklist?: ChecklistStep[];
 
   skipWeekends?: boolean;
   skipHolidays?: boolean;
@@ -207,6 +232,7 @@ export interface UpdateTaskDto {
   startDate?: string;
   endDate?: string | null;
   procedureUrl?: string;
+  executionChecklist?: ChecklistStep[];
   skipWeekends?: boolean;
   skipHolidays?: boolean;
 
@@ -275,11 +301,13 @@ export interface UpdateDelegationDto {
 export type TaskStatusValue = "SUCCESS" | "FAILED" | "MISSING" | "RUNNING";
 
 export interface BoardItem {
+  executionRecord?: ExecutionAnswerSnapshot[];
   taskId: number;
   taskName: string;
   description?: string;
   periodicity: string;
   procedureUrl?: string;
+  executionChecklist?: ChecklistStep[];
   priority?: TaskPriority;
 
   instanceDate: string;
@@ -401,6 +429,7 @@ export interface Session {
   passkeysEnabled?: boolean;
   passkeyPolicy?: 'disabled' | 'optional' | 'required';
   hasPasskey?: boolean;
+  mustChangePassword?: boolean;
 
   // New nested structure
   user?: {
@@ -415,10 +444,12 @@ export interface Session {
     passkeysEnabled: boolean;
     passkeyPolicy: 'disabled' | 'optional' | 'required';
     hasPasskey: boolean;
+    mustChangePassword?: boolean;
   };
 }
 
 export interface ChangePasswordDto {
+  currentPassword: string;
   password: string;
 }
 

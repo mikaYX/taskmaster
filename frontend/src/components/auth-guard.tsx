@@ -1,3 +1,6 @@
+import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { Button } from '@/components/ui/button';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useIsAuthenticated, useAuthLoading, useAuthStore } from '@/stores';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -72,5 +75,17 @@ export function NoGuestGuard({ children }: AuthGuardProps) {
         return <Navigate to="/" replace />;
     }
 
+    return <>{children}</>;
+}
+
+/** Mirrors the existing server restriction on settings, backups and audit. */
+export function SuperAdminGuard({ children }: AuthGuardProps) {
+    const role = useAuthStore(state => state.role);
+    const { t } = useTranslation();
+    if (role !== 'SUPER_ADMIN') return <section role="alert" className="mx-auto max-w-xl space-y-4 p-6">
+        <h1 className="text-xl font-semibold">{t('access.deniedTitle')}</h1>
+        <p>{t('access.deniedDescription')}</p>
+        <Button asChild><Link to="/">{t('access.backToBoard')}</Link></Button>
+    </section>;
     return <>{children}</>;
 }

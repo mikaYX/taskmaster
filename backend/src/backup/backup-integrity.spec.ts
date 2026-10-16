@@ -86,6 +86,7 @@ describe('Backup Integrity (M6)', () => {
           path.join(outputDir, 'manifest.json'),
           JSON.stringify({ appVersion: '1.0.0' }),
         );
+        fs.writeFileSync(path.join(outputDir, 'db.dump'), 'PGDMP fixture');
         return Promise.resolve();
       });
 

@@ -1,3 +1,6 @@
+import { Type } from 'class-transformer';
+import { ArrayMaxSize, ArrayUnique, ValidateNested } from 'class-validator';
+import { ChecklistStepDto } from './execution.dto';
 import {
   IsString,
   IsOptional,
@@ -50,6 +53,14 @@ export class CreateTaskDto {
   @IsOptional()
   @IsString()
   procedureUrl?: string;
+
+  @ValidateIf((_o, value) => value !== undefined)
+  @IsArray()
+  @ArrayMaxSize(50)
+  @ArrayUnique((step: ChecklistStepDto) => step?.id)
+  @ValidateNested({ each: true })
+  @Type(() => ChecklistStepDto)
+  executionChecklist?: ChecklistStepDto[];
 
   @IsDateString()
   @IsValidRecurrenceDate({

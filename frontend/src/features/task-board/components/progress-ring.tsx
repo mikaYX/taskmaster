@@ -38,7 +38,7 @@ export function ProgressRing({ percentage, size = 150, strokeWidth = 12 }: Progr
                 />
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-4xl font-bold tracking-tight text-foreground">{clamped}%</span>
+                <span className={`${size < 120 ? 'text-2xl' : 'text-4xl'} font-bold tracking-tight text-foreground`}>{clamped}%</span>
             </div>
         </div>
     );

@@ -1,8 +1,9 @@
+import { ExecutionSubmissionDto } from './execution.dto';
 import { IsDateString, IsIn, IsOptional, IsString } from 'class-validator';
 
 const ALLOWED_STATUSES = ['SUCCESS', 'FAILED', 'MISSING', 'RUNNING'] as const;
 
-export class SetStatusDto {
+export class SetStatusDto extends ExecutionSubmissionDto {
   @IsDateString(
     {},
     { message: 'date must be a valid ISO 8601 date string (e.g. 2026-03-07)' },

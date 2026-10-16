@@ -1,14 +1,25 @@
-import { useState, useCallback } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useAuthStore } from '@/stores/auth-store';
+import { useSiteStore } from '@/stores/site-store';
+import { useState, useCallback, useRef } from 'react';
+import { useQuery, useMutation, useMutationState, useQueryClient } from '@tanstack/react-query';
 import { tasksApi } from '@/api/tasks';
 import type { BoardItem, TaskStatusValue } from '@/api/types';
 import { ApiError } from '@/api/http';
 import { isBefore, startOfDay, parseISO, isSameDay, isAfter, subHours } from 'date-fns';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 import { clampDateRange, loadTaskBoardPreferences, saveTaskBoardPreferences } from './lib/task-board-utils';
 
 export function useTaskBoard(filters: { filterUserId?: number; filterGroupId?: number; searchQuery?: string; refetchInterval?: number } = {}) {
     const queryClient = useQueryClient();
+    const userId = useAuthStore(state => state.userId);
+    const siteId = useSiteStore(state => state.currentSiteId);
+    const { t } = useTranslation();
+    const pending = useRef(new Set<string>());
+    const pendingStatuses = useMutationState({
+        filters: { mutationKey: ['task-board-status', userId, siteId], status: 'pending' },
+        select: mutation => mutation.state.variables as { taskId: number; date: string },
+    });
 
     // Lazy init from localStorage
     const [prefs] = useState(() => loadTaskBoardPreferences());
@@ -42,22 +53,28 @@ export function useTaskBoard(filters: { filterUserId?: number; filterGroupId?: n
         saveTaskBoardPreferences({ showCompleted: show });
     }, []);
 
-    const { data: responseData, isLoading, error } = useQuery({
-        queryKey: ['task-board', dateRange.start.toISOString(), dateRange.end.toISOString(), filters.filterUserId, filters.filterGroupId],
+    const { data: responseData, isLoading, error, dataUpdatedAt, isFetching, isRefetchError } = useQuery({
+        queryKey: ['task-board', userId, siteId, dateRange.start.toISOString(), dateRange.end.toISOString(), filters.filterUserId, filters.filterGroupId],
         queryFn: () => tasksApi.getBoard(dateRange.start.toISOString(), dateRange.end.toISOString(), filters.filterUserId, filters.filterGroupId),
-        placeholderData: (previousData) => previousData,
-        refetchInterval: filters.refetchInterval,
+        placeholderData: (previousData, previousQuery) => previousQuery?.queryKey[1] === userId && previousQuery?.queryKey[2] === siteId ? previousData : undefined,
+        refetchInterval: filters.refetchInterval ?? 60000,
+        staleTime: 0,
+        refetchOnWindowFocus: true,
     });
 
     const statusMutation = useMutation({
+        mutationKey: ['task-board-status', userId, siteId],
         mutationFn: ({ taskId, date, status, comment }: { taskId: number; date: string; status: TaskStatusValue; comment?: string }) =>
             tasksApi.setStatus(taskId, date, status, comment),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['task-board'] });
-            toast.success('Statut mis à jour');
+        onSuccess: async () => {
+            await queryClient.invalidateQueries({ queryKey: ['task-board'] });
+            toast.success(t('taskBoard.overrideSuccess'));
+        },
+        onSettled: (_data, _error, variables) => {
+            pending.current.delete(`${variables.taskId}-${variables.date}`);
         },
         onError: (error: unknown) => {
-            let message = 'Erreur lors de la mise à jour';
+            let message = t('taskBoard.overrideError');
             if (error instanceof ApiError && error.data && typeof error.data === 'object') {
                 const d = error.data as { message?: string; errors?: Record<string, string[]> };
                 if (d.message) message = d.message;
@@ -69,6 +86,13 @@ export function useTaskBoard(filters: { filterUserId?: number; filterGroupId?: n
             toast.error(message);
         }
     });
+
+    const updateStatus = (data: { taskId: number; date: string; status: TaskStatusValue; comment?: string }) => {
+        const key = `${data.taskId}-${data.date}`;
+        if (pending.current.has(key)) return;
+        pending.current.add(key);
+        statusMutation.mutate(data);
+    };
 
     const now = new Date();
     const today = startOfDay(now);
@@ -137,7 +161,11 @@ export function useTaskBoard(filters: { filterUserId?: number; filterGroupId?: n
         setDateRange,
         showCompleted,
         setShowCompleted,
-        updateStatus: statusMutation.mutate,
+        updateStatus,
+        isItemUpdating: (taskId: number, date: string) => pendingStatuses.some(item => item.taskId === taskId && item.date === date),
+        dataUpdatedAt,
+        isFetching,
+        isRefetchError,
         isUpdating: statusMutation.isPending,
     };
 }

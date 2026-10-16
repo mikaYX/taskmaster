@@ -1,0 +1,47 @@
+name: Build Windows installer candidate
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-2022
+    timeout-minutes: 45
+    env:
+      DOTNET_ROLL_FORWARD: Major
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 8.0.x
+      - name: Install the repository's WiX 5 build toolchain
+        shell: pwsh
+        run: |
+          dotnet tool install --global wix --version 5.0.2
+          if ($LASTEXITCODE -ne 0) { throw 'WiX installation failed' }
+          wix extension add --global WixToolset.Util.wixext/5.0.2
+          if ($LASTEXITCODE -ne 0) { throw 'WiX Util extension installation failed' }
+          wix extension add --global WixToolset.UI.wixext/5.0.2
+          if ($LASTEXITCODE -ne 0) { throw 'WiX UI extension installation failed' }
+      - name: Build and test the unsigned MSI candidate
+        shell: powershell
+        run: ./installer/build.ps1
+      - name: Upload candidate and checksums for VM acceptance testing
+        uses: actions/upload-artifact@v4
+        with:
+          name: taskmaster-windows-candidate
+          path: |
+            dist-installer/*.msi
+            dist-installer/SHA256SUMS
+            installer/verify-installation.ps1
+            installer/common/Taskmaster.Common.ps1
+            docs/windows-release-checklist.md
+          if-no-files-found: error
+          retention-days: 14

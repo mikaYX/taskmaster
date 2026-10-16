@@ -54,7 +54,9 @@
         "signInToAccount": "Connectez-vous à votre compte",
         "loginFailed": "Échec de connexion. Vérifiez vos identifiants.",
         "invalidMfa": "Code MFA invalide.",
-        "passkeyFailed": "Échec de la connexion par clé d'accès."
+        "passkeyFailed": "Échec de la connexion par clé d'accès.",
+        "passkeyOriginError": "Passkey indisponible sur {{origin}} avec le domaine configuré {{rpID}}. Vérifiez HTTPS et FRONTEND_URL dans la configuration du serveur, puis redémarrez le service.",
+        "passkeyConfigError": "La configuration passkey ne correspond pas à l’adresse publique. Vérifiez FRONTEND_URL et RP_ID (domaine sans protocole ni port), puis redémarrez le service."
     },
     "settingsValidation": {
         "countryRequired": "Le code pays est requis",
@@ -82,7 +84,8 @@
         "todoList": "Liste de tâches",
         "exports": "Exports",
         "backups": "Sauvegardes",
-        "auditLog": "Journal d'audit"
+        "auditLog": "Journal d'audit",
+        "correctiveActions": "Actions correctives"
     },
     "auditLog": {
         "title": "Journal d'audit",
@@ -182,7 +185,54 @@
         "statusMissing": "Manquée",
         "inProgress": "En cours",
         "taskCount": "{{count}} tâche",
-        "taskCount_other": "{{count}} tâches"
+        "taskCount_other": "{{count}} tâches",
+        "totalCount_one": "{{count}} tâche au total",
+        "totalCount_other": "{{count}} tâches au total",
+        "offline": "Hors connexion",
+        "refreshFailed": "Actualisation impossible",
+        "refreshing": "Actualisation…",
+        "connected": "Connecté",
+        "lastSynced": "Dernière synchronisation : {{time}}",
+        "loadError": "Erreur de chargement du tableau",
+        "tvDisplay": "MODE AFFICHAGE TV",
+        "readOnly": "(LECTURE SEULE)",
+        "exitTv": "Quitter le mode TV",
+        "heading": "Tableau de bord",
+        "tvMode": "Mode TV",
+        "chooseDate": "Choisir une date",
+        "clear": "Effacer",
+        "allUsers": "Tous les utilisateurs",
+        "allGroups": "Tous les groupes",
+        "user": "Utilisateur",
+        "group": "Groupe",
+        "noActiveTasks": "Aucune tâche en cours pour cette période",
+        "noCompletedTasks": "Aucune tâche terminée pour cette période",
+        "completed": "Terminées",
+        "runningLabel": "en cours",
+        "urgentLabel_one": "urgente",
+        "urgentLabel_other": "urgentes",
+        "completedLabel": "terminées",
+        "preset0": "Aujourd’hui",
+        "preset1": "7j",
+        "preset2": "30j",
+        "preset3": "90j",
+        "validateTask": "Valider {{name}}",
+        "failTask": "Signaler un échec pour {{name}}",
+        "downloadProcedure": "Télécharger la procédure",
+        "openProcedure": "Ouvrir la procédure",
+        "awaitingAudit": "en attente d’audit",
+        "urgent": "urgent",
+        "failureDetails": "Détails de l’échec",
+        "priorityCritical": "Critique",
+        "priorityHigh": "Haute",
+        "priorityMedium": "Moyenne",
+        "priorityLow": "Basse",
+        "periodicity_daily": "Quotidien",
+        "periodicity_weekly": "Hebdo.",
+        "periodicity_monthly": "Mensuel",
+        "periodicity_yearly": "Annuel",
+        "periodicity_once": "Unique",
+        "failOptionalDescription": "Veuillez indiquer pourquoi la tâche a échoué (optionnel)"
     },
     "dashboard": {
         "welcome": "Bienvenue",
@@ -742,7 +792,11 @@
         "systemDescription": "Inclut la base de données, la configuration, les fichiers importés et les secrets.",
         "requiresEncryptionKey": "Nécessite une clé de chiffrement.",
         "disabledMissingKey": "Les sauvegardes sont désactivées car BACKUP_ENCRYPTION_KEY est manquant.",
-        "runBackup": "Lancer la sauvegarde"
+        "runBackup": "Lancer la sauvegarde",
+        "completed": "Sauvegarde terminée et disponible dans l’historique",
+        "failed": "La sauvegarde a échoué",
+        "running": "Sauvegarde en cours…",
+        "monitorFailed": "Impossible de suivre la sauvegarde. Consultez son état avant de relancer."
     },
     "backupHistory": {
         "title": "Sauvegardes système ({{count}})",
@@ -1136,7 +1190,31 @@
         "day": "jour"
     },
     "profile": {
-        "myProfile": "Mon Profil"
+        "myProfile": "Mon Profil",
+        "changePassword": {
+            "title": "Changer le mot de passe",
+            "description": "Mettez à jour votre mot de passe pour sécuriser votre compte.",
+            "forcedTitle": "Choisissez un nouveau mot de passe",
+            "forcedDescription": "Pour des raisons de sécurité, vous devez remplacer votre mot de passe temporaire avant de continuer.",
+            "current": "Mot de passe actuel",
+            "new": "Nouveau mot de passe",
+            "confirm": "Confirmer le nouveau mot de passe",
+            "cancel": "Annuler",
+            "submit": "Changer le mot de passe",
+            "success": "Mot de passe modifié avec succès",
+            "rules": {
+                "length": "Au moins 12 caractères",
+                "lowercase": "Une lettre minuscule",
+                "uppercase": "Une lettre majuscule (n'importe où dans le mot de passe)",
+                "digit": "Un chiffre",
+                "special": "Un caractère spécial (tout caractère qui n'est ni une lettre ni un chiffre)"
+            },
+            "errors": {
+                "weak": "Le nouveau mot de passe ne respecte pas toutes les règles.",
+                "mismatch": "Les mots de passe ne correspondent pas",
+                "failed": "Impossible de changer le mot de passe"
+            }
+        }
     },
     "sites": {
         "selectSite": "Sélectionner un site",
@@ -1184,5 +1262,82 @@
         "goHome": "Retour à l'accueil",
         "errorDetails": "Détails de l'erreur",
         "context": "Contexte : {{context}}"
+    },
+    "execution": {
+        "checklist": "Checklist d’exécution",
+        "optionalDescription": "Facultatif. Les étapes obligatoires doivent être renseignées pour valider une tâche.",
+        "stepLabel": "Libellé de l’étape {{number}}",
+        "stepKind": "Type de l’étape {{number}}",
+        "required": "Obligatoire",
+        "removeStep": "Supprimer l’étape {{number}}",
+        "addStep": "Ajouter une étape",
+        "kind": {
+            "CHECK": "Case à cocher",
+            "TEXT": "Texte",
+            "NUMBER": "Mesure",
+            "PHOTO": "Photo"
+        },
+        "report": "Compte rendu",
+        "complete": "Valider la tâche",
+        "viewPhoto": "Télécharger la photo",
+        "checked": "Effectué",
+        "unchecked": "Non effectué",
+        "photoReady": "Photo enregistrée",
+        "photoLimit": "PNG, JPEG ou WebP, 5 Mo maximum",
+        "uploadFailed": "Échec de l’enregistrement de la photo",
+        "downloadFailed": "Téléchargement impossible",
+        "comment": "Commentaire (facultatif)",
+        "createCorrectiveAction": "Créer une action corrective",
+        "actionTitle": "Action à réaliser",
+        "dueDate": "Échéance (facultative)",
+        "assignee": "Responsable",
+        "myself": "Moi-même",
+        "saving": "Enregistrement…",
+        "correctiveActions": "Actions correctives",
+        "correctiveDescription": "Suivez les suites données aux contrôles échoués. Clôturer une action conserve le statut d’échec du contrôle d’origine.",
+        "state": {
+            "OPEN": "Ouvertes",
+            "CLOSED": "Clôturées"
+        },
+        "noActions": "Aucune action dans cette catégorie.",
+        "resolution": "Résolution",
+        "closeAction": "Clôturer l’action",
+        "reopenAction": "Rouvrir l’action",
+        "overdue": "En retard",
+        "loadFailed": "Impossible de charger les actions",
+        "updateFailed": "Impossible de mettre à jour cette action",
+        "listLimit": "Les 500 premières actions sont affichées.",
+        "labelRequired": "Un libellé est nécessaire.",
+        "search": "Rechercher une action, une tâche ou un responsable",
+        "onlyMine": "Mes actions",
+        "onlyOverdue": "En retard uniquement",
+        "pagination": "Pagination des actions correctives",
+        "pageSummary": "Page {{page}} sur {{pages}} · {{total}} action(s)"
+    },
+    "boardViews": {
+        "title": "Vues enregistrées",
+        "description": "Conservez vos filtres et votre présentation pour ce compte et ce site, dans ce navigateur. Les périodes relatives sont recalculées lors de l’application d’une vue.",
+        "name": "Nom de la vue",
+        "save": "Enregistrer la vue actuelle",
+        "delete": "Supprimer la vue {{name}}",
+        "empty": "Aucune vue enregistrée.",
+        "duplicate": "Une vue porte déjà ce nom.",
+        "limit": "Vous pouvez enregistrer jusqu’à 20 vues.",
+        "compact": "Affichage compact",
+        "storageUnavailable": "Les préférences restent utilisables, mais leur enregistrement dans ce navigateur est indisponible."
+    },
+    "profileSettings": {
+        "saved": "Profil enregistré",
+        "saveFailed": "Impossible d’enregistrer le profil",
+        "loadFailed": "Impossible de charger votre profil",
+        "manageMfa": "Gérer la MFA",
+        "configureMfa": "Configurer la MFA",
+        "recoveryCodesNote": "Les codes de récupération sont affichés uniquement à l’activation de la MFA. Conservez-les dans un endroit sûr.",
+        "passkeyNote": "Utilisez un authentificateur de votre appareil ou une clé de sécurité. Les options disponibles dépendent de votre appareil et de votre navigateur."
+    },
+    "access": {
+        "deniedTitle": "Accès non autorisé",
+        "deniedDescription": "Votre compte ne dispose pas des droits nécessaires pour cette page.",
+        "backToBoard": "Retour au tableau de bord"
     }
 }

@@ -1,3 +1,4 @@
+import { SettingsService } from '../settings/settings.service';
 import { ForbiddenException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuditService } from '../audit/audit.service';
@@ -38,6 +39,7 @@ describe('UsersService - Privilege Escalation', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         UsersService,
+        { provide: SettingsService, useValue: { getRawValue: jest.fn() } },
         { provide: PrismaService, useValue: mockPrisma },
         { provide: AuthService, useValue: mockAuthService },
         { provide: AuditService, useValue: mockAuditService },

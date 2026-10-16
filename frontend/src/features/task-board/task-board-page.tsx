@@ -1,10 +1,15 @@
+import { useBoardWorkspace } from './use-board-workspace';
+import { boardWorkspaceKey, resolveViewRange, snapshotViewRange } from './lib/board-views';
+import { SavedViewsDialog } from './components/saved-views-dialog';
+import { useSiteStore } from '@/stores/site-store';
 import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Loader2, AlertTriangle, CalendarIcon, Monitor, X, Search } from 'lucide-react';
 import { useAuthStore } from '@/stores/auth-store';
 import { format } from 'date-fns';
-import { fr } from 'date-fns/locale';
+import { fr, enUS } from 'date-fns/locale';
+import { useNetworkStatus } from '@/hooks/use-network-status';
 import { useUIStore } from '@/stores/ui-store';
 import { useTaskBoard } from './use-task-board';
 import { TaskListSection } from './components/task-list-section';
@@ -27,15 +32,27 @@ import { PRESETS, getActivePresetLabel } from './lib/task-board-utils';
 // ── Page ─────────────────────────────────────────────────────────────
 
 export default function TaskBoardPage() {
-    const { t } = useTranslation();
+    const userId = useAuthStore(state => state.userId);
+    const siteId = useSiteStore(state => state.currentSiteId);
+    const scope = boardWorkspaceKey(userId, siteId);
+    return <TaskBoardWorkspace key={scope} scope={scope} />;
+}
+
+function TaskBoardWorkspace({ scope }: { scope: string }) {
+    const { t, i18n } = useTranslation();
+    const locale = i18n.resolvedLanguage?.startsWith('fr') ? fr : enUS;
+    const { isOnline } = useNetworkStatus();
     const isManager = useIsAdminOrManager();
     const role = useAuthStore((state) => state.role);
     const isGuest = role === 'GUEST';
 
     const { isTvMode, setIsTvMode } = useUIStore();
-    const [searchQuery, setSearchQuery] = useState('');
-    const [filterUserId, setFilterUserId] = useState<number | undefined>(undefined);
-    const [filterGroupId, setFilterGroupId] = useState<number | undefined>(undefined);
+    const workspace = useBoardWorkspace(scope, isManager);
+    const { searchQuery, filterUserId, filterGroupId } = workspace.filters;
+    const compact = workspace.filters.compact && !isTvMode;
+    const setSearchQuery = (searchQuery: string) => workspace.setFilters({ searchQuery });
+    const setFilterUserId = (filterUserId: number | undefined) => workspace.setFilters({ filterUserId, filterGroupId: undefined });
+    const setFilterGroupId = (filterGroupId: number | undefined) => workspace.setFilters({ filterGroupId, filterUserId: undefined });
 
     const { data: users } = useUsers();
     const { data: groups } = useGroups();
@@ -49,7 +66,10 @@ export default function TaskBoardPage() {
         showCompleted,
         setShowCompleted,
         updateStatus,
-        isUpdating
+        isItemUpdating,
+        dataUpdatedAt,
+        isFetching,
+        isRefetchError,
     } = useTaskBoard({
         filterUserId,
         filterGroupId,
@@ -78,19 +98,19 @@ export default function TaskBoardPage() {
     const completedCount = buckets.completed.length;
     const percentage = totalTasks > 0 ? Math.round((completedCount / totalTasks) * 100) : 100;
 
-    if (error) {
+    if (error && !dataUpdatedAt) {
         return (
             <div className="flex items-center justify-center h-[60vh]">
                 <div className="text-center space-y-2">
                     <AlertTriangle className="h-10 w-10 text-destructive mx-auto" />
-                    <p className="text-muted-foreground">Erreur de chargement du tableau</p>
+                    <p className="text-muted-foreground">{t('taskBoard.loadError')}</p>
                 </div>
             </div>
         );
     }
 
     return (
-        <div className="max-w-[1200px] mx-auto px-6 py-6 space-y-5">
+        <div data-density={compact ? "compact" : "comfortable"} className={cn("max-w-[1200px] mx-auto px-6", compact ? "py-3 space-y-3" : "py-6 space-y-5")}>
 
             {/* ══════════════════ HERO ══════════════════ */}
             <div className="rounded-2xl bg-secondary/50 border border-border overflow-hidden">
@@ -101,10 +121,10 @@ export default function TaskBoardPage() {
                         <div className="flex items-center gap-4">
                             <span className="text-sm font-bold flex items-center gap-2 text-foreground">
                                 <Monitor className="h-4 w-4 text-primary" />
-                                MODE AFFICHAGE TV {isGuest && " (LECTURE SEULE)"}
+                                {t('taskBoard.tvDisplay')} {isGuest && t('taskBoard.readOnly')}
                             </span>
                             <span className="text-xs text-muted-foreground bg-background px-2.5 py-1 rounded-md border border-border">
-                                {format(dateRange.start, "dd MMM", { locale: fr })} – {format(dateRange.end, "dd MMM", { locale: fr })}
+                                {format(dateRange.start, "dd MMM", { locale })} – {format(dateRange.end, "dd MMM", { locale })}
                             </span>
                         </div>
                         {!isGuest && (
@@ -118,33 +138,33 @@ export default function TaskBoardPage() {
                 <div className="px-8 pt-6 pb-7">
                     {/* Title (hidden TV mode) */}
                     {!isTvMode && (
-                        <div className="flex items-center justify-between mb-8">
-                            <h1 className="text-xl font-bold tracking-tight text-foreground">Tableau de bord</h1>
+                        <div className={cn("flex items-center justify-between", compact ? "mb-3" : "mb-8")}>
+                            <h1 className="text-xl font-bold tracking-tight text-foreground">{t('taskBoard.heading')}</h1>
                             <Button variant="outline" size="sm" className="h-8 gap-2 text-xs" onClick={() => setIsTvMode(true)}>
-                                <Monitor className="h-3.5 w-3.5" /> Mode TV
+                                <Monitor className="h-3.5 w-3.5" /> {t('taskBoard.tvMode')}
                             </Button>
                         </div>
                     )}
 
                     {/* Progress ring + Date + Stats */}
                     <div className="flex flex-col sm:flex-row items-center justify-center gap-8 sm:gap-14">
-                        <ProgressRing percentage={percentage} />
+                        <ProgressRing percentage={percentage} size={compact ? 92 : 150} strokeWidth={compact ? 8 : 12} />
                         <div className="text-center sm:text-left space-y-3">
                             <h2 className="text-2xl font-semibold text-foreground tracking-tight capitalize">
-                                {format(new Date(), "EEEE d MMMM yyyy", { locale: fr })}
+                                {format(new Date(), "EEEE d MMMM yyyy", { locale })}
                             </h2>
                             <div className="flex items-center justify-center sm:justify-start gap-5 text-sm">
                                 <span className="flex items-center gap-2 text-muted-foreground">
                                     <span className="h-2.5 w-2.5 rounded-full bg-amber-500 shadow-[0_0_6px_rgba(245,158,11,0.5)]" />
-                                    <span><span className="font-semibold text-foreground">{activeItems.length}</span> en cours</span>
+                                    <span><span className="font-semibold text-foreground">{activeItems.length}</span> {t('taskBoard.runningLabel')}</span>
                                 </span>
                                 <span className="flex items-center gap-2 text-muted-foreground">
                                     <span className="h-2.5 w-2.5 rounded-full bg-amber-500 shadow-[0_0_6px_rgba(245,158,11,0.5)]" />
-                                    <span><span className="font-semibold text-foreground">{urgentCount}</span> urgente{urgentCount !== 1 ? 's' : ''}</span>
+                                    <span><span className="font-semibold text-foreground">{urgentCount}</span> {t('taskBoard.urgentLabel', { count: urgentCount })}</span>
                                 </span>
                                 <span className="flex items-center gap-2 text-muted-foreground">
                                     <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.5)]" />
-                                    <span><span className="font-semibold text-foreground">{completedCount}</span> terminées</span>
+                                    <span><span className="font-semibold text-foreground">{completedCount}</span> {t('taskBoard.completedLabel')}</span>
                                 </span>
                             </div>
                         </div>
@@ -152,12 +172,12 @@ export default function TaskBoardPage() {
 
                     {/* ── Toolbar ── */}
                     {!isTvMode && !isGuest && (
-                        <div className="flex flex-wrap items-center gap-2.5 mt-8 pt-5 border-t border-border/60">
+                        <div className={cn("flex flex-wrap items-center gap-2.5 border-t border-border/60", compact ? "mt-3 pt-3" : "mt-8 pt-5")}>
                             {/* Presets */}
                             <div className="flex items-center rounded-lg border border-border bg-background p-0.5">
                                 {PRESETS.map(preset => (
                                     <Button
-                                        key={preset.label}
+                                        key={t(`taskBoard.preset${PRESETS.indexOf(preset)}`)}
                                         variant="ghost"
                                         size="sm"
                                         className={cn(
@@ -168,7 +188,7 @@ export default function TaskBoardPage() {
                                         )}
                                         onClick={() => setDateRange(preset.getValue())}
                                     >
-                                        {preset.label}
+                                        {t(`taskBoard.preset${PRESETS.indexOf(preset)}`)}
                                     </Button>
                                 ))}
                             </div>
@@ -180,9 +200,9 @@ export default function TaskBoardPage() {
                                         <CalendarIcon className="mr-2 h-3.5 w-3.5" />
                                         {dateRange?.start ? (
                                             dateRange.end ? (
-                                                <>{format(dateRange.start, "dd MMM", { locale: fr })} – {format(dateRange.end, "dd MMM", { locale: fr })}</>
-                                            ) : format(dateRange.start, "dd MMM", { locale: fr })
-                                        ) : <span>Choisir une date</span>}
+                                                <>{format(dateRange.start, "dd MMM", { locale })} – {format(dateRange.end, "dd MMM", { locale })}</>
+                                            ) : format(dateRange.start, "dd MMM", { locale })
+                                        ) : <span>{t('taskBoard.chooseDate')}</span>}
                                     </Button>
                                 </PopoverTrigger>
                                 <PopoverContent className="w-auto p-0" align="end">
@@ -205,7 +225,7 @@ export default function TaskBoardPage() {
                                 <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-muted-foreground/60" />
                                 <Input
                                     type="text"
-                                    placeholder="Rechercher..."
+                                    placeholder={t('taskBoard.searchPlaceholder')} aria-label={t('taskBoard.searchPlaceholder')}
                                     className="pl-8 h-8 w-[150px] text-xs rounded-lg"
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
@@ -218,16 +238,16 @@ export default function TaskBoardPage() {
                                     <Select
                                         value={filterUserId?.toString() || 'all'}
                                         onValueChange={(val) => {
-                                            if (val && val !== 'all') { setFilterUserId(parseInt(val, 10)); setFilterGroupId(undefined); }
+                                            if (val && val !== 'all') { setFilterUserId(parseInt(val, 10)); }
                                             else { setFilterUserId(undefined); }
                                         }}
                                         disabled={filterGroupId !== undefined}
                                     >
                                         <SelectTrigger className="w-[180px] h-8 text-xs rounded-lg">
-                                            <SelectValue placeholder="Utilisateur" />
+                                            <SelectValue placeholder={t('taskBoard.user')} />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="all">Tous les utilisateurs</SelectItem>
+                                            <SelectItem value="all">{t('taskBoard.allUsers')}</SelectItem>
                                             {users?.map(user => (
                                                 <SelectItem key={user.id} value={user.id.toString()}>{user.fullname || user.username}</SelectItem>
                                             ))}
@@ -236,16 +256,16 @@ export default function TaskBoardPage() {
                                     <Select
                                         value={filterGroupId?.toString() || 'all'}
                                         onValueChange={(val) => {
-                                            if (val && val !== 'all') { setFilterGroupId(parseInt(val, 10)); setFilterUserId(undefined); }
+                                            if (val && val !== 'all') { setFilterGroupId(parseInt(val, 10)); }
                                             else { setFilterGroupId(undefined); }
                                         }}
                                         disabled={filterUserId !== undefined}
                                     >
                                         <SelectTrigger className="w-[180px] h-8 text-xs rounded-lg">
-                                            <SelectValue placeholder="Groupe" />
+                                            <SelectValue placeholder={t('taskBoard.group')} />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="all">Tous les groupes</SelectItem>
+                                            <SelectItem value="all">{t('taskBoard.allGroups')}</SelectItem>
                                             {groups?.map(group => (
                                                 <SelectItem key={group.id} value={group.id.toString()}>{group.name}</SelectItem>
                                             ))}
@@ -258,18 +278,26 @@ export default function TaskBoardPage() {
                                 <Button
                                     variant="ghost"
                                     size="sm"
-                                    onClick={() => { setFilterUserId(undefined); setFilterGroupId(undefined); setSearchQuery(''); }}
+                                    onClick={() => { workspace.setFilters({ filterUserId: undefined, filterGroupId: undefined, searchQuery: '' }); }}
                                     className="text-muted-foreground h-8 text-xs"
                                 >
-                                    Effacer
+                                    {t('taskBoard.clear')}
                                 </Button>
                             )}
 
+                            <SavedViewsDialog views={workspace.views} persisted={workspace.isPersisted} onDelete={workspace.deleteView}
+                                onSave={name => workspace.saveView({ ...workspace.filters, name, range: snapshotViewRange(dateRange), showCompleted })}
+                                onApply={view => { workspace.setFilters({ searchQuery: view.searchQuery, compact: view.compact, filterUserId: view.filterUserId, filterGroupId: view.filterGroupId }); setDateRange(resolveViewRange(view.range)); setShowCompleted(view.showCompleted); }} />
+                            <div className="flex items-center gap-2">
+                                <Switch id="compact-board" checked={workspace.filters.compact} onCheckedChange={compact => workspace.setFilters({ compact })} />
+                                <Label htmlFor="compact-board" className="text-xs">{t('boardViews.compact')}</Label>
+                            </div>
+                            {!workspace.isPersisted && <p role="status" className="text-xs text-muted-foreground">{t('boardViews.storageUnavailable')}</p>}
                             {/* Toggle Terminées */}
                             <div className="flex items-center gap-2.5 ml-auto">
                                 <Switch id="show-completed" checked={showCompleted} onCheckedChange={setShowCompleted} />
                                 <Label htmlFor="show-completed" className="text-xs cursor-pointer text-muted-foreground whitespace-nowrap">
-                                    Terminées
+                                    {t('taskBoard.completed')}
                                 </Label>
                             </div>
                         </div>
@@ -299,7 +327,9 @@ export default function TaskBoardPage() {
                                     item={item}
                                     onStatusChange={handleStatusChange}
                                     onAdminAction={setAdminDialogItem}
+                                    compact={compact}
                                     readonly={isTvMode || isGuest}
+                                    isUpdating={isItemUpdating(item.taskId, item.instanceDate)}
                                 />
                             ))}
                         </div>
@@ -308,14 +338,15 @@ export default function TaskBoardPage() {
                     {/* Empty state */}
                     {activeItems.length === 0 && !showCompleted && (
                         <div className="rounded-xl border border-border py-16 text-center bg-card">
-                            <p className="text-sm text-muted-foreground">Aucune tâche en cours pour cette période</p>
+                            <p className="text-sm text-muted-foreground">{t('taskBoard.noActiveTasks')}</p>
                         </div>
                     )}
 
                     {/* Terminées */}
                     {showCompleted && buckets.completed.length > 0 && (
                         <TaskListSection
-                            title="✅ Terminées"
+                            compact={compact}
+                            title={t('taskBoard.completed')}
                             items={buckets.completed}
                             onStatusChange={handleStatusChange}
                             onAdminAction={setAdminDialogItem}
@@ -325,7 +356,7 @@ export default function TaskBoardPage() {
 
                     {showCompleted && buckets.completed.length === 0 && (
                         <div className="rounded-xl border border-border py-10 text-center bg-card">
-                            <p className="text-sm text-muted-foreground">Aucune tâche terminée pour cette période</p>
+                            <p className="text-sm text-muted-foreground">{t('taskBoard.noCompletedTasks')}</p>
                         </div>
                     )}
                 </div>
@@ -333,10 +364,12 @@ export default function TaskBoardPage() {
 
             {/* ══════════════════ FOOTER ══════════════════ */}
             <div className="text-center text-[11px] text-muted-foreground/60 py-3 tracking-wide">
-                {totalTasks} tâche{totalTasks > 1 ? 's' : ''} au total
+                {t('taskBoard.totalCount', { count: totalTasks })}
                 <span className="mx-2.5">·</span>
                 <span className="inline-flex items-center gap-1.5">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" /> Connecté
+                    <span className={cn('h-1.5 w-1.5 rounded-full', isOnline && !isRefetchError ? 'bg-emerald-500' : 'bg-amber-500')} />
+                    {!isOnline ? t('taskBoard.offline') : isRefetchError ? t('taskBoard.refreshFailed') : isFetching ? t('taskBoard.refreshing') : t('taskBoard.connected')}
+                    {dataUpdatedAt > 0 && ` · ${t('taskBoard.lastSynced', { time: format(dataUpdatedAt, 'HH:mm:ss') })}`}
                 </span>
             </div>
 
@@ -347,13 +380,6 @@ export default function TaskBoardPage() {
                 onOpenChange={(open) => { if (!open) setAdminDialogItem(null); }}
                 onConfirm={handleStatusChange}
             />
-
-            {/* Updating overlay */}
-            {isUpdating && (
-                <div className="fixed inset-0 bg-background/60 backdrop-blur-sm flex items-center justify-center z-50">
-                    <Loader2 className="h-8 w-8 animate-spin" />
-                </div>
-            )}
         </div>
     );
 }

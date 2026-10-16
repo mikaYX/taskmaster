@@ -38,6 +38,9 @@ const SENSITIVE_PLACEHOLDER = '••••••••';
 export const PUBLIC_BRANDING_KEYS = [
   'app.title',
   'app.subtitle',
+  // Display flags for the same public title/subtitle, used by every role.
+  'app.showTitle',
+  'app.showSubtitle',
   'app.logoUrl',
   'app.faviconUrl',
   'ui.theme',

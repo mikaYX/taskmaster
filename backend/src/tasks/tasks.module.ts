@@ -1,3 +1,5 @@
+import { TaskExecutionService } from './task-execution.service';
+import { TaskExecutionController } from './task-execution.controller';
 import { Module } from '@nestjs/common';
 import { ScheduleModule } from '@nestjs/schedule';
 import { SettingsModule } from '../settings/settings.module';
@@ -21,9 +23,10 @@ import { ProcedureStorageService } from './procedure-storage.service';
  */
 @Module({
   imports: [ScheduleModule, SettingsModule, DelegationsModule],
-  controllers: [TasksController],
+  controllers: [TasksController, TaskExecutionController],
   providers: [
     TasksService,
+    TaskExecutionService,
 
     InstanceService,
     RecurrenceService,

@@ -2,6 +2,7 @@ import { http } from './http';
 import type {
     Task,
     CreateTaskDto,
+    ExecutionSubmission,
     UpdateTaskDto,
     TaskAssignmentDto,
     Delegation,
@@ -32,14 +33,22 @@ export const tasksApi = {
      * Set task status (Validate/Fail).
      * date: ISO date string (YYYY-MM-DD), e.g. from BoardItem.instanceDate.
      */
-    setStatus: (taskId: number, date: string, status: import('./types').TaskStatusValue, comment?: string) => {
-        const body: { date: string; status: string; comment?: string } = {
+    setStatus: (taskId: number, date: string, status: import('./types').TaskStatusValue, comment?: string, submission: ExecutionSubmission = {}) => {
+        const body: { date: string; status: string; comment?: string } & ExecutionSubmission = {
+            ...submission,
             date: String(date).trim(),
             status: String(status),
         };
         if (comment !== undefined && comment !== '') body.comment = comment;
         return http.post<void>(`/tasks/${taskId}/status`, body);
     },
+
+    uploadEvidence: (taskId: number, date: string, file: File) => {
+        const data = new FormData(); data.append('file', file);
+        return http.post<{ id: string }>(`/tasks/${taskId}/execution/evidence?date=${encodeURIComponent(date)}`, data);
+    },
+    downloadEvidence: (taskId: number, id: string) => http.get<Blob>(`/tasks/${taskId}/execution/evidence/${encodeURIComponent(id)}`, { responseType: 'blob' }),
+    executionAssignees: (taskId: number) => http.get<{ id: number; username: string; fullname: string | null }[]>(`/tasks/${taskId}/execution/assignees`),
 
     /**
      * Get all tasks (paginated).

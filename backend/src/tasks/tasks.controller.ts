@@ -40,6 +40,7 @@ import { FileValidationPipe } from '../common/pipes/file-validation.pipe';
 import {
   CreateTaskDto,
   GetTasksQueryDto,
+  SetStatusDto,
   ManageAssignmentsDto,
   OverrideOccurrenceDto,
   UpdateTaskDto,
@@ -158,7 +159,7 @@ export class TasksController {
   @Roles('SUPER_ADMIN', 'MANAGER', 'USER')
   setStatus(
     @Param('id', ParseIntPipe) id: number,
-    @Body() dto: import('./dto').SetStatusDto,
+    @Body() dto: SetStatusDto,
     @CurrentUser() user: JwtPayload,
   ) {
     return this.tasksService.setStatus(id, dto, user.sub, user.role);

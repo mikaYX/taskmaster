@@ -12,8 +12,8 @@ import {
 import { Link, useLocation } from 'react-router-dom';
 import { useLogout } from '@/hooks/use-auth';
 import { useAuthStore } from '@/stores';
-import { useUsers } from '@/hooks/use-users';
-import { useSettings } from '@/features/settings/hooks/use-settings';
+import { useOwnProfile } from '@/hooks/use-users';
+import { usePublicBranding } from '@/hooks/use-public-branding';
 
 import {
     Sidebar,
@@ -37,6 +37,7 @@ import {
 
 const mainNavItems = [
     { titleKey: 'nav.taskBoard', url: '/', icon: ClipboardCheck },
+    { titleKey: 'nav.correctiveActions', url: '/corrective-actions', icon: ShieldAlert },
     { titleKey: 'nav.todoList', url: '/todos', icon: CheckSquare },
 ];
 
@@ -60,12 +61,13 @@ export function AppSidebar() {
     const { t } = useTranslation();
     const location = useLocation();
     const logout = useLogout();
-    const userId = useAuthStore((state) => state.userId);
-    const isGuest = useAuthStore((state) => state.role === 'GUEST');
-    const { data: users } = useUsers();
+    const role = useAuthStore(state => state.role);
+    const isGuest = role === 'GUEST';
+    const visibleAdminItems = adminNavItems.filter(item => role === 'SUPER_ADMIN' || (item.url === '/task-definitions' && !!role && !isGuest));
+    const { data: currentUser } = useOwnProfile();
 
     // Branding settings
-    const { getSetting, getSettingAsBool } = useSettings();
+    const { getSetting, getSettingAsBool } = usePublicBranding();
     const appTitle = getSetting('app.title') || t('common.appName');
     const appSubtitle = getSetting('app.subtitle');
     const appLogo = getSetting('app.logoUrl');
@@ -76,7 +78,6 @@ export function AppSidebar() {
     const showTitle = showTitleStr === undefined ? true : showTitleStr === 'true';
     const showSubtitle = showSubtitleStr === undefined ? true : showSubtitleStr === 'true';
 
-    const currentUser = users?.find(u => u.id === userId);
     const displayName = currentUser?.fullname || currentUser?.username || t('common.user');
     const initials = displayName.substring(0, 2).toUpperCase();
 
@@ -118,7 +119,7 @@ export function AppSidebar() {
                     <SidebarGroupContent>
                         <SidebarMenu>
                             {mainNavItems
-                                .filter(item => item.url !== '/todos' || showTodos)
+                                .filter(item => (item.url !== '/todos' || showTodos) && (!isGuest || item.url !== '/corrective-actions'))
                                 .map((item) => (
                                     <SidebarMenuItem key={item.titleKey}>
                                         <SidebarMenuButton
@@ -159,19 +160,17 @@ export function AppSidebar() {
                     </SidebarGroup>
                 )}
 
-                {adminNavItems.filter(item => !(isGuest && (item.titleKey === 'nav.settings' || item.titleKey === 'nav.auditLog' || item.titleKey === 'nav.taskDefinitions'))).length > 0 && (
+                {visibleAdminItems.length > 0 && (
                     <SidebarGroup>
                         <SidebarGroupLabel>{t('nav.admin')}</SidebarGroupLabel>
                         <SidebarGroupContent>
                             <SidebarMenu>
-                                {adminNavItems
-                                    .filter(item => !(isGuest && (item.titleKey === 'nav.settings' || item.titleKey === 'nav.auditLog' || item.titleKey === 'nav.taskDefinitions')))
+                                {visibleAdminItems
                                     .map((item) => (
                                         <SidebarMenuItem key={item.titleKey}>
                                             <SidebarMenuButton
                                                 asChild
                                                 isActive={location.pathname === item.url}
-                                            // TODO: Check role for admin items
                                             >
                                                 <Link to={item.url}>
                                                     <item.icon className="h-4 w-4" />

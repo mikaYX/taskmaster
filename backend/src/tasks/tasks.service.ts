@@ -1,3 +1,6 @@
+import { prepareExecutionRecord } from './execution-record';
+import { assertExecutionSite, isExecutionManager } from './execution-access';
+import type { SetStatusDto } from './dto/manage-status.dto';
 import {
   Injectable,
   NotFoundException,
@@ -429,6 +432,8 @@ export class TasksService {
           category: task.category ?? undefined,
           periodicity: task.periodicity,
           procedureUrl: task.procedureUrl ?? undefined,
+          executionChecklist: task.executionChecklist ?? [],
+          executionRecord: status?.executionRecord ?? undefined,
           instanceDate: instanceDateStr,
           originalDate: originalDateStr,
           periodStart:
@@ -725,6 +730,8 @@ export class TasksService {
         periodicity: dto.periodicity,
         description: dto.description,
         procedureUrl: dto.procedureUrl,
+        executionChecklist: (dto.executionChecklist ??
+          []) as unknown as Prisma.InputJsonValue,
         startDate: new Date(dto.startDate),
         endDate: dto.endDate ? new Date(dto.endDate) : null,
         skipWeekends: dto.skipWeekends ?? true,
@@ -874,6 +881,9 @@ export class TasksService {
         periodicity: updates.periodicity,
         description: updates.description,
         procedureUrl: updates.procedureUrl,
+        executionChecklist: updates.executionChecklist as unknown as
+          | Prisma.InputJsonValue
+          | undefined,
         startDate: updates.startDate ? new Date(updates.startDate) : undefined,
         endDate: updates.endDate ? new Date(updates.endDate) : undefined,
         skipWeekends: updates.skipWeekends,
@@ -1253,11 +1263,7 @@ export class TasksService {
 
   async setStatus(
     taskId: number,
-    dto: {
-      date: string;
-      status: 'SUCCESS' | 'FAILED' | 'MISSING' | 'RUNNING';
-      comment?: string;
-    },
+    dto: SetStatusDto,
     userId: number,
     userRole: string,
   ) {
@@ -1270,6 +1276,24 @@ export class TasksService {
       where: { id: taskId },
       include: this.includeRelations,
     });
+
+    const hasChecklist =
+      Array.isArray(task?.executionChecklist) &&
+      task.executionChecklist.length > 0;
+    const extended =
+      hasChecklist ||
+      dto.executionAnswers !== undefined ||
+      dto.correctiveAction !== undefined;
+    if (extended && task) {
+      assertExecutionSite(this.prisma, task.siteId, userRole);
+      if (
+        !/^\d{4}-\d{2}-\d{2}$/.test(dto.date) ||
+        Number.isNaN(date.getTime()) ||
+        date.toISOString().slice(0, 10) !== dto.date
+      ) {
+        throw new BadRequestException('Execution date must be YYYY-MM-DD');
+      }
+    }
 
     if (task) {
       const defaultCountry =
@@ -1298,13 +1322,16 @@ export class TasksService {
           i.date.toISOString().split('T')[0] ===
           date.toISOString().split('T')[0],
       );
+      if (extended && !instance)
+        throw new BadRequestException(
+          'No scheduled occurrence exists for this date',
+        );
       const periodEnd =
         instance?.periodEnd ||
         new Date(new Date(date).setHours(23, 59, 59, 999));
 
       // Seuls ADMIN et MANAGER peuvent modifier le statut après expiration de la fenêtre
-      const canBypassExpiredWindow =
-        userRole === 'ADMIN' || userRole === 'MANAGER';
+      const canBypassExpiredWindow = isExecutionManager(userRole);
       if (!canBypassExpiredWindow && new Date() > periodEnd) {
         throw new BadRequestException(
           'The scheduling window for this task has expired.',
@@ -1319,7 +1346,7 @@ export class TasksService {
 
     const terminalStatuses: string[] = ['SUCCESS', 'FAILED', 'MISSING'];
 
-    if (userRole !== 'ADMIN') {
+    if (!['ADMIN', 'SUPER_ADMIN'].includes(userRole)) {
       // USER can only change RUNNING tasks to SUCCESS/FAILED
       if (existing && terminalStatuses.includes(existing.status)) {
         throw new BadRequestException(
@@ -1393,25 +1420,85 @@ export class TasksService {
       select: { username: true },
     });
 
-    const status = await this.prisma.client.status.upsert({
-      where: {
-        taskId_instanceDate: { taskId, instanceDate: date },
-      },
-      create: {
-        taskId,
-        instanceDate: date,
-        status: dto.status as TaskStatus,
-        comment: dto.comment,
-        updatedByUserId: userId,
-        updatedByUsername: user?.username ?? 'unknown',
-      },
-      update: {
-        status: dto.status as TaskStatus,
-        comment: dto.comment,
-        updatedByUserId: userId,
-        updatedByUsername: user?.username ?? 'unknown',
-      },
-    });
+    const record = prepareExecutionRecord(
+      task?.executionChecklist,
+      dto.executionAnswers,
+      dto.status,
+    );
+    const photoIds = (record ?? [])
+      .filter((answer) => answer.kind === 'PHOTO')
+      .map((answer) => String(answer.value));
+    if (photoIds.length) {
+      const evidence = await this.prisma.client.taskEvidence.findMany({
+        where: { id: { in: photoIds }, taskId, instanceDate: date },
+        select: { id: true },
+      });
+      if (
+        new Set(evidence.map((item) => item.id)).size !== new Set(photoIds).size
+      ) {
+        throw new BadRequestException(
+          'Photo evidence does not belong to this task occurrence',
+        );
+      }
+    }
+    if (dto.correctiveAction && dto.status !== 'FAILED') {
+      throw new BadRequestException(
+        'A corrective action can only be created for a failed occurrence',
+      );
+    }
+    const assigneeId = dto.correctiveAction?.assigneeId ?? userId;
+    if (dto.correctiveAction && assigneeId !== userId) {
+      if (!isExecutionManager(userRole))
+        throw new BadRequestException('Only a manager can assign another user');
+      const assignee = await this.prisma.client.user.findFirst({
+        where: {
+          id: assigneeId,
+          deletedAt: null,
+          role: { not: 'GUEST' },
+          sites: { some: { siteId: task!.siteId } },
+        },
+        select: { id: true },
+      });
+      if (!assignee)
+        throw new BadRequestException(
+          'Assignee must be an active member of the task site',
+        );
+    }
+    const statusData = {
+      status: dto.status as TaskStatus,
+      comment: dto.comment,
+      updatedByUserId: userId,
+      updatedByUsername: user?.username ?? 'unknown',
+      ...(record !== undefined
+        ? { executionRecord: record as unknown as Prisma.InputJsonValue }
+        : {}),
+    };
+    const writeStatus = (client: Prisma.TransactionClient) =>
+      client.status.upsert({
+        where: { taskId_instanceDate: { taskId, instanceDate: date } },
+        create: { taskId, instanceDate: date, ...statusData },
+        update: statusData,
+      });
+    const status = dto.correctiveAction
+      ? await this.prisma.client.$transaction(async (tx) => {
+          const saved = await writeStatus(tx);
+          await tx.correctiveAction.upsert({
+            where: { taskId_instanceDate: { taskId, instanceDate: date } },
+            create: {
+              taskId,
+              instanceDate: date,
+              title: dto.correctiveAction!.title.trim(),
+              assigneeId,
+              createdById: userId,
+              dueDate: dto.correctiveAction!.dueDate
+                ? new Date(dto.correctiveAction!.dueDate)
+                : null,
+            },
+            update: {}, // Retrying a submission never duplicates or reopens an action.
+          });
+          return saved;
+        })
+      : await writeStatus(this.prisma.client);
 
     this.logger.log(
       `Set status ${dto.status} for task ${taskId} on ${dto.date} by user ${userId} (role: ${userRole})`,

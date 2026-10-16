@@ -3,8 +3,8 @@
   Shared helpers for the Taskmaster Windows installer scripts (service install,
   PostgreSQL/Memurai provisioning, build, test-install, purge).
 
-  Authored for Windows PowerShell 5.1+ / PowerShell 7+. None of this can be
-  executed or verified outside a real Windows machine - see
+  Authored for Windows PowerShell 5.1+ / PowerShell 7+. Provisioning and
+  service operations require Windows; pure URL helpers can be tested separately. See
   docs/windows-server-2019-local.md for the acceptance checklist that must be
   run there.
 #>
@@ -250,3 +250,33 @@ function Assert-FileHash {
 # already present" duplicate-registration errors under Burn's elevated
 # ExePackage process (see the Microsoft.PowerShell.Security preload comment
 # above) - confirmed across several real install attempts.
+
+function Resolve-TaskmasterPublicUrl {
+    <# Resolve browser links without changing existing deployment configuration. #>
+    param(
+        [string] $PublicUrl,
+        [string] $HostName = 'localhost',
+        [int] $Port = 3000,
+        [switch] $IsUpgrade,
+        [string] $ExistingUrl
+    )
+    $fallback = "http://$($HostName):$Port"
+    $uri = $null
+    if ($IsUpgrade) {
+        # A malformed legacy URL must not prevent an otherwise valid upgrade.
+        # Never replace the preserved .env using an installer's default values.
+        if ($ExistingUrl -and [Uri]::TryCreate($ExistingUrl, [UriKind]::Absolute, [ref]$uri) -and
+            $uri.Scheme -in @('http', 'https') -and $uri.Host -and -not $uri.UserInfo) {
+            return $uri.GetLeftPart([UriPartial]::Authority)
+        }
+        return $fallback
+    }
+    if (-not $PublicUrl) { return $fallback }
+    if ($PublicUrl -match '[\r\n"]' -or
+        -not [Uri]::TryCreate($PublicUrl, [UriKind]::Absolute, [ref]$uri) -or
+        $uri.Scheme -notin @('http', 'https') -or -not $uri.Host -or $uri.UserInfo -or
+        $uri.Query -or $uri.Fragment -or $uri.AbsolutePath -ne '/') {
+        throw 'URL publique invalide : utilisez une URL HTTP(S), sans chemin, identifiant ni paramètres.'
+    }
+    return $uri.GetLeftPart([UriPartial]::Authority)
+}
