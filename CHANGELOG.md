@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.8] - 2026-10-17
+
+Bugfix release for 1.1.7. No database migration or configuration change.
+
+### Fixed
+- Administrative password resets and completed logins invalidate cached sessions so the forced password-change prompt reflects the current account state.
+- Legacy cached sessions without the renewal flag are rebuilt; session refresh on window focus preserves authenticated screens during transient network failures.
+- Password changes remain available before required passkey enrollment; the current password is still verified by the server.
+- The `Quality and regression checks` CI workflow is valid again: `TASKMASTER_DATA_DIR` for the Windows backup job is set at step level, where the `runner` context is available.
+
+### Verification
+- Backend: 594 passing tests; frontend: 114 passing tests; operational board, profile, passkeys, password renewal and navigation: 25 passing browser scenarios.
+- Windows MSI built on Windows Server 2019 x64 with the installer build script (typecheck and tests included).
+
 ## [1.1.7] - 2026-10-16
 
 ### Added
@@ -24,9 +38,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Dependency audit: `npm audit --omit=dev` reports 0 vulnerabilities. Upgraded `nodemailer` to 10.1.2 and NestJS core packages to 11.2.7; pinned patched `proxy-addr`, `shell-quote`, `handlebars`, `undici`, `@grpc/grpc-js`, `fast-uri`, `multer`, `brace-expansion`, `js-yaml`, `moment`, `source-map-js` and `fast-copy`. The only remaining advisory (`braces`, GHSA-vfj7-8cjw-p6xm) affects development tooling only and has no patched release yet.
 
 ### Fixed
-- Administrative password resets and completed logins invalidate cached sessions so the forced password-change prompt reflects the current account state.
-- Legacy cached sessions without the renewal flag are rebuilt; session refresh on window focus preserves authenticated screens during transient network failures.
-- Password changes remain available before required passkey enrollment; the current password is still verified by the server.
 - Windows service backups resolve PostgreSQL tools and data paths explicitly, await closed file handles and publish completed archives atomically.
 - Manual backup success is displayed only after the background job finishes; full backups include procedures and private evidence.
 - Restore rejects archives with a missing or empty database dump before copying application artifacts.
@@ -40,7 +51,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Windows MSI build/installation, actual service-account backup/restore and browser passkey acceptance will be validated separately on a Windows machine before production deployment; see `docs/windows-release-checklist.md`.
 
 ### Verification
-- Backend: 594 passing tests; frontend: 114 passing tests; operational board, profile, passkeys, password renewal and navigation: 25 passing browser scenarios.
+- Backend: 590 passing tests; frontend: 111 passing tests; operational board, profile, passkeys and navigation: 23 passing browser scenarios.
 - Isolated PostgreSQL: 6 execution/access tests and 3 legacy-migration/native dump-and-restore tests passed. The upgrade scenario uses the installer’s `prisma migrate deploy` command and verifies preserved data and restored artifacts.
 - Typecheck, lint and production application build passed. Existing frontend bundle-size and mixed-import warnings remain.
 - Windows scripts and workflow syntax checked locally; no MSI build or Windows acceptance result is claimed from the Linux development environment.
