@@ -14,8 +14,8 @@ il ne crée pas de release publique et n’installe rien sur le serveur cible.
 Les scripts de vérification et leur dossier `common` sont inclus dans l’artefact.
 
 Le numéro du candidat est celui de `package.json`. Les changements non publiés
-figurent dans la section `1.1.8` du changelog. Les versions des trois `package.json` et des
-lockfiles sont alignées sur `1.1.8`. Valider ce candidat sur la machine Windows
+figurent dans la section `1.1.9` du changelog. Les versions des trois `package.json` et des
+lockfiles sont alignées sur `1.1.9`. Valider ce candidat sur la machine Windows
 avant déploiement ; ne pas redistribuer une version déjà publiée avec un contenu
 modifié. Signer le MSI de livraison avec le certificat de l’organisation et
 recalculer `SHA256SUMS` après signature (`build.ps1 -Sign`).

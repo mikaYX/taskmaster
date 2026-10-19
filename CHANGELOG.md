@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.9] - 2026-10-19
+
+Maintenance release for 1.1.8. No database migration. Existing `.env` files are never rewritten on upgrade.
+
+### Added
+- Temporary credentials can be emailed when an administrator creates an account or resets a password. A checkbox is offered when email sending is enabled and configured; otherwise the dialog states that email is not active and the temporary password must be handed over directly. The password is still displayed after the operation, with the delivery status (sent, failed, not active, no address).
+- Credentials mail is a responsive HTML message (branded header with the application title and, when publicly reachable, the logo; credentials card; sign-in button; security notice; French and English) with a plain-text alternative.
+- `GET /users/email-available` tells account managers whether credentials can be emailed (the settings endpoint is restricted to super administrators).
+- Windows MSI: "offline mode" option in the configuration dialog and `TASKMASTER_OFFLINE_MODE` property. The default is unchanged (`OFFLINE_MODE=true`, no outbound update check); clearing it writes `OFFLINE_MODE=false` on a fresh install.
+
+### Fixed
+- The Windows MSI 1.1.8 (and, since the staged copy was not refreshed, likely earlier builds) shipped a stale frontend from 2 September, so the forced password-change prompt, the role-based menu and other fixes were missing from the installed application. `npm run build` now refreshes `client/` again, and `installer/build.ps1` refuses to package a `client/` that differs from `frontend/dist`.
+- Todo list page redirected non-administrators to the board because it read the add-on flag from the super-administrator-only settings endpoint; it now uses the public allowlist like the menu.
+- Update status no longer reads "Up to date" when no check could be performed; it shows "Unknown".
+- Backups on Windows: `pg_dump`/`pg_restore` are located automatically under `%ProgramFiles%\PostgreSQL` when `PG_BIN_PATH` is empty (the MSI never set it), and archive extraction always uses the system `tar.exe` so a GNU `tar` earlier in `PATH` cannot misread `C:\` paths.
+
+### Verification
+- Backend: 614 passing tests (the five backup round-trip failures of the previous working tree are fixed); frontend: 114 passing tests; lint clean.
+- Browser (Playwright) scenarios and the MSI installation screen change were not re-run for this release; validate the configuration dialog and a credentials email on the Windows candidate before deployment.
+
 ## [1.1.8] - 2026-10-17
 
 Bugfix release for 1.1.7. No database migration or configuration change.

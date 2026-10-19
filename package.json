@@ -1,6 +1,6 @@
 {
   "name": "taskmaster",
-  "version": "1.1.8",
+  "version": "1.1.9",
   "description": "Taskmaster — Task management monorepo (NestJS + React)",
   "private": true,
   "workspaces": [
@@ -11,9 +11,10 @@
     "dev": "concurrently -n backend,frontend -c cyan,magenta \"npm -w backend run start:dev\" \"npm -w frontend run dev\"",
     "dev:backend": "npm -w backend run start:dev",
     "dev:frontend": "npm -w frontend run dev",
-    "build": "npm -w backend run build && npm -w frontend run build",
+    "build": "npm -w backend run build && npm -w frontend run build && npm run build:client",
     "build:backend": "npm -w backend run build",
     "build:frontend": "npm -w frontend run build",
+    "build:client": "node scripts/copy-frontend-dist.js",
     "test": "npm -w backend run test && npm -w frontend run test",
     "test:backend": "npm -w backend run test",
     "test:frontend": "npm -w frontend run test",
