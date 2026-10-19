@@ -38,9 +38,9 @@
                 Value="Taskmaster est installé. Utilisez le raccourci du menu Démarrer pour l'ouvrir." />
 
       <!-- ================= TaskmasterConfigDlg ================= -->
-      <Dialog Id="TaskmasterConfigDlg" Width="370" Height="350" Title="[ProductName] Setup">
+      <Dialog Id="TaskmasterConfigDlg" Width="370" Height="372" Title="[ProductName] Setup">
         <Control Id="BannerLine" Type="Line" X="0" Y="44" Width="370" Height="0" />
-        <Control Id="BottomLine" Type="Line" X="0" Y="316" Width="370" Height="0" />
+        <Control Id="BottomLine" Type="Line" X="0" Y="338" Width="370" Height="0" />
 
         <Control Id="Title" Type="Text" X="15" Y="6" Width="250" Height="15" Transparent="yes" NoPrefix="yes"
                  Text="Configuration de l'application" />
@@ -90,13 +90,18 @@
         <Control Id="PublicUrlHint" Type="Text" X="20" Y="298" Width="330" Height="15" Transparent="yes" NoPrefix="yes"
                  Text="Adresse du navigateur, ex. https://taches.exemple.fr (HTTPS requis pour les passkeys hors localhost)." />
 
-        <Control Id="Back" Type="PushButton" X="180" Y="325" Width="56" Height="17" Text="!(loc.WixUIBack)">
+        <!-- Unticked clears TASKMASTER_OFFLINE_MODE, which enables update checks
+             (the server then contacts GitHub). Only applies to a fresh install. -->
+        <Control Id="OfflineModeCheck" Type="CheckBox" X="20" Y="316" Width="330" Height="18" Property="TASKMASTER_OFFLINE_MODE" CheckBoxValue="1"
+                 Text="Mode hors ligne : ne pas vérifier les mises à jour sur Internet (GitHub)" />
+
+        <Control Id="Back" Type="PushButton" X="180" Y="347" Width="56" Height="17" Text="!(loc.WixUIBack)">
           <Publish Event="NewDialog" Value="InstallDirDlg" Condition="1" />
         </Control>
-        <Control Id="Next" Type="PushButton" X="236" Y="325" Width="56" Height="17" Default="yes" Text="!(loc.WixUINext)">
+        <Control Id="Next" Type="PushButton" X="236" Y="347" Width="56" Height="17" Default="yes" Text="!(loc.WixUINext)">
           <Publish Event="NewDialog" Value="VerifyReadyDlg" Condition="1" />
         </Control>
-        <Control Id="Cancel" Type="PushButton" X="304" Y="325" Width="56" Height="17" Cancel="yes" Text="!(loc.WixUICancel)">
+        <Control Id="Cancel" Type="PushButton" X="304" Y="347" Width="56" Height="17" Cancel="yes" Text="!(loc.WixUICancel)">
           <Publish Event="SpawnDialog" Value="CancelDlg" Condition="1" />
         </Control>
       </Dialog>

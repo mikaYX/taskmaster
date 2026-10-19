@@ -35,6 +35,17 @@ export function useCreateUser() {
     });
 }
 
+/** Whether credentials can be emailed; false while loading or when unknown. */
+export function useCredentialsEmailAvailable(enabled: boolean) {
+    return useQuery({
+        queryKey: [...userKeys.all, 'email-available'],
+        queryFn: () => usersApi.emailAvailable(),
+        enabled,
+        staleTime: 30 * 1000,
+        retry: false,
+    });
+}
+
 export function useUpdateUser() {
     const queryClient = useQueryClient();
 

@@ -1,4 +1,4 @@
-import { IsString, MaxLength } from 'class-validator';
+import { IsBoolean, IsOptional, IsString, MaxLength } from 'class-validator';
 import { IsStrongPassword, IsNotCommonPassword } from '../../common/validators';
 
 /**
@@ -10,4 +10,9 @@ export class ResetPasswordDto {
   @IsStrongPassword()
   @IsNotCommonPassword()
   password!: string;
+
+  /** Email the temporary password to the user (needs an active email setup). */
+  @IsOptional()
+  @IsBoolean()
+  sendEmail?: boolean;
 }

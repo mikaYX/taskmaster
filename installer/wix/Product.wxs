@@ -199,6 +199,11 @@
          below - see RunOrchestrateInstallCmd. -->
     <Property Id="TASKMASTER_PORT" Value="3000" Secure="yes" />
     <Property Id="TASKMASTER_PUBLIC_URL" Secure="yes" />
+    <!-- OFFLINE_MODE written to .env on a fresh install: "1" (default) = the server
+         never calls out to GitHub for update checks; cleared (checkbox unticked, or
+         `msiexec /i Taskmaster.msi TASKMASTER_OFFLINE_MODE=""`) = update checks enabled.
+         An existing .env is never rewritten, so upgrades keep their current value. -->
+    <Property Id="TASKMASTER_OFFLINE_MODE" Value="1" Secure="yes" />
 
     <!-- ================= Existing PostgreSQL/Redis (standalone msiexec only) =====
          Collected by TaskmasterConfigDlg (UI.wxs) or overridable from the
@@ -378,7 +383,7 @@
          Same trailing "\\" -> escaped-quote reasoning as ExtractAppArchiveCmd
          above applies to the ...FOLDER]\&quot; occurrences below. -->
     <SetProperty Id="RunOrchestrateInstallCmd"
-                 Value="&quot;[System64Folder]WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File &quot;[#OrchestrateInstallPs1]&quot; -Port [TASKMASTER_PORT] -PublicUrl &quot;[TASKMASTER_PUBLIC_URL]&quot; -InstallDir &quot;[APPFOLDER]\&quot; -DataDir &quot;[TASKMASTERDATAROOT]\&quot; -PostgresMode Existing -PostgresDbHost &quot;[POSTGRES_DB_HOST]&quot; -PostgresDbPort [POSTGRES_DB_PORT] -PostgresDb &quot;[POSTGRES_DB_NAME]&quot; -PostgresUser &quot;[POSTGRES_DB_USER]&quot; -PostgresPassword &quot;[POSTGRES_DB_PASSWORD]&quot; -PostgresAdminUser &quot;[POSTGRES_ADMIN_USER]&quot; -PostgresAdminPassword &quot;[POSTGRES_ADMIN_PASSWORD]&quot; -RedisMode Existing -RedisDbHost &quot;[REDIS_DB_HOST]&quot; -RedisDbPort [REDIS_DB_PORT]"
+                 Value="&quot;[System64Folder]WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File &quot;[#OrchestrateInstallPs1]&quot; -Port [TASKMASTER_PORT] -PublicUrl &quot;[TASKMASTER_PUBLIC_URL]&quot; -OfflineMode &quot;[TASKMASTER_OFFLINE_MODE]&quot; -InstallDir &quot;[APPFOLDER]\&quot; -DataDir &quot;[TASKMASTERDATAROOT]\&quot; -PostgresMode Existing -PostgresDbHost &quot;[POSTGRES_DB_HOST]&quot; -PostgresDbPort [POSTGRES_DB_PORT] -PostgresDb &quot;[POSTGRES_DB_NAME]&quot; -PostgresUser &quot;[POSTGRES_DB_USER]&quot; -PostgresPassword &quot;[POSTGRES_DB_PASSWORD]&quot; -PostgresAdminUser &quot;[POSTGRES_ADMIN_USER]&quot; -PostgresAdminPassword &quot;[POSTGRES_ADMIN_PASSWORD]&quot; -RedisMode Existing -RedisDbHost &quot;[REDIS_DB_HOST]&quot; -RedisDbPort [REDIS_DB_PORT]"
                  Sequence="execute"
                  Before="RunOrchestrateInstall" />
     <CustomAction Id="RunOrchestrateInstall" Execute="deferred" Return="check" Impersonate="no"

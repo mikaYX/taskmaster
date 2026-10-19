@@ -10,6 +10,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Copy } from 'lucide-react';
 import { toast } from 'sonner';
+import type { CredentialsEmailStatus } from '@/api/types';
 
 interface NewPasswordDialogProps {
     open: boolean;
@@ -17,15 +18,27 @@ interface NewPasswordDialogProps {
     password: string;
     username: string;
     title?: string;
+    /** Result of emailing the credentials; omit when no email was requested. */
+    emailStatus?: CredentialsEmailStatus;
 }
+
+const EMAIL_STATUS_MESSAGES: Record<CredentialsEmailStatus, { text: string; ok: boolean }> = {
+    SENT: { text: 'The credentials were also sent to the user by email.', ok: true },
+    FAILED: { text: 'The email could not be sent. Give the temporary password to the user directly.', ok: false },
+    NOT_ACTIVE: { text: 'Email sending is not active, so nothing was sent. Give the temporary password to the user directly.', ok: false },
+    NO_ADDRESS: { text: 'This account has no email address, so nothing was sent. Give the temporary password to the user directly.', ok: false },
+};
 
 export function NewPasswordDialog({
     open,
     onOpenChange,
     password,
     username,
-    title = "New Password Generated"
+    title = "New Password Generated",
+    emailStatus,
 }: NewPasswordDialogProps) {
+    const emailMessage = emailStatus ? EMAIL_STATUS_MESSAGES[emailStatus] : null;
+
     const handleCopy = async () => {
         await navigator.clipboard.writeText(password);
         toast.success("Password copied to clipboard");
@@ -47,6 +60,14 @@ export function NewPasswordDialog({
                             {password}
                         </span>
                         <br />
+                        {emailMessage && (
+                            <span
+                                role="status"
+                                className={`block mb-2 font-medium ${emailMessage.ok ? 'text-foreground' : 'text-amber-600 dark:text-amber-400'}`}
+                            >
+                                {emailMessage.text}
+                            </span>
+                        )}
                         <span className="text-destructive font-medium block">
                             ⚠️ Important: Copy this password now. It will not be shown again.
                         </span>

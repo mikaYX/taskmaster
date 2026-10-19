@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync } from 'fs';
+import { existsSync, mkdirSync, readdirSync } from 'fs';
 import { isAbsolute, join, resolve } from 'path';
 
 /**
@@ -106,14 +106,56 @@ export function getLogsDir(): string {
 
 /**
  * Absolute path to a PostgreSQL client binary. Honors PG_BIN_PATH (set by the
- * Windows installer to PostgreSQL's own `bin\` directory); when unset, returns
- * just the binary name so it resolves via PATH (existing Linux/Docker/dev behavior).
+ * Windows installer to PostgreSQL's own `bin\` directory); when unset on
+ * Windows, falls back to the newest `%ProgramFiles%\PostgreSQL\<major>\bin`
+ * that contains the binary (the MSI never passes a bin path, and the service
+ * account's PATH rarely includes PostgreSQL). Otherwise returns just the
+ * binary name so it resolves via PATH (existing Linux/Docker/dev behavior).
  */
 export function getPgBinaryPath(binaryName: 'pg_dump' | 'pg_restore'): string {
   const binDir = process.env.PG_BIN_PATH;
   const exeName =
     process.platform === 'win32' ? `${binaryName}.exe` : binaryName;
-  return binDir ? join(binDir, exeName) : exeName;
+  if (binDir) return join(binDir, exeName);
+  if (process.platform === 'win32') {
+    const detected = findWindowsPgBinary(exeName);
+    if (detected) return detected;
+  }
+  return exeName;
+}
+
+/**
+ * Archive extractor. On Windows, always the OS-shipped bsdtar: a GNU tar found
+ * earlier on PATH (Git for Windows, Chocolatey, MSYS) reads `C:\...` as a
+ * `host:path` remote spec and fails with "Cannot connect to C".
+ */
+export function getTarBinaryPath(): string {
+  if (process.platform !== 'win32') return 'tar';
+  const systemTar = join(
+    process.env.SystemRoot || 'C:\\Windows',
+    'System32',
+    'tar.exe',
+  );
+  return existsSync(systemTar) ? systemTar : 'tar';
+}
+
+function findWindowsPgBinary(exeName: string): string | null {
+  const root = join(
+    process.env.ProgramFiles || 'C:\\Program Files',
+    'PostgreSQL',
+  );
+  let versions: string[];
+  try {
+    versions = readdirSync(root).filter((name) => /^\d+(\.\d+)?$/.test(name));
+  } catch {
+    return null;
+  }
+  versions.sort((a, b) => parseFloat(b) - parseFloat(a));
+  for (const version of versions) {
+    const candidate = join(root, version, 'bin', exeName);
+    if (existsSync(candidate)) return candidate;
+  }
+  return null;
 }
 
 /** Private photos used as task execution evidence. */

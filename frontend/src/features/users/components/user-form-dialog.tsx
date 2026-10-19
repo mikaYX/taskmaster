@@ -29,9 +29,10 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import type { User } from '@/api/types';
+import { Checkbox } from '@/components/ui/checkbox';
+import type { CredentialsEmailStatus, User } from '@/api/types';
 import { sitesApi } from '@/api/sites';
-import { useCreateUser, useUpdateUser } from '@/hooks/use-users';
+import { useCreateUser, useCredentialsEmailAvailable, useUpdateUser } from '@/hooks/use-users';
 import { useIsSuperAdmin } from '@/stores/auth-store';
 import { NewPasswordDialog } from './new-password-dialog';
 
@@ -66,9 +67,16 @@ export function UserFormDialog({ open, onOpenChange, userToEdit }: UserFormDialo
     const [generatedPassword, setGeneratedPassword] = useState<string | null>(null);
     const [showPasswordDialog, setShowPasswordDialog] = useState(false);
     const [createdUserEmail, setCreatedUserEmail] = useState('');
+    const [sendEmail, setSendEmail] = useState(true);
+    const [emailStatus, setEmailStatus] = useState<CredentialsEmailStatus | undefined>();
     const isSuperAdmin = useIsSuperAdmin();
 
     const isEdit = !!userToEdit;
+
+    const emailAvailability = useCredentialsEmailAvailable(open && !isEdit);
+    const emailAvailable = emailAvailability.data?.available === true;
+    // Known only once the check answered; an unreachable check is treated as not active.
+    const emailCheckDone = emailAvailability.isSuccess || emailAvailability.isError;
 
     const { data: sitesData } = useQuery({
         queryKey: ['sites'],
@@ -140,6 +148,7 @@ export function UserFormDialog({ open, onOpenChange, userToEdit }: UserFormDialo
             );
         } else {
             const password = generateRandomPassword();
+            const requestEmail = emailAvailable && sendEmail;
             setGeneratedPassword(password);
             setCreatedUserEmail(email);
 
@@ -151,9 +160,12 @@ export function UserFormDialog({ open, onOpenChange, userToEdit }: UserFormDialo
                     role: values.role,
                     password: password,
                     siteId: values.siteId,
+                    sendEmail: requestEmail || undefined,
                 },
                 {
-                    onSuccess: () => {
+                    onSuccess: (created) => {
+                        // Email unavailable: tell the admin to hand the password over directly.
+                        setEmailStatus(requestEmail ? created.credentialsEmail : (emailAvailable ? undefined : 'NOT_ACTIVE'));
                         onOpenChange(false);
                         setShowPasswordDialog(true);
                     },
@@ -288,6 +300,29 @@ export function UserFormDialog({ open, onOpenChange, userToEdit }: UserFormDialo
                                 )}
                             </div>
 
+                            {!isEdit && emailCheckDone && (
+                                emailAvailable ? (
+                                    <label className="flex items-start gap-3 text-sm">
+                                        <Checkbox
+                                            checked={sendEmail}
+                                            onCheckedChange={(checked) => setSendEmail(checked === true)}
+                                            className="mt-0.5"
+                                        />
+                                        <span>
+                                            Send the login and temporary password to the user by email
+                                            <span className="block text-muted-foreground">
+                                                The temporary password is still shown after creation.
+                                            </span>
+                                        </span>
+                                    </label>
+                                ) : (
+                                    <p role="note" className="rounded-md border border-dashed p-3 text-sm text-muted-foreground">
+                                        Email sending is not active, so no email will be sent. After creation, give the
+                                        temporary password to the user directly.
+                                    </p>
+                                )
+                            )}
+
                             <Separator />
 
                             <DialogFooter>
@@ -316,6 +351,7 @@ export function UserFormDialog({ open, onOpenChange, userToEdit }: UserFormDialo
                     onOpenChange={setShowPasswordDialog}
                     password={generatedPassword}
                     username={createdUserEmail}
+                    emailStatus={emailStatus}
                 />
             )}
         </>

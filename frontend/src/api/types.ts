@@ -62,7 +62,11 @@ export interface CreateUserDto {
   password: string;
   role: UserRole;
   siteId?: number;
+  sendEmail?: boolean;
 }
+
+/** Outcome of emailing the temporary credentials (only set when requested). */
+export type CredentialsEmailStatus = 'SENT' | 'FAILED' | 'NOT_ACTIVE' | 'NO_ADDRESS';
 
 export interface UpdateUserDto {
   username?: string;

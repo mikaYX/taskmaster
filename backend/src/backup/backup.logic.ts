@@ -36,6 +36,7 @@ import {
   getBackupSystemDir,
   getBackupTempUploadsDir,
   getPgBinaryPath,
+  getTarBinaryPath,
   getProcedureStorageDir,
   getEvidenceStorageDir,
   getUploadsDir,
@@ -798,7 +799,7 @@ export class BackupLogicService {
             : 'Stream processing failed',
         );
       }
-      await this.runTool('tar', [
+      await this.runTool(getTarBinaryPath(), [
         '-xzf',
         tempTar,
         '-C',

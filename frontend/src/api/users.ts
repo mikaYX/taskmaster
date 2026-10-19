@@ -2,6 +2,7 @@ import { http } from './http';
 import type {
     User,
     CreateUserDto,
+    CredentialsEmailStatus,
     UpdateUserDto,
     PaginationParams,
 } from './types';
@@ -42,7 +43,13 @@ export const usersApi = {
      * Create new user.
      */
     create: (dto: CreateUserDto) =>
-        http.post<User>('/users', dto),
+        http.post<User & { credentialsEmail?: CredentialsEmailStatus }>('/users', dto),
+
+    /**
+     * Whether temporary credentials can be emailed (email enabled and configured).
+     */
+    emailAvailable: () =>
+        http.get<{ available: boolean }>('/users/email-available'),
 
     /**
      * Update user.
@@ -65,8 +72,8 @@ export const usersApi = {
     /**
      * Reset user password.
      */
-    resetPassword: (id: number, password: string) =>
-        http.post<{ ok: boolean }>(`/users/${id}/reset-password`, { password }),
+    resetPassword: (id: number, password: string, sendEmail?: boolean) =>
+        http.post<{ ok: boolean; credentialsEmail?: CredentialsEmailStatus }>(`/users/${id}/reset-password`, { password, sendEmail }),
 
     /**
      * Upload current user's avatar (authenticated user).

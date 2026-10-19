@@ -202,6 +202,18 @@ via l'API GitHub / Docker Hub (`backend/src/system/version.service.ts`).
 Les intégrations externes explicitement configurées par un administrateur
 (SSO, SMTP, etc.) restent disponibles.
 
+Le MSI écrit `OFFLINE_MODE=true` par défaut (aucun appel sortant vers GitHub).
+Pour activer les vérifications de mise à jour, décocher « Mode hors ligne » dans
+l'écran de configuration, ou en ligne de commande :
+
+```powershell
+msiexec /i Taskmaster-<version>-x64.msi TASKMASTER_OFFLINE_MODE=""
+```
+
+Le fichier `.env` n'est jamais réécrit lors d'une mise à jour : sur une
+installation existante, modifier `OFFLINE_MODE` dans
+`C:\ProgramData\Taskmaster\config\.env` puis redémarrer le service.
+
 ## Construire les installeurs
 
 Sur une machine de build **Windows x64** (jamais Linux — les binaires

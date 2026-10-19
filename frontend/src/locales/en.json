@@ -399,6 +399,7 @@
         "updatesUnavailable": "Unavailable",
         "updatesAvailable": "Update available",
         "updatesUpToDate": "Up to date",
+        "updatesUnknown": "Unknown",
         "updatesDegraded": "Degraded check",
         "updatesOk": "Source reachable",
         "updatesNoData": "No version data available.",

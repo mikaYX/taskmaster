@@ -127,6 +127,13 @@ $appStaging = Join-Path $stagingRoot 'app'
 Copy-Item (Join-Path $repoRoot 'backend\dist') (Join-Path $appStaging 'dist') -Recurse
 Copy-Item (Join-Path $repoRoot 'backend\prisma') (Join-Path $appStaging 'prisma') -Recurse
 Copy-Item (Join-Path $repoRoot 'backend\package.json') (Join-Path $appStaging 'package.json')
+# client/ is gitignored and only refreshed by `npm run build:client`; a stale
+# copy silently shipped a 2 September frontend in the 1.1.8 MSI.
+$builtIndex = Join-Path $repoRoot 'frontend\dist\index.html'
+$clientIndex = Join-Path $repoRoot 'client\index.html'
+if (-not (Test-Path $clientIndex) -or (Get-FileHash $builtIndex).Hash -ne (Get-FileHash $clientIndex).Hash) {
+    throw 'client/ does not match frontend/dist - run "npm run build:client".'
+}
 Copy-Item (Join-Path $repoRoot 'client') (Join-Path $appStaging 'client') -Recurse
 # prisma.config.ts (used everywhere else) needs ts-node/TS compilation and
 # reads DATABASE_URL by dotenv-loading a repo-relative .env path that doesn't

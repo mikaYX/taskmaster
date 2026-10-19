@@ -9,6 +9,7 @@ import {
   getInstallDir,
   getLogsDir,
   getPgBinaryPath,
+  getTarBinaryPath,
   getProcedureStorageDir,
   getUploadsDir,
   resolveDataPath,
@@ -152,6 +153,75 @@ describe('app-paths', () => {
       delete process.env.PG_BIN_PATH;
       Object.defineProperty(process, 'platform', { value: 'linux' });
       expect(getPgBinaryPath('pg_restore')).toBe('pg_restore');
+    });
+
+    describe('win32 auto-detection when PG_BIN_PATH is unset', () => {
+      const originalProgramFiles = process.env.ProgramFiles;
+
+      afterEach(() => {
+        process.env.ProgramFiles = originalProgramFiles;
+      });
+
+      function installPg(version: string, binaries: string[]) {
+        const bin = path.join(tmpRoot, 'PostgreSQL', version, 'bin');
+        fs.mkdirSync(bin, { recursive: true });
+        for (const name of binaries) fs.writeFileSync(path.join(bin, name), '');
+      }
+
+      it('picks the newest PostgreSQL major that ships the binary', () => {
+        installPg('9.6', ['pg_dump.exe']);
+        installPg('17', ['pg_dump.exe']);
+        installPg('18', ['pg_dump.exe']);
+        installPg('19', []);
+        process.env.ProgramFiles = tmpRoot;
+        Object.defineProperty(process, 'platform', { value: 'win32' });
+
+        expect(getPgBinaryPath('pg_dump')).toBe(
+          path.join(tmpRoot, 'PostgreSQL', '18', 'bin', 'pg_dump.exe'),
+        );
+      });
+
+      it('falls back to the bare .exe name when no PostgreSQL install is found', () => {
+        process.env.ProgramFiles = tmpRoot;
+        Object.defineProperty(process, 'platform', { value: 'win32' });
+
+        expect(getPgBinaryPath('pg_restore')).toBe('pg_restore.exe');
+      });
+    });
+  });
+
+  describe('getTarBinaryPath', () => {
+    let originalPlatform: PropertyDescriptor | undefined;
+    const originalSystemRoot = process.env.SystemRoot;
+
+    beforeEach(() => {
+      originalPlatform = Object.getOwnPropertyDescriptor(process, 'platform');
+    });
+
+    afterEach(() => {
+      if (originalPlatform) {
+        Object.defineProperty(process, 'platform', originalPlatform);
+      }
+      process.env.SystemRoot = originalSystemRoot;
+    });
+
+    it('uses the OS-shipped System32 tar.exe on Windows, never a GNU tar from PATH', () => {
+      const system32 = path.join(tmpRoot, 'System32');
+      fs.mkdirSync(system32, { recursive: true });
+      fs.writeFileSync(path.join(system32, 'tar.exe'), '');
+      process.env.SystemRoot = tmpRoot;
+      Object.defineProperty(process, 'platform', { value: 'win32' });
+
+      expect(getTarBinaryPath()).toBe(path.join(system32, 'tar.exe'));
+    });
+
+    it('falls back to PATH lookup when System32 has no tar.exe or off Windows', () => {
+      process.env.SystemRoot = tmpRoot;
+      Object.defineProperty(process, 'platform', { value: 'win32' });
+      expect(getTarBinaryPath()).toBe('tar');
+
+      Object.defineProperty(process, 'platform', { value: 'linux' });
+      expect(getTarBinaryPath()).toBe('tar');
     });
   });
 

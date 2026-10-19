@@ -4,6 +4,7 @@ import {
   IsEmail,
   IsEnum,
   IsInt,
+  IsBoolean,
   MinLength,
   MaxLength,
 } from 'class-validator';
@@ -39,4 +40,9 @@ export class CreateUserDto {
   @IsOptional()
   @IsInt()
   siteId?: number;
+
+  /** Email the temporary credentials to the new user (needs an active email setup). */
+  @IsOptional()
+  @IsBoolean()
+  sendEmail?: boolean;
 }

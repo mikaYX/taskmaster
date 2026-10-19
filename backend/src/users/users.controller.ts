@@ -13,6 +13,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
+import { UserWelcomeEmailService } from './user-welcome-email.service';
 import { CreateUserDto, UpdateUserDto, ResetPasswordDto } from './dto';
 import { JwtAuthGuard, RolesGuard, Roles, CurrentUser } from '../auth';
 import type { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
@@ -41,7 +42,10 @@ import { AuditAction, AuditCategory } from '../audit/audit.constants';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('SUPER_ADMIN', 'MANAGER') // Legacy fallback
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly welcomeEmail: UserWelcomeEmailService,
+  ) {}
 
   /**
    * Get all active users.
@@ -51,6 +55,16 @@ export class UsersController {
   @RequirePermission(Permission.USER_READ)
   async findAll() {
     return this.usersService.findAll();
+  }
+
+  /**
+   * Whether credentials can be emailed (email enabled and configured).
+   * Open to every role allowed to create users, unlike GET /settings.
+   */
+  @Get('email-available')
+  @RequirePermission(Permission.USER_WRITE)
+  async emailAvailable() {
+    return { available: await this.welcomeEmail.isAvailable() };
   }
 
   /**
@@ -84,11 +98,21 @@ export class UsersController {
   @RequirePermission(Permission.USER_WRITE)
   @HttpCode(HttpStatus.CREATED)
   async create(@Body() dto: CreateUserDto, @CurrentUser() user: JwtPayload) {
-    return this.usersService.create(dto, {
+    const { sendEmail, ...data } = dto;
+    const created = await this.usersService.create(data, {
       id: user.sub,
       username: user.username,
       role: user.role,
     });
+    if (!sendEmail) return created;
+
+    const credentialsEmail = await this.welcomeEmail.sendCredentials({
+      username: created.username,
+      fullname: created.fullname,
+      email: created.email,
+      temporaryPassword: dto.password,
+    });
+    return { ...created, credentialsEmail };
   }
 
   /**
@@ -150,6 +174,18 @@ export class UsersController {
     @Body() dto: ResetPasswordDto,
   ) {
     await this.usersService.resetPassword(id, dto.password);
-    return { ok: true };
+    if (!dto.sendEmail) return { ok: true };
+
+    const target = await this.usersService.findOne(id);
+    const credentialsEmail = await this.welcomeEmail.sendCredentials(
+      {
+        username: target.username,
+        fullname: target.fullname,
+        email: target.email,
+        temporaryPassword: dto.password,
+      },
+      'RESET',
+    );
+    return { ok: true, credentialsEmail };
   }
 }

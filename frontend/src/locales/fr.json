@@ -399,6 +399,7 @@
         "updatesUnavailable": "Indisponible",
         "updatesAvailable": "Mise à jour disponible",
         "updatesUpToDate": "À jour",
+        "updatesUnknown": "Inconnu",
         "updatesDegraded": "Vérification dégradée",
         "updatesOk": "Source joignable",
         "updatesNoData": "Aucune donnée de version disponible.",

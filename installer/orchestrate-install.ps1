@@ -19,6 +19,9 @@ param(
     [string] $HostName = 'localhost',
     # Public HTTPS origin when the service is behind a reverse proxy.
     [string] $PublicUrl,
+    # Update checks call out to GitHub, so they are off by default (offline). The
+    # standalone MSI always passes this: '1'/'true' = offline, empty = checks enabled.
+    [string] $OfflineMode = 'true',
     [string] $DataDir = 'C:\ProgramData\Taskmaster',
     [string] $InstallDir = 'C:\Program Files\Taskmaster\app',
 
@@ -221,7 +224,7 @@ try {
         TASKMASTER_INSTALL_DIR   = $InstallDir
         TASKMASTER_DATA_DIR      = $DataDir
         TASKMASTER_ENV_FILE      = $envFilePath
-        OFFLINE_MODE             = 'true'
+        OFFLINE_MODE             = $(if ($OfflineMode -in @('true', '1', 'yes')) { 'true' } else { 'false' })
     }
 
     $wasCreated = New-EnvFileIfMissing -Path $envFilePath -Values $envValues

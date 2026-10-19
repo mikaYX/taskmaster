@@ -12,7 +12,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Skeleton } from '@/components/ui/skeleton';
 import { Trash2, Plus, ChevronDown, ListTodo, Loader2 } from 'lucide-react';
 import type { Todo } from '@/api/todos';
-import { useSettings } from '@/features/settings/hooks/use-settings';
+import { usePublicBranding } from '@/hooks/use-public-branding';
 import { Navigate } from 'react-router-dom';
 
 type TodoScope = 'PRIVATE' | 'COLLECTIVE';
@@ -208,7 +208,8 @@ function TodosPageContent() {
 }
 
 export function TodosPage() {
-    const { getSettingAsBool, isLoading: isLoadingSettings } = useSettings();
+    // Public allowlist: /api/settings is SUPER_ADMIN-only, which hid the page from every other role.
+    const { getSettingAsBool, isLoading: isLoadingSettings } = usePublicBranding();
     const isEnabled = getSettingAsBool('addons.todolist.enabled');
 
     if (isLoadingSettings) {

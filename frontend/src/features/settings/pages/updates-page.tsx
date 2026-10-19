@@ -43,6 +43,14 @@ export function UpdatesPage() {
       }).format(new Date(data.checkedAt))
     : t('settings.updatesUnavailable');
 
+  // Without a known latest version (offline mode, unreachable source) the
+  // install cannot be claimed up to date.
+  const updateStatusLabel = data?.updateAvailable
+    ? t('settings.updatesAvailable')
+    : data?.latestVersion
+      ? t('settings.updatesUpToDate')
+      : t('settings.updatesUnknown');
+
   const handleRefresh = async () => {
     try {
       await refresh();
@@ -152,16 +160,10 @@ export function UpdatesPage() {
             <div className="grid gap-4 md:grid-cols-2">
               <StatusCard
                 label={t('settings.updatesStatus')}
-                value={
-                  data.updateAvailable
-                    ? t('settings.updatesAvailable')
-                    : t('settings.updatesUpToDate')
-                }
+                value={updateStatusLabel}
                 badge={
                   <Badge variant={data.updateAvailable ? 'default' : 'secondary'}>
-                    {data.updateAvailable
-                      ? t('settings.updatesAvailable')
-                      : t('settings.updatesUpToDate')}
+                    {updateStatusLabel}
                   </Badge>
                 }
               />
