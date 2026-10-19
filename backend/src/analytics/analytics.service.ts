@@ -12,17 +12,57 @@ import {
 export class AnalyticsService {
   constructor(private readonly prisma: PrismaService) {}
 
+  /**
+   * The sites whose figures the caller may see: `undefined` means all of them (a
+   * super administrator with no site selected), otherwise the list, possibly
+   * empty. Every figure used to cover every site, whoever asked.
+   */
+  private visibleSiteIds(): number[] | undefined {
+    const user = this.prisma.getCurrentUser();
+    if (!user) return undefined; // internal call, no request
+    const filter = this.prisma.buildSiteFilter().siteId;
+    if (filter === undefined) {
+      return user.role === 'SUPER_ADMIN' ? undefined : [];
+    }
+    return typeof filter === 'number' ? [filter] : filter.in;
+  }
+
+  private statusSiteWhere(
+    siteIds: number[] | undefined,
+  ): Prisma.StatusWhereInput {
+    return siteIds ? { task: { siteId: { in: siteIds } } } : {};
+  }
+
+  /** For the raw queries, which alias the tasks table as `t`. */
+  private siteSql(siteIds: number[] | undefined): Prisma.Sql {
+    return siteIds
+      ? Prisma.sql`AND t.site_id IN (${Prisma.join(siteIds)})`
+      : Prisma.empty;
+  }
+
   async getOverview(
     startDate: string,
     endDate: string,
   ): Promise<OverviewResponse> {
     const start = new Date(startDate);
     const end = new Date(endDate);
+    const siteIds = this.visibleSiteIds();
+    if (siteIds?.length === 0) {
+      return {
+        success: 0,
+        failed: 0,
+        running: 0,
+        missing: 0,
+        total: 0,
+        complianceRate: 0,
+      };
+    }
 
     const counts = await this.prisma.client.status.groupBy({
       by: ['status'],
       where: {
         instanceDate: { gte: start, lte: end },
+        ...this.statusSiteWhere(siteIds),
       },
       _count: true,
     });
@@ -51,18 +91,25 @@ export class AnalyticsService {
   ): Promise<TrendPoint[]> {
     const start = new Date(startDate);
     const end = new Date(endDate);
+    const siteIds = this.visibleSiteIds();
+    if (siteIds?.length === 0) return [];
 
     if (groupBy === 'day') {
-      return this.getTrendByDay(start, end);
+      return this.getTrendByDay(start, end, siteIds);
     }
-    return this.getTrendByWeek(start, end);
+    return this.getTrendByWeek(start, end, siteIds);
   }
 
-  private async getTrendByDay(start: Date, end: Date): Promise<TrendPoint[]> {
+  private async getTrendByDay(
+    start: Date,
+    end: Date,
+    siteIds: number[] | undefined,
+  ): Promise<TrendPoint[]> {
     const rows = await this.prisma.client.status.groupBy({
       by: ['instanceDate', 'status'],
       where: {
         instanceDate: { gte: start, lte: end },
+        ...this.statusSiteWhere(siteIds),
       },
       _count: true,
       orderBy: { instanceDate: 'asc' },
@@ -89,19 +136,25 @@ export class AnalyticsService {
     return Array.from(grouped.values());
   }
 
-  private async getTrendByWeek(start: Date, end: Date): Promise<TrendPoint[]> {
+  private async getTrendByWeek(
+    start: Date,
+    end: Date,
+    siteIds: number[] | undefined,
+  ): Promise<TrendPoint[]> {
     // Prisma doesn't support groupBy week natively — raw SQL required
     const rows = await this.prisma.client.$queryRaw<
       Array<{ week_start: Date; status: string; count: bigint }>
     >(Prisma.sql`
       SELECT
-        date_trunc('week', instance_date)::date AS week_start,
-        status,
+        date_trunc('week', s.instance_date)::date AS week_start,
+        s.status,
         COUNT(*)::bigint AS count
-      FROM statuses
-      WHERE instance_date >= ${start}
-        AND instance_date <= ${end}
-      GROUP BY week_start, status
+      FROM statuses s
+      INNER JOIN tasks t ON t.id = s.task_id
+      WHERE s.instance_date >= ${start}
+        AND s.instance_date <= ${end}
+        ${this.siteSql(siteIds)}
+      GROUP BY week_start, s.status
       ORDER BY week_start ASC
     `);
 
@@ -134,6 +187,8 @@ export class AnalyticsService {
   ): Promise<TaskComplianceItem[]> {
     const start = new Date(startDate);
     const end = new Date(endDate);
+    const siteIds = this.visibleSiteIds();
+    if (siteIds?.length === 0) return [];
 
     const rows = await this.prisma.client.$queryRaw<
       Array<{
@@ -157,6 +212,7 @@ export class AnalyticsService {
       WHERE s.instance_date >= ${start}
         AND s.instance_date <= ${end}
         AND t.deleted_at IS NULL
+        ${this.siteSql(siteIds)}
       GROUP BY s.task_id, t.name
       ORDER BY
         CASE WHEN COUNT(*) FILTER (WHERE s.status = 'SUCCESS') + COUNT(*) FILTER (WHERE s.status = 'FAILED') + COUNT(*) FILTER (WHERE s.status = 'MISSING') = 0
@@ -190,6 +246,8 @@ export class AnalyticsService {
   ): Promise<UserComplianceItem[]> {
     const start = new Date(startDate);
     const end = new Date(endDate);
+    const siteIds = this.visibleSiteIds();
+    if (siteIds?.length === 0) return [];
 
     const rows = await this.prisma.client.$queryRaw<
       Array<{
@@ -212,10 +270,12 @@ export class AnalyticsService {
         COUNT(*) FILTER (WHERE s.status = 'MISSING')::bigint AS missing
       FROM statuses s
       INNER JOIN users u ON u.id = s.updated_by_user_id
+      INNER JOIN tasks t ON t.id = s.task_id
       WHERE s.instance_date >= ${start}
         AND s.instance_date <= ${end}
         AND s.updated_by_user_id IS NOT NULL
         AND u.deleted_at IS NULL
+        ${this.siteSql(siteIds)}
       GROUP BY s.updated_by_user_id, u.username, u.fullname
       ORDER BY
         CASE WHEN COUNT(*) FILTER (WHERE s.status = 'SUCCESS') + COUNT(*) FILTER (WHERE s.status = 'FAILED') + COUNT(*) FILTER (WHERE s.status = 'MISSING') = 0

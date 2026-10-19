@@ -140,10 +140,79 @@ describe('http module', () => {
             return new Response(null, { status: 404 });
         });
 
-        await expect(http.get('/test-transient')).rejects.toMatchObject({
-            status: 401,
+        vi.useFakeTimers();
+        const outcome = expect(http.get('/test-transient')).rejects.toMatchObject({
+            status: 503,
+            data: { code: 'session_refresh_unavailable' },
         } satisfies Partial<ApiError>);
+        await vi.advanceTimersByTimeAsync(5_000);
+        await outcome;
+        vi.useRealTimers();
 
+        // Not a 401: the session query signs the user out on 401/403 only.
         expect(window.location.href).toBe('http://localhost/');
+    });
+
+    describe('overlapping refreshes (two tabs, a retry) never sign the user out', () => {
+        afterEach(() => {
+            vi.useRealTimers();
+        });
+
+        it('retries after a 409 "refresh in progress" and succeeds once the other request is done', async () => {
+            vi.useFakeTimers();
+            let refreshCalls = 0;
+            let dataCalls = 0;
+
+            mockFetch.mockImplementation(async (url: string | URL | globalThis.Request) => {
+                const urlStr = url.toString();
+                if (urlStr.includes('/auth/refresh')) {
+                    refreshCalls += 1;
+                    // The first attempt collides with the other tab's rotation.
+                    return refreshCalls === 1
+                        ? new Response(JSON.stringify({ error: 'Refresh already in progress' }), { status: 409 })
+                        : new Response(JSON.stringify({ expiresIn: 900 }), { status: 200 });
+                }
+                dataCalls += 1;
+                return dataCalls === 1
+                    ? new Response(null, { status: 401 })
+                    : new Response(JSON.stringify({ ok: true }), { status: 200 });
+            });
+
+            const result = http.get('/data');
+            await vi.advanceTimersByTimeAsync(2_000);
+
+            await expect(result).resolves.toEqual({ ok: true });
+            expect(refreshCalls).toBe(2);
+            expect(window.location.href).toBe('http://localhost/');
+        });
+
+        it('does not redirect to the login page while the refresh keeps failing transiently', async () => {
+            vi.useFakeTimers();
+            mockFetch.mockImplementation(async (url: string | URL | globalThis.Request) =>
+                url.toString().includes('/auth/refresh')
+                    ? new Response(null, { status: 409 })
+                    : new Response(null, { status: 401 }),
+            );
+
+            const outcome = expect(http.get('/data')).rejects.toMatchObject({ status: 503 });
+            await vi.advanceTimersByTimeAsync(5_000);
+            await outcome;
+
+            expect(window.location.href).toBe('http://localhost/');
+        });
+
+        it('still signs out when the refresh token is really gone (401 on refresh)', async () => {
+            mockFetch.mockImplementation(async (url: string | URL | globalThis.Request) =>
+                url.toString().includes('/auth/refresh')
+                    ? new Response(null, { status: 401 })
+                    : new Response(null, { status: 401 }),
+            );
+
+            await expect(http.get('/data')).rejects.toMatchObject({
+                status: 401,
+                data: { code: 'session_expired' },
+            });
+            expect(window.location.href).toBe('/login');
+        });
     });
 });

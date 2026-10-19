@@ -1,7 +1,7 @@
 import { http } from './http';
-import type { Todo, CreateTodoDto, UpdateTodoDto } from './types';
+import type { Todo, TodoPriority, TodoRecurrence, TodoScope, CreateTodoDto, UpdateTodoDto } from './types';
 
-export type { Todo, CreateTodoDto, UpdateTodoDto };
+export type { Todo, TodoPriority, TodoRecurrence, CreateTodoDto, UpdateTodoDto };
 
 export const todosApi = {
     getAll: async (scope?: 'PRIVATE' | 'COLLECTIVE') => {
@@ -19,5 +19,9 @@ export const todosApi = {
 
     remove: async (id: number) => {
         return await http.delete<Todo>(`/todos/${id}`);
+    },
+
+    clearCompleted: async (scope: TodoScope) => {
+        return await http.delete<{ count: number }>(`/todos/completed?scope=${scope}`);
     },
 };

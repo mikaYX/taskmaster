@@ -1,4 +1,4 @@
-import { Injectable, Inject, Logger } from '@nestjs/common';
+import { ConflictException, Injectable, Inject, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectMetric } from '@willsoto/nestjs-prometheus';
 import { Counter } from 'prom-client';
@@ -7,6 +7,23 @@ import * as crypto from 'crypto';
 import { PrismaService } from '../prisma';
 import { REDIS_CLIENT } from '../common/redis/redis.module';
 import { anonymizeIp } from '../common/utils/ip-anonymizer.util';
+import { SettingsService } from '../settings/settings.service';
+import {
+  SESSION_TIMEOUT_DEFAULT_MINUTES,
+  refreshTokenLifetimeMs,
+  resolveSessionTimeoutMinutes,
+} from './auth.constants';
+
+/**
+ * Another request is already rotating this very token (two tabs, a retry after
+ * a lost response). That is not an attack and the session is intact: the caller
+ * must simply try again, and the cookie must be left alone (HTTP 409).
+ */
+export class RefreshInProgressException extends ConflictException {
+  constructor() {
+    super('Refresh already in progress');
+  }
+}
 
 /**
  * Refresh Token Service.
@@ -20,7 +37,6 @@ import { anonymizeIp } from '../common/utils/ip-anonymizer.util';
 @Injectable()
 export class RefreshTokenService {
   private readonly logger = new Logger(RefreshTokenService.name);
-  private readonly tokenExpirationDays = 7;
 
   /** Redis key prefix for distributed refresh lock */
   private static readonly REFRESH_LOCK_PREFIX = 'auth:refresh_lock:';
@@ -30,6 +46,7 @@ export class RefreshTokenService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
+    private readonly settings: SettingsService,
     @Inject(REDIS_CLIENT) private readonly redis: Redis,
     @InjectMetric('auth_refresh_success_total')
     private readonly refreshSuccessCounter: Counter<string>,
@@ -42,6 +59,17 @@ export class RefreshTokenService {
     @InjectMetric('auth_refresh_revoke_family_total')
     private readonly revokeFamilyCounter: Counter<string>,
   ) {}
+
+  /** The session policy (minutes without contact), read defensively and cached by the settings service. */
+  private async sessionTimeoutMinutes(): Promise<number> {
+    try {
+      return resolveSessionTimeoutMinutes(
+        await this.settings.getRawValue('auth.session.timeout'),
+      );
+    } catch {
+      return SESSION_TIMEOUT_DEFAULT_MINUTES;
+    }
+  }
 
   /**
    * Acquires a distributed Redis lock for a given token hash.
@@ -87,11 +115,15 @@ export class RefreshTokenService {
     userAgent?: string,
     ipAddress?: string,
     familyId?: string,
+    role?: string,
   ): Promise<{ token: string; expiresAt: Date }> {
     const token = this.generateToken();
     const tokenHash = this.hashToken(token);
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + this.tokenExpirationDays);
+    const lifetimeMs = refreshTokenLifetimeMs(
+      role,
+      await this.sessionTimeoutMinutes(),
+    );
+    const expiresAt = new Date(Date.now() + lifetimeMs);
 
     // Use provided familyId or create new one
     const family = familyId || crypto.randomUUID();
@@ -139,7 +171,7 @@ export class RefreshTokenService {
         `[AUTH-AUDIT] Concurrent refresh blocked by Redis lock for hash ${tokenHash}`,
       );
       this.reuseInGraceCounter.inc();
-      return null;
+      throw new RefreshInProgressException();
     }
 
     try {
@@ -156,7 +188,9 @@ export class RefreshTokenService {
   ): Promise<{ token: string; expiresAt: Date; userId: number } | null> {
     const existingToken = await this.prisma.client.refreshToken.findUnique({
       where: { tokenHash },
-      include: { user: { select: { id: true, deletedAt: true } } },
+      include: {
+        user: { select: { id: true, deletedAt: true, role: true } },
+      },
     });
 
     if (!existingToken) {
@@ -181,7 +215,7 @@ export class RefreshTokenService {
       if (graceWindowEnabled) {
         const graceWindowSeconds = this.configService.get<number>(
           'AUTH_GRACE_WINDOW_SECONDS',
-          10,
+          30,
         );
 
         const now = new Date();
@@ -195,7 +229,7 @@ export class RefreshTokenService {
             `[AUTH-AUDIT] Concurrent refresh attempted within grace window (${timeSinceRevocation.toFixed(1)}s <= ${graceWindowSeconds}s). Rejecting gently.`,
           );
           this.reuseInGraceCounter.inc();
-          return null;
+          throw new RefreshInProgressException();
         }
       }
 
@@ -210,8 +244,16 @@ export class RefreshTokenService {
       return null;
     }
 
-    // Check expiration
-    if (existingToken.expiresAt < new Date()) {
+    // Check expiration: the stored expiry, and the policy as it is now. The
+    // second part also governs tokens issued before the setting was changed, so
+    // lowering the timeout takes effect at once instead of at their next rotation.
+    const lifetimeMs = refreshTokenLifetimeMs(
+      existingToken.user?.role,
+      await this.sessionTimeoutMinutes(),
+    );
+    const idleMs =
+      Date.now() - (existingToken.createdAt?.getTime() ?? Date.now());
+    if (existingToken.expiresAt < new Date() || idleMs > lifetimeMs) {
       this.logger.warn('[AUTH-AUDIT] Refresh token expired');
       this.refreshFailureCounter.inc({ reason: 'expired' });
       await this.revokeToken(tokenHash);
@@ -233,7 +275,7 @@ export class RefreshTokenService {
         `[AUTH-AUDIT] Concurrent refresh detected during CAS revoke for hash ${tokenHash}. Rejecting gracefully.`,
       );
       this.reuseInGraceCounter.inc();
-      return null;
+      throw new RefreshInProgressException();
     }
 
     // Create new token in same family
@@ -242,6 +284,7 @@ export class RefreshTokenService {
       userAgent,
       ipAddress,
       existingToken.familyId,
+      existingToken.user.role,
     );
 
     this.logger.debug(

@@ -11,10 +11,11 @@ export const groupKeys = {
     members: (id: number) => [...groupKeys.detail(id), 'members'] as const,
 };
 
-export function useGroups() {
+export function useGroups(enabled = true) {
     return useQuery({
         queryKey: groupKeys.lists(),
         queryFn: () => groupsApi.getAll(),
+        enabled,
     });
 }
 

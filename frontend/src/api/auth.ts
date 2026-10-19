@@ -82,4 +82,8 @@ export const authApi = {
 
     exchangeSsoTicket: (ssoTicket: string) =>
         http.post<AuthSessionResponse>('/auth/external/exchange', { ssoTicket }),
+
+    /** One-time TV login link -> long session for that screen. */
+    exchangeGuestTicket: (ticket: string) =>
+        http.post<AuthSessionResponse>('/auth/guest/exchange', { ticket }),
 };

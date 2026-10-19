@@ -8,6 +8,7 @@ import { AuthController } from './auth.controller';
 import { ApiKeysController } from './api-keys.controller';
 import { MfaController } from './mfa.controller';
 import { RefreshTokenService } from './refresh-token.service';
+import { GuestTicketService } from './guest-ticket.service';
 import { JwtStrategy } from './strategies';
 import { ApiKeysService } from './api-keys.service';
 import { ApiKeyStrategy } from './strategies/api-key.strategy';
@@ -65,6 +66,7 @@ import { Reflector } from '@nestjs/core';
     MfaService,
     PasskeysService,
     RefreshTokenService,
+    GuestTicketService,
     JwtStrategy,
     ApiKeysService,
     ApiKeyStrategy,
@@ -95,6 +97,7 @@ import { Reflector } from '@nestjs/core';
   exports: [
     AuthService,
     RefreshTokenService,
+    GuestTicketService,
     JwtModule,
     ApiKeysService,
     PasskeysService,

@@ -28,7 +28,7 @@ export function BackupSettingsPage() {
     const { settings, getSetting, getSettingAsBool, updateSettings, isLoading: isSettingsLoading, isUpdating } = useSettings();
     const [backups, setBackups] = useState<BackupFile[]>([]);
     const [isHistoryLoading, setIsHistoryLoading] = useState(true);
-    const [statusData, setStatusData] = useState<{ encryptionKeyPresent: boolean; encryptionKeyIsDefault: boolean; timezone: string } | null>(null);
+    const [statusData, setStatusData] = useState<{ storagePath?: string; encryptionKeyPresent: boolean; encryptionKeyIsDefault: boolean; timezone: string } | null>(null);
 
     // Restore zone state
     const [selectedBackupForRestore, setSelectedBackupForRestore] = useState<BackupFile | null>(null);
@@ -142,7 +142,8 @@ export function BackupSettingsPage() {
     const status = {
         lastBackupAt: backups && backups.length > 0 ? new Date(backups[0].createdAt) : null,
         lastBackupStatus: backups && backups.length > 0 ? 'SUCCESS' : null as 'SUCCESS' | null,
-        storagePath: getSetting('backup.path') || './backups',
+        // The folder the server really writes to; the stored setting is only a default.
+        storagePath: statusData?.storagePath || getSetting('backup.path') || './backups',
         nextRunAt: savedEnabled ? new Date() : null, // Would need cron parser to be accurate
     };
 

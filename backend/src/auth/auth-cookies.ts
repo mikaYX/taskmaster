@@ -3,7 +3,8 @@ import type { Request, Response, CookieOptions } from 'express';
 export const ACCESS_COOKIE_NAME = 'access_token';
 export const REFRESH_COOKIE_NAME = 'refresh_token';
 
-const REFRESH_COOKIE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+/** Used when the caller does not know the token expiry (SSO ticket exchange). */
+const DEFAULT_REFRESH_COOKIE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 
 function buildCookieOptions(
   isProd: boolean,
@@ -36,11 +37,16 @@ export function setRefreshCookie(
   res: Response,
   refreshToken: string,
   isProd: boolean,
+  expiresAt?: Date,
 ): void {
+  // The cookie ends with the token it carries, so the browser never keeps a dead one.
+  const maxAge = expiresAt
+    ? Math.max(expiresAt.getTime() - Date.now(), 0)
+    : DEFAULT_REFRESH_COOKIE_MAX_AGE_MS;
   res.cookie(
     REFRESH_COOKIE_NAME,
     refreshToken,
-    buildCookieOptions(isProd, '/api/auth', REFRESH_COOKIE_MAX_AGE_MS),
+    buildCookieOptions(isProd, '/api/auth', maxAge),
   );
 }
 

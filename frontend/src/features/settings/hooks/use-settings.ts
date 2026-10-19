@@ -8,6 +8,14 @@ import { useIsAuthenticated } from '@/stores/auth-store';
 import { toast } from 'sonner';
 
 /**
+ * Settings pages save one key per call (12 on the e-mail page, 20+ on exports),
+ * and every call used to raise its own toast. A fixed id makes sonner update a
+ * single notification instead of stacking one per key.
+ */
+export const SETTINGS_SAVED_TOAST_ID = 'settings-saved';
+export const SETTINGS_SAVE_ERROR_TOAST_ID = 'settings-save-error';
+
+/**
  * Hook to manage settings with React Query.
  */
 export function useSettings() {
@@ -41,11 +49,11 @@ export function useSettings() {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['settings'] });
             queryClient.invalidateQueries({ queryKey: ['public-branding'] });
-            toast.success(t('common.saveSuccess'));
+            toast.success(t('common.saveSuccess'), { id: SETTINGS_SAVED_TOAST_ID });
         },
         onError: (error) => {
             console.error('Failed to update setting:', error);
-            toast.error(t('common.saveError'));
+            toast.error(t('common.saveError'), { id: SETTINGS_SAVE_ERROR_TOAST_ID });
         },
     });
 
@@ -55,11 +63,11 @@ export function useSettings() {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['settings'] });
             queryClient.invalidateQueries({ queryKey: ['public-branding'] });
-            toast.success(t('common.saveSuccess'));
+            toast.success(t('common.saveSuccess'), { id: SETTINGS_SAVED_TOAST_ID });
         },
         onError: (error) => {
             console.error('Failed to update settings:', error);
-            toast.error(t('common.saveError'));
+            toast.error(t('common.saveError'), { id: SETTINGS_SAVE_ERROR_TOAST_ID });
         },
     });
 

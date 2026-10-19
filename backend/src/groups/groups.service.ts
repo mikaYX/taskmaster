@@ -20,6 +20,32 @@ export class GroupsService {
 
   constructor(private readonly prisma: PrismaService) {}
 
+  /** The sites a manager is attached to, read from the database (the token can be up to 15 minutes old). */
+  private async managerSiteIds(userId: number): Promise<number[]> {
+    const rows = await this.prisma.client.userSiteAssignment.findMany({
+      where: { userId },
+      select: { siteId: true },
+    });
+    return rows.map((row) => row.siteId);
+  }
+
+  /**
+   * A manager handles the groups of their own sites only, to read as well as to
+   * change them. Other roles are limited by the endpoint's role check, and a
+   * call without a current user is an internal one.
+   */
+  private async assertManagerOwnsSite(siteId: number): Promise<void> {
+    const user = this.prisma.getCurrentUser();
+    if (!user || user.role !== 'MANAGER') return;
+
+    const mine = await this.managerSiteIds(user.id);
+    if (!mine.includes(siteId)) {
+      throw new ForbiddenException(
+        'This group does not belong to one of your sites.',
+      );
+    }
+  }
+
   async findAll(): Promise<GroupResponseDto[]> {
     const groups = await this.prisma.client.group.findMany({
       where: { deletedAt: null, ...this.prisma.buildSiteFilter() },
@@ -52,6 +78,7 @@ export class GroupsService {
     if (!group) {
       throw new NotFoundException(`Group with ID ${id} not found`);
     }
+    await this.assertManagerOwnsSite(group.siteId);
 
     return toGroupResponse(group);
   }
@@ -140,6 +167,7 @@ export class GroupsService {
     if (!existing) {
       throw new NotFoundException(`Group with ID ${id} not found`);
     }
+    await this.assertManagerOwnsSite(existing.siteId);
 
     const user = this.prisma.getCurrentUser();
 
@@ -203,6 +231,8 @@ export class GroupsService {
       throw new NotFoundException(`Group with ID ${id} not found`);
     }
 
+    await this.assertManagerOwnsSite(group.siteId);
+
     if (group.isSystem) {
       throw new ConflictException('Cannot delete a system group');
     }
@@ -226,6 +256,7 @@ export class GroupsService {
     if (!group) {
       throw new NotFoundException(`Group with ID ${groupId} not found`);
     }
+    await this.assertManagerOwnsSite(group.siteId);
 
     const users = await this.prisma.client.user.findMany({
       where: { id: { in: userIds }, deletedAt: null },
@@ -234,6 +265,23 @@ export class GroupsService {
 
     if (users.length !== userIds.length) {
       throw new NotFoundException('One or more users not found');
+    }
+
+    // A manager can only put into a group the people who work on that site.
+    if (this.prisma.getCurrentUser()?.role === 'MANAGER') {
+      const eligible = await this.prisma.client.user.count({
+        where: {
+          id: { in: userIds },
+          deletedAt: null,
+          role: { in: ['USER', 'MANAGER'] },
+          sites: { some: { siteId: group.siteId } },
+        },
+      });
+      if (eligible !== new Set(userIds).size) {
+        throw new ForbiddenException(
+          "Managers can only add USER or MANAGER accounts attached to the group's site.",
+        );
+      }
     }
 
     await this.prisma.client.userGroupMembership.createMany({
@@ -256,6 +304,7 @@ export class GroupsService {
     if (!group) {
       throw new NotFoundException(`Group with ID ${groupId} not found`);
     }
+    await this.assertManagerOwnsSite(group.siteId);
 
     await this.prisma.client.userGroupMembership.deleteMany({
       where: {
@@ -289,6 +338,7 @@ export class GroupsService {
     if (!group) {
       throw new NotFoundException(`Group with ID ${groupId} not found`);
     }
+    await this.assertManagerOwnsSite(group.siteId);
 
     return group.members.map((m) => ({
       id: m.user.id,

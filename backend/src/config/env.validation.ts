@@ -49,7 +49,7 @@ class EnvironmentVariables {
   @IsNumber()
   @Min(1)
   @Max(60)
-  AUTH_GRACE_WINDOW_SECONDS = 10;
+  AUTH_GRACE_WINDOW_SECONDS = 30;
 
   @IsString()
   DATABASE_URL!: string;

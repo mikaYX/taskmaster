@@ -54,8 +54,9 @@ function TaskBoardWorkspace({ scope }: { scope: string }) {
     const setFilterUserId = (filterUserId: number | undefined) => workspace.setFilters({ filterUserId, filterGroupId: undefined });
     const setFilterGroupId = (filterGroupId: number | undefined) => workspace.setFilters({ filterGroupId, filterUserId: undefined });
 
-    const { data: users } = useUsers();
-    const { data: groups } = useGroups();
+    // The directory only feeds the filter bar, which a TV account never sees; the API refuses it for that role.
+    const { data: users } = useUsers(false, false, !isGuest);
+    const { data: groups } = useGroups(!isGuest);
 
     const {
         buckets,

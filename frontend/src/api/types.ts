@@ -43,6 +43,8 @@ export interface User {
   avatarUrl?: string | null;
   email: string | null; // Redundant but consistent with backend
   role: UserRole;
+  /** TV (GUEST) accounts only: the screen the link opens. */
+  guestView?: GuestViewName | null;
   groupIds: number[];
   siteId?: number;
   sites?: Array<{
@@ -385,6 +387,9 @@ export interface LoginDto {
   password: string;
 }
 
+/** What a TV (GUEST) link opens: the task board, or the analytics. */
+export type GuestViewName = 'DASHBOARD' | 'ANALYTICS';
+
 export interface AuthSessionResponse {
   expiresIn: number;
   mustChangePassword?: boolean;
@@ -434,6 +439,7 @@ export interface Session {
   passkeyPolicy?: 'disabled' | 'optional' | 'required';
   hasPasskey?: boolean;
   mustChangePassword?: boolean;
+  guestView?: GuestViewName | null;
 
   // New nested structure
   user?: {
@@ -449,6 +455,7 @@ export interface Session {
     passkeyPolicy: 'disabled' | 'optional' | 'required';
     hasPasskey: boolean;
     mustChangePassword?: boolean;
+    guestView?: GuestViewName | null;
   };
 }
 
@@ -557,6 +564,8 @@ export interface CreateApiKeyResponse {
 // ============================================
 
 export type TodoScope = 'PRIVATE' | 'COLLECTIVE';
+export type TodoPriority = 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT';
+export type TodoRecurrence = 'NONE' | 'DAILY' | 'WEEKLY' | 'MONTHLY';
 
 export interface Todo {
   id: number;
@@ -565,6 +574,12 @@ export interface Todo {
   completedAt: string | null;
   dueDate: string | null;
   scope: TodoScope;
+  priority: TodoPriority;
+  recurrence: TodoRecurrence;
+  description: string | null;
+  /** Set on a subtask: the id of its parent (one level only). */
+  parentId: number | null;
+  completedBy: { id: number; username: string; fullname: string | null } | null;
   groupId: number | null;
   userId: number;
   createdAt: string;
@@ -574,14 +589,24 @@ export interface CreateTodoDto {
   title: string;
   dueDate?: string;
   scope?: TodoScope;
+  priority?: TodoPriority;
+  recurrence?: TodoRecurrence;
+  description?: string;
   groupId?: number;
+  /** Creates a subtask; scope and group come from the parent. */
+  parentId?: number;
 }
 
 export interface UpdateTodoDto {
   title?: string;
   dueDate?: string | null;
   isCompleted?: boolean;
-  groupId?: number;
+  priority?: TodoPriority;
+  recurrence?: TodoRecurrence;
+  /** null clears the notes. */
+  description?: string | null;
+  /** null detaches the todo from its group. */
+  groupId?: number | null;
 }
 
 // ============================================

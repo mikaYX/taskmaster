@@ -2,7 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from '@/components/theme-provider';
 import { QueryProvider } from '@/lib/query-provider';
 import { SessionInitializer } from '@/components/session-initializer';
-import { AuthGuard, GuestGuard, NoGuestGuard, SuperAdminGuard } from '@/components/auth-guard';
+import { AnalyticsGuard, AuthGuard, BoardGate, GuestGuard, ManagerGuard, NoGuestGuard, SuperAdminGuard } from '@/components/auth-guard';
 import { SetupGuard } from '@/components/setup-guard';
 import { AppLayout } from '@/components/app-layout';
 import { LoginPage } from '@/features/auth';
@@ -108,11 +108,11 @@ function App() {
               >
                 <Route path="/corrective-actions" element={<NoGuestGuard><ErrorBoundary variant="section" context="Actions correctives"><Suspense fallback={<PageSkeleton />}><CorrectiveActionsPage /></Suspense></ErrorBoundary></NoGuestGuard>} />
                 {/* Task Board = Main operational screen (LEGACY_AUDIT.md) */}
-                <Route path="/" element={<ErrorBoundary variant="section" context="Tableau de bord"><Suspense fallback={<TaskBoardSkeleton />}><TaskBoardPage /></Suspense></ErrorBoundary>} />
-                <Route path="/tasks" element={<ErrorBoundary variant="section" context="Tableau de bord"><Suspense fallback={<TaskBoardSkeleton />}><TaskBoardPage /></Suspense></ErrorBoundary>} />
+                <Route path="/" element={<BoardGate><ErrorBoundary variant="section" context="Tableau de bord"><Suspense fallback={<TaskBoardSkeleton />}><TaskBoardPage /></Suspense></ErrorBoundary></BoardGate>} />
+                <Route path="/tasks" element={<BoardGate><ErrorBoundary variant="section" context="Tableau de bord"><Suspense fallback={<TaskBoardSkeleton />}><TaskBoardPage /></Suspense></ErrorBoundary></BoardGate>} />
                 <Route path="/todos" element={<ErrorBoundary variant="section" context="Todos"><Suspense fallback={<TablePageSkeleton rows={4} />}><TodosPage /></Suspense></ErrorBoundary>} />
 
-                <Route path="/analytics" element={<NoGuestGuard><ErrorBoundary variant="section" context="Analytiques"><Suspense fallback={<AnalyticsSkeleton />}><AnalyticsPage /></Suspense></ErrorBoundary></NoGuestGuard>} />
+                <Route path="/analytics" element={<AnalyticsGuard><ErrorBoundary variant="section" context="Analytiques"><Suspense fallback={<AnalyticsSkeleton />}><AnalyticsPage /></Suspense></ErrorBoundary></AnalyticsGuard>} />
 
                 {/* Task definitions — routes regroupées sous /task-definitions */}
                 <Route path="/task-definitions" element={<NoGuestGuard><ErrorBoundary variant="section" context="Tâches"><Suspense fallback={<TablePageSkeleton />}><TasksPage /></Suspense></ErrorBoundary></NoGuestGuard>} />
@@ -124,8 +124,8 @@ function App() {
                 <Route path="/exports" element={<NoGuestGuard><ErrorBoundary variant="section" context="Exports"><Suspense fallback={<SettingsSkeleton />}><ExportSettingsPage /></Suspense></ErrorBoundary></NoGuestGuard>} />
                 <Route path="/backups" element={<SuperAdminGuard><ErrorBoundary variant="section" context="Sauvegardes"><Suspense fallback={<SettingsSkeleton />}><BackupSettingsPage /></Suspense></ErrorBoundary></SuperAdminGuard>} />
 
-                {/* Settings with tab navigation */}
-                <Route path="/settings" element={<SuperAdminGuard><ErrorBoundary variant="section" context="Paramètres"><Suspense fallback={<SettingsSkeleton />}><SettingsPage /></Suspense></ErrorBoundary></SuperAdminGuard>} />
+                {/* Settings with tab navigation (a manager only sees Security > Users) */}
+                <Route path="/settings" element={<ManagerGuard><ErrorBoundary variant="section" context="Paramètres"><Suspense fallback={<SettingsSkeleton />}><SettingsPage /></Suspense></ErrorBoundary></ManagerGuard>} />
 
                 {/* User Profile */}
                 <Route path="/profile" element={<ErrorBoundary variant="section" context="Profil"><Suspense fallback={<ProfileSkeleton />}><ProfilePage /></Suspense></ErrorBoundary>} />

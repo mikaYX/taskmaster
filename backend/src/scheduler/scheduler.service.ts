@@ -83,6 +83,7 @@ export class SchedulerService implements OnApplicationBootstrap {
       'delegation-expiry': 'Notify users about expired delegations',
       'email-alerts': 'Missing task alerts',
       'email-reminders': 'Task due reminders',
+      'todo-reminders': 'Todolist due-date reminders (hourly digest)',
       'auto-export': 'Scheduled data export',
       'auto-backup': 'Scheduled system backup',
     };

@@ -47,11 +47,8 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
 
     Permission.SITE_READ,
   ],
-  [Role.GUEST]: [
-    Permission.TASK_READ,
-    Permission.USER_READ,
-    Permission.SITE_READ,
-    Permission.EXPORT_READ,
-    Permission.SCHEDULE_READ,
-  ],
+  // A Guest is a wall-mounted TV: it shows the board and its site, nothing
+  // else. No user directory, exports or schedules (see also guest-allowlist.ts,
+  // which refuses every route but the board for this role).
+  [Role.GUEST]: [Permission.TASK_READ, Permission.SITE_READ],
 };

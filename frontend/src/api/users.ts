@@ -3,6 +3,7 @@ import type {
     User,
     CreateUserDto,
     CredentialsEmailStatus,
+    GuestViewName,
     UpdateUserDto,
     PaginationParams,
 } from './types';
@@ -18,11 +19,12 @@ export const usersApi = {
     /**
      * Get all users (paginated).
      */
-    getAll: (params?: PaginationParams & { includeDeleted?: boolean }) => {
+    getAll: (params?: PaginationParams & { includeDeleted?: boolean; manageable?: boolean }) => {
         const searchParams = new URLSearchParams();
         if (params?.page) searchParams.set('page', String(params.page));
         if (params?.limit) searchParams.set('limit', String(params.limit));
         if (params?.includeDeleted) searchParams.set('includeDeleted', 'true');
+        if (params?.manageable) searchParams.set('manageable', 'true');
         const query = searchParams.toString();
         return http.get<User[]>(`/users${query ? `?${query}` : ''}`);
     },
@@ -93,8 +95,12 @@ export const usersApi = {
             http.get<User[]>('/guests'),
         findBySite: (siteId: number) =>
             http.get<User>(`/guests/site/${siteId}`),
-        create: (siteId: number) =>
-            http.post<User & { rawPassword?: string }>(`/guests/site/${siteId}`),
+        /** Creates the TV accounts of a site: the board, the analytics, or both (the board when omitted). */
+        create: (siteId: number, views?: GuestViewName[]) =>
+            http.post<Array<User & { rawPassword?: string }>>(`/guests/site/${siteId}`, { views }),
+        /** One-time login link for the TV screen (valid once, for a day). */
+        createLink: (id: number) =>
+            http.post<{ ticket: string; expiresAt: string }>(`/guests/${id}/link`),
         regeneratePassword: (id: number) =>
             http.patch<{ success: boolean; newPassword: string }>(`/guests/${id}/regenerate`),
         revoke: (id: number) =>

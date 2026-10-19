@@ -15,21 +15,12 @@ import { usersApi } from '@/api/users';
 import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { NewPasswordDialog } from './new-password-dialog';
+import { generateTemporaryPassword } from '@/lib/password-policy';
 
 interface ResetPasswordDialogProps {
     user: User | null;
     open: boolean;
     onOpenChange: (open: boolean) => void;
-}
-
-// Helper (duplicated for now, could be shared)
-function generateRandomPassword(length = 12): string {
-    const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*";
-    let retVal = "";
-    for (let i = 0, n = charset.length; i < length; ++i) {
-        retVal += charset.charAt(Math.floor(Math.random() * n));
-    }
-    return retVal;
 }
 
 export function ResetPasswordDialog({ user, open, onOpenChange }: ResetPasswordDialogProps) {
@@ -59,7 +50,7 @@ export function ResetPasswordDialog({ user, open, onOpenChange }: ResetPasswordD
 
     const handleReset = () => {
         if (!user) return;
-        const password = generateRandomPassword();
+        const password = generateTemporaryPassword();
         setGeneratedPassword(password);
         resetMutation.mutate({ id: user.id, password, sendEmail: emailAvailable && sendEmail });
     };

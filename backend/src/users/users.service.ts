@@ -22,6 +22,13 @@ import {
   AuditSeverity,
 } from '../audit/audit.constants';
 
+/** The authenticated user performing an operation. */
+export interface UserActor {
+  id: number;
+  username: string;
+  role: string;
+}
+
 /**
  * Users Service.
  *
@@ -45,6 +52,97 @@ export class UsersService {
     private readonly auditService: AuditService,
     private readonly settings: SettingsService,
   ) {}
+
+  /** Site ids the given user is assigned to (the scope of a manager). */
+  private async getSiteIds(userId: number): Promise<number[]> {
+    const rows = await this.prisma.client.userSiteAssignment.findMany({
+      where: { userId },
+      select: { siteId: true },
+    });
+    return rows.map((row) => row.siteId);
+  }
+
+  /**
+   * Authorization for acting on another account.
+   * - SUPER_ADMIN: any account.
+   * - MANAGER: USER and MANAGER accounts that share at least one site with
+   *   the manager; never a SUPER_ADMIN or a guest link.
+   * - anyone else: refused.
+   * No actor means a trusted internal caller.
+   */
+  private async assertCanManage(
+    actor: UserActor | undefined,
+    target: { id: number; role: string },
+  ): Promise<void> {
+    if (!actor || actor.role === 'SUPER_ADMIN') return;
+
+    if (actor.role !== 'MANAGER') {
+      throw new ForbiddenException('Insufficient privileges to manage users.');
+    }
+    if (target.role !== 'USER' && target.role !== 'MANAGER') {
+      this.logger.warn(
+        `Privilege escalation attempt: manager ${actor.username} targeted a ${target.role} account (ID: ${target.id})`,
+      );
+      throw new ForbiddenException(
+        'Managers cannot manage administrator or guest accounts.',
+      );
+    }
+
+    const [mine, theirs] = await Promise.all([
+      this.getSiteIds(actor.id),
+      this.getSiteIds(target.id),
+    ]);
+    if (!theirs.some((siteId) => mine.includes(siteId))) {
+      throw new ForbiddenException(
+        'This account does not belong to one of your sites.',
+      );
+    }
+  }
+
+  /**
+   * A deleted account is restored first, never edited or given a password: the
+   * person has no access and could be handed credentials by mistake.
+   */
+  private assertNotDeleted(user: {
+    username: string;
+    deletedAt?: Date | null;
+  }): void {
+    if (user.deletedAt) {
+      throw new ConflictException(
+        `Account "${user.username}" is deleted. Restore it before changing it.`,
+      );
+    }
+  }
+
+  /** Site a new account is attached to; managers are held to their own sites. */
+  private async resolveCreationSite(
+    requested: number | undefined,
+    actor?: UserActor,
+  ): Promise<number> {
+    if (actor && actor.role !== 'SUPER_ADMIN') {
+      if (actor.role !== 'MANAGER') {
+        throw new ForbiddenException(
+          'Insufficient privileges to create users.',
+        );
+      }
+      const mine = await this.getSiteIds(actor.id);
+      const siteId = requested ?? this.prisma.getDefaultSiteId() ?? mine[0];
+      if (!siteId || !mine.includes(siteId)) {
+        throw new ForbiddenException(
+          'Managers can only create users on their own sites.',
+        );
+      }
+      return siteId;
+    }
+
+    const siteId = requested ?? this.prisma.getDefaultSiteId();
+    if (!siteId) {
+      throw new BadRequestException(
+        'Cannot create user: no siteId provided and no default site found for the current user.',
+      );
+    }
+    return siteId;
+  }
 
   private readonly profileSelect = {
     id: true,
@@ -83,11 +181,28 @@ export class UsersService {
   }
 
   /**
-   * Get all active users (excludes soft-deleted).
+   * Get users (active ones by default).
+   * - includeDeleted: also return soft-deleted accounts.
+   * - manageableBy: restrict to the accounts that actor may manage (for a
+   *   manager: USER/MANAGER accounts on their sites).
    */
-  async findAll(): Promise<UserResponseDto[]> {
+  async findAll(
+    options: { includeDeleted?: boolean; manageableBy?: UserActor } = {},
+  ): Promise<UserResponseDto[]> {
+    const { includeDeleted = false, manageableBy } = options;
+    const where: Record<string, unknown> = includeDeleted
+      ? {}
+      : { deletedAt: null };
+
+    if (manageableBy && manageableBy.role !== 'SUPER_ADMIN') {
+      if (manageableBy.role !== 'MANAGER') return [];
+      const mine = await this.getSiteIds(manageableBy.id);
+      where.role = { in: ['USER', 'MANAGER'] };
+      where.sites = { some: { siteId: { in: mine } } };
+    }
+
     const users = await this.prisma.client.user.findMany({
-      where: { deletedAt: null },
+      where,
       include: {
         groupMemberships: {
           include: {
@@ -146,7 +261,7 @@ export class UsersService {
    */
   async create(
     dto: CreateUserDto,
-    actor?: { id: number; username: string; role: string },
+    actor?: UserActor,
   ): Promise<UserResponseDto> {
     // Check username uniqueness
     const existing = await this.prisma.client.user.findUnique({
@@ -154,7 +269,12 @@ export class UsersService {
     });
 
     if (existing) {
-      throw new ConflictException(`Username "${dto.username}" already exists`);
+      // Soft-deleted accounts keep their username, so they block re-creation.
+      throw new ConflictException(
+        existing.deletedAt
+          ? `Username "${dto.username}" belongs to a deleted account. Restore it from the deleted users list instead of creating a new one.`
+          : `Username "${dto.username}" already exists`,
+      );
     }
 
     // BLOCK GUEST ROLE via standard endpoint
@@ -173,6 +293,7 @@ export class UsersService {
       );
     }
 
+    const siteId = await this.resolveCreationSite(dto.siteId, actor);
     const passwordHash = await this.authService.hashPassword(dto.password);
 
     const user = await this.prisma.client.user.create({
@@ -194,12 +315,6 @@ export class UsersService {
       },
     });
 
-    const siteId = dto.siteId ?? this.prisma.getDefaultSiteId();
-    if (!siteId) {
-      throw new BadRequestException(
-        'Cannot create user: no siteId provided and no default site found for the current user.',
-      );
-    }
     await this.prisma.client.userSiteAssignment.create({
       data: { userId: user.id, siteId, isDefault: true },
     });
@@ -216,11 +331,10 @@ export class UsersService {
   async update(
     id: number,
     dto: UpdateUserDto,
-    actor?: { id: number; username: string; role: string },
+    actor?: UserActor,
   ): Promise<UserResponseDto> {
-    // Verify user exists and is active
     const existing = await this.prisma.client.user.findFirst({
-      where: { id, deletedAt: null },
+      where: { id },
     });
 
     if (!existing) {
@@ -233,20 +347,23 @@ export class UsersService {
       );
     }
 
-    if (dto.role && dto.role !== existing.role) {
-      if (
-        (dto.role === 'SUPER_ADMIN' || existing.role === 'SUPER_ADMIN') &&
-        actor &&
-        actor.role !== 'SUPER_ADMIN'
-      ) {
-        this.logger.warn(
-          `Privilege escalation attempt: User ${actor.username} tried to change role from ${existing.role} to ${dto.role}`,
-        );
-        throw new ForbiddenException(
-          'Only administrators can grant or revoke the SUPER_ADMIN role.',
-        );
-      }
+    if (
+      dto.role &&
+      dto.role !== existing.role &&
+      (dto.role === 'SUPER_ADMIN' || existing.role === 'SUPER_ADMIN') &&
+      actor &&
+      actor.role !== 'SUPER_ADMIN'
+    ) {
+      this.logger.warn(
+        `Privilege escalation attempt: User ${actor.username} tried to change role from ${existing.role} to ${dto.role}`,
+      );
+      throw new ForbiddenException(
+        'Only administrators can grant or revoke the SUPER_ADMIN role.',
+      );
     }
+
+    await this.assertCanManage(actor, existing);
+    this.assertNotDeleted(existing);
 
     const user = await this.prisma.client.user.update({
       where: { id },
@@ -296,7 +413,7 @@ export class UsersService {
    * Soft delete a user.
    * Sets deletedAt timestamp instead of removing.
    */
-  async remove(id: number): Promise<void> {
+  async remove(id: number, actor?: UserActor): Promise<void> {
     const user = await this.prisma.client.user.findFirst({
       where: { id, deletedAt: null },
     });
@@ -304,6 +421,8 @@ export class UsersService {
     if (!user) {
       throw new NotFoundException(`User with ID ${id} not found`);
     }
+
+    await this.assertCanManage(actor, user);
 
     await this.prisma.client.user.update({
       where: { id },
@@ -316,14 +435,21 @@ export class UsersService {
   /**
    * Reset a user's password (admin action).
    */
-  async resetPassword(id: number, newPassword: string): Promise<void> {
+  async resetPassword(
+    id: number,
+    newPassword: string,
+    actor?: UserActor,
+  ): Promise<void> {
     const user = await this.prisma.client.user.findFirst({
-      where: { id, deletedAt: null },
+      where: { id },
     });
 
     if (!user) {
       throw new NotFoundException(`User with ID ${id} not found`);
     }
+
+    await this.assertCanManage(actor, user);
+    this.assertNotDeleted(user);
 
     if (user.authProvider !== 'LOCAL') {
       throw new ConflictException(
@@ -348,7 +474,7 @@ export class UsersService {
   /**
    * Restore a soft-deleted user.
    */
-  async restore(id: number): Promise<UserResponseDto> {
+  async restore(id: number, actor?: UserActor): Promise<UserResponseDto> {
     const user = await this.prisma.client.user.findFirst({
       where: { id, deletedAt: { not: null } },
     });
@@ -356,6 +482,8 @@ export class UsersService {
     if (!user) {
       throw new NotFoundException(`Deleted user with ID ${id} not found`);
     }
+
+    await this.assertCanManage(actor, user);
 
     const restored = await this.prisma.client.user.update({
       where: { id },

@@ -53,6 +53,8 @@ const DEFAULT_TIMEOUT_MS = 30_000;
 const UPLOAD_TIMEOUT_MS = 5 * 60_000;
 /** Timeout dedicated to the silent token refresh roundtrip. */
 const REFRESH_TIMEOUT_MS = 10_000;
+/** Pauses before retrying a refresh that failed transiently (two retries, then give up without signing out). */
+const REFRESH_RETRY_DELAYS_MS = [1_000, 3_000];
 
 /**
  * Combine an optional user signal with a timeout signal.
@@ -262,7 +264,16 @@ async function request<T>(
         const isAuthEndpoint = endpoint === '/auth/login' || endpoint === '/auth/refresh';
 
         if (response.status === 401 && !_isRetry && !isAuthEndpoint) {
-            const refreshStatus = await handleTokenRefresh();
+            let refreshStatus = await handleTokenRefresh();
+
+            // A refresh can fail for a moment while the session is fine: another tab
+            // is rotating the same token (409), the server restarts, the network blips.
+            // Wait and try again before giving up.
+            for (const delay of REFRESH_RETRY_DELAYS_MS) {
+                if (refreshStatus !== 'transient_error') break;
+                await new Promise((resolve) => setTimeout(resolve, delay));
+                refreshStatus = await handleTokenRefresh();
+            }
 
             if (refreshStatus === 'success') {
                 return request<T>(endpoint, { ...options, _isRetry: true });
@@ -270,7 +281,9 @@ async function request<T>(
                 handleAuthFailure();
                 throw new ApiError(401, 'Unauthorized', { code: 'session_expired' });
             }
-            // Transient error: do not logout, fall through to throw ApiError below
+            // Still transient: report it as such. Re-throwing the original 401 made the
+            // session query sign the user out although the session was never lost.
+            throw new ApiError(503, 'Service Unavailable', { code: 'session_refresh_unavailable' });
         }
 
         let data: unknown;

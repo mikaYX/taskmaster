@@ -135,6 +135,11 @@ export class BackupService implements OnModuleInit {
     return this.backupLogic.isEncryptionKeyPresent();
   }
 
+  /** Folder the archives are actually written to. */
+  getStoragePath(): Promise<string> {
+    return this.backupLogic.resolveStoragePath();
+  }
+
   isEncryptionKeyDefault(): boolean {
     return this.backupLogic.isEncryptionKeyDefault();
   }

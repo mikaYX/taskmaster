@@ -16,6 +16,7 @@ import { LoginPage } from './login-page';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { authApi } from '@/api/auth';
+import { toast } from 'sonner';
 import * as webauthn from '@simplewebauthn/browser';
 
 vi.mock('@/api/auth', () => ({
@@ -26,8 +27,10 @@ vi.mock('@/api/auth', () => ({
         verifyPasskeyAuthentication: vi.fn(),
         getSession: vi.fn().mockResolvedValue({ id: 1, role: 'USER', valid: true }),
         exchangeSsoTicket: vi.fn(),
+        exchangeGuestTicket: vi.fn(),
     }
 }));
+vi.mock('sonner', () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 vi.mock('@simplewebauthn/browser', () => ({
     startAuthentication: vi.fn(),
 }));
@@ -124,6 +127,45 @@ describe('LoginPage', () => {
             await waitFor(() => new Promise(r => setTimeout(r, 50)));
 
             expect(authApi.exchangeSsoTicket).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('TV login link (guest_ticket)', () => {
+        const ticket = 'a'.repeat(64);
+
+        it('swaps the one-time ticket for a session once, then leaves the page', async () => {
+            vi.mocked(authApi.exchangeGuestTicket).mockResolvedValue({ expiresIn: 900 });
+            const replaceSpy = vi.fn();
+            Object.defineProperty(window, 'location', {
+                value: { ...window.location, replace: replaceSpy },
+                writable: true,
+            });
+
+            renderWithRouter([`/login?guest_ticket=${ticket}`]);
+
+            await waitFor(() => {
+                expect(authApi.exchangeGuestTicket).toHaveBeenCalledWith(ticket);
+                expect(replaceSpy).toHaveBeenCalledWith('/');
+            });
+            expect(authApi.exchangeGuestTicket).toHaveBeenCalledTimes(1);
+        });
+
+        it('tells the user when the link is invalid, expired or already used', async () => {
+            vi.mocked(authApi.exchangeGuestTicket).mockRejectedValue(new Error('401'));
+
+            renderWithRouter([`/login?guest_ticket=${ticket}`]);
+
+            await waitFor(() => {
+                expect(toast.error).toHaveBeenCalledWith('auth.guestLinkInvalid');
+            });
+        });
+
+        it('does nothing without a ticket', async () => {
+            renderWithRouter(['/login']);
+
+            await waitFor(() => new Promise(r => setTimeout(r, 50)));
+
+            expect(authApi.exchangeGuestTicket).not.toHaveBeenCalled();
         });
     });
 

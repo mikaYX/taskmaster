@@ -427,21 +427,24 @@ describe('AuthService', () => {
       });
     });
 
-    it('should resolve anti-conflict for GUEST: required if guestReq is true', async () => {
+    it('never applies a passkey policy to a GUEST (TV screens cannot hold one), even when required', async () => {
       prismaClient.user.findFirst.mockResolvedValue({
         ...mockUserBase,
         role: 'GUEST',
       });
       mockSettingsService.get.mockImplementation(async (key: string) => {
         if (key === 'auth.passkeys.enabled') return { value: 'true' };
-        if (key === 'auth.requirements.guest.passkeys')
+        if (
+          key === 'auth.requirements.guest.passkeys' ||
+          key === 'security.enforcement.passkeys.guest'
+        )
           return { value: 'true' };
         return { value: 'false' };
       });
 
       const session = await service.getSession(1);
       expect(session).toMatchObject({
-        passkeyPolicy: 'required',
+        passkeyPolicy: 'disabled',
       });
     });
 
@@ -455,6 +458,132 @@ describe('AuthService', () => {
       expect(session).toMatchObject({
         hasPasskey: true,
         passkeyPolicy: 'optional', // default from mockSettings
+      });
+    });
+  });
+
+  describe('session length handed to the cookie', () => {
+    const liveUser = (role: string) => ({
+      id: 4,
+      username: 'someone',
+      role,
+      mustChangePassword: false,
+      groupMemberships: [],
+      sites: [],
+    });
+
+    it('passes the role to the token store and returns the real expiry of the refresh token', async () => {
+      const expiresAt = new Date(Date.now() + 1440 * 60_000);
+      const refreshTokens = (service as any).refreshTokenService;
+      refreshTokens.createToken.mockResolvedValue({ token: 'rt', expiresAt });
+      prismaClient.user.findFirst.mockResolvedValue(liveUser('MANAGER'));
+
+      const result = await service.completeLogin(4, 'ua', '10.0.0.1');
+
+      expect(refreshTokens.createToken).toHaveBeenCalledWith(
+        4,
+        'ua',
+        '10.0.0.1',
+        undefined,
+        'MANAGER',
+      );
+      expect(result.refreshExpiresAt).toBe(expiresAt);
+    });
+
+    it('returns the expiry of the rotated token on refresh', async () => {
+      const expiresAt = new Date(Date.now() + 1440 * 60_000);
+      const refreshTokens = (service as any).refreshTokenService;
+      refreshTokens.rotateToken = jest
+        .fn()
+        .mockResolvedValue({ token: 'rt2', expiresAt, userId: 4 });
+      prismaClient.user.findFirst.mockResolvedValue(liveUser('USER'));
+
+      const result = await service.refreshTokens('rt1');
+
+      expect(result.refreshToken).toBe('rt2');
+      expect(result.refreshExpiresAt).toBe(expiresAt);
+    });
+  });
+
+  describe('the screen of a TV account', () => {
+    const claimsOf = (callIndex = 0) =>
+      (jwtService.sign as jest.Mock).mock.calls[callIndex][0];
+
+    it('is carried by the access token of a guest, defaulting to the board', () => {
+      service.generateAccessToken(9, 'tv', 'GUEST', [], [], [], 'ANALYTICS');
+      service.generateAccessToken(9, 'tv', 'GUEST', [], [], [], null);
+      service.generateAccessToken(9, 'tv', 'GUEST', [], [], []);
+
+      expect(claimsOf(0).guestView).toBe('ANALYTICS');
+      expect(claimsOf(1).guestView).toBe('DASHBOARD');
+      expect(claimsOf(2).guestView).toBe('DASHBOARD');
+    });
+
+    it('is never put in the token of anyone else', () => {
+      service.generateAccessToken(
+        2,
+        'boss',
+        'MANAGER',
+        [],
+        [],
+        [],
+        'ANALYTICS',
+      );
+
+      expect(claimsOf(0)).not.toHaveProperty('guestView');
+    });
+
+    it('is returned with the session so the web app can open the right screen', async () => {
+      prismaClient.user.findFirst.mockResolvedValue({
+        id: 9,
+        username: 'tv',
+        fullname: 'TV',
+        role: 'GUEST',
+        guestView: 'ANALYTICS',
+        mustChangePassword: false,
+        groupMemberships: [],
+        sites: [],
+        passkeys: [],
+      });
+
+      await expect(service.getSession(9)).resolves.toMatchObject({
+        guestView: 'ANALYTICS',
+      });
+    });
+
+    it('is the board for a guest without a screen (account from before screens existed)', async () => {
+      prismaClient.user.findFirst.mockResolvedValue({
+        id: 9,
+        username: 'tv',
+        fullname: 'TV',
+        role: 'GUEST',
+        guestView: null,
+        mustChangePassword: false,
+        groupMemberships: [],
+        sites: [],
+        passkeys: [],
+      });
+
+      await expect(service.getSession(9)).resolves.toMatchObject({
+        guestView: 'DASHBOARD',
+      });
+    });
+
+    it('is null for every other role', async () => {
+      prismaClient.user.findFirst.mockResolvedValue({
+        id: 2,
+        username: 'u',
+        fullname: 'U',
+        role: 'USER',
+        guestView: null,
+        mustChangePassword: false,
+        groupMemberships: [],
+        sites: [],
+        passkeys: [],
+      });
+
+      await expect(service.getSession(2)).resolves.toMatchObject({
+        guestView: null,
       });
     });
   });

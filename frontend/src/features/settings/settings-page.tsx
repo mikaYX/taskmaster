@@ -34,9 +34,11 @@ import { useAuthStore } from '@/stores/auth-store';
  */
 export function SettingsPage() {
     const { t } = useTranslation();
-    const [activeTab, setActiveTab] = useState('general');
     const role = useAuthStore((s) => s.role);
     const isSuperAdmin = role === 'SUPER_ADMIN';
+    // A manager only gets Security (users and groups of their own sites): no other tab, so no settings API call either.
+    const isManager = role === 'MANAGER';
+    const [activeTab, setActiveTab] = useState(isManager ? 'security' : 'general');
 
     return (
         <div className="container mx-auto py-6 space-y-6 max-w-6xl">
@@ -69,13 +71,17 @@ export function SettingsPage() {
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
                 <ScrollAreaHorizontal className="w-full border-b border-border">
                     <TabsList variant="line" className="inline-flex w-max min-w-full justify-start h-auto pb-2 pt-0 border-0 bg-transparent">
-                        <TabsTrigger value="general">{t('settings.general')}</TabsTrigger>
+                        {!isManager && <TabsTrigger value="general">{t('settings.general')}</TabsTrigger>}
                         <TabsTrigger value="security">{t('settings.security')}</TabsTrigger>
-                        <TabsTrigger value="auth">{t('settings.auth')}</TabsTrigger>
-                        <TabsTrigger value="email">{t('settings.email')}</TabsTrigger>
-                        <TabsTrigger value="export">{t('settings.export')}</TabsTrigger>
-                        <TabsTrigger value="backup">{t('settings.backup')}</TabsTrigger>
-                        <TabsTrigger value="scheduler">{t('settings.scheduler')}</TabsTrigger>
+                        {!isManager && (
+                            <>
+                                <TabsTrigger value="auth">{t('settings.auth')}</TabsTrigger>
+                                <TabsTrigger value="email">{t('settings.email')}</TabsTrigger>
+                                <TabsTrigger value="export">{t('settings.export')}</TabsTrigger>
+                                <TabsTrigger value="backup">{t('settings.backup')}</TabsTrigger>
+                                <TabsTrigger value="scheduler">{t('settings.scheduler')}</TabsTrigger>
+                            </>
+                        )}
                         {isSuperAdmin && (
                             <>
                                 <TabsTrigger value="sites">{t('settings.sites')}</TabsTrigger>
@@ -83,7 +89,7 @@ export function SettingsPage() {
                                 <TabsTrigger value="api-keys">{t('settings.apiKeys.title')}</TabsTrigger>
                             </>
                         )}
-                        <TabsTrigger value="updates">{t('settings.updates')}</TabsTrigger>
+                        {!isManager && <TabsTrigger value="updates">{t('settings.updates')}</TabsTrigger>}
                     </TabsList>
                 </ScrollAreaHorizontal>
 

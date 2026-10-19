@@ -58,7 +58,8 @@ export function UserActions({ user, onEdit, onResetPassword }: UserActionsProps)
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                     <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                    {!isGuest && (
+                    {/* A deleted account is restored first: no edit, no password reset. */}
+                    {!isGuest && !isDeleted && (
                         <>
                             <DropdownMenuItem onClick={() => onEdit(user)}>
                                 <Pencil className="mr-2 h-4 w-4" />
@@ -75,7 +76,7 @@ export function UserActions({ user, onEdit, onResetPassword }: UserActionsProps)
                             Géré par Guest TV Links
                         </DropdownMenuItem>
                     )}
-                    {!isGuest && <DropdownMenuSeparator />}
+                    {!isGuest && !isDeleted && <DropdownMenuSeparator />}
                     {!isGuest && (isDeleted ? (
                         <DropdownMenuItem
                             onClick={() => setShowRestoreAlert(true)}

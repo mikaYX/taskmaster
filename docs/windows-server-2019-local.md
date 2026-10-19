@@ -214,6 +214,45 @@ Le fichier `.env` n'est jamais réécrit lors d'une mise à jour : sur une
 installation existante, modifier `OFFLINE_MODE` dans
 `C:\ProgramData\Taskmaster\config\.env` puis redémarrer le service.
 
+## Mise à jour : retrouver l'emplacement existant
+
+Le MSI enregistre le dossier d'installation et le dossier de données dans
+`HKLM\SOFTWARE\Taskmaster` (`InstallDir`, `DataDir`). Lors d'une mise à jour, la page
+« dossier d'installation » démarre sur l'emplacement existant au lieu de
+`C:\Program Files\Taskmaster`, et reste modifiable ; le dossier de données (qui contient
+`config\.env`) est retrouvé tel quel. Pour le changer en ligne de commande :
+`msiexec /i Taskmaster-<version>-x64.msi TASKMASTERDATAROOT="D:\Taskmaster\data"`.
+Une valeur dont le dossier n'existe plus est ignorée et le défaut s'applique. Les
+installations faites avec une version antérieure à la 1.1.10 n'ont pas encore cette
+valeur : choisir le dossier une fois dans l'assistant lors de la première mise à jour.
+
+## Sauvegardes : dossier des archives (`BACKUP_STORAGE_PATH`)
+
+Par défaut les archives sont écrites dans `C:\ProgramData\Taskmaster\backups`. Pour
+un autre emplacement (autre disque, partage réseau) :
+
+- **à l'installation** : `msiexec /i Taskmaster-<version>-x64.msi TASKMASTER_BACKUP_PATH="D:\Sauvegardes"`
+  (chemin absolu ou partage UNC ; le dossier est créé et vérifié avant l'installation) ;
+- **sur une installation existante** : modifier `BACKUP_STORAGE_PATH` dans
+  `C:\ProgramData\Taskmaster\config\.env`, puis redémarrer le service. Les archives déjà
+  créées ne sont pas déplacées : copier les fichiers `*.enc` vers le nouveau dossier.
+
+Le service tourne sous `LocalSystem` : un disque local convient sans réglage. Pour un
+partage, utiliser un chemin UNC et donner les droits d'écriture au compte machine du
+serveur (`DOMAINE\NOMSERVEUR$`), car un lecteur réseau monté dans une session n'est pas
+visible du service.
+
+## Sauvegardes : dossier des outils PostgreSQL (`PG_BIN_PATH`)
+
+Les sauvegardes et restaurations lancent `pg_dump.exe` et `pg_restore.exe`.
+Le service Windows ne les trouve pas dans son `PATH` : le MSI propose donc le champ
+« Dossier bin PostgreSQL » (ex. `C:Program FilesPostgreSQL8in`), écrit dans
+`PG_BIN_PATH`. Laissé vide, le backend cherche la version la plus récente sous
+`C:Program FilesPostgreSQL`. Si la base est sur un autre serveur, installer les
+outils clients PostgreSQL (même version majeure que la base) sur cette machine et
+renseigner leur dossier. Sur une installation existante, modifier `PG_BIN_PATH` dans
+`C:ProgramDataTaskmasterconfig.env`, puis redémarrer le service.
+
 ## Construire les installeurs
 
 Sur une machine de build **Windows x64** (jamais Linux — les binaires

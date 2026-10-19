@@ -9,6 +9,7 @@ import {
   Query,
   UseGuards,
   ForbiddenException,
+  BadRequestException,
 } from '@nestjs/common';
 import { TodosService } from './todos.service';
 import { CreateTodoDto } from './dto/create-todo.dto';
@@ -66,7 +67,27 @@ export class TodosController {
       }
     }
     const siteId = this.prisma.getDefaultSiteId() ?? 0;
-    return this.todosService.create(createTodoDto, user.sub, siteId);
+    return this.todosService.create(createTodoDto, user.sub, siteId, user.role);
+  }
+
+  /** Must stay above `:id` so "completed" is not read as an id. */
+  @Delete('completed')
+  async clearCompleted(
+    @Query('scope') scope: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    if (scope !== TodoScope.PRIVATE && scope !== TodoScope.COLLECTIVE) {
+      throw new BadRequestException('scope must be PRIVATE or COLLECTIVE');
+    }
+    const userGroupIds = await this.getUserGroupIds(user.sub);
+    const siteId = this.prisma.getDefaultSiteId() ?? 0;
+    return this.todosService.clearCompleted(
+      scope,
+      user.sub,
+      user.role,
+      siteId,
+      userGroupIds,
+    );
   }
 
   @Patch(':id')
@@ -75,11 +96,19 @@ export class TodosController {
     @Body() updateTodoDto: UpdateTodoDto,
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.todosService.update(+id, updateTodoDto, user.sub, user.role);
+    const siteId = this.prisma.getDefaultSiteId() ?? 0;
+    return this.todosService.update(
+      +id,
+      updateTodoDto,
+      user.sub,
+      user.role,
+      siteId,
+    );
   }
 
   @Delete(':id')
   async remove(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
-    return this.todosService.remove(+id, user.sub, user.role);
+    const siteId = this.prisma.getDefaultSiteId() ?? 0;
+    return this.todosService.remove(+id, user.sub, user.role, siteId);
   }
 }

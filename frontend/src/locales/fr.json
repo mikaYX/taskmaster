@@ -53,6 +53,7 @@
         "enterPassword": "Entrez votre mot de passe",
         "signInToAccount": "Connectez-vous à votre compte",
         "loginFailed": "Échec de connexion. Vérifiez vos identifiants.",
+        "guestLinkInvalid": "Ce lien est invalide, expiré ou déjà utilisé. Demandez-en un nouveau à un administrateur.",
         "invalidMfa": "Code MFA invalide.",
         "passkeyFailed": "Échec de la connexion par clé d'accès.",
         "passkeyOriginError": "Passkey indisponible sur {{origin}} avec le domaine configuré {{rpID}}. Vérifiez HTTPS et FRONTEND_URL dans la configuration du serveur, puis redémarrez le service.",
@@ -333,6 +334,8 @@
         "addonsDescription": "Activer ou désactiver des fonctionnalités supplémentaires",
         "todoListEnabled": "Activer la Liste de tâches",
         "todoListHint": "Affiche une liste de tâches personnelle et collective dans la barre latérale",
+        "todoListReminders": "Rappels par email",
+        "todoListRemindersHint": "Envoie un email lorsqu'une tâche arrive à échéance dans les 24 h (nécessite que l'envoi d'emails soit activé)",
         "apiKeys": {
             "title": "Clés API",
             "description": "Gérer les clés d'accès pour les intégrations externes"

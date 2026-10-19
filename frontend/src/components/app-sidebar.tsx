@@ -27,7 +27,8 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { resolveAvatarSrc } from '@/lib/avatar';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -63,7 +64,11 @@ export function AppSidebar() {
     const logout = useLogout();
     const role = useAuthStore(state => state.role);
     const isGuest = role === 'GUEST';
-    const visibleAdminItems = adminNavItems.filter(item => role === 'SUPER_ADMIN' || (item.url === '/task-definitions' && !!role && !isGuest));
+    const visibleAdminItems = adminNavItems.filter(item =>
+        role === 'SUPER_ADMIN'
+        || (item.url === '/task-definitions' && !!role && !isGuest)
+        // Managers reach Settings, but only the users part of it (see SettingsPage).
+        || (item.url === '/settings' && role === 'MANAGER'));
     const { data: currentUser } = useOwnProfile();
 
     // Branding settings
@@ -80,6 +85,7 @@ export function AppSidebar() {
 
     const displayName = currentUser?.fullname || currentUser?.username || t('common.user');
     const initials = displayName.substring(0, 2).toUpperCase();
+    const avatarSrc = resolveAvatarSrc(currentUser?.avatarUrl);
 
     const handleLogout = () => {
         logout.mutate();
@@ -192,6 +198,7 @@ export function AppSidebar() {
                             <DropdownMenuTrigger asChild>
                                 <SidebarMenuButton className="w-full">
                                     <Avatar className="h-6 w-6">
+                                        <AvatarImage src={avatarSrc} alt={displayName} />
                                         <AvatarFallback className="text-xs">{initials}</AvatarFallback>
                                     </Avatar>
                                     <span className="flex-1 text-left">{displayName}</span>

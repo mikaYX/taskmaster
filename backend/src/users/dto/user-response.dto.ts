@@ -2,7 +2,7 @@ import { UserRole } from '@prisma/client';
 
 /**
  * User response DTO - excludes sensitive data.
- * Never exposes: passwordHash, deletedAt, authProvider details
+ * Never exposes: passwordHash, authProvider details
  */
 export class UserResponseDto {
   id!: number;
@@ -14,6 +14,8 @@ export class UserResponseDto {
   mustChangePassword!: boolean;
   createdAt!: Date;
   updatedAt!: Date;
+  /** Set only for soft-deleted accounts, listed on request by administrators and managers. */
+  deletedAt?: Date | null;
   groups?: string[];
 }
 
@@ -31,6 +33,7 @@ export function toUserResponse(user: {
   mustChangePassword: boolean;
   createdAt: Date;
   updatedAt: Date;
+  deletedAt?: Date | null;
   groupMemberships?: { group: { name: string } }[];
 }): UserResponseDto {
   return {
@@ -43,6 +46,7 @@ export function toUserResponse(user: {
     mustChangePassword: user.mustChangePassword,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
+    deletedAt: user.deletedAt ?? null,
     groups: user.groupMemberships?.map((m) => m.group.name),
   };
 }

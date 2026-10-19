@@ -19,7 +19,8 @@ import { AuthService } from './auth.service';
 import { OidcService } from './oidc.service';
 import { AzureAdService } from './azure-ad.service';
 import { SamlService } from './saml.service';
-import { LoginDto, ChangePasswordDto } from './dto';
+import { GuestTicketService } from './guest-ticket.service';
+import { LoginDto, ChangePasswordDto, ExchangeGuestTicketDto } from './dto';
 import { JwtAuthGuard } from './guards';
 import { CsrfTokenGuard } from './guards/csrf-token.guard';
 import {
@@ -73,14 +74,19 @@ export class AuthController {
     private readonly oidcService: OidcService,
     private readonly azureAdService: AzureAdService,
     private readonly samlService: SamlService,
+    private readonly guestTickets: GuestTicketService,
     private readonly configService: ConfigService,
   ) {
     this.isProd = this.configService.get<string>('NODE_ENV') === 'production';
   }
 
   /** Writes the refresh token as a Secure HttpOnly cookie on the response. */
-  private setRefreshCookie(res: Response, refreshToken: string): void {
-    applyRefreshCookie(res, refreshToken, this.isProd);
+  private setRefreshCookie(
+    res: Response,
+    refreshToken: string,
+    expiresAt?: Date,
+  ): void {
+    applyRefreshCookie(res, refreshToken, this.isProd, expiresAt);
   }
 
   /** Writes the access token as a Secure HttpOnly cookie on the response. */
@@ -147,7 +153,7 @@ export class AuthController {
     }
 
     const { refreshToken, accessToken, ...rest } = result;
-    this.setRefreshCookie(res, refreshToken);
+    this.setRefreshCookie(res, refreshToken, rest.refreshExpiresAt);
     this.setAccessCookie(res, accessToken, rest.expiresIn);
     return this.toClientSession(rest);
   }
@@ -179,7 +185,7 @@ export class AuthController {
     );
 
     const { refreshToken, accessToken, ...rest } = result;
-    this.setRefreshCookie(res, refreshToken);
+    this.setRefreshCookie(res, refreshToken, rest.refreshExpiresAt);
     this.setAccessCookie(res, accessToken, rest.expiresIn);
     return this.toClientSession(rest);
   }
@@ -210,6 +216,7 @@ export class AuthController {
       passkeysEnabled: session.passkeysEnabled,
       passkeyPolicy: session.passkeyPolicy,
       hasPasskey: session.hasPasskey,
+      guestView: session.guestView,
     };
 
     const userObj = {
@@ -257,7 +264,7 @@ export class AuthController {
     }
 
     const { refreshToken, accessToken, ...rest } = result;
-    this.setRefreshCookie(res, refreshToken);
+    this.setRefreshCookie(res, refreshToken, rest.refreshExpiresAt);
     this.setAccessCookie(res, accessToken, rest.expiresIn);
     return this.toClientSession(rest);
   }
@@ -428,6 +435,26 @@ export class AuthController {
 
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
     res.redirect(`${frontendUrl}/login?sso_ticket=${ssoTicket}`);
+  }
+
+  // One-time exchange: TV login link -> long session for that guest screen.
+  @Post('guest/exchange')
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
+  @HttpCode(HttpStatus.OK)
+  async exchangeGuestTicket(
+    @Body() dto: ExchangeGuestTicketDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.guestTickets.login(
+      dto.ticket,
+      req.headers['user-agent'],
+      req.ip || req.socket.remoteAddress,
+    );
+    const { refreshToken, accessToken, ...rest } = result;
+    this.setRefreshCookie(res, refreshToken, rest.refreshExpiresAt);
+    this.setAccessCookie(res, accessToken, rest.expiresIn);
+    return this.toClientSession(rest);
   }
 
   // One-time exchange: sso_ticket -> tokens (sets HttpOnly cookie)

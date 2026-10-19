@@ -64,6 +64,35 @@ export function GuestGuard({ children }: AuthGuardProps) {
 }
 
 /**
+ * Home of a TV account. A screen bound to the analytics lands there instead of on
+ * the task board; everybody else (including a screen bound to the board) is left
+ * where they are.
+ */
+export function BoardGate({ children }: AuthGuardProps) {
+    const isAnalyticsScreen = useAuthStore((state) => state.role === 'GUEST' && state.guestView === 'ANALYTICS');
+
+    if (isAnalyticsScreen) {
+        return <Navigate to="/analytics" replace />;
+    }
+
+    return <>{children}</>;
+}
+
+/**
+ * Analytics: everybody who may see them, plus a TV account bound to the analytics.
+ * A TV account bound to the board goes back to it.
+ */
+export function AnalyticsGuard({ children }: AuthGuardProps) {
+    const isBoardScreen = useAuthStore((state) => state.role === 'GUEST' && state.guestView !== 'ANALYTICS');
+
+    if (isBoardScreen) {
+        return <Navigate to="/" replace />;
+    }
+
+    return <>{children}</>;
+}
+
+/**
  * NoGuest Guard.
  * 
  * Redirects GUEST users away from protected pages.
@@ -75,6 +104,21 @@ export function NoGuestGuard({ children }: AuthGuardProps) {
         return <Navigate to="/" replace />;
     }
 
+    return <>{children}</>;
+}
+
+/**
+ * Super administrators and managers. The server limits what a manager can do
+ * to the accounts of their own sites.
+ */
+export function ManagerGuard({ children }: AuthGuardProps) {
+    const role = useAuthStore(state => state.role);
+    const { t } = useTranslation();
+    if (role !== 'SUPER_ADMIN' && role !== 'MANAGER') return <section role="alert" className="mx-auto max-w-xl space-y-4 p-6">
+        <h1 className="text-xl font-semibold">{t('access.deniedTitle')}</h1>
+        <p>{t('access.deniedDescription')}</p>
+        <Button asChild><Link to="/">{t('access.backToBoard')}</Link></Button>
+    </section>;
     return <>{children}</>;
 }
 

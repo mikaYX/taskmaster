@@ -12,6 +12,7 @@ import {
   AutoExportJob,
   MissingTasksNotificationJob,
   ReminderNotificationJob,
+  TodoReminderJob,
 } from './jobs';
 import { JobLockService } from './job-lock.service';
 import { SettingsModule } from '../settings';
@@ -52,6 +53,7 @@ import { DelegationsModule } from '../modules/delegations/delegations.module';
     AutoExportJob,
     MissingTasksNotificationJob,
     ReminderNotificationJob,
+    TodoReminderJob,
   ],
   exports: [SchedulerService],
 })

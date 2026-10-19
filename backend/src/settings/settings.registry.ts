@@ -689,6 +689,15 @@ export const SETTINGS_REGISTRY = {
     default: true,
     description: 'Enable simple Todolist addon',
   },
+  'addons.todolist.reminders.enabled': {
+    schema: z.preprocess(
+      (v) => (v === 'true' ? true : v === 'false' ? false : v),
+      z.boolean(),
+    ),
+    sensitive: false,
+    default: false,
+    description: 'Email a reminder when a todo is due within 24 hours',
+  },
 } as const;
 
 export type SettingKey = keyof typeof SETTINGS_REGISTRY;

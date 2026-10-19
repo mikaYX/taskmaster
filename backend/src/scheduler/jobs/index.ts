@@ -7,3 +7,4 @@ export * from './auto-backup.job';
 export * from './auto-export.job';
 export * from './missing-tasks-notification.job';
 export * from './reminder-notification.job';
+export * from './todo-reminder.job';

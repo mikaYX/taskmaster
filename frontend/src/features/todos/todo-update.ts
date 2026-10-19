@@ -1,0 +1,43 @@
+import type { Todo, TodoPriority, TodoRecurrence, UpdateTodoDto } from '@/api/todos';
+
+export interface TodoEditForm {
+    title: string;
+    dueDate: string;
+    priority: TodoPriority;
+    recurrence: TodoRecurrence;
+    description: string;
+    /** '' means the whole site (no group). */
+    groupId: string;
+}
+
+/** `<input type="date">` wants YYYY-MM-DD; the API stores an ISO timestamp. */
+export const toDateInput = (value: string | null) => (value ? value.slice(0, 10) : '');
+
+export const formFromTodo = (todo: Todo): TodoEditForm => ({
+    title: todo.title,
+    dueDate: toDateInput(todo.dueDate),
+    priority: todo.priority,
+    recurrence: todo.recurrence,
+    description: todo.description ?? '',
+    groupId: todo.groupId?.toString() ?? '',
+});
+
+/**
+ * Builds the PATCH body from the form, keeping only what changed so a rename
+ * does not touch the due date and vice versa. An emptied date clears it (null),
+ * and so does going back to "whole site" for the group.
+ */
+export function buildTodoUpdate(todo: Todo, form: TodoEditForm): UpdateTodoDto {
+    const dto: UpdateTodoDto = {};
+    const title = form.title.trim();
+    if (title !== todo.title) dto.title = title;
+    if (form.dueDate !== toDateInput(todo.dueDate)) dto.dueDate = form.dueDate || null;
+    if (form.priority !== todo.priority) dto.priority = form.priority;
+    if (form.recurrence !== todo.recurrence) dto.recurrence = form.recurrence;
+    const description = form.description.trim();
+    if (description !== (todo.description ?? '')) dto.description = description || null;
+    if (form.groupId !== (todo.groupId?.toString() ?? '')) {
+        dto.groupId = form.groupId === '' ? null : Number(form.groupId);
+    }
+    return dto;
+}

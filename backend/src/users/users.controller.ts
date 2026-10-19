@@ -7,7 +7,9 @@ import {
   Patch,
   Body,
   Param,
+  Query,
   ParseIntPipe,
+  ForbiddenException,
   UseGuards,
   HttpCode,
   HttpStatus,
@@ -48,13 +50,35 @@ export class UsersController {
   ) {}
 
   /**
-   * Get all active users.
+   * Get users (active ones by default).
+   * - `manageable=true`: only the accounts the caller may manage, which for a
+   *   manager means USER/MANAGER accounts on their own sites.
+   * - `includeDeleted=true`: also soft-deleted accounts; limited to
+   *   administrators and managers, and always scoped like `manageable`.
    */
   @Get()
   @Roles('SUPER_ADMIN', 'MANAGER', 'GUEST')
   @RequirePermission(Permission.USER_READ)
-  async findAll() {
-    return this.usersService.findAll();
+  async findAll(
+    @CurrentUser() user: JwtPayload,
+    @Query('includeDeleted') includeDeleted?: string,
+    @Query('manageable') manageable?: string,
+  ) {
+    const wantsDeleted = includeDeleted === 'true';
+    if (
+      wantsDeleted &&
+      user.role !== 'SUPER_ADMIN' &&
+      user.role !== 'MANAGER'
+    ) {
+      throw new ForbiddenException('Insufficient privileges.');
+    }
+    return this.usersService.findAll({
+      includeDeleted: wantsDeleted,
+      manageableBy:
+        wantsDeleted || manageable === 'true'
+          ? { id: user.sub, username: user.username, role: user.role }
+          : undefined,
+    });
   }
 
   /**
@@ -142,8 +166,15 @@ export class UsersController {
   })
   @RequirePermission(Permission.USER_WRITE)
   @HttpCode(HttpStatus.NO_CONTENT)
-  async remove(@Param('id', ParseIntPipe) id: number) {
-    await this.usersService.remove(id);
+  async remove(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    await this.usersService.remove(id, {
+      id: user.sub,
+      username: user.username,
+      role: user.role,
+    });
   }
 
   /**
@@ -155,8 +186,15 @@ export class UsersController {
     category: AuditCategory.USER,
   })
   @RequirePermission(Permission.USER_WRITE)
-  async restore(@Param('id', ParseIntPipe) id: number) {
-    return this.usersService.restore(id);
+  async restore(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.usersService.restore(id, {
+      id: user.sub,
+      username: user.username,
+      role: user.role,
+    });
   }
 
   /**
@@ -172,8 +210,13 @@ export class UsersController {
   async resetPassword(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: ResetPasswordDto,
+    @CurrentUser() user: JwtPayload,
   ) {
-    await this.usersService.resetPassword(id, dto.password);
+    await this.usersService.resetPassword(id, dto.password, {
+      id: user.sub,
+      username: user.username,
+      role: user.role,
+    });
     if (!dto.sendEmail) return { ok: true };
 
     const target = await this.usersService.findOne(id);

@@ -1,5 +1,5 @@
 import { passkeyErrorMessage } from '@/lib/passkeys';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
@@ -15,6 +15,8 @@ import { authApi } from '@/api/auth';
 function parseLoginSearch(search: string) {
     const params = new URLSearchParams(search);
     const ssoTicket = params.get('sso_ticket');
+    // One-time link issued by an administrator for a TV screen.
+    const guestTicket = params.get('guest_ticket');
 
     // SECURITY (AUDIT.md Finding #1): the previous `?u=<username>&p=<password>`
     // auto-login mode for Guest/TV deployments has been removed entirely.
@@ -22,7 +24,7 @@ function parseLoginSearch(search: string) {
     // reverse-proxy/CDN access log, bookmarks and screen-sharing tools. The
     // only supported password-less entry path is the server-issued
     // `sso_ticket` (one-time, short TTL, single-use, IP-bound) handled below.
-    return { ssoTicket };
+    return { ssoTicket, guestTicket };
 }
 
 export function LoginPage() {
@@ -33,7 +35,7 @@ export function LoginPage() {
     const [requiresMfa, setRequiresMfa] = useState(false);
     const [mfaToken, setMfaToken] = useState('');
     const location = useLocation();
-    const { ssoTicket } = useMemo(
+    const { ssoTicket, guestTicket } = useMemo(
         () => parseLoginSearch(location.search),
         [location.search],
     );
@@ -55,6 +57,18 @@ export function LoginPage() {
             });
         }
     }, [ssoTicket]);
+
+    // TV login link: swapped once for a long session, then the URL is left behind.
+    const guestTicketUsed = useRef(false);
+    useEffect(() => {
+        if (!guestTicket || guestTicketUsed.current) return;
+        guestTicketUsed.current = true;
+        authApi.exchangeGuestTicket(guestTicket).then(() => {
+            window.location.replace('/');
+        }).catch(() => {
+            toast.error(t('auth.guestLinkInvalid'));
+        });
+    }, [guestTicket, t]);
 
     // Public branding settings (no auth required)
     const { data: branding } = useQuery({

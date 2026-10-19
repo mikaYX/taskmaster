@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { UserRole, UserSite } from '@/api/types';
+import type { GuestViewName, UserRole, UserSite } from '@/api/types';
 
 interface AuthState {
     isAuthenticated: boolean;
@@ -14,6 +14,8 @@ interface AuthState {
     passkeyPolicy: 'disabled' | 'optional' | 'required';
     hasPasskey: boolean;
     mustChangePassword: boolean;
+    /** Only for a TV (GUEST) account: which screen it may open. */
+    guestView: GuestViewName | null;
 
     setSession: (
         userId: number,
@@ -24,7 +26,8 @@ interface AuthState {
         passkeysEnabled?: boolean,
         passkeyPolicy?: 'disabled' | 'optional' | 'required',
         hasPasskey?: boolean,
-        mustChangePassword?: boolean
+        mustChangePassword?: boolean,
+        guestView?: GuestViewName | null
     ) => void;
     clearSession: () => void;
     setLoading: (loading: boolean) => void;
@@ -44,8 +47,9 @@ export const useAuthStore = create<AuthState>()(
             passkeyPolicy: 'disabled',
             hasPasskey: false,
             mustChangePassword: false,
+            guestView: null,
 
-            setSession: (userId, role, groups, permissions, sites = [], passkeysEnabled = false, passkeyPolicy = 'disabled', hasPasskey = false, mustChangePassword = false) =>
+            setSession: (userId, role, groups, permissions, sites = [], passkeysEnabled = false, passkeyPolicy = 'disabled', hasPasskey = false, mustChangePassword = false, guestView = null) =>
                 set({
                     isAuthenticated: true,
                     isLoading: false,
@@ -58,6 +62,7 @@ export const useAuthStore = create<AuthState>()(
                     passkeyPolicy,
                     hasPasskey,
                     mustChangePassword,
+                    guestView,
                 }),
 
             clearSession: () =>
@@ -73,6 +78,7 @@ export const useAuthStore = create<AuthState>()(
                     passkeyPolicy: 'disabled',
                     hasPasskey: false,
                     mustChangePassword: false,
+                    guestView: null,
                 }),
 
             setLoading: (loading) =>
@@ -90,6 +96,7 @@ export const useAuthStore = create<AuthState>()(
                 passkeysEnabled: state.passkeysEnabled,
                 passkeyPolicy: state.passkeyPolicy,
                 hasPasskey: state.hasPasskey,
+                guestView: state.guestView,
             }),
         }
     )

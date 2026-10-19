@@ -130,12 +130,37 @@ Notes :
 - [`../SETUP.md`](../SETUP.md)
 
 
+### Durée de la session (Paramètres > Authentification)
+
+« Déconnexion automatique après inactivité » (5 à 1440 minutes, 30 par défaut tant qu'il
+n'est pas enregistré) est le temps pendant lequel un utilisateur peut s'absenter avant de
+devoir se reconnecter : la session est renouvelée à chaque utilisation. Mettre 1440
+donne une journée. La valeur s'applique dans la minute qui suit l'enregistrement, y compris
+aux sessions déjà ouvertes. La précision est celle du jeton d'accès (15 minutes). Les
+écrans TV (comptes Guest) ne sont pas concernés : leur session dure un an.
+
+### Les utilisateurs sont déconnectés toutes les ~15 minutes
+
+Le jeton d'accès dure 15 minutes ; le navigateur le renouvelle seul en appelant
+`/api/auth/refresh`. Si ce renouvellement est refusé (403 « CSRF validation failed »),
+la session est considérée comme perdue. Depuis la 1.1.10 sont acceptées : les requêtes
+de la même origine (en-tête `Sec-Fetch-Site`), l'adresse réellement utilisée pour joindre
+le serveur, `CORS_ORIGIN`, `FRONTEND_URL` et `BACKEND_URL`. Si le problème persiste, le
+journal du service contient une ligne `Request refused: origin … is not trusted`
+indiquant l'origine refusée : la renseigner (adresse saisie dans le navigateur, avec
+`https://` et sans `/` final) dans `CORS_ORIGIN` et `FRONTEND_URL` de
+`C:\ProgramData\Taskmaster\config\.env`, puis redémarrer le service. Renseigner
+« URL publique » à l'installation évite d'avoir à le faire. Derrière un proxy inverse,
+conserver aussi `TRUST_PROXY`.
+
 ### Une sauvegarde échoue après une installation Windows (service)
 
 Le service utilise `TASKMASTER_DATA_DIR` (par défaut `C:\ProgramData\Taskmaster`)
 pour les fichiers modifiables. Un chemin de sauvegarde relatif, par exemple
-`./backups`, est résolu à partir de ce dossier. Un chemin absolu configuré dans
-les paramètres reste prioritaire. Le compte du service doit pouvoir créer,
+`./backups`, est résolu à partir de ce dossier. La variable `BACKUP_STORAGE_PATH`
+du fichier `.env` désigne le dossier des archives et passe avant le réglage
+enregistré (qui vaut `./backups` par défaut) ; l'écran Sauvegardes affiche le
+dossier réellement utilisé. Le compte du service doit pouvoir créer,
 modifier et supprimer les fichiers à cet emplacement. Pour un partage réseau,
 vérifier les droits du compte du service et utiliser un chemin UNC ; les lecteurs
 réseau montés dans une session administrateur ne sont pas nécessairement visibles

@@ -53,6 +53,7 @@
         "enterPassword": "Enter your password",
         "signInToAccount": "Sign in to your account",
         "loginFailed": "Login failed. Please check your credentials.",
+        "guestLinkInvalid": "This link is invalid, expired or already used. Ask an administrator for a new one.",
         "invalidMfa": "Invalid MFA code.",
         "passkeyFailed": "Passkey login failed.",
         "passkeyOriginError": "Passkey unavailable on {{origin}} with configured domain {{rpID}}. Check HTTPS and FRONTEND_URL in the server configuration, then restart the service.",
@@ -333,6 +334,8 @@
         "addonsDescription": "Enable or disable additional features",
         "todoListEnabled": "Enable Todo List",
         "todoListHint": "Shows a personal and collective todo list in the sidebar",
+        "todoListReminders": "Email reminders",
+        "todoListRemindersHint": "Emails a reminder when a task is due within 24 hours (email sending must be enabled)",
         "apiKeys": {
             "title": "API Keys",
             "description": "Manage access keys for external integrations"

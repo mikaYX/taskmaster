@@ -11,7 +11,7 @@ import Redis from 'ioredis';
 import { REDIS_CLIENT } from '../common/redis/redis.module';
 import { PrismaService } from '../prisma';
 import { SettingsService } from '../settings/settings.service';
-import { BCRYPT_ROUNDS } from './auth.constants';
+import { BCRYPT_ROUNDS, type GuestViewName } from './auth.constants';
 import { AzureAdProfile } from './azure-ad.service';
 import { LdapService } from './ldap.service';
 import { MfaService } from './mfa.service';
@@ -27,6 +27,8 @@ export interface TokenResponse {
   accessToken: string;
   refreshToken: string;
   expiresIn: number;
+  /** When the refresh token (and its cookie) ends; never sent to the client. */
+  refreshExpiresAt?: Date;
 }
 
 /**
@@ -340,12 +342,16 @@ export class AuthService {
       groups,
       groupIds,
       sites,
+      user.guestView,
     );
-    const { token: refreshToken } = await this.refreshTokenService.createToken(
-      user.id,
-      userAgent,
-      ipAddress,
-    );
+    const { token: refreshToken, expiresAt: refreshExpiresAt } =
+      await this.refreshTokenService.createToken(
+        user.id,
+        userAgent,
+        ipAddress,
+        undefined,
+        user.role,
+      );
 
     await this.invalidateSession(user.id);
     this.logger.log(`User login completed: ${user.username}`);
@@ -355,6 +361,7 @@ export class AuthService {
       refreshToken,
       expiresIn: this.accessTokenExpiresIn,
       mustChangePassword: user.mustChangePassword,
+      refreshExpiresAt,
     };
   }
 
@@ -665,6 +672,7 @@ export class AuthService {
     groups: string[],
     groupIds: number[],
     sites: UserSitePayload[] = [],
+    guestView?: GuestViewName | null,
   ): string {
     const payload: Omit<JwtPayload, 'iat' | 'exp'> = {
       sub: userId,
@@ -673,6 +681,8 @@ export class AuthService {
       groups,
       groupIds,
       sites,
+      // A TV account carries its screen in the token so the guards need no lookup.
+      ...(role === 'GUEST' ? { guestView: guestView ?? 'DASHBOARD' } : {}),
     };
 
     return this.jwtService.sign(payload, {
@@ -753,6 +763,7 @@ export class AuthService {
       groups,
       groupIds,
       sites,
+      user.guestView,
     );
 
     return {
@@ -760,6 +771,7 @@ export class AuthService {
       refreshToken: rotationResult.token,
       expiresIn: this.accessTokenExpiresIn,
       mustChangePassword: user.mustChangePassword,
+      refreshExpiresAt: rotationResult.expiresAt,
     };
   }
 
@@ -855,6 +867,7 @@ export class AuthService {
     passkeysEnabled: boolean;
     passkeyPolicy: 'disabled' | 'optional' | 'required';
     hasPasskey: boolean;
+    guestView?: GuestViewName | null;
   } | null> {
     if (!userId) return null;
 
@@ -882,6 +895,7 @@ export class AuthService {
         username: true,
         fullname: true,
         role: true,
+        guestView: true,
         mustChangePassword: true,
         groupMemberships: {
           select: {
@@ -945,7 +959,9 @@ export class AuthService {
 
     let passkeyPolicy: 'disabled' | 'optional' | 'required' = 'disabled';
 
-    if (passkeysEnabled) {
+    // A TV account (GUEST) is a screen nobody can touch: it can neither enrol
+    // nor use a passkey, so no passkey policy ever applies to it.
+    if (passkeysEnabled && user.role !== 'GUEST') {
       passkeyPolicy = 'optional';
       let isRequired = false;
       if (user.role === 'SUPER_ADMIN') {
@@ -968,16 +984,6 @@ export class AuthService {
         isRequired =
           String(managerEnf.value) === 'true' ||
           String(userReq.value) === 'true';
-      } else if (user.role === 'GUEST') {
-        const guestReq = await this.settingsService.get(
-          'auth.requirements.guest.passkeys',
-        );
-        const guestEnf = await this.settingsService.get(
-          'security.enforcement.passkeys.guest',
-        );
-        isRequired =
-          String(guestReq.value) === 'true' ||
-          String(guestEnf.value) === 'true';
       } else {
         const userReq = await this.settingsService.get(
           'auth.requirements.user.passkeys',
@@ -1008,6 +1014,8 @@ export class AuthService {
       passkeysEnabled,
       passkeyPolicy,
       hasPasskey,
+      // A TV account's screen (the web app routes on it); null for everyone else.
+      guestView: user.role === 'GUEST' ? (user.guestView ?? 'DASHBOARD') : null,
     };
 
     try {

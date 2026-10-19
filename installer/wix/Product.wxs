@@ -119,6 +119,32 @@
       <Directory Id="TASKMASTERDATAROOT_ACL" Name="Taskmaster" />
     </StandardDirectory>
 
+    <!-- ================= Remember where Taskmaster is installed =================
+         The two folders are written to HKLM\SOFTWARE\Taskmaster by the component
+         below and read back by AppSearch, which runs before the wizard and before
+         CostFinalize. On an upgrade the install-folder page therefore starts on the
+         existing location instead of the default, and the data folder (holding
+         config\.env) is found again instead of the installation being mistaken for a
+         new one. Both can still be changed: the install folder in the wizard, the
+         data folder with TASKMASTERDATAROOT=... on the command line.
+         Type="directory" only yields a value when the folder still exists, so a
+         location deleted by hand falls back to the default. Installs made before
+         the value was written (1.1.9 and older) have nothing to find: pick the
+         folder once in the wizard. -->
+    <Property Id="TASKMASTERROOT">
+      <RegistrySearch Id="TaskmasterRootSearch" Root="HKLM" Key="SOFTWARE\Taskmaster" Name="InstallDir" Type="directory" />
+    </Property>
+    <Property Id="TASKMASTERDATAROOT">
+      <RegistrySearch Id="TaskmasterDataRootSearch" Root="HKLM" Key="SOFTWARE\Taskmaster" Name="DataDir" Type="directory" />
+    </Property>
+
+    <ComponentGroup Id="InstallLocationGroup" Directory="TASKMASTERROOT">
+      <Component Id="InstallLocationComponent" Guid="3d5b1f6e-8c2a-4e57-b0a4-7f9e2c1d6a13">
+        <RegistryValue Root="HKLM" Key="SOFTWARE\Taskmaster" Name="InstallDir" Type="string" Value="[TASKMASTERROOT]" KeyPath="yes" />
+        <RegistryValue Root="HKLM" Key="SOFTWARE\Taskmaster" Name="DataDir" Type="string" Value="[TASKMASTERDATAROOT]" />
+      </Component>
+    </ComponentGroup>
+
     <ComponentGroup Id="DataFoldersGroup" Directory="TASKMASTERDATAROOT">
       <Component Id="ConfigFolderComponent" Guid="6a1f9d3e-6b7a-4b7c-9a0e-1a2b3c4d5e60">
         <CreateFolder Directory="CONFIGFOLDER">
@@ -229,6 +255,15 @@
     <Property Id="POSTGRES_ADMIN_PASSWORD" Secure="yes" Hidden="yes" />
     <Property Id="REDIS_DB_HOST" Value="localhost" Secure="yes" />
     <Property Id="REDIS_DB_PORT" Value="6379" Secure="yes" />
+    <!-- Folder with pg_dump.exe / pg_restore.exe for backups (PG_BIN_PATH). Optional:
+         blank lets the backend find the newest PostgreSQL under Program Files. A
+         non-empty value is verified by test-prerequisites.ps1 before anything is installed. -->
+    <Property Id="POSTGRES_BIN_PATH" Secure="yes" />
+    <!-- Folder for backup archives (BACKUP_STORAGE_PATH). Blank keeps
+         ProgramData\Taskmaster\backups. Absolute path or UNC share, e.g.
+         `msiexec /i Taskmaster.msi TASKMASTER_BACKUP_PATH="D:\Sauvegardes"`; checked
+         and created by orchestrate-install.ps1 before anything else is installed. -->
+    <Property Id="TASKMASTER_BACKUP_PATH" Secure="yes" />
 
     <!-- ================= App + runtime files (single-archive install) =================
          AppFiles.wxs and NodeRuntimeFiles.wxs each define ONE Component
@@ -382,8 +417,21 @@
          here, since raw substitution into a URL breaks on '@', ':', '%'.
          Same trailing "\\" -> escaped-quote reasoning as ExtractAppArchiveCmd
          above applies to the ...FOLDER]\&quot; occurrences below. -->
+    <!-- The folder is passed as "&lt;path&gt;\." so that a trailing backslash typed by the
+         user cannot turn the closing quote into an escaped one; orchestrate-install.ps1
+         strips the suffix. Omitted entirely when the field is blank. -->
+    <SetProperty Id="PgBinArg"
+                 Value="-ExistingPgBinPath &quot;[POSTGRES_BIN_PATH]\.&quot;"
+                 Condition="POSTGRES_BIN_PATH"
+                 Sequence="execute"
+                 After="CostFinalize" />
+    <SetProperty Id="BackupArg"
+                 Value="-BackupPath &quot;[TASKMASTER_BACKUP_PATH]\.&quot;"
+                 Condition="TASKMASTER_BACKUP_PATH"
+                 Sequence="execute"
+                 After="CostFinalize" />
     <SetProperty Id="RunOrchestrateInstallCmd"
-                 Value="&quot;[System64Folder]WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File &quot;[#OrchestrateInstallPs1]&quot; -Port [TASKMASTER_PORT] -PublicUrl &quot;[TASKMASTER_PUBLIC_URL]&quot; -OfflineMode &quot;[TASKMASTER_OFFLINE_MODE]&quot; -InstallDir &quot;[APPFOLDER]\&quot; -DataDir &quot;[TASKMASTERDATAROOT]\&quot; -PostgresMode Existing -PostgresDbHost &quot;[POSTGRES_DB_HOST]&quot; -PostgresDbPort [POSTGRES_DB_PORT] -PostgresDb &quot;[POSTGRES_DB_NAME]&quot; -PostgresUser &quot;[POSTGRES_DB_USER]&quot; -PostgresPassword &quot;[POSTGRES_DB_PASSWORD]&quot; -PostgresAdminUser &quot;[POSTGRES_ADMIN_USER]&quot; -PostgresAdminPassword &quot;[POSTGRES_ADMIN_PASSWORD]&quot; -RedisMode Existing -RedisDbHost &quot;[REDIS_DB_HOST]&quot; -RedisDbPort [REDIS_DB_PORT]"
+                 Value="&quot;[System64Folder]WindowsPowerShell\v1.0\powershell.exe&quot; -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File &quot;[#OrchestrateInstallPs1]&quot; -Port [TASKMASTER_PORT] -PublicUrl &quot;[TASKMASTER_PUBLIC_URL]&quot; -OfflineMode &quot;[TASKMASTER_OFFLINE_MODE]&quot; -InstallDir &quot;[APPFOLDER]\&quot; -DataDir &quot;[TASKMASTERDATAROOT]\&quot; -PostgresMode Existing -PostgresDbHost &quot;[POSTGRES_DB_HOST]&quot; -PostgresDbPort [POSTGRES_DB_PORT] -PostgresDb &quot;[POSTGRES_DB_NAME]&quot; -PostgresUser &quot;[POSTGRES_DB_USER]&quot; -PostgresPassword &quot;[POSTGRES_DB_PASSWORD]&quot; -PostgresAdminUser &quot;[POSTGRES_ADMIN_USER]&quot; -PostgresAdminPassword &quot;[POSTGRES_ADMIN_PASSWORD]&quot; -RedisMode Existing -RedisDbHost &quot;[REDIS_DB_HOST]&quot; -RedisDbPort [REDIS_DB_PORT] [PgBinArg] [BackupArg]"
                  Sequence="execute"
                  Before="RunOrchestrateInstall" />
     <CustomAction Id="RunOrchestrateInstall" Execute="deferred" Return="check" Impersonate="no"
@@ -469,6 +517,7 @@
 
     <!-- ================= Feature tree ================= -->
     <Feature Id="MainFeature" Title="Taskmaster" Level="1">
+      <ComponentGroupRef Id="InstallLocationGroup" />
       <ComponentGroupRef Id="DataFoldersGroup" />
       <ComponentGroupRef Id="ShortcutGroup" />
       <ComponentGroupRef Id="ServiceFilesGroup" />

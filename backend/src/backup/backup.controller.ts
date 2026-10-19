@@ -54,8 +54,9 @@ export class BackupController {
   ) {}
 
   @Get('status')
-  status() {
+  async status() {
     return {
+      storagePath: await this.backupService.getStoragePath(),
       encryptionKeyPresent: this.backupService.isEncryptionKeyPresent(),
       encryptionKeyIsDefault: this.backupService.isEncryptionKeyDefault(),
       serverTime: new Date().toISOString(),

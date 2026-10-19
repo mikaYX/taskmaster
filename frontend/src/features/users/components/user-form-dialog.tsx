@@ -32,18 +32,12 @@ import { Separator } from '@/components/ui/separator';
 import { Checkbox } from '@/components/ui/checkbox';
 import type { CredentialsEmailStatus, User } from '@/api/types';
 import { sitesApi } from '@/api/sites';
+import { getErrorMessage } from '@/api/http';
+import { toast } from 'sonner';
 import { useCreateUser, useCredentialsEmailAvailable, useUpdateUser } from '@/hooks/use-users';
 import { useIsSuperAdmin } from '@/stores/auth-store';
 import { NewPasswordDialog } from './new-password-dialog';
-
-function generateRandomPassword(length = 12): string {
-    const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*";
-    let retVal = "";
-    for (let i = 0, n = charset.length; i < length; ++i) {
-        retVal += charset.charAt(Math.floor(Math.random() * n));
-    }
-    return retVal;
-}
+import { generateTemporaryPassword } from '@/lib/password-policy';
 
 const userSchema = z.object({
     firstname: z.string().min(1, 'First name is required'),
@@ -147,7 +141,7 @@ export function UserFormDialog({ open, onOpenChange, userToEdit }: UserFormDialo
                 }
             );
         } else {
-            const password = generateRandomPassword();
+            const password = generateTemporaryPassword();
             const requestEmail = emailAvailable && sendEmail;
             setGeneratedPassword(password);
             setCreatedUserEmail(email);
@@ -163,6 +157,10 @@ export function UserFormDialog({ open, onOpenChange, userToEdit }: UserFormDialo
                     sendEmail: requestEmail || undefined,
                 },
                 {
+                    onError: (error) => {
+                        setGeneratedPassword(null);
+                        toast.error(getErrorMessage(error, 'Failed to create the user'));
+                    },
                     onSuccess: (created) => {
                         // Email unavailable: tell the admin to hand the password over directly.
                         setEmailStatus(requestEmail ? created.credentialsEmail : (emailAvailable ? undefined : 'NOT_ACTIVE'));

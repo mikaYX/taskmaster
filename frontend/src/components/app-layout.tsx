@@ -33,6 +33,8 @@ export function AppLayout({ titleKey = 'nav.taskBoard', subtitleKey }: AppLayout
             setIsTvMode(true);
         }
     }, [role, isTvMode, setIsTvMode]);
+    // A TV account never gets the navigation, whatever the UI mode says.
+    const showChrome = role !== 'GUEST' && !isTvMode;
     const { getSettingAsBool } = usePublicBranding();
     const showTodos = getSettingAsBool('addons.todolist.enabled');
 
@@ -57,9 +59,9 @@ export function AppLayout({ titleKey = 'nav.taskBoard', subtitleKey }: AppLayout
 
     return (
         <SidebarProvider defaultOpen={!isTvMode} className="h-full overflow-hidden">
-            {!isTvMode && <AppSidebar />}
+            {showChrome && <AppSidebar />}
             <SidebarInset className="overflow-hidden">
-                {!isTvMode && <AppHeader titleKey={titleKey} subtitleKey={subtitleKey} />}
+                {showChrome && <AppHeader titleKey={titleKey} subtitleKey={subtitleKey} />}
                 <main className="flex-1 overflow-hidden min-h-0">
                     <ScrollArea className="h-full w-full">
                         <div className={cn(isTvMode ? "p-0" : "p-4")}>

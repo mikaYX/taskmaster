@@ -13,6 +13,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useUsers } from '@/hooks/use-users';
+import { Checkbox } from '@/components/ui/checkbox';
 import { UserActions } from './components/user-actions';
 import { UserFormDialog } from './components/user-form-dialog';
 import { ResetPasswordDialog } from './components/reset-password-dialog';
@@ -34,7 +35,8 @@ interface UsersListProps {
 }
 
 export function UsersList({ embedded = false }: UsersListProps) {
-    const { data: users, isLoading } = useUsers();
+    const [showDeleted, setShowDeleted] = useState(false);
+    const { data: users, isLoading } = useUsers(showDeleted, true);
 
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [isGuestDialogOpen, setIsGuestDialogOpen] = useState(false);
@@ -101,6 +103,13 @@ export function UsersList({ embedded = false }: UsersListProps) {
                         <span className="text-sm text-muted-foreground">
                             {isLoading ? 'Loading...' : `${users?.length || 0} user(s)`}
                         </span>
+                        <label className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Checkbox
+                                checked={showDeleted}
+                                onCheckedChange={(checked) => setShowDeleted(checked === true)}
+                            />
+                            Show deleted accounts
+                        </label>
                     </div>
                 </CardHeader>
                 <CardContent className="p-0">

@@ -1259,10 +1259,13 @@ export function AnalyticsPage() {
                             Par utilisateur
                         </TabsTrigger>
                     )}
-                    <TabsTrigger value="reports" className="gap-2">
-                        <FileDown className="h-4 w-4" />
-                        Rapports
-                    </TabsTrigger>
+                    {/* Reports offer exports and comparisons: not for a wall screen. */}
+                    {!isGuest && (
+                        <TabsTrigger value="reports" className="gap-2">
+                            <FileDown className="h-4 w-4" />
+                            Rapports
+                        </TabsTrigger>
+                    )}
                 </TabsList>
 
                 <TabsContent value="overview">
@@ -1279,9 +1282,11 @@ export function AnalyticsPage() {
                     </TabsContent>
                 )}
 
-                <TabsContent value="reports">
-                    <ReportsTab period={period} />
-                </TabsContent>
+                {!isGuest && (
+                    <TabsContent value="reports">
+                        <ReportsTab period={period} />
+                    </TabsContent>
+                )}
             </Tabs>
         </div>
     );

@@ -34,6 +34,8 @@ model User {
   mfaEnabled                Boolean                    @default(false) @map("mfa_enabled")
   mfaRecoveryCodesHash      String?                    @map("mfa_recovery_codes_hash")
   mfaSecretEncrypted        String?                    @map("mfa_secret_encrypted") @db.VarChar(255)
+  /// What a TV (GUEST) screen is allowed to display. Null for every other role.
+  guestView                 GuestView?                 @map("guest_view")
   auditLogs                 AuditLog[]
   passkeys                  Passkey[]
   refreshTokens             RefreshToken[]
@@ -45,7 +47,8 @@ model User {
   tasksDeleted              Task[]                     @relation("TaskDeletedBy")
   groupMemberships          UserGroupMembership[]
   sites                     UserSiteAssignment[]
-  todos                     Todo[]
+  todos                     Todo[]                     @relation("TodoOwner")
+  completedTodos            Todo[]                     @relation("TodoCompletedBy")
   taskEvidence              TaskEvidence[]
   correctiveAssignments     CorrectiveAction[] @relation("CorrectiveAssignee")
   correctiveReports         CorrectiveAction[] @relation("CorrectiveCreator")
@@ -426,6 +429,12 @@ enum UserRole {
   GUEST
 }
 
+/// The two screens a TV link can open: the task board, or the analytics.
+enum GuestView {
+  DASHBOARD
+  ANALYTICS
+}
+
 enum AuthProvider {
   LOCAL
   LDAP
@@ -468,24 +477,49 @@ model Todo {
   completedAt DateTime? @map("completed_at")
   dueDate     DateTime? @map("due_date")
   scope       TodoScope @default(PRIVATE)
+  priority    TodoPriority @default(NORMAL)
+  description String?   @db.Text
+  recurrence  TodoRecurrence @default(NONE)
+  parentId    Int?      @map("parent_id")
+  completedById Int?    @map("completed_by_id")
+  reminderSentAt DateTime? @map("reminder_sent_at")
   userId      Int       @map("user_id")
   groupId     Int?      @map("group_id")
   siteId      Int       @default(1) @map("site_id")
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User      @relation("TodoOwner", fields: [userId], references: [id], onDelete: Cascade)
+  completedBy User?     @relation("TodoCompletedBy", fields: [completedById], references: [id], onDelete: SetNull)
   group       Group?    @relation(fields: [groupId], references: [id], onDelete: SetNull)
   site        Site      @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  parent      Todo?     @relation("TodoSubtasks", fields: [parentId], references: [id], onDelete: Cascade)
+  subtasks    Todo[]    @relation("TodoSubtasks")
 
   @@index([userId])
   @@index([siteId])
   @@index([groupId])
+  @@index([siteId, scope, isCompleted])
+  @@index([parentId])
   @@map("todos")
 }
 
 enum TodoScope {
   PRIVATE
   COLLECTIVE
+}
+
+enum TodoRecurrence {
+  NONE
+  DAILY
+  WEEKLY
+  MONTHLY
+}
+
+enum TodoPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
 }
 
 

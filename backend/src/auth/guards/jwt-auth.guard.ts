@@ -8,6 +8,7 @@ import { ClsService } from 'nestjs-cls';
 import { Reflector } from '@nestjs/core';
 import { AuthService } from '../auth.service';
 import { IS_PASSKEY_EXEMPT_KEY } from '../decorators/passkey-exempt.decorator';
+import { assertGuestAllowed } from './guest-allowlist';
 
 @Injectable()
 export class JwtAuthGuard extends AuthGuard('jwt') {
@@ -23,6 +24,8 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     const allowed = await super.canActivate(context);
     if (allowed) {
       const req = context.switchToHttp().getRequest();
+      // Deny by default for TV accounts, before anything else is evaluated.
+      assertGuestAllowed(req);
       if (req.user) {
         this.cls.set('user', req.user);
       }

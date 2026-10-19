@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { useShallow } from 'zustand/react/shallow';
 import { useAuthStore } from '@/stores';
 import { useOwnProfile, useUploadMyAvatar } from '@/hooks/use-users';
+import { resolveAvatarSrc } from '@/lib/avatar';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
@@ -60,9 +61,7 @@ function ProfileWorkspace() {
     const [localAvatarSrc, setLocalAvatarSrc] = useState<string | undefined>(undefined);
 
     const currentUser = profile.data;
-    // avatarUrl is a path like /public/uploads/..., served outside /api — strip /api suffix from base URL
-    const storageBase = (import.meta.env.VITE_API_URL ?? '').replace(/\/api\/?$/, '');
-    const remoteAvatarSrc = currentUser?.avatarUrl ? `${storageBase}${currentUser.avatarUrl}` : undefined;
+    const remoteAvatarSrc = resolveAvatarSrc(currentUser?.avatarUrl);
     const avatarSrc = localAvatarSrc ?? remoteAvatarSrc;
     const displayName = currentUser?.fullname || currentUser?.username || 'User';
     const email = currentUser?.email || '';
@@ -91,7 +90,7 @@ function ProfileWorkspace() {
         setLocalAvatarSrc(objectUrl);
         try {
             const result = await uploadAvatar.mutateAsync(file);
-            setLocalAvatarSrc(`${storageBase}${result.url}`);
+            setLocalAvatarSrc(resolveAvatarSrc(result.url));
             toast.success('Avatar mis à jour');
         } catch {
             setLocalAvatarSrc(undefined);

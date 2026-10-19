@@ -22,6 +22,9 @@ param(
     # Update checks call out to GitHub, so they are off by default (offline). The
     # standalone MSI always passes this: '1'/'true' = offline, empty = checks enabled.
     [string] $OfflineMode = 'true',
+    # Folder for the backup archives (BACKUP_STORAGE_PATH). Empty keeps
+    # <DataDir>\backups. Must be absolute: a drive path or a UNC share.
+    [string] $BackupPath,
     [string] $DataDir = 'C:\ProgramData\Taskmaster',
     [string] $InstallDir = 'C:\Program Files\Taskmaster\app',
 
@@ -174,6 +177,25 @@ try {
         Write-Stage 'Role et base PostgreSQL prets.'
     }
 
+    # The MSI passes the folder as "<path>\." (see PgBinArg in Product.wxs).
+    if ($ExistingPgBinPath) {
+        $ExistingPgBinPath = ($ExistingPgBinPath -replace '\\\.$', '').TrimEnd('\')
+    }
+
+    # Same "<path>\." transport as the PostgreSQL folder (see BackupArg in Product.wxs).
+    if ($BackupPath) {
+        $BackupPath = ($BackupPath -replace '\\\.$', '').TrimEnd('\')
+        if ($BackupPath -match '^[A-Za-z]:$') { $BackupPath += '\' }  # a drive root keeps its backslash
+        if ($BackupPath -notmatch '^([A-Za-z]:\\|\\\\[^\\]+\\[^\\]+)') {
+            throw "Dossier de sauvegarde invalide ($BackupPath) : indiquez un chemin absolu (D:\Sauvegardes) ou un partage UNC (\\serveur\partage\dossier)."
+        }
+        try {
+            New-Item -ItemType Directory -Force -Path $BackupPath -ErrorAction Stop | Out-Null
+        } catch {
+            throw "Impossible de creer ou d'acceder au dossier de sauvegarde $BackupPath : $($_.Exception.Message)"
+        }
+    }
+
     # ---- Prerequisites (fail fast, before any provisioning/migration) -----
     & (Join-Path $PSScriptRoot 'provision\test-prerequisites.ps1') `
         -Port $Port -InstallDir $InstallDir `
@@ -191,6 +213,14 @@ try {
         Write-Stage 'Utilisation du serveur PostgreSQL existant.'
         $databaseUrl = $ExistingDatabaseUrl
         $pgBinPath = $ExistingPgBinPath
+        if (-not $pgBinPath) {
+            # No folder given: record the newest local PostgreSQL client tools, if any.
+            # Otherwise stay blank; the backend repeats this lookup at run time.
+            $detected = Get-ChildItem (Join-Path $env:ProgramFiles 'PostgreSQL') -Directory -ErrorAction SilentlyContinue |
+                Where-Object { $_.Name -match '^\d+(\.\d+)?$' -and (Test-Path (Join-Path $_.FullName 'bin\pg_dump.exe')) } |
+                Sort-Object { [double]$_.Name } -Descending | Select-Object -First 1
+            if ($detected) { $pgBinPath = Join-Path $detected.FullName 'bin' }
+        }
     }
 
     # ---- Cache (Redis/Memurai) ---------------------------------------------
@@ -219,7 +249,7 @@ try {
         AUTH_SECRET              = (New-RandomSecret -Bytes 48)
         BOOTSTRAP_SECRET         = (New-RandomSecret -Bytes 24)
         BACKUP_ENCRYPTION_KEY    = (New-RandomSecret -Bytes 48)
-        BACKUP_STORAGE_PATH      = (Join-Path $DataDir 'backups')
+        BACKUP_STORAGE_PATH      = $(if ($BackupPath) { $BackupPath } else { Join-Path $DataDir 'backups' })
         PG_BIN_PATH              = $pgBinPath
         TASKMASTER_INSTALL_DIR   = $InstallDir
         TASKMASTER_DATA_DIR      = $DataDir

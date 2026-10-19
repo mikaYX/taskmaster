@@ -20,6 +20,8 @@ export interface JwtPayload {
   groups: string[];
   groupIds: number[];
   sites: UserSitePayload[];
+  /** Only for GUEST accounts: which screen they are limited to. */
+  guestView?: 'DASHBOARD' | 'ANALYTICS';
   iat?: number;
   exp?: number;
 }
@@ -51,6 +53,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       groups: payload.groups || [],
       groupIds: payload.groupIds || [],
       sites: payload.sites || [],
+      guestView: payload.guestView,
     };
   }
 }

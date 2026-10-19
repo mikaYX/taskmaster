@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { usersApi } from '@/api/users';
 import { useAuthStore } from '@/stores/auth-store';
-import type { CreateUserDto, UpdateUserDto } from '@/api/types';
+import type { CreateUserDto, GuestViewName, UpdateUserDto } from '@/api/types';
 
 export const userKeys = {
     all: ['users'] as const,
@@ -17,10 +17,16 @@ export function useOwnProfile() {
     return useQuery({ queryKey: ['own-profile', userId, role], queryFn: usersApi.getOwnProfile, enabled: !!userId && role !== 'GUEST' });
 }
 
-export function useUsers(includeDeleted = false) {
+/**
+ * `manageable` restricts the list to the accounts the caller may administer
+ * (a manager only gets USER/MANAGER accounts of their own sites). The default
+ * list stays complete because task assignment and groups rely on it.
+ */
+export function useUsers(includeDeleted = false, manageable = false, enabled = true) {
     return useQuery({
-        queryKey: userKeys.list(includeDeleted ? 'all' : 'active'),
-        queryFn: () => usersApi.getAll({ includeDeleted }),
+        enabled,
+        queryKey: userKeys.list(`${includeDeleted ? 'all' : 'active'}${manageable ? '-manageable' : ''}`),
+        queryFn: () => usersApi.getAll({ includeDeleted, manageable }),
     });
 }
 
@@ -108,10 +114,17 @@ export function useCreateGuest() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: (siteId: number) => usersApi.guests.create(siteId),
+        mutationFn: ({ siteId, views }: { siteId: number; views?: GuestViewName[] }) =>
+            usersApi.guests.create(siteId, views),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: userKeys.all });
         },
+    });
+}
+
+export function useCreateGuestLink() {
+    return useMutation({
+        mutationFn: (id: number) => usersApi.guests.createLink(id),
     });
 }
 

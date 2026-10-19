@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuthController } from './auth.controller';
+import { GuestTicketService } from './guest-ticket.service';
 import { AuthService } from './auth.service';
 import { OidcService } from './oidc.service';
 import { UnauthorizedException } from '@nestjs/common';
@@ -32,6 +33,7 @@ describe('AuthController OIDC endpoints', () => {
         { provide: OidcService, useValue: mockOidcService },
         { provide: AzureAdService, useValue: {} },
         { provide: SamlService, useValue: {} },
+        { provide: GuestTicketService, useValue: {} },
         {
           provide: ConfigService,
           useValue: { get: jest.fn().mockReturnValue('test') },

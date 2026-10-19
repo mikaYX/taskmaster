@@ -77,7 +77,7 @@ export class PasskeysController {
     // Complete login, skipping TOTP MFA since Passkey provides strong authentication
     const result = await this.authService.completeLogin(user.id);
     const { refreshToken, accessToken, expiresIn, mustChangePassword } = result;
-    setRefreshCookie(res, refreshToken, this.isProd);
+    setRefreshCookie(res, refreshToken, this.isProd, result.refreshExpiresAt);
     setAccessCookie(res, accessToken, expiresIn, this.isProd);
     return {
       expiresIn,

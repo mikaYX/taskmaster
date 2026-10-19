@@ -8,6 +8,7 @@ import {
 import { AuthGuard } from '@nestjs/passport';
 import { ClsService } from 'nestjs-cls';
 import { PrismaService } from '../../prisma';
+import { assertGuestAllowed } from './guest-allowlist';
 
 /**
  * CompositeAuthGuard — Handles JWT + API Key authentication.
@@ -42,6 +43,9 @@ export class CompositeAuthGuard extends AuthGuard(['jwt', 'api-key']) {
     const user = req.user;
 
     if (!user) return true;
+
+    // Deny by default for TV accounts (tasks, schedules and integrations use this guard).
+    assertGuestAllowed(req);
 
     // Load user's site assignments to enrich the user object
     // This is needed for PrismaService.buildSiteFilter()

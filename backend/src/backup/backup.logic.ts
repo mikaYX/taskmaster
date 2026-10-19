@@ -78,16 +78,29 @@ export class BackupLogicService {
   }
 
   /**
-   * Get the effective storage path (from settings or env).
+   * Absolute folder holding the backup archives, without creating it.
+   *
+   * BACKUP_STORAGE_PATH (the deployment choice, shown as such in the UI) comes
+   * first. The stored `backup.path` setting always has a value (it defaults to
+   * `./backups`), so putting it first made the environment variable dead.
    */
-  private async getStoragePath(): Promise<string> {
+  async resolveStoragePath(): Promise<string> {
+    const envPath = this.configService
+      .get<string>('BACKUP_STORAGE_PATH')
+      ?.trim();
     const settingPath = await this.settings.getRawValue<string>('backup.path');
-    const configPath = this.configService.get<string>('BACKUP_STORAGE_PATH');
 
-    const rawPath = settingPath || configPath || getBackupSystemDir();
+    const rawPath = envPath || settingPath || getBackupSystemDir();
 
     // Resolve relative paths against the writable service data root.
-    const absolutePath = resolveDataPath(rawPath);
+    return resolveDataPath(rawPath);
+  }
+
+  /**
+   * Get the effective storage path, creating the folder when missing.
+   */
+  private async getStoragePath(): Promise<string> {
+    const absolutePath = await this.resolveStoragePath();
 
     if (!existsSync(absolutePath)) {
       this.logger.log(`Creating backup storage directory: ${absolutePath}`);
