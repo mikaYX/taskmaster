@@ -2623,7 +2623,10 @@
     "push": {
         "permissionDenied": "Autorisation refusée par l'utilisateur.",
         "notConfigured": "Les notifications push ne sont pas configurées sur le serveur.",
-        "serviceWorkerFailed": "Le navigateur n'a pas pu démarrer le service de notifications ({{reason}}). Avec un certificat auto-signé, installez le certificat comme approuvé sur cet ordinateur, puis rechargez la page."
+        "serviceWorkerFailed": "Le navigateur n'a pas pu démarrer le service de notifications ({{reason}}). Avec un certificat auto-signé, installez le certificat comme approuvé sur cet ordinateur, puis rechargez la page.",
+        "permissionTimeout": "Le navigateur n'a pas répondu à la demande d'autorisation. Cherchez l'icône de notification à droite de la barre d'adresse (ou le cadenas > Notifications), autorisez les notifications puis réessayez.",
+        "serverTimeout": "Le serveur n'a pas répondu à temps. Rechargez la page puis réessayez.",
+        "browserServiceTimeout": "Le navigateur n'a pas pu s'enregistrer auprès de son service push (Google FCM pour Chrome). Vérifiez que cet ordinateur joint fcm.googleapis.com sur le port 443 et que le navigateur est à jour."
     },
     "inbox": {
         "title": "Notifications",

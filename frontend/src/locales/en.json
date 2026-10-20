@@ -2623,7 +2623,10 @@
     "push": {
         "permissionDenied": "Permission denied by the user.",
         "notConfigured": "Push is not configured on the server.",
-        "serviceWorkerFailed": "The browser could not start the notification service ({{reason}}). With a self-signed certificate, install the certificate as trusted on this computer, then reload the page."
+        "serviceWorkerFailed": "The browser could not start the notification service ({{reason}}). With a self-signed certificate, install the certificate as trusted on this computer, then reload the page.",
+        "permissionTimeout": "The browser did not answer the permission request. Look for the notification icon at the right of the address bar (or the padlock > Notifications), allow notifications, then try again.",
+        "serverTimeout": "The server did not answer in time. Reload the page and try again.",
+        "browserServiceTimeout": "The browser could not register with its push service (Google FCM for Chrome). Check that this computer can reach fcm.googleapis.com on port 443 and that the browser is up to date."
     },
     "inbox": {
         "title": "Notifications",

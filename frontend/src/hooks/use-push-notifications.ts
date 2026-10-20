@@ -30,6 +30,23 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array<ArrayBuffer> {
   return arr;
 }
 
+/** Rejects with a readable message instead of leaving a spinner forever. */
+function withTimeout<T>(promise: Promise<T>, ms: number, messageKey: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(i18n.t(messageKey))), ms);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (err) => {
+        clearTimeout(timer);
+        reject(err);
+      },
+    );
+  });
+}
+
 /**
  * Hook de gestion des notifications Push Web (WebPush / VAPID).
  *
@@ -86,7 +103,7 @@ export function usePushNotifications(): UsePushNotificationsReturn {
 
     try {
       // 1. Demander la permission
-      const perm = await Notification.requestPermission();
+      const perm = await withTimeout(Notification.requestPermission(), 45_000, 'push.permissionTimeout');
       setPermission(perm as PushPermission);
       if (perm !== 'granted') {
         setError(i18n.t('push.permissionDenied'));
@@ -94,17 +111,21 @@ export function usePushNotifications(): UsePushNotificationsReturn {
       }
 
       // 2. Récupérer la clé VAPID publique
-      const { publicKey } = await pushApi.getVapidPublicKey();
+      const { publicKey } = await withTimeout(pushApi.getVapidPublicKey(), 15_000, 'push.serverTimeout');
       if (!publicKey) {
         setError(i18n.t('push.notConfigured'));
         return;
       }
 
       // 3. Créer l'abonnement PushManager
-      const subscription = await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(publicKey),
-      });
+      const subscription = await withTimeout(
+        registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(publicKey),
+        }),
+        20_000,
+        'push.browserServiceTimeout',
+      );
 
       // 4. Envoyer l'abonnement au backend
       await pushApi.subscribe(subscription.toJSON());
