@@ -30,13 +30,13 @@ test('après connexion avec un mot de passe réinitialisé, impose son remplacem
     await expect(dialog).toBeVisible();
     await page.keyboard.press('Escape');
     await expect(dialog).toBeVisible();
-    await expect(page.getByRole('dialog', { name: 'Setup a Passkey' })).toHaveCount(0);
+    await expect(page.getByRole('dialog', { name: 'Configurer une passkey' })).toHaveCount(0);
     await dialog.getByLabel('Mot de passe actuel', { exact: true }).fill('Temporary!Password42');
     await dialog.getByLabel('Nouveau mot de passe', { exact: true }).fill('Replacement!Password43');
     await dialog.getByLabel('Confirmer le nouveau mot de passe', { exact: true }).fill('Replacement!Password43');
     await dialog.getByRole('button', { name: 'Changer le mot de passe', exact: true }).click();
     await expect(dialog).toHaveCount(0);
-    await expect(page.getByRole('dialog', { name: 'Setup a Passkey' })).toBeVisible();
+    await expect(page.getByRole('dialog', { name: 'Configurer une passkey' })).toBeVisible();
 });
 
 test('détecte une réinitialisation au retour dans un onglet déjà connecté sans effacer la saisie', async ({ context, page }) => {
