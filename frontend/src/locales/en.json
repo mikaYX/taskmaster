@@ -1766,7 +1766,8 @@
         },
         "badge": "{{overdue}} overdue, {{today}} due today",
         "options": {
-            "toggle": "More options"
+            "toggle": "More options",
+            "noDateHint": "No due date chosen: the task will be due today."
         },
         "errors": {
             "create": "The task could not be created",

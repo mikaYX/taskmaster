@@ -1766,7 +1766,8 @@
         },
         "badge": "{{overdue}} en retard, {{today}} pour aujourd'hui",
         "options": {
-            "toggle": "Plus d'options"
+            "toggle": "Plus d'options",
+            "noDateHint": "Aucune date choisie : la tâche sera pour aujourd'hui."
         },
         "errors": {
             "create": "La tâche n'a pas pu être créée",

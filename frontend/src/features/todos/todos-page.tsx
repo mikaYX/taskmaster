@@ -66,6 +66,12 @@ function matchesDueFilter(dueDate: string | null, filter: DueFilter) {
     return days >= 0 && days < 7;
 }
 
+/** Today as `<input type="date">` wants it (local calendar day). */
+const todayInput = () => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+
 /** The "n" shortcut must not fire while typing in a field. */
 const isTyping = (target: EventTarget | null) =>
     target instanceof HTMLElement && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName));
@@ -142,9 +148,11 @@ function TodosPageContent() {
         const quick = parseQuickAdd(newTitle);
         if (!quick.title) return;
 
-        const dueDate = quick.dueDate ?? (newDueDate || undefined);
-        const dueTime = dueDate ? (quick.dueTime ?? (newDueTime || undefined)) : undefined;
         const remind = selectToRemind(newRemind);
+        const time = quick.dueTime ?? (newDueTime || undefined);
+        // A time or a reminder without a date means today.
+        const dueDate = quick.dueDate ?? (newDueDate || (time || remind !== null ? todayInput() : undefined));
+        const dueTime = dueDate ? time : undefined;
 
         createTodo.mutate(
             {
@@ -350,13 +358,12 @@ function TodosPageContent() {
                             id="todo-new-time"
                             type="time"
                             value={newDueTime}
-                            disabled={!newDueDate}
                             onChange={(e) => setNewDueTime(e.target.value)}
                         />
                     </div>
                     <div className="space-y-1.5">
                         <Label htmlFor="todo-new-remind" className="text-xs">{t('todos.dialog.remind')}</Label>
-                        <Select value={newRemind} onValueChange={setNewRemind} disabled={!newDueDate}>
+                        <Select value={newRemind} onValueChange={setNewRemind}>
                             <SelectTrigger id="todo-new-remind" className="w-full">
                                 <SelectValue />
                             </SelectTrigger>
@@ -369,6 +376,9 @@ function TodosPageContent() {
                             </SelectContent>
                         </Select>
                     </div>
+                    {!newDueDate && (newDueTime || newRemind !== 'default') && (
+                        <p className="text-[11px] text-muted-foreground sm:col-span-2">{t('todos.options.noDateHint')}</p>
+                    )}
                     {activeTab === 'COLLECTIVE' && (
                         <div className="space-y-1.5">
                             <Label htmlFor="todo-new-assignee" className="text-xs">{t('todos.dialog.assignee')}</Label>
