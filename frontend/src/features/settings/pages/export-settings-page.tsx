@@ -13,6 +13,7 @@ import { schedulerApi } from '@/api/scheduler';
 import { backupApi } from '@/api/backup';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { getDateLocale } from '@/lib/date-locale';
 
 import { Input } from '@/components/ui/input';
 import { NumberInput } from '@/components/ui/number-input';
@@ -48,12 +49,6 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import {
-    Card,
-    CardContent,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card';
 import {
     Table,
     TableBody,
@@ -365,80 +360,67 @@ export function ExportSettingsPage() {
     }
 
     return (
-        <div className="space-y-6 max-w-6xl">
+        <div className="space-y-6">
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
 
-                    {/* === STATUS BLOCK === */}
-                    <Card>
-                        <CardHeader className="pb-3">
-                            <CardTitle className="text-base flex items-center gap-2">
-                                <Clock className="h-4 w-4" />
-                                {t('exportSettings.statusTitle')}
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                {/* Status */}
-                                <div className="space-y-1">
-                                    <p className="text-xs text-muted-foreground uppercase tracking-wide">{t('exportSettings.status')}</p>
-                                    <div className="flex items-center gap-2">
-                                        {autoExportEnabled ? (
-                                            isConfigIncomplete ? (
-                                                <>
-                                                    <AlertTriangle className="h-4 w-4 text-yellow-500" />
-                                                    <span className="text-sm font-medium text-yellow-600">{t('exportSettings.incomplete')}</span>
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <CheckCircle2 className="h-4 w-4 text-green-500" />
-                                                    <span className="text-sm font-medium text-green-600">{t('exportSettings.active')}</span>
-                                                </>
-                                            )
-                                        ) : (
-                                            <>
-                                                <XCircle className="h-4 w-4 text-muted-foreground" />
-                                                <span className="text-sm font-medium text-muted-foreground">{t('exportSettings.disabled')}</span>
-                                            </>
-                                        )}
-                                    </div>
-                                </div>
-
-                                {/* Frequency */}
-                                <div className="space-y-1">
-                                    <p className="text-xs text-muted-foreground uppercase tracking-wide">{t('exportSettings.frequencyLabel')}</p>
-                                    <p className="text-sm font-medium">
-                                        {autoExportEnabled ? getFrequencyText() : '—'}
-                                    </p>
-                                </div>
-
-                                {/* Next Run */}
-                                <div className="space-y-1">
-                                    <p className="text-xs text-muted-foreground uppercase tracking-wide">{t('exportSettings.nextRun')}</p>
-                                    <p className="text-sm font-medium">
-                                        {exportJob?.nextRun ? new Date(exportJob.nextRun).toLocaleString() : '—'}
-                                    </p>
-                                </div>
-
-                                {/* Delivery */}
-                                <div className="space-y-1">
-                                    <p className="text-xs text-muted-foreground uppercase tracking-wide">{t('exportSettings.delivery')}</p>
-                                    <div className="flex items-center gap-2">
-                                        <Badge variant="outline" className="text-xs">
-                                            <FolderOpen className="h-3 w-3 mr-1" />
-                                            {t('exportSettings.server')}
-                                        </Badge>
-                                        {emailEnabled && isEmailAvailable && (
-                                            <Badge variant="outline" className="text-xs">
-                                                <Mail className="h-3 w-3 mr-1" />
-                                                {t('settings.email')}
-                                            </Badge>
-                                        )}
-                                    </div>
+                    {/* === STATUS TILES === */}
+                    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                        <div className="flex items-start gap-3 rounded-xl border bg-card p-4 shadow-sm">
+                            <span className={cn(
+                                'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl',
+                                !autoExportEnabled ? 'bg-muted text-muted-foreground' : isConfigIncomplete ? 'bg-amber-500/10 text-amber-700 dark:text-amber-400' : 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400',
+                            )}>
+                                {!autoExportEnabled ? <XCircle className="h-5 w-5" /> : isConfigIncomplete ? <AlertTriangle className="h-5 w-5" /> : <CheckCircle2 className="h-5 w-5" />}
+                            </span>
+                            <div className="min-w-0">
+                                <p className="text-xs font-medium text-muted-foreground">{t('exportSettings.status')}</p>
+                                <p className="font-semibold">
+                                    {!autoExportEnabled ? t('exportSettings.disabled') : isConfigIncomplete ? t('exportSettings.incomplete') : t('exportSettings.active')}
+                                </p>
+                            </div>
+                        </div>
+                        <div className="flex items-start gap-3 rounded-xl border bg-card p-4 shadow-sm">
+                            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-sky-500/10 text-sky-700 dark:text-sky-400">
+                                <RefreshCw className="h-5 w-5" />
+                            </span>
+                            <div className="min-w-0">
+                                <p className="text-xs font-medium text-muted-foreground">{t('exportSettings.frequencyLabel')}</p>
+                                <p className="font-semibold">{autoExportEnabled ? getFrequencyText() : '—'}</p>
+                            </div>
+                        </div>
+                        <div className="flex items-start gap-3 rounded-xl border bg-card p-4 shadow-sm">
+                            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-500/10 text-violet-700 dark:text-violet-400">
+                                <Clock className="h-5 w-5" />
+                            </span>
+                            <div className="min-w-0">
+                                <p className="text-xs font-medium text-muted-foreground">{t('exportSettings.nextRun')}</p>
+                                <p className="font-semibold">
+                                    {exportJob?.nextRun ? new Date(exportJob.nextRun).toLocaleString(getDateLocale().code, { dateStyle: 'medium', timeStyle: 'short' }) : '—'}
+                                </p>
+                            </div>
+                        </div>
+                        <div className="flex items-start gap-3 rounded-xl border bg-card p-4 shadow-sm">
+                            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">
+                                <Download className="h-5 w-5" />
+                            </span>
+                            <div className="min-w-0">
+                                <p className="text-xs font-medium text-muted-foreground">{t('exportSettings.delivery')}</p>
+                                <div className="mt-1 flex flex-wrap gap-1.5">
+                                    <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-xs font-medium">
+                                        <FolderOpen className="h-3 w-3" />
+                                        {t('exportSettings.server')}
+                                    </span>
+                                    {emailEnabled && isEmailAvailable && (
+                                        <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-xs font-medium">
+                                            <Mail className="h-3 w-3" />
+                                            {t('settings.email')}
+                                        </span>
+                                    )}
                                 </div>
                             </div>
-                        </CardContent>
-                    </Card>
+                        </div>
+                    </div>
 
                     {/* === INCOMPLETE CONFIG WARNING === */}
                     {isConfigIncomplete && (
