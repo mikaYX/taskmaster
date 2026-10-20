@@ -12,6 +12,11 @@ export interface EmailProvider {
   readonly name: string;
 
   /**
+   * Reason of the last failed send or connection test (null after a success).
+   */
+  readonly lastError?: string | null;
+
+  /**
    * Send an email.
    *
    * @param options Email options

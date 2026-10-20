@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import type { EmailProvider, EmailOptions } from '../email.interface';
+import { describeEmailError } from '../email-errors';
 
 /**
  * Mailgun Email Provider.
@@ -10,6 +11,8 @@ import type { EmailProvider, EmailOptions } from '../email.interface';
 @Injectable()
 export class MailgunProvider implements EmailProvider {
   readonly name = 'mailgun';
+  /** Why the last send or connection test failed, null when it succeeded. */
+  lastError: string | null = null;
   private readonly logger = new Logger(MailgunProvider.name);
   private client: unknown = null;
   private domain = '';
@@ -40,8 +43,10 @@ export class MailgunProvider implements EmailProvider {
   }
 
   async send(options: EmailOptions): Promise<boolean> {
+    this.lastError = null;
     if (!this.client) {
       this.logger.error('Mailgun client not configured');
+      this.lastError = 'Mailgun is not configured (missing credentials).';
       return false;
     }
 
@@ -62,12 +67,17 @@ export class MailgunProvider implements EmailProvider {
       return true;
     } catch (error) {
       this.logger.error('Failed to send email via Mailgun', error);
+      this.lastError = describeEmailError(error);
       return false;
     }
   }
 
   async testConnection(): Promise<boolean> {
-    if (!this.client) return false;
+    this.lastError = null;
+    if (!this.client) {
+      this.lastError = 'Mailgun is not configured (missing credentials).';
+      return false;
+    }
 
     try {
       const client = this.client as {
@@ -75,7 +85,8 @@ export class MailgunProvider implements EmailProvider {
       };
       await client.domains.get(this.domain);
       return true;
-    } catch {
+    } catch (error) {
+      this.lastError = describeEmailError(error);
       return false;
     }
   }

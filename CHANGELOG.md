@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Saving the Email settings page replaced the stored SMTP password (and any other secret shown masked: API keys, LDAP/OIDC secrets) with the mask `••••••••` itself, so mail stopped working after the page was saved, typically after an upgrade. A sensitive value sent back as the mask now means "unchanged" and is never stored.
+- The "send a test email" and "test connection" buttons announced success even when the mail was not sent (the providers swallow their errors). They now fail with the reason (authentication refused, host not found, connection refused/timeout, TLS/certificate, sender or recipient rejected, unreadable stored password) shown in the notification.
+- A stored mail credential that cannot be decrypted now gives "enter the password / API key again" instead of an opaque server error.
+
+### Security
+- Every saved setting was written to the server log in clear (`DEBUG SET: key = value`), including SMTP passwords and API keys. That line is removed.
+
 ## [1.1.10] - 2026-10-19
 
 Feature and security release for 1.1.9. **Three additive database migrations** (`guest_views`, `todo_priority`, `todo_subtasks_recurrence_reminders`) run automatically on start; existing rows keep working. Existing `.env` files are never rewritten on upgrade.

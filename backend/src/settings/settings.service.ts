@@ -346,12 +346,18 @@ export class SettingsService {
     value: unknown,
     actor?: { id: number; username: string },
   ): Promise<SettingResponseDto> {
-    this.logger.log(`DEBUG SET: ${key} = ${JSON.stringify(value)}`);
     if (!isValidKey(key)) {
       throw new BadRequestException(`Unknown setting key: ${key}`);
     }
 
     const config = SETTINGS_REGISTRY[key];
+
+    // The API shows sensitive values as a mask; a form that sends the mask back
+    // untouched means "unchanged". Storing it would replace the real secret
+    // (SMTP password, API keys...) with the mask itself.
+    if (config.sensitive && value === SENSITIVE_PLACEHOLDER) {
+      return this.get(key);
+    }
 
     // Validate with Zod schema
     const result = config.schema.safeParse(value);

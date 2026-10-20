@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { settingsApi } from '@/api/settings';
+import { getErrorMessage } from '@/api/http';
 import type { SetSettingDto } from '@/api/types';
 import { useIsAuthenticated } from '@/stores/auth-store';
 
@@ -79,7 +80,8 @@ export function useSettings() {
         },
         onError: (error) => {
             console.error('Failed to send test email:', error);
-            toast.error(t('email.testError'));
+            // The server says why (bad login, host unreachable, unreadable password...).
+            toast.error(getErrorMessage(error, t('email.testError')), { duration: 10000 });
         },
     });
 

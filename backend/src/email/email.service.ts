@@ -111,6 +111,9 @@ export class EmailService {
       text: body || 'Test Email - This is a test email from Taskmaster.',
     });
 
+    if (!success) {
+      throw new BadRequestException(this.failureMessage(provider, 'send'));
+    }
     return { success, provider: provider.name };
   }
 
@@ -120,6 +123,11 @@ export class EmailService {
   async testConnection(): Promise<{ success: boolean; provider: string }> {
     const provider = await this.getConfiguredProvider();
     const success = await provider.testConnection();
+    if (!success) {
+      throw new BadRequestException(
+        this.failureMessage(provider, 'connection'),
+      );
+    }
     return { success, provider: provider.name };
   }
 
@@ -192,10 +200,31 @@ export class EmailService {
     }
   }
 
+  private failureMessage(
+    provider: EmailProvider,
+    what: 'send' | 'connection',
+  ): string {
+    const reason = provider.lastError || 'no detail was reported';
+    return `${what === 'send' ? 'Test email not sent' : 'Connection test failed'} via ${provider.name}: ${reason}`;
+  }
+
   /**
    * Get the configured and initialized provider.
    */
   private async getConfiguredProvider(): Promise<EmailProvider> {
+    try {
+      return await this.resolveProvider();
+    } catch (error) {
+      if (error instanceof BadRequestException) throw error;
+      // A stored secret that cannot be decrypted (AUTH_SECRET changed, value
+      // overwritten) used to surface as an opaque 500.
+      throw new BadRequestException(
+        'A stored mail credential cannot be read: enter the password / API key again in Settings > Email and save.',
+      );
+    }
+  }
+
+  private async resolveProvider(): Promise<EmailProvider> {
     const providerName =
       await this.settings.getRawValue<string>('email.provider');
 

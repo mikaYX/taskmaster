@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import type { EmailProvider, EmailOptions } from '../email.interface';
+import { describeEmailError } from '../email-errors';
 
 /**
  * Mailjet Email Provider.
@@ -10,6 +11,8 @@ import type { EmailProvider, EmailOptions } from '../email.interface';
 @Injectable()
 export class MailjetProvider implements EmailProvider {
   readonly name = 'mailjet';
+  /** Why the last send or connection test failed, null when it succeeded. */
+  lastError: string | null = null;
   private readonly logger = new Logger(MailjetProvider.name);
   private client: unknown = null;
 
@@ -24,8 +27,10 @@ export class MailjetProvider implements EmailProvider {
   }
 
   async send(options: EmailOptions): Promise<boolean> {
+    this.lastError = null;
     if (!this.client) {
       this.logger.error('Mailjet client not configured');
+      this.lastError = 'Mailjet is not configured (missing credentials).';
       return false;
     }
 
@@ -51,6 +56,7 @@ export class MailjetProvider implements EmailProvider {
       return true;
     } catch (error) {
       this.logger.error('Failed to send email via Mailjet', error);
+      this.lastError = describeEmailError(error);
       return false;
     }
   }

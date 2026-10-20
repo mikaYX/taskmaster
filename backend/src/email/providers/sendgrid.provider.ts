@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import type { EmailProvider, EmailOptions } from '../email.interface';
+import { describeEmailError } from '../email-errors';
 
 /**
  * SendGrid Email Provider.
@@ -10,6 +11,8 @@ import type { EmailProvider, EmailOptions } from '../email.interface';
 @Injectable()
 export class SendGridProvider implements EmailProvider {
   readonly name = 'sendgrid';
+  /** Why the last send or connection test failed, null when it succeeded. */
+  lastError: string | null = null;
   private readonly logger = new Logger(SendGridProvider.name);
   private client: unknown = null;
 
@@ -25,8 +28,10 @@ export class SendGridProvider implements EmailProvider {
   }
 
   async send(options: EmailOptions): Promise<boolean> {
+    this.lastError = null;
     if (!this.client) {
       this.logger.error('SendGrid client not configured');
+      this.lastError = 'SendGrid is not configured (missing credentials).';
       return false;
     }
 
@@ -45,6 +50,7 @@ export class SendGridProvider implements EmailProvider {
       return true;
     } catch (error) {
       this.logger.error('Failed to send email via SendGrid', error);
+      this.lastError = describeEmailError(error);
       return false;
     }
   }

@@ -78,4 +78,40 @@ describe('SettingsService', () => {
       ),
     ).toBe(false);
   });
+
+  describe('sensitive values sent back as the mask', () => {
+    it('keeps the stored secret when a form returns the mask untouched', async () => {
+      prisma.client.config.findUnique.mockResolvedValue({
+        key: 'email.smtp.password',
+        value: 'stored',
+      });
+
+      const result = await service.set('email.smtp.password', '••••••••');
+
+      expect(prisma.client.config.upsert).not.toHaveBeenCalled();
+      expect(result.value).toBe('••••••••');
+    });
+
+    it('still stores a real new password', async () => {
+      prisma.client.config.findUnique.mockResolvedValue(null);
+
+      await service.set('email.smtp.password', 'new-secret');
+
+      expect(prisma.client.config.upsert).toHaveBeenCalledTimes(1);
+    });
+
+    it('also ignores the mask in a bulk save of the whole e-mail page', async () => {
+      prisma.client.config.findUnique.mockResolvedValue(null);
+
+      await service.setBulk({
+        'email.smtp.host': 'smtp.example.com',
+        'email.smtp.password': '••••••••',
+      });
+
+      expect(prisma.client.config.upsert).toHaveBeenCalledTimes(1);
+      expect(prisma.client.config.upsert.mock.calls[0][0].where.key).toBe(
+        'email.smtp.host',
+      );
+    });
+  });
 });
