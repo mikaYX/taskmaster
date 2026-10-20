@@ -92,7 +92,8 @@
         "exports": "Exports",
         "backups": "Sauvegardes",
         "auditLog": "Journal d'audit",
-        "correctiveActions": "Actions correctives"
+        "correctiveActions": "Actions correctives",
+        "accountMenu": "Menu du compte"
     },
     "auditLog": {
         "title": "Journal d'audit",

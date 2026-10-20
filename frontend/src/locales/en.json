@@ -92,7 +92,8 @@
         "analytics": "Analytics",
         "analyticsGroup": "Analytics",
         "todoList": "Todo List",
-        "correctiveActions": "Corrective actions"
+        "correctiveActions": "Corrective actions",
+        "accountMenu": "Account menu"
     },
     "auditLog": {
         "title": "Audit Log",
