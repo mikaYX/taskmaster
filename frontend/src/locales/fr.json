@@ -2677,5 +2677,17 @@
         "open": "Notifications ({{count}} non lue(s))",
         "markAllRead": "Tout marquer comme lu",
         "empty": "Aucune notification"
+    },
+    "correctiveList": {
+        "stateLabel": "Afficher",
+        "open": "Ouverte",
+        "closed": "Clôturée",
+        "closedOn": "Clôturée le {{date}}",
+        "task": "Tâche",
+        "failedOn": "Contrôle échoué",
+        "failedOnValue": "Contrôle du {{date}}",
+        "due": "Échéance",
+        "dueValue": "Échéance : {{date}}",
+        "resolutionPlaceholder": "Ce qui a été fait pour corriger..."
     }
 }

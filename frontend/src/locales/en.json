@@ -2677,5 +2677,17 @@
         "open": "Notifications ({{count}} unread)",
         "markAllRead": "Mark all as read",
         "empty": "No notifications"
+    },
+    "correctiveList": {
+        "stateLabel": "Show",
+        "open": "Open",
+        "closed": "Closed",
+        "closedOn": "Closed on {{date}}",
+        "task": "Task",
+        "failedOn": "Failed check",
+        "failedOnValue": "Check of {{date}}",
+        "due": "Due date",
+        "dueValue": "Due {{date}}",
+        "resolutionPlaceholder": "What was done to fix it..."
     }
 }
