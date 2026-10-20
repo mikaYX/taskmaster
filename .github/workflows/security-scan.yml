@@ -59,6 +59,10 @@ jobs:
           file: Dockerfile
           push: false
           load: true
+          pull: true
+          # apk repositories change independently of the Dockerfile. Re-run the
+          # runtime stage so cached layers cannot retain already-fixed OS CVEs.
+          no-cache-filters: production
           tags: taskmaster:ci
           build-args: |
             APP_VERSION=ci
@@ -70,12 +74,37 @@ jobs:
       - name: Build .trivyignore from security exceptions
         run: node scripts/validate-trivy-exceptions.js || true
 
-      - name: Scan image
+      # Retain unfixed CVEs for review; only the following gate determines
+      # whether fixable HIGH/CRITICAL vulnerabilities block the build.
+      - name: Report image vulnerabilities (including unfixed)
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           scan-type: image
           image-ref: taskmaster:ci
+          scanners: vuln
+          severity: HIGH,CRITICAL
+          ignore-unfixed: false
+          trivyignores: .trivyignore
+          format: json
+          output: trivy-image-report.json
+          exit-code: '0'
+
+      - name: Scan image (block fixable HIGH/CRITICAL)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: image
+          image-ref: taskmaster:ci
+          scanners: vuln
           severity: HIGH,CRITICAL
           ignore-unfixed: true
           trivyignores: .trivyignore
           exit-code: '1'
+
+      - name: Upload image vulnerability report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-image-report
+          path: trivy-image-report.json
+          if-no-files-found: warn
+          retention-days: 30

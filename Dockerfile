@@ -100,8 +100,9 @@ WORKDIR /app
 ENV NODE_ENV=production
 
 # Dépendances système minimales pour Chromium/Puppeteer + init PID 1.
-# Note: Chromium sous Alpine peut tirer ffmpeg/libsndfile ; les CVE associées
-# sont côté Alpine et non corrigeables ici — surveiller les mises à jour apk.
+# Chromium peut tirer ffmpeg/libsndfile : appliquer les correctifs Alpine au build.
+# La CI reconstruit ce stage sans cache pour rechercher les mises à jour apk.
+# Les CVE restantes doivent être évaluées à partir du rapport Trivy de l'image.
 RUN apk upgrade --no-cache && \
     apk add --no-cache \
     chromium \

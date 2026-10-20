@@ -75,6 +75,26 @@ TASKMASTER_IMAGE=taskmaster:secure-local docker compose --env-file .env up -d
 
 ## Vérifications
 
+Le workflow `security-scan.yml` récupère l'image de base et reconstruit le stage
+`production` sans cache pour réexécuter `apk upgrade` et installer les correctifs
+disponibles pour Chromium et ses dépendances. Le numéro de version Node reste
+celui du Dockerfile : `apk upgrade` ne met pas à jour le binaire Node de l'image
+officielle ; une CVE Node nécessite une mise à jour de `NODE_VERSION`.
+
+Le contrôle Trivy bloque les vulnérabilités HIGH/CRITICAL avec correctif connu,
+hors exceptions actives. L'artefact `trivy-image-report` conserve aussi celles
+sans correctif, pour examen. Un scan réussi ne signifie donc pas une absence de
+vulnérabilités. Les commentaires du Dockerfile ne remplacent pas ce rapport.
+
+Pour reproduire le contrôle localement :
+
+```bash
+docker buildx build --pull --no-cache-filter production --load -t taskmaster:ci .
+node scripts/validate-trivy-exceptions.js
+trivy image --scanners vuln --severity HIGH,CRITICAL --format json --output trivy-image-report.json taskmaster:ci
+trivy image --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 taskmaster:ci
+```
+
 - `docker build -t taskmaster:secure-local -f Dockerfile .` se termine sans erreur.
 - `docker image inspect taskmaster:secure-local --format '{{.Config.User}}'` retourne `node`.
 - `TASKMASTER_IMAGE=taskmaster:secure-local docker compose --env-file .env up -d` démarre les services attendus.
