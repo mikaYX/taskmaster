@@ -944,7 +944,7 @@ export class TodosService {
       },
     });
     return {
-      email: user?.todoReminderEmail ?? true,
+      email: user?.todoReminderEmail ?? false,
       push: user?.todoReminderPush ?? true,
       collective: user?.todoReminderCollective ?? true,
     };
