@@ -68,7 +68,7 @@ type RangeMode = 'rolling' | 'fixed';
 
 export function ExportSettingsPage() {
     const { t } = useTranslation();
-    const { settings, getSetting, updateSetting, isLoading, isUpdating, emailConfigStatus } = useSettings();
+    const { settings, getSetting, getSettingAsBool, updateSettings, isLoading, isUpdating, emailConfigStatus } = useSettings();
     // Full folder on the server, as the backend resolves it (a relative path is relative to the data folder).
     const { data: backupStatus } = useQuery({
         queryKey: ['backup-status', getSetting('export.path')],
@@ -209,16 +209,16 @@ export function ExportSettingsPage() {
             isInitialized.current = true;
             form.reset({
                 autoExport: {
-                    enabled: getSetting('export.autoExport.enabled') === 'true',
+                    enabled: getSettingAsBool('export.autoExport.enabled'),
                     scheduleType: (getSetting('export.autoExport.scheduleType') as 'daily' | 'weekly' | 'monthly' | 'custom') || 'daily',
-                    dayOfWeek: parseInt(getSetting('export.autoExport.dayOfWeek') || '1'),
-                    dayOfMonth: parseInt(getSetting('export.autoExport.dayOfMonth') || '1'),
+                    dayOfWeek: parseInt(String(getSetting<unknown>('export.autoExport.dayOfWeek') ?? '1')),
+                    dayOfMonth: parseInt(String(getSetting<unknown>('export.autoExport.dayOfMonth') ?? '1')),
                     monthMode: (getSetting('export.autoExport.monthMode') as 'specific' | 'last' | 'relative') || 'specific',
                     weekOrdinal: (getSetting('export.autoExport.weekOrdinal') as 'first' | 'second' | 'third' | 'fourth' | 'last') || 'first',
                     cron: getSetting('export.autoExport.cron') || '0 0 * * *',
                     formats: parseArraySetting(getSetting('export.autoExport.formats'), ['csv']) as ('csv' | 'pdf')[],
                     email: {
-                        enabled: getSetting('export.autoExport.email.enabled') === 'true',
+                        enabled: getSettingAsBool('export.autoExport.email.enabled'),
                         formats: parseArraySetting(getSetting('export.autoExport.email.formats'), ['csv']) as ('csv' | 'pdf')[],
                         recipients: parseArraySetting(getSetting('export.autoExport.email.recipients'), ['admin']),
                         customEmails: parseArraySetting(getSetting('export.autoExport.email.customEmails'), []),
@@ -226,40 +226,35 @@ export function ExportSettingsPage() {
                 },
                 config: {
                     path: getSetting('export.path') || './exports',
-                    offsetFrom: parseInt(getSetting('export.offset.from') || '30'),
-                    offsetTo: parseInt(getSetting('export.offset.to') || '0'),
+                    offsetFrom: parseInt(String(getSetting<unknown>('export.offset.from') ?? '30')),
+                    offsetTo: parseInt(String(getSetting<unknown>('export.offset.to') ?? '0')),
                 },
                 retention: {
-                    days: parseInt(getSetting('export.retention.days') || '30'),
+                    days: parseInt(String(getSetting<unknown>('export.retention.days') ?? '30')),
                 }
             });
         }
-    }, [settings.length, form, getSetting]);
+    }, [settings.length, form, getSetting, getSettingAsBool]);
 
     const onSubmit = (data: z.infer<typeof exportSettingsSchema>) => {
-        // Auto Export
-        updateSetting({ key: 'export.autoExport.enabled', value: String(data.autoExport.enabled) });
-        updateSetting({ key: 'export.autoExport.scheduleType', value: data.autoExport.scheduleType });
-        updateSetting({ key: 'export.autoExport.dayOfWeek', value: String(data.autoExport.dayOfWeek) });
-        updateSetting({ key: 'export.autoExport.dayOfMonth', value: String(data.autoExport.dayOfMonth) });
-        updateSetting({ key: 'export.autoExport.monthMode', value: data.autoExport.monthMode });
-        updateSetting({ key: 'export.autoExport.weekOrdinal', value: data.autoExport.weekOrdinal });
-        updateSetting({ key: 'export.autoExport.cron', value: data.autoExport.cron });
-        updateSetting({ key: 'export.autoExport.formats', value: data.autoExport.formats.join(',') });
-
-        // Email
-        updateSetting({ key: 'export.autoExport.email.enabled', value: String(data.autoExport.email.enabled) });
-        updateSetting({ key: 'export.autoExport.email.formats', value: data.autoExport.email.formats.join(',') });
-        updateSetting({ key: 'export.autoExport.email.recipients', value: data.autoExport.email.recipients.join(',') });
-        updateSetting({ key: 'export.autoExport.email.customEmails', value: data.autoExport.email.customEmails.join(',') });
-
-        // Config
-        updateSetting({ key: 'export.path', value: data.config.path });
-        updateSetting({ key: 'export.offset.from', value: String(data.config.offsetFrom) });
-        updateSetting({ key: 'export.offset.to', value: String(data.config.offsetTo) });
-
-        // Retention
-        updateSetting({ key: 'export.retention.days', value: String(data.retention.days) });
+        updateSettings({
+            'export.autoExport.enabled': data.autoExport.enabled,
+            'export.autoExport.scheduleType': data.autoExport.scheduleType,
+            'export.autoExport.dayOfWeek': data.autoExport.dayOfWeek,
+            'export.autoExport.dayOfMonth': data.autoExport.dayOfMonth,
+            'export.autoExport.monthMode': data.autoExport.monthMode,
+            'export.autoExport.weekOrdinal': data.autoExport.weekOrdinal,
+            'export.autoExport.cron': data.autoExport.cron,
+            'export.autoExport.formats': data.autoExport.formats,
+            'export.autoExport.email.enabled': data.autoExport.email.enabled,
+            'export.autoExport.email.formats': data.autoExport.email.formats,
+            'export.autoExport.email.recipients': data.autoExport.email.recipients,
+            'export.autoExport.email.customEmails': data.autoExport.email.customEmails,
+            'export.path': data.config.path,
+            'export.offset.from': data.config.offsetFrom,
+            'export.offset.to': data.config.offsetTo,
+            'export.retention.days': data.retention.days,
+        }, { onSuccess: () => form.reset(data) });
     };
 
     const handleRunNow = async () => {

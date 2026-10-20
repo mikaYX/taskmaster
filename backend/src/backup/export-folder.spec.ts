@@ -63,6 +63,31 @@ describe('ExportService - export folder', () => {
     await expect(make().getExportPath('../secret')).rejects.toThrow();
   });
 
+  it('lists only export files across current and legacy folders without duplicates', async () => {
+    const service = make();
+    const current = await service.resolveExportDir();
+    const legacy = join(dataDir, 'backups', 'exports');
+    mkdirSync(current, { recursive: true });
+    mkdirSync(legacy, { recursive: true });
+    writeFileSync(join(current, 'export_current.zip'), 'current');
+    writeFileSync(join(legacy, 'export_old.json'), '{}');
+    writeFileSync(join(legacy, 'export_current.zip'), 'duplicate');
+    writeFileSync(join(current, 'backup_database.tar.gz.enc'), 'backup');
+    mkdirSync(join(current, 'export_directory'));
+
+    const files = await service.listExports();
+    expect(files.map((file) => file.filename).sort()).toEqual([
+      'export_current.zip',
+      'export_old.json',
+    ]);
+    expect(
+      files.find((file) => file.filename === 'export_current.zip')?.size,
+    ).toBe(7);
+    expect(files[0].createdAt.getTime()).toBeGreaterThanOrEqual(
+      files[1].createdAt.getTime(),
+    );
+  });
+
   it('cleans expired exports in both folders and leaves other files alone', async () => {
     const service = make();
     const current = await service.resolveExportDir();

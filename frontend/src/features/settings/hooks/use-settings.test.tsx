@@ -3,7 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const toast = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }));
+const toast = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn(), dismiss: vi.fn() }));
 const api = vi.hoisted(() => ({
     getAll: vi.fn(),
     getEmailConfigStatus: vi.fn(),
@@ -34,7 +34,7 @@ describe('useSettings notifications', () => {
         api.getAll.mockResolvedValue([]);
         api.getEmailConfigStatus.mockResolvedValue({ enabled: false, configValid: false, provider: 'smtp' });
         api.set.mockResolvedValue({});
-        api.setBulk.mockResolvedValue({});
+        api.setBulk.mockResolvedValue([{ key: 'a', value: 1 }]);
     });
 
     it('shares one toast id across the many single-key saves of a settings page', async () => {
@@ -73,5 +73,30 @@ describe('useSettings notifications', () => {
         for (const call of toast.error.mock.calls) {
             expect(call[1]).toEqual({ id: SETTINGS_SAVE_ERROR_TOAST_ID });
         }
+    });
+
+    it('reports a partial bulk save as an error and keeps the form unsaved', async () => {
+        api.setBulk.mockResolvedValue([{ key: 'a', value: 1 }]);
+        const onSuccess = vi.fn();
+        const { result } = renderHook(() => useSettings(), { wrapper });
+
+        act(() => result.current.updateSettings({ a: 1, b: false }, { onSuccess }));
+
+        await waitFor(() => expect(toast.error).toHaveBeenCalledWith('common.saveError', { id: SETTINGS_SAVE_ERROR_TOAST_ID }));
+        expect(toast.success).not.toHaveBeenCalled();
+        expect(onSuccess).not.toHaveBeenCalled();
+        expect(toast.dismiss).toHaveBeenCalledWith(SETTINGS_SAVED_TOAST_ID);
+    });
+
+    it('confirms a complete save once and calls the form success callback', async () => {
+        const onSuccess = vi.fn();
+        const { result } = renderHook(() => useSettings(), { wrapper });
+
+        act(() => result.current.updateSettings({ a: 1 }, { onSuccess }));
+
+        await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1));
+        expect(toast.success).toHaveBeenCalledTimes(1);
+        expect(toast.error).not.toHaveBeenCalled();
+        expect(toast.dismiss).toHaveBeenCalledWith(SETTINGS_SAVE_ERROR_TOAST_ID);
     });
 });

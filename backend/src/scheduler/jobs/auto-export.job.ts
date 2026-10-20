@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import cronParser from 'cron-parser';
 import type { SchedulerJob } from '../scheduler.interface';
-import { ExportService } from '../../backup/export.service';
+import { ReportExportService } from '../../backup/report-export.service';
 import { SettingsService } from '../../settings';
 import { AuditService } from '../../audit/audit.service';
 import { EmailService } from '../../email/email.service';
@@ -28,7 +28,7 @@ export class AutoExportJob implements SchedulerJob {
   private readonly logger = new Logger(AutoExportJob.name);
 
   constructor(
-    private readonly exportService: ExportService,
+    private readonly exportService: ReportExportService,
     private readonly settings: SettingsService,
     private readonly auditService: AuditService,
     private readonly emailService: EmailService,
@@ -115,20 +115,11 @@ export class AutoExportJob implements SchedulerJob {
     const start = Date.now();
 
     try {
-      const formats = (await this.settings.getRawValue<string[]>(
-        'export.autoExport.formats',
-      )) || ['csv'];
-      // We usually export CSV or JSON. The export service supports 'json' | 'csv'.
-      const format = formats.includes('csv') ? 'csv' : 'json';
-
-      const resultPath = await this.exportService.generateExport({
-        format: format,
-        encrypt: false, // Auto-exports usually unencrypted in local folder unless specified otherwise
-      });
+      const resultPaths = await this.exportService.generate(now);
 
       const duration = Date.now() - start;
       this.logger.log(
-        `[${this.name}] Job completed: Created ${resultPath} (${duration}ms)`,
+        `[${this.name}] Job completed: Created ${resultPaths.join(', ')} (${duration}ms)`,
       );
 
       await this.auditService.log({
@@ -137,7 +128,7 @@ export class AutoExportJob implements SchedulerJob {
         actorId: undefined,
         actorName: 'System (AutoExport)',
         target: 'Export',
-        details: { path: resultPath, duration },
+        details: { paths: resultPaths, duration },
         severity: AuditSeverity.INFO,
       });
 

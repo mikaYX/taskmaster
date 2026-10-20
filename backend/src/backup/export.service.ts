@@ -54,6 +54,29 @@ export class ExportService {
     );
   }
 
+  async listExports() {
+    const files = new Map<
+      string,
+      { filename: string; size: number; createdAt: Date }
+    >();
+    for (const dir of await this.exportDirs()) {
+      if (!existsSync(dir)) continue;
+      for (const filename of readdirSync(dir)) {
+        if (!filename.startsWith('export_') || files.has(filename)) continue;
+        const stat = statSync(join(dir, filename));
+        if (!stat.isFile()) continue;
+        files.set(filename, {
+          filename,
+          size: stat.size,
+          createdAt: stat.birthtime,
+        });
+      }
+    }
+    return [...files.values()].sort(
+      (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
+    );
+  }
+
   /**
    * Generate a portable export (Business Data).
    * @param options format, encryption settings

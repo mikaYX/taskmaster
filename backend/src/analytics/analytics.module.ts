@@ -6,5 +6,6 @@ import { AnalyticsPdfService } from './analytics-pdf.service';
 @Module({
   controllers: [AnalyticsController],
   providers: [AnalyticsService, AnalyticsPdfService],
+  exports: [AnalyticsService, AnalyticsPdfService],
 })
 export class AnalyticsModule {}

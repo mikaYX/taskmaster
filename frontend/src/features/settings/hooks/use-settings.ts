@@ -60,7 +60,26 @@ export function useSettings() {
 
     // Mutation to update multiple settings
     const updateBulkMutation = useMutation({
-        mutationFn: settingsApi.setBulk,
+        onMutate: () => {
+            toast.dismiss(SETTINGS_SAVED_TOAST_ID);
+            toast.dismiss(SETTINGS_SAVE_ERROR_TOAST_ID);
+        },
+        mutationFn: async (settings: Record<string, unknown>) => {
+            const saved = await settingsApi.setBulk(settings);
+            // The bulk endpoint can return a partial result when a key is rejected.
+            const savedKeys = new Set(saved.map(setting => setting.key));
+            const flattenKeys = (values: Record<string, unknown>, prefix = ''): string[] =>
+                Object.entries(values).flatMap(([key, value]) => {
+                    const fullKey = prefix ? `${prefix}.${key}` : key;
+                    return value !== null && typeof value === 'object' && !Array.isArray(value)
+                        ? flattenKeys(value as Record<string, unknown>, fullKey)
+                        : [fullKey];
+                });
+            if (flattenKeys(settings).some(key => !savedKeys.has(key))) {
+                throw new Error('Some settings were not saved');
+            }
+            return saved;
+        },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['settings'] });
             queryClient.invalidateQueries({ queryKey: ['public-branding'] });
@@ -101,8 +120,8 @@ export function useSettings() {
         updateMutation.mutate(dto);
     };
 
-    const updateSettings = (settings: Record<string, unknown>) => {
-        updateBulkMutation.mutate(settings);
+    const updateSettings = (settings: Record<string, unknown>, options?: { onSuccess?: () => void }) => {
+        updateBulkMutation.mutate(settings, options);
     };
 
     const testEmail = (dto: { to: string[], subject?: string, body?: string }) => {

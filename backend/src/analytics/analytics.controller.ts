@@ -75,21 +75,9 @@ export class AnalyticsController {
     const filename = `analytics_${query.startDate}_${query.endDate}.csv`;
     res.set('Content-Disposition', `attachment; filename="${filename}"`);
 
-    const tasks = await this.analyticsService.getByTask(
-      query.startDate,
-      query.endDate,
-      9999,
+    return new StreamableFile(
+      await this.analyticsService.generateCsv(query.startDate, query.endDate),
     );
-
-    const BOM = '\uFEFF';
-    const header = 'Tâche,Total,Succès,Échecs,Manquants,Conformité (%)';
-    const rows = tasks.map((t) => {
-      const name = `"${t.taskName.replace(/"/g, '""')}"`;
-      return `${name},${t.total},${t.success},${t.failed},${t.missing},${t.complianceRate.toFixed(1)}`;
-    });
-
-    const csv = BOM + [header, ...rows].join('\n');
-    return new StreamableFile(Buffer.from(csv, 'utf-8'));
   }
 
   // ── Export PDF ──────────────────────────────────────────

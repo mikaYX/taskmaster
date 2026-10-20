@@ -27,6 +27,7 @@ import { EmailService } from '../email';
 import { SettingsService } from '../settings';
 import { BackupService } from './backup.service';
 import { ExportService } from './export.service';
+import { ReportExportService } from './report-export.service';
 
 // Local definition to avoid global namespace issues with Express.Multer.File
 interface MulterFile {
@@ -48,6 +49,7 @@ export class BackupController {
   constructor(
     private readonly backupService: BackupService,
     private readonly exportService: ExportService,
+    private readonly reportExportService: ReportExportService,
     private readonly settingsService: SettingsService,
     @Inject(forwardRef(() => EmailService))
     private readonly emailService: EmailService,
@@ -188,6 +190,13 @@ export class BackupController {
     return { filename: basename(path), path };
   }
 
+  @Post('export/report')
+  @HttpCode(HttpStatus.OK)
+  async exportReport() {
+    const paths = await this.reportExportService.generate();
+    return { filename: paths.map((path) => basename(path)).join(', '), paths };
+  }
+
   @Get('status/:jobId')
   async getJobStatus(@Param('jobId') jobId: string) {
     return this.backupService.getJobStatus(jobId);
@@ -196,6 +205,11 @@ export class BackupController {
   @Get('list')
   list() {
     return this.backupService.listBackups();
+  }
+
+  @Get('export/list')
+  listExports() {
+    return this.exportService.listExports();
   }
 
   @Post('import')

@@ -12,10 +12,10 @@ export const exportApi = {
         http.post<{ filename: string }>('/backup/export', dto),
 
     /**
-     * List all exports (uses backup list endpoint, exports have 'export_' prefix).
+     * List exports from the configured and legacy export folders.
      */
     list: () =>
-        http.get<ExportFile[]>('/backup/list'),
+        http.get<ExportFile[]>('/backup/export/list'),
 
     /**
      * Get download URL for export.
@@ -27,7 +27,7 @@ export const exportApi = {
      * Test export generation.
      */
     test: () =>
-        http.post<{ filename: string }>('/backup/export', { format: 'csv' }),
+        http.post<{ filename: string }>('/backup/export/report'),
 
     /**
      * Test export email delivery.

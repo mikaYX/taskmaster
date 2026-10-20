@@ -12,11 +12,22 @@ import {
 export class AnalyticsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  /**
-   * The sites whose figures the caller may see: `undefined` means all of them (a
-   * super administrator with no site selected), otherwise the list, possibly
-   * empty. Every figure used to cover every site, whoever asked.
-   */
+  /** Shared CSV report for interactive and scheduled exports. */
+  async generateCsv(startDate: string, endDate: string): Promise<Buffer> {
+    const tasks = await this.getByTask(startDate, endDate, 9999);
+
+    const BOM = '\uFEFF';
+    const header = 'Tâche,Total,Succès,Échecs,Manquants,Conformité (%)';
+    const rows = tasks.map((t) => {
+      const name = `"${t.taskName.replace(/"/g, '""')}"`;
+      return `${name},${t.total},${t.success},${t.failed},${t.missing},${t.complianceRate.toFixed(1)}`;
+    });
+
+    const csv = BOM + [header, ...rows].join('\n');
+    return Buffer.from(csv, 'utf-8');
+  }
+
+  /** The site scope of the current caller, or all sites for internal calls. */
   private visibleSiteIds(): number[] | undefined {
     const user = this.prisma.getCurrentUser();
     if (!user) return undefined; // internal call, no request

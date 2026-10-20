@@ -9,6 +9,8 @@ import { EmailModule } from '../email/email.module';
 import { EncryptionService } from './encryption.service';
 import { ExportService } from './export.service';
 import { ConfigModule } from '@nestjs/config';
+import { AnalyticsModule } from '../analytics/analytics.module';
+import { ReportExportService } from './report-export.service';
 
 /**
  * Backup Module.
@@ -21,6 +23,7 @@ import { ConfigModule } from '@nestjs/config';
     SettingsModule,
     EmailModule,
     ConfigModule,
+    AnalyticsModule,
     BullModule.registerQueue({
       name: 'backup',
     }),
@@ -32,7 +35,8 @@ import { ConfigModule } from '@nestjs/config';
     BackupProcessor,
     EncryptionService,
     ExportService,
+    ReportExportService,
   ],
-  exports: [BackupService, ExportService],
+  exports: [BackupService, ExportService, ReportExportService],
 })
 export class BackupModule {}
