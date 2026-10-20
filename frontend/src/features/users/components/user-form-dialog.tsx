@@ -34,15 +34,17 @@ import type { CredentialsEmailStatus, User } from '@/api/types';
 import { sitesApi } from '@/api/sites';
 import { getErrorMessage } from '@/api/http';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 import { useCreateUser, useCredentialsEmailAvailable, useUpdateUser } from '@/hooks/use-users';
 import { useIsSuperAdmin } from '@/stores/auth-store';
 import { NewPasswordDialog } from './new-password-dialog';
 import { generateTemporaryPassword } from '@/lib/password-policy';
 
 const userSchema = z.object({
-    firstname: z.string().min(1, 'First name is required'),
-    lastname: z.string().min(1, 'Last name is required'),
-    email: z.string().email('Invalid email address'),
+    // Translation keys: FormMessage translates them when displayed.
+    firstname: z.string().min(1, 'userMgmt.validation.firstNameRequired'),
+    lastname: z.string().min(1, 'userMgmt.validation.lastNameRequired'),
+    email: z.string().email('userMgmt.validation.invalidEmail'),
     role: z.enum(['SUPER_ADMIN', 'MANAGER', 'USER', 'GUEST'] as const),
     siteId: z.number().optional(),
 });
@@ -56,6 +58,7 @@ interface UserFormDialogProps {
 }
 
 export function UserFormDialog({ open, onOpenChange, userToEdit }: UserFormDialogProps) {
+    const { t } = useTranslation();
     const createUser = useCreateUser();
     const updateUser = useUpdateUser();
     const [generatedPassword, setGeneratedPassword] = useState<string | null>(null);
@@ -159,7 +162,7 @@ export function UserFormDialog({ open, onOpenChange, userToEdit }: UserFormDialo
                 {
                     onError: (error) => {
                         setGeneratedPassword(null);
-                        toast.error(getErrorMessage(error, 'Failed to create the user'));
+                        toast.error(getErrorMessage(error, t('userMgmt.form.createFailed')));
                     },
                     onSuccess: (created) => {
                         // Email unavailable: tell the admin to hand the password over directly.
@@ -181,12 +184,12 @@ export function UserFormDialog({ open, onOpenChange, userToEdit }: UserFormDialo
                 <DialogContent className="sm:max-w-[500px]">
                     <DialogHeader>
                         <DialogTitle className="text-xl">
-                            {isEdit ? 'Edit User' : 'Create New User'}
+                            {isEdit ? t('users.editUser') : t('userMgmt.form.createTitle')}
                         </DialogTitle>
                         <DialogDescription>
                             {isEdit
-                                ? "Update the user's information below."
-                                : "Fill in the details to create a new user. A secure password will be generated automatically."}
+                                ? t('userMgmt.form.editDescription')
+                                : t('userMgmt.form.createDescription')}
                         </DialogDescription>
                     </DialogHeader>
 
@@ -200,9 +203,9 @@ export function UserFormDialog({ open, onOpenChange, userToEdit }: UserFormDialo
                                     name="firstname"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>First Name</FormLabel>
+                                            <FormLabel>{t('userMgmt.form.firstName')}</FormLabel>
                                             <FormControl>
-                                                <Input placeholder="John" {...field} />
+                                                <Input placeholder={t('userMgmt.form.firstNamePlaceholder')} {...field} />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
@@ -213,9 +216,9 @@ export function UserFormDialog({ open, onOpenChange, userToEdit }: UserFormDialo
                                     name="lastname"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Last Name</FormLabel>
+                                            <FormLabel>{t('userMgmt.form.lastName')}</FormLabel>
                                             <FormControl>
-                                                <Input placeholder="Doe" {...field} />
+                                                <Input placeholder={t('userMgmt.form.lastNamePlaceholder')} {...field} />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
@@ -228,11 +231,11 @@ export function UserFormDialog({ open, onOpenChange, userToEdit }: UserFormDialo
                                 name="email"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Email Address</FormLabel>
+                                        <FormLabel>{t('userMgmt.form.email')}</FormLabel>
                                         <FormControl>
                                             <Input
                                                 type="email"
-                                                placeholder="john.doe@company.com"
+                                                placeholder={t('userMgmt.form.emailPlaceholder')}
                                                 {...field}
                                             />
                                         </FormControl>
@@ -247,19 +250,19 @@ export function UserFormDialog({ open, onOpenChange, userToEdit }: UserFormDialo
                                     name="role"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Role</FormLabel>
+                                            <FormLabel>{t('userMgmt.form.role')}</FormLabel>
                                             <Select onValueChange={field.onChange} defaultValue={field.value}>
                                                 <FormControl>
                                                     <SelectTrigger>
-                                                        <SelectValue placeholder="Select a role" />
+                                                        <SelectValue placeholder={t('userMgmt.form.selectRole')} />
                                                     </SelectTrigger>
                                                 </FormControl>
                                                 <SelectContent>
                                                     {isSuperAdmin && (
-                                                        <SelectItem value="SUPER_ADMIN">Super Admin</SelectItem>
+                                                        <SelectItem value="SUPER_ADMIN">{t('userMgmt.form.roles.superAdmin')}</SelectItem>
                                                     )}
-                                                    <SelectItem value="MANAGER">Manager</SelectItem>
-                                                    <SelectItem value="USER">Standard User</SelectItem>
+                                                    <SelectItem value="MANAGER">{t('userMgmt.form.roles.manager')}</SelectItem>
+                                                    <SelectItem value="USER">{t('userMgmt.form.roles.user')}</SelectItem>
                                                 </SelectContent>
                                             </Select>
                                             <FormMessage />
@@ -273,14 +276,14 @@ export function UserFormDialog({ open, onOpenChange, userToEdit }: UserFormDialo
                                         name="siteId"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel>Site</FormLabel>
+                                                <FormLabel>{t('userMgmt.form.site')}</FormLabel>
                                                 <Select
                                                     onValueChange={(val) => field.onChange(parseInt(val, 10))}
                                                     defaultValue={field.value?.toString()}
                                                 >
                                                     <FormControl>
                                                         <SelectTrigger>
-                                                            <SelectValue placeholder="Select a site" />
+                                                            <SelectValue placeholder={t('userMgmt.form.selectSite')} />
                                                         </SelectTrigger>
                                                     </FormControl>
                                                     <SelectContent>
@@ -307,16 +310,15 @@ export function UserFormDialog({ open, onOpenChange, userToEdit }: UserFormDialo
                                             className="mt-0.5"
                                         />
                                         <span>
-                                            Send the login and temporary password to the user by email
+                                            {t('userMgmt.form.sendEmail')}
                                             <span className="block text-muted-foreground">
-                                                The temporary password is still shown after creation.
+                                                {t('userMgmt.form.sendEmailHint')}
                                             </span>
                                         </span>
                                     </label>
                                 ) : (
                                     <p role="note" className="rounded-md border border-dashed p-3 text-sm text-muted-foreground">
-                                        Email sending is not active, so no email will be sent. After creation, give the
-                                        temporary password to the user directly.
+                                        {t('userMgmt.form.emailInactive')}
                                     </p>
                                 )
                             )}
@@ -329,12 +331,12 @@ export function UserFormDialog({ open, onOpenChange, userToEdit }: UserFormDialo
                                     variant="ghost"
                                     onClick={() => onOpenChange(false)}
                                 >
-                                    Cancel
+                                    {t('common.cancel')}
                                 </Button>
                                 <Button type="submit" disabled={isLoading}>
                                     {isLoading
-                                        ? 'Saving...'
-                                        : (isEdit ? 'Update User' : 'Create User')
+                                        ? t('common.saving')
+                                        : (isEdit ? t('userMgmt.form.update') : t('userMgmt.form.create'))
                                     }
                                 </Button>
                             </DialogFooter>

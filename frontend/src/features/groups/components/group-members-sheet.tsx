@@ -16,6 +16,7 @@ import type { Group } from '@/api/types';
 import { useGroupMembers, useAddGroupMembers, useRemoveGroupMembers } from '@/hooks/use-groups';
 import { useUsers } from '@/hooks/use-users';
 import { toast } from 'sonner';
+import { Trans, useTranslation } from 'react-i18next';
 
 interface GroupMembersSheetProps {
     group: Group | undefined;
@@ -35,6 +36,7 @@ interface GroupMembersSheetProps {
 const normalize = (s: string) => (s ?? '').toLowerCase().trim();
 
 export function GroupMembersSheet({ group, open, onOpenChange }: GroupMembersSheetProps) {
+    const { t } = useTranslation();
     const [searchQuery, setSearchQuery] = useState('');
 
     const { data: members, isLoading: isLoadingMembers } = useGroupMembers(group?.id || 0);
@@ -69,8 +71,8 @@ export function GroupMembersSheet({ group, open, onOpenChange }: GroupMembersShe
         addMembers.mutate(
             { id: group.id, dto: { userIds: [userId] } },
             {
-                onSuccess: () => toast.success('Member added successfully'),
-                onError: () => toast.error('Failed to add member'),
+                onSuccess: () => toast.success(t('groupMgmt.members.toasts.added')),
+                onError: () => toast.error(t('groupMgmt.members.toasts.addFailed')),
             }
         );
     };
@@ -79,8 +81,8 @@ export function GroupMembersSheet({ group, open, onOpenChange }: GroupMembersShe
         removeMembers.mutate(
             { id: group.id, dto: { userIds: [userId] } },
             {
-                onSuccess: () => toast.success('Member removed successfully'),
-                onError: () => toast.error('Failed to remove member'),
+                onSuccess: () => toast.success(t('groupMgmt.members.toasts.removed')),
+                onError: () => toast.error(t('groupMgmt.members.toasts.removeFailed')),
             }
         );
     };
@@ -91,9 +93,13 @@ export function GroupMembersSheet({ group, open, onOpenChange }: GroupMembersShe
         <Sheet open={open} onOpenChange={onOpenChange}>
             <SheetContent className="w-[480px] sm:max-w-[480px] flex flex-col">
                 <SheetHeader>
-                    <SheetTitle className="text-xl">Group Members</SheetTitle>
+                    <SheetTitle className="text-xl">{t('groupMgmt.members.title')}</SheetTitle>
                     <SheetDescription>
-                        Manage members for <strong className="text-foreground">{group.name}</strong>
+                        <Trans
+                            i18nKey="groupMgmt.members.description"
+                            values={{ name: group.name }}
+                            components={{ strong: <strong className="text-foreground" /> }}
+                        />
                     </SheetDescription>
                 </SheetHeader>
 
@@ -101,12 +107,12 @@ export function GroupMembersSheet({ group, open, onOpenChange }: GroupMembersShe
 
                 {/* ========== ADD MEMBER SECTION ========== */}
                 <div className="space-y-3">
-                    <h4 className="text-sm font-medium">Add New Member</h4>
+                    <h4 className="text-sm font-medium">{t('groupMgmt.members.addTitle')}</h4>
                     <div className="relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input
                             type="search"
-                            placeholder="Rechercher par nom, identifiant ou email..."
+                            placeholder={t('groupMgmt.members.searchPlaceholder')}
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             className="pl-9"
@@ -116,11 +122,11 @@ export function GroupMembersSheet({ group, open, onOpenChange }: GroupMembersShe
                     <div className="border rounded-md max-h-[220px] overflow-y-auto">
                         {availableUsers.length === 0 ? (
                             <div className="py-6 text-center text-sm text-muted-foreground">
-                                Aucun utilisateur à ajouter
+                                {t('groupMgmt.members.noneToAdd')}
                             </div>
                         ) : filteredUsers.length === 0 ? (
                             <div className="py-6 text-center text-sm text-muted-foreground">
-                                Aucun résultat pour « {searchQuery} »
+                                {t('groupMgmt.members.noResults', { query: searchQuery })}
                             </div>
                         ) : (
                             <ul className="p-1">
@@ -145,7 +151,7 @@ export function GroupMembersSheet({ group, open, onOpenChange }: GroupMembersShe
                                             disabled={isLoadingAction}
                                         >
                                             <Plus className="h-4 w-4 mr-1" />
-                                            Add
+                                            {t('groupMgmt.members.add')}
                                         </Button>
                                     </li>
                                 ))}
@@ -159,25 +165,25 @@ export function GroupMembersSheet({ group, open, onOpenChange }: GroupMembersShe
                 {/* ========== MEMBERS LIST ========== */}
                 <div className="flex-1 overflow-hidden flex flex-col">
                     <div className="flex items-center justify-between mb-3">
-                        <h4 className="text-sm font-medium">Current Members</h4>
+                        <h4 className="text-sm font-medium">{t('groupMgmt.members.current')}</h4>
                         <span className="text-xs text-muted-foreground">
-                            {members?.length || 0} member(s)
+                            {t('groupMgmt.members.count', { n: members?.length || 0 })}
                         </span>
                     </div>
 
                     <div className="flex-1 overflow-y-auto space-y-2 pr-1">
                         {isLoadingMembers ? (
                             <div className="text-center py-8 text-muted-foreground">
-                                Loading members...
+                                {t('groupMgmt.members.loading')}
                             </div>
                         ) : members?.length === 0 ? (
                             <div className="flex flex-col items-center justify-center py-12 text-center">
                                 <Users className="h-10 w-10 text-muted-foreground/30 mb-3" />
                                 <p className="text-muted-foreground text-sm">
-                                    No members in this group yet.
+                                    {t('groupMgmt.members.empty')}
                                 </p>
                                 <p className="text-muted-foreground text-xs mt-1">
-                                    Use the selector above to add users.
+                                    {t('groupMgmt.members.emptyHint')}
                                 </p>
                             </div>
                         ) : (

@@ -11,6 +11,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { CalendarIcon, Info } from "lucide-react";
+import { Trans, useTranslation } from "react-i18next";
+import { formatDayOrdinal, getDateLocale } from "@/lib/date-locale";
 
 import { RecurrenceSelector } from "../../components/recurrence-selector";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -21,30 +23,15 @@ import { getMinDateForRecurrence, validateTaskDate } from "@/utils/task-date-val
 
 
 
-const MONTHLY_WEEKDAY_LABELS = [
-    "Monday",
-    "Tuesday",
-    "Wednesday",
-    "Thursday",
-    "Friday",
-    "Saturday",
-    "Sunday",
-];
-
-const MONTHLY_SET_POS_LABELS: Record<number, string> = {
-    1: "first",
-    2: "second",
-    3: "third",
-    4: "fourth",
-    [-1]: "last",
+const SET_POS_INLINE_KEYS: Record<number, string> = {
+    1: "firstInline",
+    2: "secondInline",
+    3: "thirdInline",
+    4: "fourthInline",
+    [-1]: "lastInline",
 };
 
-function toOrdinal(day: number): string {
-    if (day % 10 === 1 && day % 100 !== 11) return `${day}st`;
-    if (day % 10 === 2 && day % 100 !== 12) return `${day}nd`;
-    if (day % 10 === 3 && day % 100 !== 13) return `${day}rd`;
-    return `${day}th`;
-}
+const PERIODICITIES_WITH_HINT = ['daily', 'weekly', 'monthly', 'yearly', 'custom'];
 
 function isConsecutiveDays(days: number[]): boolean {
     if (!days || days.length < 2) return false;
@@ -70,6 +57,8 @@ interface StepSchedulingProps {
 }
 
 export function StepScheduling({ fcEnabled = false }: StepSchedulingProps) {
+    const { t } = useTranslation();
+    const dateLocale = getDateLocale();
     const { control, watch, setValue } = useFormContext<CreateTaskFormValues>();
     const periodicity = watch("periodicity");
     const bySetPos = watch("bySetPos");
@@ -89,24 +78,21 @@ export function StepScheduling({ fcEnabled = false }: StepSchedulingProps) {
 
     const monthlyPatternLabel = (() => {
         if (bySetPos && bySetPos !== 0 && byWeekday && byWeekday.length > 0) {
-            const position = MONTHLY_SET_POS_LABELS[bySetPos] || `${bySetPos}th`;
-            const weekday = MONTHLY_WEEKDAY_LABELS[byWeekday[0]] || "day";
-            return `${position} ${weekday} of every month`;
+            const positionKey = SET_POS_INLINE_KEYS[bySetPos];
+            const position = positionKey ? t(`taskWizard.positions.${positionKey}`) : String(bySetPos);
+            const weekday = byWeekday[0] >= 0 && byWeekday[0] <= 6
+                ? t(`taskWizard.weekdays.inline.${byWeekday[0]}`)
+                : t('taskWizard.scheduling.unknownWeekday');
+            return t('taskWizard.scheduling.monthlyNth', { position, weekday });
         }
 
         const day = byMonthDay || startDate?.getDate() || 1;
-        return `${toOrdinal(day)} day of every month`;
+        return t('taskWizard.scheduling.monthlyDay', { day: formatDayOrdinal(day) });
     })();
 
-    const WEEKDAYS = [
-        { id: 0, label: 'Mon' },
-        { id: 1, label: 'Tue' },
-        { id: 2, label: 'Wed' },
-        { id: 3, label: 'Thu' },
-        { id: 4, label: 'Fri' },
-        { id: 5, label: 'Sat' },
-        { id: 6, label: 'Sun' },
-    ];
+    const WEEKDAYS = [0, 1, 2, 3, 4, 5, 6].map((id) => ({ id, label: t(`taskWizard.weekdays.short.${id}`) }));
+    const startHintKey = PERIODICITIES_WITH_HINT.includes(periodicity || '') ? periodicity : 'default';
+    const startDescriptionKey = periodicity === 'weekly' || periodicity === 'monthly' ? periodicity : 'default';
 
     const toggleWeekday = (val: number, current: number[] = []) => {
         if (current.includes(val)) {
@@ -125,10 +111,10 @@ export function StepScheduling({ fcEnabled = false }: StepSchedulingProps) {
                 <Alert className="bg-blue-50 text-blue-900 border-blue-200">
                     <Info className="h-4 w-4 text-blue-500" />
                     <AlertDescription>
-                        This task will automatically anchor to the <strong>Start of the Week</strong> based on your country settings (e.g. Monday for FR, Sunday for US).
+                        <Trans i18nKey="taskWizard.scheduling.weeklyInfo" components={{ strong: <strong /> }} />
                         <br />
                         <span className="text-xs opacity-80 mt-1 block">
-                            Weekly tasks are valid for the entire week. Validation can occur at any time during this period.
+                            {t('taskWizard.scheduling.weeklyInfoSub')}
                         </span>
                     </AlertDescription>
                 </Alert>
@@ -137,7 +123,11 @@ export function StepScheduling({ fcEnabled = false }: StepSchedulingProps) {
                 <Alert className="bg-blue-50 text-blue-900 border-blue-200">
                     <Info className="h-4 w-4 text-blue-500" />
                     <AlertDescription>
-                        This task recurs on the <strong>{monthlyPatternLabel}</strong>.
+                        <Trans
+                            i18nKey="taskWizard.scheduling.monthlyInfo"
+                            values={{ pattern: monthlyPatternLabel }}
+                            components={{ strong: <strong /> }}
+                        />
                     </AlertDescription>
                 </Alert>
             )}
@@ -150,19 +140,14 @@ export function StepScheduling({ fcEnabled = false }: StepSchedulingProps) {
                     render={({ field }) => (
                         <FormItem className="flex flex-col">
                             <FormLabel className="flex items-center">
-                                Start Date
+                                {t('taskWizard.scheduling.startDate')}
                                 <TooltipProvider>
                                     <Tooltip>
                                         <TooltipTrigger asChild>
                                             <Info className="h-4 w-4 ml-2 text-blue-500 cursor-help" />
                                         </TooltipTrigger>
                                         <TooltipContent>
-                                            {periodicity === 'daily' && 'Daily tasks must start today or later'}
-                                            {periodicity === 'weekly' && 'Weekly tasks can start as early as today'}
-                                            {periodicity === 'monthly' && 'Monthly tasks can start as early as today'}
-                                            {periodicity === 'yearly' && 'Yearly tasks can start as early as today'}
-                                            {periodicity === 'custom' && 'Custom tasks cannot have past start dates'}
-                                            {!['daily', 'weekly', 'monthly', 'yearly', 'custom'].includes(periodicity || '') && 'Tasks must start today or later'}
+                                            {t(`taskWizard.scheduling.startDateHint.${startHintKey}`)}
                                         </TooltipContent>
                                     </Tooltip>
                                 </TooltipProvider>
@@ -178,9 +163,9 @@ export function StepScheduling({ fcEnabled = false }: StepSchedulingProps) {
                                             )}
                                         >
                                             {field.value ? (
-                                                format(field.value, "PPP")
+                                                format(field.value, "PPP", { locale: dateLocale })
                                             ) : (
-                                                <span>Pick a date</span>
+                                                <span>{t('taskWizard.scheduling.pickDate')}</span>
                                             )}
                                             <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                                         </Button>
@@ -202,9 +187,7 @@ export function StepScheduling({ fcEnabled = false }: StepSchedulingProps) {
                                         const res = validateTaskDate(periodicity || 'ONCE', field.value, 'startDate');
                                         if (!res.isValid) return <span className="text-destructive font-medium">{res.errorMessage}</span>;
                                     }
-                                    return periodicity === 'weekly' ? "Determines the first week." :
-                                        periodicity === 'monthly' ? "Determines the first month." :
-                                            "The first occurrence date.";
+                                    return t(`taskWizard.scheduling.startDateDescription.${startDescriptionKey}`);
                                 })()}
                             </FormDescription>
                             <FormMessage />
@@ -220,14 +203,14 @@ export function StepScheduling({ fcEnabled = false }: StepSchedulingProps) {
                         render={({ field }) => (
                             <FormItem className="flex flex-col">
                                 <FormLabel className="flex items-center">
-                                    End Date
+                                    {t('taskWizard.scheduling.endDate')}
                                     <TooltipProvider>
                                         <Tooltip>
                                             <TooltipTrigger asChild>
                                                 <Info className="h-4 w-4 ml-2 text-blue-500 cursor-help" />
                                             </TooltipTrigger>
                                             <TooltipContent>
-                                                Yearly tasks can be due as early as January 1st of last year
+                                                {t('taskWizard.scheduling.endDateHint')}
                                             </TooltipContent>
                                         </Tooltip>
                                     </TooltipProvider>
@@ -243,9 +226,9 @@ export function StepScheduling({ fcEnabled = false }: StepSchedulingProps) {
                                                 )}
                                             >
                                                 {field.value ? (
-                                                    format(field.value, "PPP")
+                                                    format(field.value, "PPP", { locale: dateLocale })
                                                 ) : (
-                                                    <span>Pick a date</span>
+                                                    <span>{t('taskWizard.scheduling.pickDate')}</span>
                                                 )}
                                                 <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                                             </Button>
@@ -267,7 +250,7 @@ export function StepScheduling({ fcEnabled = false }: StepSchedulingProps) {
                                             const res = validateTaskDate(periodicity || 'ONCE', field.value, 'endDate');
                                             if (!res.isValid) return <span className="text-destructive font-medium">{res.errorMessage}</span>;
                                         }
-                                        return "Defines the end of the yearly data block.";
+                                        return t('taskWizard.scheduling.endDateDescription');
                                     })()}
                                 </FormDescription>
                                 <FormMessage />
@@ -279,14 +262,14 @@ export function StepScheduling({ fcEnabled = false }: StepSchedulingProps) {
                 {/* Custom Rules (V2) */}
                 {periodicity === 'custom' && (
                     <div className="col-span-1 md:col-span-2 space-y-6 border p-4 rounded-md bg-muted/10">
-                        <h4 className="text-sm font-semibold">Custom Recurrence Pattern</h4>
+                        <h4 className="text-sm font-semibold">{t('taskWizard.scheduling.customPatternTitle')}</h4>
 
                         <FormField
                             control={control}
                             name="customRuleType"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Rule Type</FormLabel>
+                                    <FormLabel>{t('taskWizard.scheduling.ruleType')}</FormLabel>
                                     <Select
                                         onValueChange={(val) => {
                                             field.onChange(val);
@@ -299,13 +282,13 @@ export function StepScheduling({ fcEnabled = false }: StepSchedulingProps) {
                                         defaultValue={field.value}
                                     >
                                         <FormControl>
-                                            <SelectTrigger><SelectValue placeholder="Select rule type..." /></SelectTrigger>
+                                            <SelectTrigger><SelectValue placeholder={t('taskWizard.scheduling.selectRuleType')} /></SelectTrigger>
                                         </FormControl>
                                         <SelectContent>
-                                            <SelectItem value="every_x_days">Every X days</SelectItem>
-                                            <SelectItem value="selected_weekdays">Selected weekdays</SelectItem>
-                                            <SelectItem value="weeks_of_month">Weeks of month</SelectItem>
-                                            <SelectItem value="days_of_year">Days of year</SelectItem>
+                                            <SelectItem value="every_x_days">{t('taskWizard.scheduling.ruleTypes.every_x_days')}</SelectItem>
+                                            <SelectItem value="selected_weekdays">{t('taskWizard.scheduling.ruleTypes.selected_weekdays')}</SelectItem>
+                                            <SelectItem value="weeks_of_month">{t('taskWizard.scheduling.ruleTypes.weeks_of_month')}</SelectItem>
+                                            <SelectItem value="days_of_year">{t('taskWizard.scheduling.ruleTypes.days_of_year')}</SelectItem>
                                         </SelectContent>
                                     </Select>
                                     <FormMessage />
@@ -321,7 +304,7 @@ export function StepScheduling({ fcEnabled = false }: StepSchedulingProps) {
                                     name="interval"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Interval (Every {customRuleType.replace(/_/g, ' ')})</FormLabel>
+                                            <FormLabel>{t(`taskWizard.scheduling.intervalLabel.${customRuleType}`)}</FormLabel>
                                             <FormControl>
                                                 <NumberInput
                                                     min={1}
@@ -331,7 +314,7 @@ export function StepScheduling({ fcEnabled = false }: StepSchedulingProps) {
                                                 />
                                             </FormControl>
                                             <FormDescription>
-                                                e.g. interval=2 means "every other"
+                                                {t('taskWizard.scheduling.intervalHint')}
                                             </FormDescription>
                                             <FormMessage />
                                         </FormItem>
@@ -346,7 +329,7 @@ export function StepScheduling({ fcEnabled = false }: StepSchedulingProps) {
                                             name="byWeekday"
                                             render={({ field }) => (
                                                 <FormItem className="col-span-1 md:col-span-2">
-                                                    <FormLabel>Weekdays</FormLabel>
+                                                    <FormLabel>{t('taskWizard.scheduling.weekdays')}</FormLabel>
                                                     <FormControl>
                                                         <div className="flex flex-wrap gap-2">
                                                             {WEEKDAYS.map((day) => {
@@ -380,20 +363,20 @@ export function StepScheduling({ fcEnabled = false }: StepSchedulingProps) {
                                                     <FormItem className="col-span-1 md:col-span-2 flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm bg-muted/20">
                                                         <div className="space-y-0.5">
                                                             <FormLabel className="flex items-center gap-2">
-                                                                Treat as a continuous block
+                                                                {t('taskWizard.scheduling.continuousBlock')}
                                                                 <TooltipProvider>
                                                                     <Tooltip>
                                                                         <TooltipTrigger type="button" asChild>
                                                                             <Info className="h-4 w-4 text-blue-500 cursor-help" />
                                                                         </TooltipTrigger>
                                                                         <TooltipContent>
-                                                                            If enabled, tasks will span continuously from the first selected day to the last, rather than creating separate daily instances.
+                                                                            {t('taskWizard.scheduling.continuousBlockHint')}
                                                                         </TooltipContent>
                                                                     </Tooltip>
                                                                 </TooltipProvider>
                                                             </FormLabel>
                                                             <FormDescription>
-                                                                Makes the recurrence an unbroken time span instead of detached days.
+                                                                {t('taskWizard.scheduling.continuousBlockDescription')}
                                                             </FormDescription>
                                                         </div>
                                                         <FormControl>
@@ -416,20 +399,20 @@ export function StepScheduling({ fcEnabled = false }: StepSchedulingProps) {
                                         name="bySetPos"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel>Week Position</FormLabel>
+                                                <FormLabel>{t('taskWizard.scheduling.weekPosition')}</FormLabel>
                                                 <Select
                                                     onValueChange={(val) => field.onChange(parseInt(val))}
                                                     value={field.value?.toString() || ""}
                                                 >
                                                     <FormControl>
-                                                        <SelectTrigger><SelectValue placeholder="e.g. First, Last..." /></SelectTrigger>
+                                                        <SelectTrigger><SelectValue placeholder={t('taskWizard.scheduling.weekPositionPlaceholder')} /></SelectTrigger>
                                                     </FormControl>
                                                     <SelectContent>
-                                                        <SelectItem value="1">First</SelectItem>
-                                                        <SelectItem value="2">Second</SelectItem>
-                                                        <SelectItem value="3">Third</SelectItem>
-                                                        <SelectItem value="4">Fourth</SelectItem>
-                                                        <SelectItem value="-1">Last</SelectItem>
+                                                        <SelectItem value="1">{t('taskWizard.positions.first')}</SelectItem>
+                                                        <SelectItem value="2">{t('taskWizard.positions.second')}</SelectItem>
+                                                        <SelectItem value="3">{t('taskWizard.positions.third')}</SelectItem>
+                                                        <SelectItem value="4">{t('taskWizard.positions.fourth')}</SelectItem>
+                                                        <SelectItem value="-1">{t('taskWizard.positions.last')}</SelectItem>
                                                     </SelectContent>
                                                 </Select>
                                                 <FormMessage />
@@ -445,10 +428,10 @@ export function StepScheduling({ fcEnabled = false }: StepSchedulingProps) {
                                         name="byYearDay"
                                         render={({ field }) => (
                                             <FormItem className="col-span-1 md:col-span-2">
-                                                <FormLabel>Days of Year</FormLabel>
+                                                <FormLabel>{t('taskWizard.scheduling.daysOfYear')}</FormLabel>
                                                 <FormControl>
                                                     <Input
-                                                        placeholder="e.g. 1, 150, 365"
+                                                        placeholder={t('taskWizard.scheduling.daysOfYearPlaceholder')}
                                                         value={field.value?.join(', ') || ''}
                                                         onChange={(e) => {
                                                             const str = e.target.value;
@@ -460,7 +443,7 @@ export function StepScheduling({ fcEnabled = false }: StepSchedulingProps) {
                                                         }}
                                                     />
                                                 </FormControl>
-                                                <FormDescription>Comma-separated list of days (1-366).</FormDescription>
+                                                <FormDescription>{t('taskWizard.scheduling.daysOfYearHint')}</FormDescription>
                                                 <FormMessage />
                                             </FormItem>
                                         )}
@@ -476,7 +459,7 @@ export function StepScheduling({ fcEnabled = false }: StepSchedulingProps) {
 
             {/* Rules Toggles */}
             <div className="space-y-4 pt-4 border-t">
-                <h3 className="text-sm font-medium">Business Rules</h3>
+                <h3 className="text-sm font-medium">{t('taskWizard.scheduling.businessRules')}</h3>
 
                 <FormField
                     control={control}
@@ -484,9 +467,9 @@ export function StepScheduling({ fcEnabled = false }: StepSchedulingProps) {
                     render={({ field }) => (
                         <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
                             <div className="space-y-0.5">
-                                <FormLabel>Skip Weekends</FormLabel>
+                                <FormLabel>{t('taskWizard.scheduling.skipWeekends')}</FormLabel>
                                 <FormDescription>
-                                    Shift instance to Monday if it falls on Sat/Sun.
+                                    {t('taskWizard.scheduling.skipWeekendsDescription')}
                                 </FormDescription>
                             </div>
                             <FormControl>
@@ -505,9 +488,9 @@ export function StepScheduling({ fcEnabled = false }: StepSchedulingProps) {
                     render={({ field }) => (
                         <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
                             <div className="space-y-0.5">
-                                <FormLabel>Skip Holidays</FormLabel>
+                                <FormLabel>{t('taskWizard.scheduling.skipHolidays')}</FormLabel>
                                 <FormDescription>
-                                    Shift instance to next business day if it falls on a Holiday.
+                                    {t('taskWizard.scheduling.skipHolidaysDescription')}
                                 </FormDescription>
                             </div>
                             <FormControl>

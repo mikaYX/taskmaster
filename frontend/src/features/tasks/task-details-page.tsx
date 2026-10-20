@@ -16,8 +16,12 @@ import { tasksApi } from '@/api/tasks';
 import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useTaskNotifications, useChannels } from '@/hooks/use-notifications';
+import { useTranslation } from 'react-i18next';
+import { getDateLocale } from '@/lib/date-locale';
 
 export function TaskDetailsPage() {
+    const { t } = useTranslation();
+    const dateCode = getDateLocale().code;
     const { id } = useParams<{ id: string }>();
     const taskId = parseInt(id || '0', 10);
     const navigate = useNavigate();
@@ -31,13 +35,13 @@ export function TaskDetailsPage() {
         mutationFn: (id: number) => tasksApi.run(id),
         onSuccess: (data) => {
             if (data?.mode === 'DRY_RUN') {
-                toast.info('DRY_RUN Mode Active', { description: data.message });
+                toast.info(t('taskDetails.dryRun'), { description: data.message });
             } else {
-                toast.success('Task execution triggered', { description: data?.message });
+                toast.success(t('taskDetails.triggered'), { description: data?.message });
             }
         },
         onError: () => {
-            toast.error('Failed to trigger task');
+            toast.error(t('taskDetails.triggerFailed'));
         }
     });
 
@@ -53,8 +57,8 @@ export function TaskDetailsPage() {
     if (!task) {
         return (
             <div className="flex flex-col items-center justify-center h-full p-8">
-                <h2 className="text-2xl font-bold mb-2">Task not found</h2>
-                <Button onClick={() => navigate('/task-definitions')}>Back to Tasks</Button>
+                <h2 className="text-2xl font-bold mb-2">{t('taskDetails.notFound')}</h2>
+                <Button onClick={() => navigate('/task-definitions')}>{t('taskDetails.backToTasks')}</Button>
             </div>
         );
     }
@@ -70,13 +74,13 @@ export function TaskDetailsPage() {
                         <h2 className="text-3xl font-bold tracking-tight flex items-center gap-2">
                             {task.name}
                             {task.isActive ? (
-                                <Badge variant="default">Active</Badge>
+                                <Badge variant="default">{t('taskList.active')}</Badge>
                             ) : (
-                                <Badge variant="secondary">Inactive</Badge>
+                                <Badge variant="secondary">{t('taskList.inactive')}</Badge>
                             )}
                         </h2>
                         <p className="text-muted-foreground font-mono text-sm mt-1">
-                            {task.description || 'No description provided'}
+                            {task.description || t('taskDetails.noDescription')}
                         </p>
                     </div>
                 </div>
@@ -87,11 +91,11 @@ export function TaskDetailsPage() {
                         disabled={runMutation.isPending}
                     >
                         <Play className="mr-2 h-4 w-4" />
-                        Run Now
+                        {t('taskDetails.runNow')}
                     </Button>
                     <Button variant="default" onClick={() => navigate(`/task-definitions/${taskId}/edit`)}>
                         <Settings className="mr-2 h-4 w-4" />
-                        Edit Task
+                        {t('tasks.editTask')}
                     </Button>
                 </div>
             </div>
@@ -100,15 +104,15 @@ export function TaskDetailsPage() {
                 <TabsList>
                     <TabsTrigger value="overview">
                         <Activity className="mr-2 h-4 w-4" />
-                        Overview
+                        {t('taskDetails.tabs.overview')}
                     </TabsTrigger>
-                    <TabsTrigger value="logs" disabled title="Not implemented yet">
+                    <TabsTrigger value="logs" disabled title={t('taskDetails.notImplemented')}>
                         <Terminal className="mr-2 h-4 w-4" />
-                        Logs
+                        {t('taskDetails.tabs.logs')}
                     </TabsTrigger>
                     <TabsTrigger value="configuration">
                         <Settings className="mr-2 h-4 w-4" />
-                        Configuration
+                        {t('taskDetails.tabs.configuration')}
                     </TabsTrigger>
                 </TabsList>
 
@@ -116,19 +120,21 @@ export function TaskDetailsPage() {
                     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                         <Card>
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Periodicity</CardTitle>
+                                <CardTitle className="text-sm font-medium">{t('taskWizard.definition.periodicity')}</CardTitle>
                                 <Activity className="h-4 w-4 text-muted-foreground" />
                             </CardHeader>
                             <CardContent>
-                                <div className="text-2xl font-bold capitalize">{task.periodicity}</div>
+                                <div className="text-2xl font-bold capitalize">
+                                    {t(`taskWizard.periodicities.${String(task.periodicity).toLowerCase()}.label`, { defaultValue: task.periodicity })}
+                                </div>
                                 <div className="flex flex-col gap-1 mt-1">
                                     <p className="text-xs text-muted-foreground">
-                                        Start: {new Date(task.startDate).toLocaleDateString()}
+                                        {t('taskDetails.start', { date: new Date(task.startDate).toLocaleDateString(dateCode) })}
                                     </p>
                                     {(task.skipWeekends || task.skipHolidays) && (
                                         <div className="flex gap-1 mt-1">
-                                            {task.skipWeekends && <Badge variant="outline" className="text-[10px] px-1 h-5">No Wknds</Badge>}
-                                            {task.skipHolidays && <Badge variant="outline" className="text-[10px] px-1 h-5">No Holidays</Badge>}
+                                            {task.skipWeekends && <Badge variant="outline" className="text-[10px] px-1 h-5">{t('taskDetails.noWeekends')}</Badge>}
+                                            {task.skipHolidays && <Badge variant="outline" className="text-[10px] px-1 h-5">{t('taskDetails.noHolidays')}</Badge>}
                                         </div>
                                     )}
                                 </div>
@@ -137,7 +143,7 @@ export function TaskDetailsPage() {
 
                         <Card>
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Assignments</CardTitle>
+                                <CardTitle className="text-sm font-medium">{t('tasks.assignments')}</CardTitle>
                                 <Users className="h-4 w-4 text-muted-foreground" />
                             </CardHeader>
                             <CardContent>
@@ -145,7 +151,7 @@ export function TaskDetailsPage() {
                                     {(task.assignedUserIds?.length || 0) + (task.assignedGroupIds?.length || 0)}
                                 </div>
                                 <p className="text-xs text-muted-foreground">
-                                    {(task.assignedUserIds?.length || 0)} users, {(task.assignedGroupIds?.length || 0)} groups
+                                    {t('taskDetails.assignmentsSummary', { users: task.assignedUserIds?.length || 0, groups: task.assignedGroupIds?.length || 0 })}
                                 </p>
                             </CardContent>
                         </Card>
@@ -153,7 +159,7 @@ export function TaskDetailsPage() {
                         {/* Schedule card */}
                         <Card>
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Schedule</CardTitle>
+                                <CardTitle className="text-sm font-medium">{t('taskDetails.schedule')}</CardTitle>
                                 <Clock className="h-4 w-4 text-muted-foreground" />
                             </CardHeader>
                             <CardContent className="space-y-1">
@@ -162,13 +168,13 @@ export function TaskDetailsPage() {
                                         {task.windowStartTime} → {task.windowEndTime}
                                     </div>
                                 ) : (
-                                    <div className="text-sm text-muted-foreground">Global window defaults</div>
+                                    <div className="text-sm text-muted-foreground">{t('taskDetails.globalWindow')}</div>
                                 )}
                                 {task.timezone && (
                                     <p className="text-xs text-muted-foreground">{task.timezone}</p>
                                 )}
                                 {task.dueOffset ? (
-                                    <p className="text-xs text-muted-foreground">Due offset: {task.dueOffset}h</p>
+                                    <p className="text-xs text-muted-foreground">{t('taskDetails.dueOffset', { n: task.dueOffset })}</p>
                                 ) : null}
                                 {task.recurrenceMode && task.recurrenceMode !== 'ON_SCHEDULE' && (
                                     <Badge variant="outline" className="text-[10px] px-1 h-5 mt-1">{task.recurrenceMode}</Badge>
@@ -179,23 +185,23 @@ export function TaskDetailsPage() {
                         {/* Notifications card */}
                         <Card>
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Notifications</CardTitle>
+                                <CardTitle className="text-sm font-medium">{t('taskDetails.notifications')}</CardTitle>
                                 <Bell className="h-4 w-4 text-muted-foreground" />
                             </CardHeader>
                             <CardContent>
                                 {!taskNotifications || taskNotifications.length === 0 ? (
-                                    <p className="text-xs text-muted-foreground">No channels configured</p>
+                                    <p className="text-xs text-muted-foreground">{t('taskDetails.noChannels')}</p>
                                 ) : (
                                     <div className="space-y-2">
                                         {taskNotifications.map((notif) => {
                                             const channel = allChannels?.find(c => c.id === notif.channelId);
                                             return (
                                                 <div key={notif.channelId} className="text-xs space-y-0.5">
-                                                    <div className="font-medium">{channel?.name ?? `Channel #${notif.channelId}`}</div>
+                                                    <div className="font-medium">{channel?.name ?? t('taskDetails.channelFallback', { id: notif.channelId })}</div>
                                                     <div className="flex gap-1 flex-wrap">
-                                                        {notif.notifyOnFailed && <Badge variant="destructive" className="text-[10px] px-1 h-4">Fail</Badge>}
-                                                        {notif.notifyOnMissing && <Badge variant="outline" className="text-[10px] px-1 h-4">Missing</Badge>}
-                                                        {notif.notifyOnReminder && <Badge variant="secondary" className="text-[10px] px-1 h-4">Reminder</Badge>}
+                                                        {notif.notifyOnFailed && <Badge variant="destructive" className="text-[10px] px-1 h-4">{t('taskDetails.badges.fail')}</Badge>}
+                                                        {notif.notifyOnMissing && <Badge variant="outline" className="text-[10px] px-1 h-4">{t('taskDetails.badges.missing')}</Badge>}
+                                                        {notif.notifyOnReminder && <Badge variant="secondary" className="text-[10px] px-1 h-4">{t('taskDetails.badges.reminder')}</Badge>}
                                                     </div>
                                                 </div>
                                             );
@@ -210,20 +216,20 @@ export function TaskDetailsPage() {
                 <TabsContent value="configuration">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Task Configuration</CardTitle>
+                            <CardTitle>{t('taskDetails.configTitle')}</CardTitle>
                             <CardDescription>
-                                Details about the task definition.
+                                {t('taskDetails.configDescription')}
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <h4 className="font-medium text-sm text-muted-foreground mb-1">Created At</h4>
-                                    <p>{new Date(task.createdAt).toLocaleString()}</p>
+                                    <h4 className="font-medium text-sm text-muted-foreground mb-1">{t('taskDetails.createdAt')}</h4>
+                                    <p>{new Date(task.createdAt).toLocaleString(dateCode)}</p>
                                 </div>
                                 <div>
-                                    <h4 className="font-medium text-sm text-muted-foreground mb-1">Updated At</h4>
-                                    <p>{new Date(task.updatedAt).toLocaleString()}</p>
+                                    <h4 className="font-medium text-sm text-muted-foreground mb-1">{t('taskDetails.updatedAt')}</h4>
+                                    <p>{new Date(task.updatedAt).toLocaleString(dateCode)}</p>
                                 </div>
                             </div>
                             {/* Add more config details here or reuse the Edit Form in read-only mode */}

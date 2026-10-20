@@ -6,10 +6,13 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Archive, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
+import { getDateLocale } from "@/lib/date-locale";
 
 import type { Task } from "@/api/types";
 
 export function TasksArchivePage() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
 
   const { data, isLoading } = useQuery({
@@ -20,11 +23,11 @@ export function TasksArchivePage() {
   const handleRestore = async (taskId: number) => {
     try {
       await tasksApi.restoreTask(taskId);
-      toast.success("Task restored successfully");
+      toast.success(t("taskArchive.restored"));
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
     } catch (error) {
       console.error("Failed to restore task:", error);
-      toast.error("Failed to restore task");
+      toast.error(t("taskArchive.restoreFailed"));
     }
   };
 
@@ -32,27 +35,26 @@ export function TasksArchivePage() {
     <div className="container py-8 max-w-4xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-bold">Archived Tasks</h1>
+          <h1 className="text-3xl font-bold">{t("taskArchive.title")}</h1>
           <p className="text-muted-foreground mt-2">
-            Tasks can be restored within 30 days of deletion. After 30 days,
-            they may be permanently deleted by administrators.
+            {t("taskArchive.description")}
           </p>
         </div>
         <Badge variant="secondary" className="px-3 py-1 text-sm">
-          {data?.length || 0} tasks
+          {t("taskArchive.count", { n: data?.length || 0 })}
         </Badge>
       </div>
 
       {isLoading ? (
         <div className="text-center py-12 text-muted-foreground animate-pulse">
-          Loading archive...
+          {t("taskArchive.loading")}
         </div>
       ) : data?.length === 0 ? (
         <div className="text-center py-12 border rounded-lg bg-muted/20">
           <Archive className="mx-auto h-12 w-12 text-muted-foreground mb-4 opacity-50" />
-          <h3 className="font-semibold text-lg">Archive empty</h3>
+          <h3 className="font-semibold text-lg">{t("taskArchive.emptyTitle")}</h3>
           <p className="mt-2 text-muted-foreground">
-            You have no archived tasks
+            {t("taskArchive.emptyBody")}
           </p>
         </div>
       ) : (
@@ -67,13 +69,17 @@ export function TasksArchivePage() {
                   <h3 className="font-semibold text-lg">{task.name}</h3>
                   <div className="flex flex-wrap gap-2 text-sm text-muted-foreground mt-1">
                     <span className="capitalize">
-                      {task.periodicity} periodicity
+                      {t("taskArchive.periodicity", {
+                        periodicity: t(`taskWizard.periodicities.${String(task.periodicity).toLowerCase()}.label`, { defaultValue: task.periodicity }),
+                      })}
                     </span>
                     {task.deletedAt && (
                       <span>
-                        • Deleted{" "}
-                        {formatDistanceToNow(new Date(task.deletedAt), {
-                          addSuffix: true,
+                        {t("taskArchive.deleted", {
+                          when: formatDistanceToNow(new Date(task.deletedAt), {
+                            addSuffix: true,
+                            locale: getDateLocale(),
+                          }),
                         })}
                       </span>
                     )}
@@ -86,7 +92,7 @@ export function TasksArchivePage() {
                   className="shrink-0"
                 >
                   <RotateCcw className="mr-2 h-4 w-4" />
-                  Restore Task
+                  {t("taskArchive.restore")}
                 </Button>
               </div>
             </Card>

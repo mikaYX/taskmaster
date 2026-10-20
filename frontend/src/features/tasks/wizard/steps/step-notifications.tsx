@@ -6,6 +6,7 @@ import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescription } from "@/components/ui/form";
 import { Link } from "react-router-dom";
+import { Trans, useTranslation } from "react-i18next";
 import { AlertCircle, Bell, Mail, Send, Globe } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useQuery } from "@tanstack/react-query";
@@ -26,6 +27,7 @@ const TypeIcon = ({ type }: { type: string }) => {
 }
 
 export function StepNotifications() {
+    const { t } = useTranslation();
     const { control, watch } = useFormContext<CreateTaskFormValues>();
     const { append, remove } = useFieldArray({
         control,
@@ -65,11 +67,14 @@ export function StepNotifications() {
         return (
             <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
-                <AlertTitle>No Active Channels</AlertTitle>
+                <AlertTitle>{t('taskWizard.notifications.noChannelsTitle')}</AlertTitle>
                 <AlertDescription>
-                    You don't have any active notification channels configured.
+                    {t('taskWizard.notifications.noChannelsBody')}
                     <br className="my-1" />
-                    To set up alerts, please visit <Link to="/settings" className="underline font-bold">Settings &gt; Notifications</Link> and enable at least one channel.
+                    <Trans
+                        i18nKey="taskWizard.notifications.noChannelsHelp"
+                        components={{ settings: <Link to="/settings" className="underline font-bold" /> }}
+                    />
                 </AlertDescription>
             </Alert>
         );
@@ -78,7 +83,7 @@ export function StepNotifications() {
     return (
         <div className="space-y-6">
             <div className="text-sm text-muted-foreground mb-4">
-                Select the channels you want to use for this task, and configure when alerts should be sent.
+                {t('taskWizard.notifications.intro')}
             </div>
 
             {channels.map((channel) => {
@@ -126,8 +131,8 @@ export function StepNotifications() {
                                                     <Checkbox checked={field.value} onCheckedChange={field.onChange} />
                                                 </FormControl>
                                                 <div className="space-y-1 leading-none">
-                                                    <FormLabel>On Failure</FormLabel>
-                                                    <FormDescription className="text-xs">Notify when task fails</FormDescription>
+                                                    <FormLabel>{t('taskWizard.notifications.onFailure')}</FormLabel>
+                                                    <FormDescription className="text-xs">{t('taskWizard.notifications.onFailureDesc')}</FormDescription>
                                                 </div>
                                             </FormItem>
                                         )}
@@ -141,8 +146,8 @@ export function StepNotifications() {
                                                     <Checkbox checked={field.value} onCheckedChange={field.onChange} />
                                                 </FormControl>
                                                 <div className="space-y-1 leading-none">
-                                                    <FormLabel>On Missing</FormLabel>
-                                                    <FormDescription className="text-xs">Notify if missed</FormDescription>
+                                                    <FormLabel>{t('taskWizard.notifications.onMissing')}</FormLabel>
+                                                    <FormDescription className="text-xs">{t('taskWizard.notifications.onMissingDesc')}</FormDescription>
                                                 </div>
                                             </FormItem>
                                         )}
@@ -156,8 +161,8 @@ export function StepNotifications() {
                                                     <Checkbox checked={field.value} onCheckedChange={field.onChange} />
                                                 </FormControl>
                                                 <div className="space-y-1 leading-none">
-                                                    <FormLabel>Reminder</FormLabel>
-                                                    <FormDescription className="text-xs">Remind before due</FormDescription>
+                                                    <FormLabel>{t('taskWizard.notifications.reminder')}</FormLabel>
+                                                    <FormDescription className="text-xs">{t('taskWizard.notifications.reminderDesc')}</FormDescription>
                                                 </div>
                                             </FormItem>
                                         )}
@@ -166,11 +171,11 @@ export function StepNotifications() {
 
                                 {channel.type === 'EMAIL' && (
                                     <div className="space-y-4 pt-2">
-                                        <div className="text-sm font-medium">Email Recipients</div>
+                                        <div className="text-sm font-medium">{t('taskWizard.notifications.emailRecipients')}</div>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                             {/* Users Selection */}
                                             <div className="space-y-2">
-                                                <FormLabel className="text-xs text-muted-foreground">Select Users</FormLabel>
+                                                <FormLabel className="text-xs text-muted-foreground">{t('taskWizard.notifications.selectUsers')}</FormLabel>
                                                 <ScrollArea className="h-32 border rounded p-2">
                                                     {isLoadingUsers ? <Skeleton className="h-full w-full" /> : users.map(user => (
                                                         <FormField
@@ -201,7 +206,7 @@ export function StepNotifications() {
 
                                             {/* Groups Selection */}
                                             <div className="space-y-2">
-                                                <FormLabel className="text-xs text-muted-foreground">Select Groups</FormLabel>
+                                                <FormLabel className="text-xs text-muted-foreground">{t('taskWizard.notifications.selectGroups')}</FormLabel>
                                                 <ScrollArea className="h-32 border rounded p-2">
                                                     {isLoadingGroups ? <Skeleton className="h-full w-full" /> : groups.map(group => (
                                                         <FormField
@@ -238,10 +243,10 @@ export function StepNotifications() {
                                             render={({ field }) => {
                                                 return (
                                                     <FormItem>
-                                                        <FormLabel className="text-xs text-muted-foreground">Custom Emails (comma separated)</FormLabel>
+                                                        <FormLabel className="text-xs text-muted-foreground">{t('taskWizard.notifications.customEmails')}</FormLabel>
                                                         <FormControl>
                                                             <Input
-                                                                placeholder="admin@example.com, manager@example.com"
+                                                                placeholder={t('taskWizard.notifications.customEmailsPlaceholder')}
                                                                 defaultValue={field.value?.join(', ') || ''}
                                                                 onBlur={(e) => {
                                                                     const raw = e.target.value;

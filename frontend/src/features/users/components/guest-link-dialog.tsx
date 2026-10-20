@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Trans, useTranslation } from 'react-i18next';
 import {
     Dialog,
     DialogContent,
@@ -37,18 +38,17 @@ import {
     AlertTitle
 } from '@/components/ui/alert';
 import type { GuestViewName, User } from '@/api/types';
+import { getDateLocale } from '@/lib/date-locale';
 
 interface GuestLinkDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
 }
 
-const VIEWS: Array<{ value: GuestViewName; label: string; hint: string; icon: typeof Tv }> = [
-    { value: 'DASHBOARD', label: 'Dashboard', hint: 'In-progress tasks of the site', icon: LayoutDashboard },
-    { value: 'ANALYTICS', label: 'Analytics', hint: 'Compliance figures of the site', icon: BarChart3 },
+const VIEWS: Array<{ value: GuestViewName; icon: typeof Tv }> = [
+    { value: 'DASHBOARD', icon: LayoutDashboard },
+    { value: 'ANALYTICS', icon: BarChart3 },
 ];
-
-const viewLabel = (view: GuestViewName) => VIEWS.find(v => v.value === view)?.label ?? view;
 
 /** An account created before views existed has none and shows the board. */
 const viewOf = (guest: Pick<User, 'guestView'>): GuestViewName => guest.guestView ?? 'DASHBOARD';
@@ -62,6 +62,8 @@ interface IssuedLink {
 }
 
 export function GuestLinkDialog({ open, onOpenChange }: GuestLinkDialogProps) {
+    const { t } = useTranslation();
+    const viewLabel = (view: GuestViewName) => t(`userMgmt.guest.views.${view}.label`);
     const { data: sites, isLoading: isLoadingSites } = useSites();
     const { data: guests, isLoading: isLoadingGuests } = useGuests();
 
@@ -101,16 +103,16 @@ export function GuestLinkDialog({ open, onOpenChange }: GuestLinkDialogProps) {
                 { key: guestId, siteName, view, url: buildTvUrl(data.ticket), expiresAt: data.expiresAt },
             ]);
         } catch {
-            toast.error("Failed to generate the link");
+            toast.error(t('userMgmt.guest.toasts.linkFailed'));
         }
     };
 
     const copyLink = async (link: IssuedLink) => {
         try {
             await navigator.clipboard.writeText(link.url);
-            toast.success("Link copied");
+            toast.success(t('userMgmt.guest.toasts.copied'));
         } catch {
-            toast.error("Copy failed: select the link and copy it manually");
+            toast.error(t('userMgmt.guest.toasts.copyFailed'));
         }
     };
 
@@ -121,13 +123,13 @@ export function GuestLinkDialog({ open, onOpenChange }: GuestLinkDialogProps) {
         setCreatingForSite(siteId);
         createGuest.mutate({ siteId, views }, {
             onSuccess: async (created) => {
-                toast.success(created.length > 1 ? `Guest links created for ${siteName}` : `Guest link created for ${siteName}`);
+                toast.success(t(created.length > 1 ? 'userMgmt.guest.toasts.createdMany' : 'userMgmt.guest.toasts.createdOne', { site: siteName }));
                 setChosen(current => ({ ...current, [siteId]: ['DASHBOARD'] }));
                 await Promise.all(created.map(guest => issueLink(guest.id, siteName, viewOf(guest))));
                 setCreatingForSite(null);
             },
             onError: () => {
-                toast.error("Failed to create the guest link");
+                toast.error(t('userMgmt.guest.toasts.createFailed'));
                 setCreatingForSite(null);
             }
         });
@@ -137,19 +139,19 @@ export function GuestLinkDialog({ open, onOpenChange }: GuestLinkDialogProps) {
         revokeGuest.mutate(guestId, {
             onSuccess: () => {
                 setIssuedLinks(current => current.filter(link => link.key !== guestId));
-                toast.success("Guest link revoked");
+                toast.success(t('userMgmt.guest.toasts.revoked'));
             },
-            onError: () => toast.error("Failed to revoke guest link")
+            onError: () => toast.error(t('userMgmt.guest.toasts.revokeFailed'))
         });
     };
 
     const handleRegenerate = (guestId: number, siteName: string, view: GuestViewName) => {
         regenerateGuest.mutate(guestId, {
             onSuccess: () => {
-                toast.success("Screen signed out and access reset");
+                toast.success(t('userMgmt.guest.toasts.resetDone'));
                 void issueLink(guestId, siteName, view);
             },
-            onError: () => toast.error("Failed to reset the access")
+            onError: () => toast.error(t('userMgmt.guest.toasts.resetFailed'))
         });
     };
 
@@ -164,22 +166,18 @@ export function GuestLinkDialog({ open, onOpenChange }: GuestLinkDialogProps) {
                             <div className="p-2 bg-primary/10 rounded-lg text-primary">
                                 <Tv className="h-6 w-6" />
                             </div>
-                            <DialogTitle className="text-2xl">Guest TV Links</DialogTitle>
+                            <DialogTitle className="text-2xl">{t('userMgmt.guest.title')}</DialogTitle>
                         </div>
                         <DialogDescription>
-                            Generate secure, read-only links for TV screens. Each site can have a link for the
-                            dashboard and a link for the analytics.
+                            {t('userMgmt.guest.description')}
                         </DialogDescription>
                     </DialogHeader>
 
                     <Alert className="mt-4 bg-blue-50/50 border-blue-100 dark:bg-blue-900/10 dark:border-blue-900/30">
                         <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                        <AlertTitle className="text-blue-800 dark:text-blue-300">TV Mode Security Policy</AlertTitle>
+                        <AlertTitle className="text-blue-800 dark:text-blue-300">{t('userMgmt.guest.policyTitle')}</AlertTitle>
                         <AlertDescription className="text-blue-700/80 dark:text-blue-400/80 text-xs">
-                            Guests are <strong>read-only</strong> and see the figures of <strong>their site</strong> only.
-                            The <strong>dashboard</strong> link shows in-progress tasks; the <strong>analytics</strong> link
-                            shows compliance figures, with no per-person data and no exports.
-                            A link opens only its own screen.
+                            <Trans i18nKey="userMgmt.guest.policy" components={{ strong: <strong /> }} />
                         </AlertDescription>
                     </Alert>
                 </div>
@@ -194,9 +192,9 @@ export function GuestLinkDialog({ open, onOpenChange }: GuestLinkDialogProps) {
                     ) : !sites?.length ? (
                         <div className="flex flex-col items-center justify-center py-12 text-center border rounded-md bg-muted/20">
                             <Tv className="h-12 w-12 text-muted-foreground/50 mb-3" />
-                            <p className="font-medium text-muted-foreground">Aucun site configuré</p>
+                            <p className="font-medium text-muted-foreground">{t('userMgmt.guest.noSite')}</p>
                             <p className="text-sm text-muted-foreground mt-1 max-w-sm">
-                                Créez d’abord un site (Paramètres → Sites) pour pouvoir générer un lien invité TV par site.
+                                {t('userMgmt.guest.noSiteHint')}
                             </p>
                         </div>
                     ) : (
@@ -213,8 +211,10 @@ export function GuestLinkDialog({ open, onOpenChange }: GuestLinkDialogProps) {
                                     </div>
 
                                     <div className="divide-y">
-                                        {VIEWS.map(({ value, label, hint, icon: Icon }) => {
+                                        {VIEWS.map(({ value, icon: Icon }) => {
                                             const guest = getGuest(site.id, value);
+                                            const label = viewLabel(value);
+                                            const hint = t(`userMgmt.guest.views.${value}.hint`);
                                             return (
                                                 <div key={value} className="flex items-center gap-3 px-4 py-3">
                                                     <Icon className="h-4 w-4 text-muted-foreground shrink-0" />
@@ -227,46 +227,46 @@ export function GuestLinkDialog({ open, onOpenChange }: GuestLinkDialogProps) {
                                                     {guest ? (
                                                         <>
                                                             <Badge variant="default" className="bg-green-500/10 text-green-600 hover:bg-green-500/20 border-green-200 dark:border-green-900/50">
-                                                                Active
+                                                                {t('userMgmt.guest.active')}
                                                             </Badge>
                                                             <div className="flex gap-2">
                                                                 <Button
                                                                     size="sm"
                                                                     variant="outline"
                                                                     className="h-8"
-                                                                    aria-label={`New ${label} link for ${site.name}`}
+                                                                    aria-label={t('userMgmt.guest.newLinkAria', { view: label, site: site.name })}
                                                                     disabled={createGuestLink.isPending}
                                                                     onClick={() => void issueLink(guest.id, site.name, value)}
                                                                 >
                                                                     <Copy className="h-3.5 w-3.5 mr-1" />
-                                                                    New link
+                                                                    {t('userMgmt.guest.newLink')}
                                                                 </Button>
                                                                 <Button
                                                                     size="sm"
                                                                     variant="outline"
                                                                     className="h-8"
-                                                                    aria-label={`Reset ${label} access for ${site.name}`}
-                                                                    title="Sign the screen out and generate a fresh link"
+                                                                    aria-label={t('userMgmt.guest.resetAria', { view: label, site: site.name })}
+                                                                    title={t('userMgmt.guest.resetTitle')}
                                                                     onClick={() => handleRegenerate(guest.id, site.name, value)}
                                                                 >
                                                                     <RotateCcw className="h-3.5 w-3.5 mr-1" />
-                                                                    Reset
+                                                                    {t('userMgmt.guest.reset')}
                                                                 </Button>
                                                                 <Button
                                                                     size="sm"
                                                                     variant="outline"
                                                                     className="h-8 text-destructive hover:text-destructive"
-                                                                    aria-label={`Revoke ${label} link for ${site.name}`}
+                                                                    aria-label={t('userMgmt.guest.revokeAria', { view: label, site: site.name })}
                                                                     onClick={() => handleRevoke(guest.id)}
                                                                 >
                                                                     <Trash className="h-3.5 w-3.5 mr-1" />
-                                                                    Revoke
+                                                                    {t('userMgmt.guest.revoke')}
                                                                 </Button>
                                                             </div>
                                                         </>
                                                     ) : (
                                                         <Badge variant="secondary" className="opacity-60">
-                                                            Not created
+                                                            {t('userMgmt.guest.notCreated')}
                                                         </Badge>
                                                     )}
                                                 </div>
@@ -276,15 +276,15 @@ export function GuestLinkDialog({ open, onOpenChange }: GuestLinkDialogProps) {
 
                                     {missing.length > 0 && (
                                         <div className="flex flex-wrap items-center gap-4 px-4 py-3 bg-muted/20 border-t">
-                                            <span className="text-xs text-muted-foreground">Create:</span>
-                                            {missing.map(({ value, label }) => (
+                                            <span className="text-xs text-muted-foreground">{t('userMgmt.guest.createLabel')}</span>
+                                            {missing.map(({ value }) => (
                                                 <label key={value} className="flex items-center gap-2 text-sm">
                                                     <Checkbox
                                                         checked={selected.includes(value)}
                                                         onCheckedChange={(checked) => toggleView(site.id, value, checked === true)}
-                                                        aria-label={`${label} link for ${site.name}`}
+                                                        aria-label={t('userMgmt.guest.createAria', { view: viewLabel(value), site: site.name })}
                                                     />
-                                                    {label}
+                                                    {viewLabel(value)}
                                                 </label>
                                             ))}
                                             <Button
@@ -298,7 +298,7 @@ export function GuestLinkDialog({ open, onOpenChange }: GuestLinkDialogProps) {
                                                 ) : (
                                                     <Tv className="h-3.5 w-3.5 mr-1" />
                                                 )}
-                                                {selected.length > 1 ? `Create ${selected.length} links` : 'Create link'}
+                                                {selected.length > 1 ? t('userMgmt.guest.createMany', { n: selected.length }) : t('userMgmt.guest.createOne')}
                                             </Button>
                                         </div>
                                     )}
@@ -312,7 +312,7 @@ export function GuestLinkDialog({ open, onOpenChange }: GuestLinkDialogProps) {
                     <div className="px-6 pb-4 space-y-3">
                         <Alert>
                             <Info className="h-4 w-4" />
-                            <AlertTitle>One-time {issuedLinks.length > 1 ? 'links' : 'link'}</AlertTitle>
+                            <AlertTitle>{t('userMgmt.guest.oneTimeTitle', { count: issuedLinks.length })}</AlertTitle>
                             <AlertDescription className="space-y-3">
                                 {issuedLinks.map(link => (
                                     <div key={link.key} className="space-y-1">
@@ -322,20 +322,22 @@ export function GuestLinkDialog({ open, onOpenChange }: GuestLinkDialogProps) {
                                                 readOnly
                                                 value={link.url}
                                                 className="font-mono text-xs"
-                                                aria-label={`One-time TV link, ${link.siteName} ${viewLabel(link.view)}`}
+                                                aria-label={t('userMgmt.guest.oneTimeAria', { site: link.siteName, view: viewLabel(link.view) })}
                                                 onFocus={(e) => e.currentTarget.select()}
                                             />
                                             <Button type="button" size="sm" onClick={() => void copyLink(link)}>
                                                 <Copy className="h-3.5 w-3.5 mr-1" />
-                                                Copy
+                                                {t('userMgmt.guest.copy')}
                                             </Button>
                                         </div>
                                     </div>
                                 ))}
                                 <p className="text-xs">
-                                    Open each link <strong>once</strong> on its TV screen (or in a private window): it signs
-                                    the screen in for as long as it stays connected, with no password in the address.
-                                    Valid until {new Date(issuedLinks[0].expiresAt).toLocaleString()}; a new link cancels the previous one.
+                                    <Trans
+                                        i18nKey="userMgmt.guest.oneTimeHelp"
+                                        values={{ date: new Date(issuedLinks[0].expiresAt).toLocaleString(getDateLocale().code) }}
+                                        components={{ strong: <strong /> }}
+                                    />
                                 </p>
                             </AlertDescription>
                         </Alert>
@@ -345,10 +347,10 @@ export function GuestLinkDialog({ open, onOpenChange }: GuestLinkDialogProps) {
                 <div className="p-6 bg-muted/30 border-t flex justify-between items-center">
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <ShieldAlert className="h-3.5 w-3.5" />
-                        One link per screen and per site.
+                        {t('userMgmt.guest.footer')}
                     </div>
                     <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)}>
-                        Close
+                        {t('common.close')}
                     </Button>
                 </div>
             </DialogContent>

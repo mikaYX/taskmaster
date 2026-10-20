@@ -40,14 +40,14 @@ export function MfaSetupDialog({ open, onOpenChange, isEnforced, hasExistingMfa 
     const handleCopySecret = () => {
         navigator.clipboard.writeText(totpSecret);
         setCopiedSecret(true);
-        toast.success('Secret copied to clipboard');
+        toast.success(t('mfaSetup.toasts.secretCopied'));
         setTimeout(() => setCopiedSecret(false), 2000);
     };
 
     const handleCopyBackupCodes = () => {
         navigator.clipboard.writeText(backupCodes.join('\n'));
         setCopiedBackupCodes(true);
-        toast.success('Backup codes copied to clipboard');
+        toast.success(t('mfaSetup.toasts.codesCopied'));
         setTimeout(() => setCopiedBackupCodes(false), 2000);
     };
 
@@ -59,7 +59,7 @@ export function MfaSetupDialog({ open, onOpenChange, isEnforced, hasExistingMfa 
             setQrCodeUrl(data.qrCodeUrl);
             setStep('totp-setup');
         } catch {
-            toast.error('Failed to generate MFA setup');
+            toast.error(t('mfaSetup.toasts.generateFailed'));
         } finally {
             setIsLoading(false);
         }
@@ -67,7 +67,7 @@ export function MfaSetupDialog({ open, onOpenChange, isEnforced, hasExistingMfa 
 
     const handleEnableTOTP = async () => {
         if (!verificationCode || verificationCode.length !== 6) {
-            toast.error('Please enter a valid 6-digit code');
+            toast.error(t('mfaSetup.toasts.invalidFormat'));
             return;
         }
 
@@ -75,10 +75,10 @@ export function MfaSetupDialog({ open, onOpenChange, isEnforced, hasExistingMfa 
         try {
             const data = await authApi.mfaEnable(verificationCode);
             setBackupCodes(data.recoveryCodes);
-            toast.success('MFA enabled successfully');
+            toast.success(t('mfaSetup.toasts.enabled'));
             setStep('backup-codes');
         } catch {
-            toast.error('Invalid verification code');
+            toast.error(t('mfaSetup.toasts.invalidCode'));
         } finally {
             setIsLoading(false);
         }
@@ -86,17 +86,17 @@ export function MfaSetupDialog({ open, onOpenChange, isEnforced, hasExistingMfa 
 
     const handleDisableMFA = async () => {
         if (isEnforced) {
-            toast.error('MFA is required by your administrator');
+            toast.error(t('mfaSetup.toasts.enforced'));
             return;
         }
 
         setIsLoading(true);
         try {
             await authApi.mfaDisable();
-            toast.success('MFA disabled successfully');
+            toast.success(t('mfaSetup.toasts.disabled'));
             onOpenChange(false);
         } catch {
-            toast.error('Failed to disable MFA');
+            toast.error(t('mfaSetup.toasts.disableFailed'));
         } finally {
             setIsLoading(false);
         }
@@ -113,12 +113,12 @@ export function MfaSetupDialog({ open, onOpenChange, isEnforced, hasExistingMfa 
             <DialogContent className="sm:max-w-md">
                 <DialogHeader>
                     <DialogTitle>
-                        {hasExistingMfa ? 'Manage MFA' : 'Set Up Multi-Factor Authentication'}
+                        {hasExistingMfa ? t('mfaSetup.manageTitle') : t('mfaSetup.setupTitle')}
                     </DialogTitle>
                     <DialogDescription>
                         {hasExistingMfa
-                            ? 'Manage your authentication methods and backup codes.'
-                            : 'Add an extra layer of security to your account.'}
+                            ? t('mfaSetup.manageDescription')
+                            : t('mfaSetup.setupDescription')}
                     </DialogDescription>
                 </DialogHeader>
 
@@ -126,7 +126,7 @@ export function MfaSetupDialog({ open, onOpenChange, isEnforced, hasExistingMfa 
                 {step === 'methods' && (
                     <div className="space-y-4">
                         <p className="text-sm text-muted-foreground">
-                            Choose a method to secure your account:
+                            {t('mfaSetup.chooseMethod')}
                         </p>
 
                         <Button
@@ -138,10 +138,10 @@ export function MfaSetupDialog({ open, onOpenChange, isEnforced, hasExistingMfa 
                             <div className="text-left">
                                 <div className="font-medium items-center flex gap-2">
                                     {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
-                                    Authenticator App (Recommended)
+                                    {t('mfaSetup.authenticatorApp')}
                                 </div>
                                 <div className="text-sm text-muted-foreground">
-                                    Use Google Authenticator, Authy, or similar
+                                    {t('mfaSetup.authenticatorAppHint')}
                                 </div>
                             </div>
                         </Button>
@@ -152,23 +152,23 @@ export function MfaSetupDialog({ open, onOpenChange, isEnforced, hasExistingMfa 
                 {step === 'totp-setup' && (
                     <div className="space-y-4">
                         <div className="space-y-2">
-                            <Label>1. Scan QR Code</Label>
+                            <Label>{t('mfaSetup.scanQr')}</Label>
                             <div className="flex justify-center p-4 border rounded-lg bg-white">
                                 {qrCodeUrl ? (
-                                    <img src={qrCodeUrl} alt="QR Code" className="w-48 h-48" />
+                                    <img src={qrCodeUrl} alt={t('mfaSetup.qrAlt')} className="w-48 h-48" />
                                 ) : (
                                     <div className="w-48 h-48 bg-muted flex items-center justify-center">
-                                        Loading...
+                                        {t('common.loading')}
                                     </div>
                                 )}
                             </div>
                             <p className="text-sm text-muted-foreground">
-                                Scan this QR code with your authenticator app.
+                                {t('mfaSetup.scanHint')}
                             </p>
                         </div>
 
                         <div className="space-y-2">
-                            <Label>Or enter this code manually:</Label>
+                            <Label>{t('mfaSetup.enterManually')}</Label>
                             <div className="flex gap-2">
                                 <Input
                                     value={totpSecret}
@@ -191,7 +191,7 @@ export function MfaSetupDialog({ open, onOpenChange, isEnforced, hasExistingMfa 
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="verification-code">2. Enter Verification Code</Label>
+                            <Label htmlFor="verification-code">{t('mfaSetup.enterCode')}</Label>
                             <Input
                                 id="verification-code"
                                 placeholder="000000"
@@ -200,7 +200,7 @@ export function MfaSetupDialog({ open, onOpenChange, isEnforced, hasExistingMfa 
                                 onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, ''))}
                             />
                             <p className="text-sm text-muted-foreground">
-                                Enter the 6-digit code from your authenticator app.
+                                {t('mfaSetup.codeHint')}
                             </p>
                         </div>
 
@@ -210,11 +210,11 @@ export function MfaSetupDialog({ open, onOpenChange, isEnforced, hasExistingMfa 
                                 variant="outline"
                                 onClick={() => setStep('methods')}
                             >
-                                Back
+                                {t('common.back')}
                             </Button>
                             <Button onClick={handleEnableTOTP} disabled={isLoading}>
                                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                Enable MFA
+                                {t('mfaSetup.enable')}
                             </Button>
                         </DialogFooter>
                     </div>
@@ -225,16 +225,15 @@ export function MfaSetupDialog({ open, onOpenChange, isEnforced, hasExistingMfa 
                     <div className="space-y-4">
                         <Alert>
                             <AlertTriangle className="h-4 w-4" />
-                            <AlertTitle>Save Your Backup Codes</AlertTitle>
+                            <AlertTitle>{t('mfaSetup.saveCodesTitle')}</AlertTitle>
                             <AlertDescription>
-                                Store these codes in a safe place. You can use them to access your
-                                account if you lose your authenticator device.
+                                {t('mfaSetup.saveCodesBody')}
                             </AlertDescription>
                         </Alert>
 
                         <div className="space-y-2">
                             <div className="flex items-center justify-between">
-                                <Label>Backup Codes</Label>
+                                <Label>{t('mfaSetup.backupCodes')}</Label>
                                 <Button
                                     type="button"
                                     size="sm"
@@ -244,12 +243,12 @@ export function MfaSetupDialog({ open, onOpenChange, isEnforced, hasExistingMfa 
                                     {copiedBackupCodes ? (
                                         <>
                                             <Check className="mr-2 h-4 w-4" />
-                                            Copied
+                                            {t('mfaSetup.copied')}
                                         </>
                                     ) : (
                                         <>
                                             <Copy className="mr-2 h-4 w-4" />
-                                            Copy All
+                                            {t('mfaSetup.copyAll')}
                                         </>
                                     )}
                                 </Button>
@@ -263,7 +262,7 @@ export function MfaSetupDialog({ open, onOpenChange, isEnforced, hasExistingMfa 
 
                         <DialogFooter>
                             <Button onClick={handleClose}>
-                                Done
+                                {t('mfaSetup.done')}
                             </Button>
                         </DialogFooter>
                     </div>
@@ -274,10 +273,10 @@ export function MfaSetupDialog({ open, onOpenChange, isEnforced, hasExistingMfa 
                     <div className="space-y-4">
                         <div className="rounded-lg bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 p-3 text-sm">
                             <div className="font-medium text-green-900 dark:text-green-100">
-                                MFA is enabled
+                                {t('mfaSetup.enabledTitle')}
                             </div>
                             <div className="text-green-700 dark:text-green-300">
-                                Your account is protected with two-factor authentication.
+                                {t('mfaSetup.enabledBody')}
                             </div>
                         </div>
 
@@ -287,7 +286,7 @@ export function MfaSetupDialog({ open, onOpenChange, isEnforced, hasExistingMfa 
                                 className="w-full"
                                 onClick={() => setStep('backup-codes')}
                             >
-                                View Backup Codes
+                                {t('mfaSetup.viewCodes')}
                             </Button> : <p className="text-sm text-muted-foreground">{t('profileSettings.recoveryCodesNote')}</p>}
 
                             {!isEnforced && (
@@ -298,13 +297,13 @@ export function MfaSetupDialog({ open, onOpenChange, isEnforced, hasExistingMfa 
                                     disabled={isLoading}
                                 >
                                     {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                    Disable MFA
+                                    {t('mfaSetup.disable')}
                                 </Button>
                             )}
 
                             {isEnforced && (
                                 <p className="text-sm text-muted-foreground text-center">
-                                    MFA is required by your administrator and cannot be disabled.
+                                    {t('mfaSetup.enforcedNote')}
                                 </p>
                             )}
                         </div>

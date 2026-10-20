@@ -25,7 +25,9 @@ import { useUsers } from '@/hooks/use-users';
 import { useGroups } from '@/hooks/use-groups';
 import { useTaskDelegations, useCreateDelegation, useDeleteDelegation } from '@/hooks/use-tasks';
 import { toast } from 'sonner';
+import { Trans, useTranslation } from 'react-i18next';
 import { getErrorMessage } from '@/api/http';
+import { getDateLocale } from '@/lib/date-locale';
 
 interface TaskDelegationsSheetProps {
     task: Task | undefined;
@@ -34,6 +36,8 @@ interface TaskDelegationsSheetProps {
 }
 
 export function TaskDelegationsSheet({ task, open, onOpenChange }: TaskDelegationsSheetProps) {
+    const { t } = useTranslation();
+    const dateCode = getDateLocale().code;
     const [startAt, setStartAt] = useState('');
     const [endAt, setEndAt] = useState('');
     const [reason, setReason] = useState('');
@@ -90,11 +94,11 @@ export function TaskDelegationsSheet({ task, open, onOpenChange }: TaskDelegatio
 
     const handleCreateDelegation = () => {
         if (!startAt || !endAt) {
-            toast.error('Start and End dates are required');
+            toast.error(t('taskDelegations.toasts.datesRequired'));
             return;
         }
         if (selectedUserIds.length === 0 && selectedGroupIds.length === 0) {
-            toast.error('You must select at least one target user or group');
+            toast.error(t('taskDelegations.toasts.targetRequired'));
             return;
         }
 
@@ -111,11 +115,11 @@ export function TaskDelegationsSheet({ task, open, onOpenChange }: TaskDelegatio
             },
             {
                 onSuccess: () => {
-                    toast.success('Delegation created successfully');
+                    toast.success(t('taskDelegations.toasts.created'));
                     resetForm();
                 },
                 onError: (error: unknown) => {
-                    toast.error(getErrorMessage(error, 'Failed to create delegation'));
+                    toast.error(getErrorMessage(error, t('taskDelegations.toasts.createFailed')));
                 },
             }
         );
@@ -125,8 +129,8 @@ export function TaskDelegationsSheet({ task, open, onOpenChange }: TaskDelegatio
         deleteDelegation.mutate(
             { taskId: task.id, delegationId },
             {
-                onSuccess: () => toast.success('Delegation removed'),
-                onError: () => toast.error('Failed to remove delegation'),
+                onSuccess: () => toast.success(t('taskDelegations.toasts.removed')),
+                onError: () => toast.error(t('taskDelegations.toasts.removeFailed')),
             }
         );
     };
@@ -136,10 +140,14 @@ export function TaskDelegationsSheet({ task, open, onOpenChange }: TaskDelegatio
             <SheetContent className="w-[520px] sm:max-w-[520px] flex flex-col overflow-y-auto">
                 <SheetHeader>
                     <SheetTitle className="text-xl flex items-center gap-2">
-                        <CalendarOff className="h-5 w-5" /> Task Delegations
+                        <CalendarOff className="h-5 w-5" /> {t('taskDelegations.title')}
                     </SheetTitle>
                     <SheetDescription>
-                        Delegate <strong className="text-foreground">{task.name}</strong> to others for a specific period of time.
+                        <Trans
+                            i18nKey="taskDelegations.description"
+                            values={{ name: task.name }}
+                            components={{ strong: <strong className="text-foreground" /> }}
+                        />
                     </SheetDescription>
                 </SheetHeader>
 
@@ -148,11 +156,11 @@ export function TaskDelegationsSheet({ task, open, onOpenChange }: TaskDelegatio
                 <div className="space-y-6">
                     {/* NEW DELEGATION FORM */}
                     <div className="space-y-4">
-                        <h3 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">New Delegation</h3>
+                        <h3 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">{t('taskDelegations.newDelegation')}</h3>
 
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <Label>Start Time</Label>
+                                <Label>{t('taskDelegations.startTime')}</Label>
                                 <Input
                                     type="datetime-local"
                                     value={startAt}
@@ -160,7 +168,7 @@ export function TaskDelegationsSheet({ task, open, onOpenChange }: TaskDelegatio
                                 />
                             </div>
                             <div className="space-y-2">
-                                <Label>End Time</Label>
+                                <Label>{t('taskDelegations.endTime')}</Label>
                                 <Input
                                     type="datetime-local"
                                     value={endAt}
@@ -170,9 +178,9 @@ export function TaskDelegationsSheet({ task, open, onOpenChange }: TaskDelegatio
                         </div>
 
                         <div className="space-y-2">
-                            <Label>Reason (Optional)</Label>
+                            <Label>{t('taskDelegations.reason')}</Label>
                             <Input
-                                placeholder="E.g. Annual Leave"
+                                placeholder={t('taskDelegations.reasonPlaceholder')}
                                 value={reason}
                                 onChange={(e) => setReason(e.target.value)}
                             />
@@ -180,11 +188,11 @@ export function TaskDelegationsSheet({ task, open, onOpenChange }: TaskDelegatio
 
                         {/* TARGET SELECTION */}
                         <div className="space-y-3 pt-2 border-t">
-                            <Label>Delegate to (Users)</Label>
+                            <Label>{t('taskDelegations.delegateToUsers')}</Label>
                             <div className="flex gap-2">
                                 <Select value={tempUserId} onValueChange={setTempUserId}>
                                     <SelectTrigger className="flex-1">
-                                        <SelectValue placeholder="Select a user..." />
+                                        <SelectValue placeholder={t('taskDelegations.selectUser')} />
                                     </SelectTrigger>
                                     <SelectContent>
                                         {availableUsers.map((user) => (
@@ -214,11 +222,11 @@ export function TaskDelegationsSheet({ task, open, onOpenChange }: TaskDelegatio
                         </div>
 
                         <div className="space-y-3 pt-2 border-t">
-                            <Label>Delegate to (Groups)</Label>
+                            <Label>{t('taskDelegations.delegateToGroups')}</Label>
                             <div className="flex gap-2">
                                 <Select value={tempGroupId} onValueChange={setTempGroupId}>
                                     <SelectTrigger className="flex-1">
-                                        <SelectValue placeholder="Select a group..." />
+                                        <SelectValue placeholder={t('taskDelegations.selectGroup')} />
                                     </SelectTrigger>
                                     <SelectContent>
                                         {availableGroups.map((group) => (
@@ -252,7 +260,7 @@ export function TaskDelegationsSheet({ task, open, onOpenChange }: TaskDelegatio
                             onClick={handleCreateDelegation}
                             disabled={createDelegation.isPending || (!startAt || !endAt) || (selectedUserIds.length === 0 && selectedGroupIds.length === 0)}
                         >
-                            {createDelegation.isPending ? 'Creating...' : 'Create Delegation'}
+                            {createDelegation.isPending ? t('taskDelegations.creating') : t('taskDelegations.create')}
                         </Button>
                     </div>
 
@@ -260,14 +268,14 @@ export function TaskDelegationsSheet({ task, open, onOpenChange }: TaskDelegatio
 
                     {/* EXISTING DELEGATIONS */}
                     <div className="space-y-4">
-                        <h3 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">Active & Planned</h3>
+                        <h3 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">{t('taskDelegations.activeAndPlanned')}</h3>
 
                         {delegationsLoading ? (
-                            <div className="text-sm text-muted-foreground">Loading delegations...</div>
+                            <div className="text-sm text-muted-foreground">{t('taskDelegations.loading')}</div>
                         ) : delegations?.length === 0 ? (
                             <div className="flex flex-col items-center justify-center py-6 text-center border rounded-lg bg-muted/20">
                                 <CalendarOff className="h-8 w-8 text-muted-foreground/30 mb-2" />
-                                <p className="text-muted-foreground text-sm">No delegations for this task.</p>
+                                <p className="text-muted-foreground text-sm">{t('taskDelegations.none')}</p>
                             </div>
                         ) : (
                             <div className="space-y-3">
@@ -286,12 +294,12 @@ export function TaskDelegationsSheet({ task, open, onOpenChange }: TaskDelegatio
 
                                             <div className="flex items-center gap-2 text-sm font-medium">
                                                 <Clock className="h-4 w-4 text-blue-500" />
-                                                {new Date(del.startAt).toLocaleDateString()} - {new Date(del.endAt).toLocaleDateString()}
+                                                {new Date(del.startAt).toLocaleDateString(dateCode)} - {new Date(del.endAt).toLocaleDateString(dateCode)}
                                             </div>
 
                                             {del.reason && (
                                                 <p className="text-xs text-muted-foreground mt-1">
-                                                    Reason: {del.reason}
+                                                    {t('taskDelegations.reasonLine', { reason: del.reason })}
                                                 </p>
                                             )}
 

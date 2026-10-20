@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { pushApi } from '@/api/notifications';
+import i18n from '@/lib/i18n';
 
 export type PushPermission = 'default' | 'granted' | 'denied' | 'unsupported';
 
@@ -82,14 +83,14 @@ export function usePushNotifications(): UsePushNotificationsReturn {
       const perm = await Notification.requestPermission();
       setPermission(perm as PushPermission);
       if (perm !== 'granted') {
-        setError('Permission refusée par l\'utilisateur.');
+        setError(i18n.t('push.permissionDenied'));
         return;
       }
 
       // 2. Récupérer la clé VAPID publique
       const { publicKey } = await pushApi.getVapidPublicKey();
       if (!publicKey) {
-        setError('Push non configuré sur le serveur (VAPID_PUBLIC_KEY manquante).');
+        setError(i18n.t('push.notConfigured'));
         return;
       }
 
@@ -103,7 +104,7 @@ export function usePushNotifications(): UsePushNotificationsReturn {
       await pushApi.subscribe(subscription.toJSON());
       setIsSubscribed(true);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Erreur inconnue';
+      const msg = err instanceof Error ? err.message : i18n.t('common.unknownError');
       console.error('[Push] subscribe error:', msg);
       setError(msg);
     } finally {
@@ -128,7 +129,7 @@ export function usePushNotifications(): UsePushNotificationsReturn {
       await subscription.unsubscribe();
       setIsSubscribed(false);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Erreur inconnue';
+      const msg = err instanceof Error ? err.message : i18n.t('common.unknownError');
       console.error('[Push] unsubscribe error:', msg);
       setError(msg);
     } finally {

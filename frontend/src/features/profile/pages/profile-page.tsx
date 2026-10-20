@@ -63,7 +63,7 @@ function ProfileWorkspace() {
     const currentUser = profile.data;
     const remoteAvatarSrc = resolveAvatarSrc(currentUser?.avatarUrl);
     const avatarSrc = localAvatarSrc ?? remoteAvatarSrc;
-    const displayName = currentUser?.fullname || currentUser?.username || 'User';
+    const displayName = currentUser?.fullname || currentUser?.username || t('profilePage.defaultName');
     const email = currentUser?.email || '';
     const role = currentUser?.role || currentRole || 'USER';
     const initials = displayName.substring(0, 2).toUpperCase();
@@ -83,7 +83,7 @@ function ProfileWorkspace() {
         if (!file) return;
         const allowed = ['image/png', 'image/jpeg', 'image/webp'];
         if (!allowed.includes(file.type)) {
-            toast.error('Format non supporté. Utilisez PNG, JPG ou WebP.');
+            toast.error(t('profilePage.avatar.unsupportedFormat'));
             return;
         }
         const objectUrl = URL.createObjectURL(file);
@@ -91,10 +91,10 @@ function ProfileWorkspace() {
         try {
             const result = await uploadAvatar.mutateAsync(file);
             setLocalAvatarSrc(resolveAvatarSrc(result.url));
-            toast.success('Avatar mis à jour');
+            toast.success(t('profilePage.avatar.updated'));
         } catch {
             setLocalAvatarSrc(undefined);
-            toast.error("Échec de la mise à jour de l'avatar");
+            toast.error(t('profilePage.avatar.failed'));
         }
         URL.revokeObjectURL(objectUrl);
         e.target.value = '';
@@ -110,7 +110,7 @@ function ProfileWorkspace() {
 
     if (profile.isError) return <div role="alert" className="space-y-3 p-6">
         <p>{t('profileSettings.loadFailed')}</p>
-        <Button onClick={() => profile.refetch()}>{t('common.retry')}</Button>
+        <Button onClick={() => profile.refetch()}>{t('common.tryAgain')}</Button>
     </div>;
 
     return (
@@ -126,11 +126,7 @@ function ProfileWorkspace() {
                     <div className="flex items-center gap-3">
                         <h1 className="text-3xl font-bold">{displayName}</h1>
                         <Badge variant={role === 'GUEST' ? 'secondary' : role === 'USER' ? 'secondary' : 'default'}>
-                            {role === 'SUPER_ADMIN' ? 'Super Admin'
-                                : role === 'ADMIN' ? 'Admin'
-                                : role === 'MANAGER' ? 'Manager'
-                                : role === 'GUEST' ? 'Guest'
-                                : 'User'}
+                            {t(`profilePage.roleBadge.${role}`, { defaultValue: role })}
                         </Badge>
                     </div>
                     <p className="text-muted-foreground">{email}</p>
@@ -142,9 +138,9 @@ function ProfileWorkspace() {
             {/* Profile Information */}
             <Card>
                 <CardHeader>
-                    <CardTitle>Profile Information</CardTitle>
+                    <CardTitle>{t('profilePage.info.title')}</CardTitle>
                     <CardDescription>
-                        Update your personal information and avatar
+                        {t('profilePage.info.description')}
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
@@ -173,7 +169,7 @@ function ProfileWorkspace() {
                                     ) : (
                                         <Upload className="mr-2 h-4 w-4" />
                                     )}
-                                    Change Avatar
+                                    {t('profilePage.avatar.change')}
                                 </Button>
                             </>
                         )}
@@ -181,23 +177,23 @@ function ProfileWorkspace() {
 
                     <div className="grid gap-4">
                         <div className="grid gap-2">
-                            <Label htmlFor="fullname">Full Name</Label>
+                            <Label htmlFor="fullname">{t('profilePage.info.fullName')}</Label>
                             <Input
                                 id="fullname"
                                 value={fullname ?? currentUser?.fullname ?? ''}
                                 onChange={event => setFullname(event.target.value)}
                                 maxLength={255}
-                                placeholder="Your full name"
+                                placeholder={t('profilePage.info.fullNamePlaceholder')}
                                 disabled={isGuest || saveProfile.isPending}
                                 className={isGuest ? "bg-muted" : ""}
                             />
                             <p className="text-sm text-muted-foreground">
-                                This is your display name across the application.
+                                {t('profilePage.info.fullNameHint')}
                             </p>
                         </div>
 
                         <div className="grid gap-2">
-                            <Label htmlFor="email">Email</Label>
+                            <Label htmlFor="email">{t('profilePage.info.email')}</Label>
                             <Input
                                 id="email"
                                 type="email"
@@ -206,26 +202,20 @@ function ProfileWorkspace() {
                                 className="bg-muted"
                             />
                             <p className="text-sm text-muted-foreground">
-                                Your email address cannot be changed.
+                                {t('profilePage.info.emailHint')}
                             </p>
                         </div>
 
                         <div className="grid gap-2">
-                            <Label htmlFor="role">Role</Label>
+                            <Label htmlFor="role">{t('profilePage.info.role')}</Label>
                             <Input
                                 id="role"
-                                value={
-                                    role === 'SUPER_ADMIN' ? 'Super Administrator'
-                                    : role === 'ADMIN' ? 'Administrator'
-                                    : role === 'MANAGER' ? 'Manager'
-                                    : role === 'USER' ? 'User'
-                                    : 'Guest'
-                                }
+                                value={t(`profilePage.roleLong.${role}`, { defaultValue: role })}
                                 disabled
                                 className="bg-muted"
                             />
                             <p className="text-sm text-muted-foreground">
-                                Your role is managed by your administrator.
+                                {t('profilePage.info.roleHint')}
                             </p>
                         </div>
                     </div>
@@ -246,10 +236,10 @@ function ProfileWorkspace() {
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                         <Shield className="h-5 w-5" />
-                        Security
+                        {t('profilePage.security.title')}
                     </CardTitle>
                     <CardDescription>
-                        Manage your password and authentication methods
+                        {t('profilePage.security.description')}
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
@@ -259,15 +249,15 @@ function ProfileWorkspace() {
                             <div className="space-y-1">
                                 <div className="flex items-center gap-2">
                                     <Lock className="h-4 w-4 text-muted-foreground" />
-                                    <h3 className="font-medium">Password</h3>
+                                    <h3 className="font-medium">{t('profilePage.security.password')}</h3>
                                 </div>
                                 <p className="text-sm text-muted-foreground">
-                                    Change your account password
+                                    {t('profilePage.security.passwordDescription')}
                                 </p>
                             </div>
                             {!isGuest && (
                                 <Button variant="outline" onClick={() => setIsPasswordDialogOpen(true)}>
-                                    Change Password
+                                    {t('profile.changePassword.title')}
                                 </Button>
                             )}
                         </div>
@@ -281,17 +271,17 @@ function ProfileWorkspace() {
                             <div className="space-y-1">
                                 <div className="flex items-center gap-2">
                                     <Shield className="h-4 w-4 text-muted-foreground" />
-                                    <h3 className="font-medium">Multi-Factor Authentication</h3>
+                                    <h3 className="font-medium">{t('profilePage.security.mfa')}</h3>
                                     {mfaEnforced && (
-                                        <Badge variant="destructive" className="text-xs">Required</Badge>
+                                        <Badge variant="destructive" className="text-xs">{t('profilePage.security.required')}</Badge>
                                     )}
                                 </div>
                                 <p className="text-sm text-muted-foreground">
                                     {!mfaEnabled
-                                        ? 'MFA is not enabled by your administrator.'
+                                        ? t('profilePage.security.mfaDisabled')
                                         : userHasMfa
-                                            ? 'Add an extra layer of security to your account.'
-                                            : 'Protect your account with two-factor authentication.'}
+                                            ? t('profilePage.security.mfaEnabled')
+                                            : t('profilePage.security.mfaNone')}
                                 </p>
                             </div>
                             {mfaEnabled && !isGuest && (
@@ -306,7 +296,7 @@ function ProfileWorkspace() {
 
                         {!mfaEnabled && (
                             <div className="rounded-lg bg-muted p-3 text-sm text-muted-foreground">
-                                Contact your administrator to enable multi-factor authentication.
+                                {t('profilePage.security.mfaContact')}
                             </div>
                         )}
                     </div>
@@ -319,15 +309,15 @@ function ProfileWorkspace() {
                             <div className="space-y-1">
                                 <div className="flex items-center gap-2">
                                     <KeyIcon className="h-4 w-4 text-muted-foreground" />
-                                    <h3 className="font-medium">Passkeys (WebAuthn)</h3>
+                                    <h3 className="font-medium">{t('profilePage.security.passkeys')}</h3>
                                     {passkeysEnforced && (
-                                        <Badge variant="destructive" className="text-xs">Required</Badge>
+                                        <Badge variant="destructive" className="text-xs">{t('profilePage.security.required')}</Badge>
                                     )}
                                 </div>
                                 <p className="text-sm text-muted-foreground">
                                     {!passkeysEnabled
-                                        ? 'Passkeys are not enabled by your administrator.'
-                                        : 'Use biometrics or security keys for passwordless sign-in.'}
+                                        ? t('profilePage.security.passkeysDisabled')
+                                        : t('profilePage.security.passkeysDescription')}
                                 </p>
                             </div>
                             {passkeysEnabled && !isGuest && (
@@ -335,14 +325,14 @@ function ProfileWorkspace() {
                                     variant={userHasPasskeys ? 'outline' : 'default'}
                                     onClick={() => setIsPasskeysDialogOpen(true)}
                                 >
-                                    {userHasPasskeys ? 'Manage Passkeys' : 'Add Passkey'}
+                                    {userHasPasskeys ? t('profilePage.security.managePasskeys') : t('profilePage.security.addPasskey')}
                                 </Button>
                             )}
                         </div>
 
                         {!passkeysEnabled && (
                             <div className="rounded-lg bg-muted p-3 text-sm text-muted-foreground">
-                                Contact your administrator to enable passkeys.
+                                {t('profilePage.security.passkeysContact')}
                             </div>
                         )}
 

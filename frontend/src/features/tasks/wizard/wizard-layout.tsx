@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { cn } from "@/lib/utils"
+import { useTranslation } from "react-i18next"
 
 interface WizardLayoutProps {
     currentStep: number;
@@ -24,16 +25,17 @@ export function WizardLayout({
     onBack,
     canNext,
     isSubmitting = false,
-    nextLabel = "Next"
+    nextLabel
 }: WizardLayoutProps) {
+    const { t } = useTranslation();
     return (
         <div className="flex h-full min-h-[600px] gap-6">
             {/* Sidebar Stepper */}
             <aside className="w-64 flex-shrink-0 hidden md:block">
                 <div className="sticky top-4 space-y-4">
                     <div className="px-4 py-2">
-                        <h2 className="text-lg font-semibold tracking-tight">Create Task</h2>
-                        <p className="text-sm text-muted-foreground">Follow the steps to configure your new task.</p>
+                        <h2 className="text-lg font-semibold tracking-tight">{t('taskWizard.title')}</h2>
+                        <p className="text-sm text-muted-foreground">{t('taskWizard.subtitle')}</p>
                     </div>
                     <Separator />
                     <nav className="space-y-1">
@@ -79,7 +81,7 @@ export function WizardLayout({
                 <Card className="flex-1 flex flex-col border-none shadow-none md:border md:shadow-sm">
                     <CardHeader className="pb-4">
                         <CardTitle>{steps[currentStep].title}</CardTitle>
-                        <CardDescription>{steps[currentStep].description || "Please fill in the details below."}</CardDescription>
+                        <CardDescription>{steps[currentStep].description || t('taskWizard.fillDetails')}</CardDescription>
                     </CardHeader>
                     <Separator />
                     <CardContent className="flex-1 py-6">
@@ -88,10 +90,10 @@ export function WizardLayout({
                     <Separator />
                     <CardFooter className="py-4 justify-between bg-muted/20">
                         <Button variant="ghost" onClick={onBack} disabled={currentStep === 0}>
-                            Back
+                            {t('common.back')}
                         </Button>
                         <Button onClick={onNext} disabled={!canNext || isSubmitting}>
-                            {isSubmitting ? "Processing..." : (currentStep === steps.length - 1 ? "Create Task" : nextLabel)}
+                            {isSubmitting ? t('taskWizard.processing') : (currentStep === steps.length - 1 ? t('taskWizard.createButton') : (nextLabel ?? t('common.next')))}
                         </Button>
                     </CardFooter>
                 </Card>

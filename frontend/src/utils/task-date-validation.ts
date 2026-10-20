@@ -1,4 +1,5 @@
 import { startOfDay, startOfWeek, startOfMonth, startOfYear, subWeeks, subMonths, subYears, format } from 'date-fns';
+import i18n from '@/lib/i18n';
 
 export type TaskRecurrence = 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'YEARLY' | 'CUSTOM' | 'CRON' | 'ONCE';
 
@@ -26,7 +27,7 @@ export function validateTaskDate(
             if (targetField === 'startDate' && dateObj < today) {
                 return {
                     isValid: false,
-                    errorMessage: `Daily tasks must start today or later (min: ${format(today, 'yyyy-MM-dd')})`,
+                    errorMessage: i18n.t('taskWizard.validation.dailyStart', { date: format(today, 'yyyy-MM-dd') }),
                     minDate: today,
                 };
             }
@@ -38,7 +39,7 @@ export function validateTaskDate(
                 if (dateObj < previousWeekStart) {
                     return {
                         isValid: false,
-                        errorMessage: `Weekly tasks cannot be due before ${format(previousWeekStart, 'yyyy-MM-dd')}`,
+                        errorMessage: i18n.t('taskWizard.validation.weeklyDue', { date: format(previousWeekStart, 'yyyy-MM-dd') }),
                         minDate: previousWeekStart,
                     };
                 }
@@ -51,7 +52,7 @@ export function validateTaskDate(
                 if (dateObj < previousMonthStart) {
                     return {
                         isValid: false,
-                        errorMessage: `Monthly tasks cannot be due before ${format(previousMonthStart, 'yyyy-MM-dd')}`,
+                        errorMessage: i18n.t('taskWizard.validation.monthlyDue', { date: format(previousMonthStart, 'yyyy-MM-dd') }),
                         minDate: previousMonthStart,
                     };
                 }
@@ -64,7 +65,7 @@ export function validateTaskDate(
                 if (dateObj < previousYearStart) {
                     return {
                         isValid: false,
-                        errorMessage: `Yearly tasks cannot be due before ${format(previousYearStart, 'yyyy-MM-dd')}`,
+                        errorMessage: i18n.t('taskWizard.validation.yearlyDue', { date: format(previousYearStart, 'yyyy-MM-dd') }),
                         minDate: previousYearStart,
                     };
                 }
@@ -76,7 +77,7 @@ export function validateTaskDate(
             if (targetField === 'endDate' && dateObj < today) {
                 return {
                     isValid: false,
-                    errorMessage: `Due date cannot be in the past (min: ${format(today, 'yyyy-MM-dd')})`,
+                    errorMessage: i18n.t('taskWizard.validation.customDue', { date: format(today, 'yyyy-MM-dd') }),
                     minDate: today,
                 };
             }

@@ -15,7 +15,7 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     exclude: ['node_modules', 'e2e'],
-    setupFiles: ['./src/test/setup-a11y.ts'],
+    setupFiles: ['./src/test/setup-a11y.ts', './src/test/setup-i18n.ts'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'lcov', 'html'],

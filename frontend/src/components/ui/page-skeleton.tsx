@@ -1,9 +1,11 @@
+import { useTranslation } from 'react-i18next';
 import { Skeleton } from '@/components/ui/skeleton';
 
 /** Squelette générique : titre + zone de contenu */
 export function PageSkeleton() {
+    const { t } = useTranslation();
     return (
-        <div className="space-y-6 p-4" aria-busy="true" aria-label="Chargement…">
+        <div className="space-y-6 p-4" aria-busy="true" aria-label={t('pageLoading.default')}>
             <div className="space-y-2">
                 <Skeleton className="h-8 w-56" />
                 <Skeleton className="h-4 w-80" />
@@ -15,8 +17,9 @@ export function PageSkeleton() {
 
 /** Squelette tableau de bord — colonnes de cartes par bucket de date */
 export function TaskBoardSkeleton() {
+    const { t } = useTranslation();
     return (
-        <div className="space-y-4 p-4" aria-busy="true" aria-label="Chargement du tableau de bord…">
+        <div className="space-y-4 p-4" aria-busy="true" aria-label={t('pageLoading.dashboard')}>
             {/* Toolbar */}
             <div className="flex items-center gap-3">
                 <Skeleton className="h-9 w-40 rounded-md" />
@@ -53,8 +56,9 @@ export function TaskBoardSkeleton() {
 
 /** Squelette page de gestion avec table */
 export function TablePageSkeleton({ rows = 5 }: { rows?: number }) {
+    const { t } = useTranslation();
     return (
-        <div className="space-y-6 p-4" aria-busy="true" aria-label="Chargement…">
+        <div className="space-y-6 p-4" aria-busy="true" aria-label={t('pageLoading.default')}>
             {/* Header */}
             <div className="flex items-start justify-between">
                 <div className="space-y-1.5">
@@ -93,8 +97,9 @@ export function TablePageSkeleton({ rows = 5 }: { rows?: number }) {
 
 /** Squelette page analytiques — stat cards + graphe + tableau */
 export function AnalyticsSkeleton() {
+    const { t } = useTranslation();
     return (
-        <div className="space-y-6 p-4" aria-busy="true" aria-label="Chargement des analytiques…">
+        <div className="space-y-6 p-4" aria-busy="true" aria-label={t('pageLoading.analytics')}>
             {/* Header */}
             <div className="space-y-1.5">
                 <Skeleton className="h-8 w-40" />
@@ -138,8 +143,9 @@ export function AnalyticsSkeleton() {
 
 /** Squelette page paramètres — onglets + zone de contenu */
 export function SettingsSkeleton() {
+    const { t } = useTranslation();
     return (
-        <div className="space-y-6 p-4" aria-busy="true" aria-label="Chargement des paramètres…">
+        <div className="space-y-6 p-4" aria-busy="true" aria-label={t('pageLoading.settings')}>
             <div className="space-y-1.5">
                 <Skeleton className="h-8 w-40" />
                 <Skeleton className="h-4 w-64" />
@@ -172,8 +178,9 @@ export function SettingsSkeleton() {
 
 /** Squelette page profil */
 export function ProfileSkeleton() {
+    const { t } = useTranslation();
     return (
-        <div className="space-y-6 p-4 max-w-2xl" aria-busy="true" aria-label="Chargement du profil…">
+        <div className="space-y-6 p-4 max-w-2xl" aria-busy="true" aria-label={t('pageLoading.profile')}>
             <div className="flex items-center gap-4">
                 <Skeleton className="h-16 w-16 rounded-full" />
                 <div className="space-y-2">

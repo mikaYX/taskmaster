@@ -12,7 +12,10 @@ import {
   type DayButton,
 } from "react-day-picker"
 
+import { useTranslation } from "react-i18next"
+
 import { cn } from "@/lib/utils"
+import { getDateLocale } from "@/lib/date-locale"
 import { Button, buttonVariants } from "@/components/ui/button"
 
 function Calendar({
@@ -28,9 +31,12 @@ function Calendar({
   buttonVariant?: React.ComponentProps<typeof Button>["variant"]
 }) {
   const defaultClassNames = getDefaultClassNames()
+  // Re-render when the language changes so month and day names follow it.
+  useTranslation()
 
   return (
     <DayPicker
+      locale={getDateLocale()}
       showOutsideDays={showOutsideDays}
       className={cn(
         "bg-background group/calendar p-3 [--cell-size:--spacing(8)] [[data-slot=card-content]_&]:bg-transparent [[data-slot=popover-content]_&]:bg-transparent",

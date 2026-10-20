@@ -8,9 +8,11 @@ import { useQuery } from "@tanstack/react-query";
 import { usersApi } from "@/api/users";
 import { groupsApi } from "@/api/groups";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useTranslation } from "react-i18next";
 
 
 export function StepAssignment() {
+    const { t } = useTranslation();
     const { control, watch } = useFormContext<CreateTaskFormValues>();
     const userIds = watch("userIds") || [];
     const groupIds = watch("groupIds") || [];
@@ -35,8 +37,8 @@ export function StepAssignment() {
         <div className="space-y-6">
             <Tabs defaultValue="users" className="w-full">
                 <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="users">Users ({userIds.length})</TabsTrigger>
-                    <TabsTrigger value="groups">Groups ({groupIds.length})</TabsTrigger>
+                    <TabsTrigger value="users">{t('taskWizard.assignment.usersTab', { n: userIds.length })}</TabsTrigger>
+                    <TabsTrigger value="groups">{t('taskWizard.assignment.groupsTab', { n: groupIds.length })}</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="users" className="border rounded-md p-4 min-h-[200px]">
@@ -46,7 +48,7 @@ export function StepAssignment() {
                         render={() => (
                             <FormItem>
                                 <div className="mb-4">
-                                    <FormLabel className="text-base">Assign to Users</FormLabel>
+                                    <FormLabel className="text-base">{t('taskWizard.assignment.assignToUsers')}</FormLabel>
                                 </div>
                                 <ScrollArea className="h-[200px]">
                                     {isLoadingUsers ? (
@@ -57,7 +59,7 @@ export function StepAssignment() {
                                         </div>
                                     ) : users.length === 0 ? (
                                         <div className="p-4 text-center text-muted-foreground text-sm">
-                                            No users found.
+                                            {t('taskWizard.assignment.noUsers')}
                                         </div>
                                     ) : (
                                         users.map((user) => (
@@ -107,7 +109,7 @@ export function StepAssignment() {
                         render={() => (
                             <FormItem>
                                 <div className="mb-4">
-                                    <FormLabel className="text-base">Assign to Groups</FormLabel>
+                                    <FormLabel className="text-base">{t('taskWizard.assignment.assignToGroups')}</FormLabel>
                                 </div>
                                 <ScrollArea className="h-[200px]">
                                     {isLoadingGroups ? (
@@ -118,7 +120,7 @@ export function StepAssignment() {
                                         </div>
                                     ) : groups.length === 0 ? (
                                         <div className="p-4 text-center text-muted-foreground text-sm">
-                                            No groups found.
+                                            {t('taskWizard.assignment.noGroups')}
                                         </div>
                                     ) : (
                                         groups.map((group) => (

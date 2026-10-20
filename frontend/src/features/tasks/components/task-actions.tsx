@@ -9,6 +9,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { Trans, useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -49,6 +50,7 @@ export function TaskActions({
   onManageAssignments,
   onManageDelegations,
 }: TaskActionsProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [showDeactivateAlert, setShowDeactivateAlert] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -58,17 +60,17 @@ export function TaskActions({
   const handleDeactivate = () => {
     deactivateTask.mutate(task.id, {
       onSuccess: () => {
-        toast.success("Task deactivated");
+        toast.success(t("taskList.actions.deactivated"));
         setShowDeactivateAlert(false);
       },
-      onError: () => toast.error("Failed to deactivate task"),
+      onError: () => toast.error(t("taskList.actions.deactivateFailed")),
     });
   };
 
   const handleReactivate = () => {
     reactivateTask.mutate(task.id, {
-      onSuccess: () => toast.success("Task reactivated"),
-      onError: () => toast.error("Failed to reactivate task"),
+      onSuccess: () => toast.success(t("taskList.actions.reactivated")),
+      onError: () => toast.error(t("taskList.actions.reactivateFailed")),
     });
   };
 
@@ -77,23 +79,23 @@ export function TaskActions({
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="h-8 w-8 p-0">
-            <span className="sr-only">Open menu</span>
+            <span className="sr-only">{t("taskList.actions.openMenu")}</span>
             <MoreHorizontal className="h-4 w-4" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-48">
-          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+          <DropdownMenuLabel>{t("common.actions")}</DropdownMenuLabel>
           <DropdownMenuItem onClick={() => onEdit(task)}>
             <Pencil className="mr-2 h-4 w-4" />
-            Edit Task
+            {t("tasks.editTask")}
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => onManageAssignments(task)}>
             <Users className="mr-2 h-4 w-4" />
-            Manage Assignments
+            {t("taskList.actions.manageAssignments")}
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => onManageDelegations(task)}>
             <CalendarClock className="mr-2 h-4 w-4" />
-            Manage Delegations
+            {t("taskList.actions.manageDelegations")}
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           {task.isActive ? (
@@ -102,12 +104,12 @@ export function TaskActions({
               className="text-destructive"
             >
               <PowerOff className="mr-2 h-4 w-4" />
-              Deactivate
+              {t("taskList.actions.deactivate")}
             </DropdownMenuItem>
           ) : (
             <DropdownMenuItem onClick={handleReactivate}>
               <Power className="mr-2 h-4 w-4" />
-              Reactivate
+              {t("taskList.actions.reactivate")}
             </DropdownMenuItem>
           )}
           <DropdownMenuSeparator />
@@ -116,7 +118,7 @@ export function TaskActions({
             className="text-destructive focus:text-destructive"
           >
             <Trash2 className="mr-2 h-4 w-4" />
-            Delete Task
+            {t("taskList.actions.deleteTask")}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -127,20 +129,22 @@ export function TaskActions({
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Deactivate Task?</AlertDialogTitle>
+            <AlertDialogTitle>{t("taskList.actions.deactivateTitle")}</AlertDialogTitle>
             <AlertDialogDescription>
-              This will deactivate the task <strong>{task.name}</strong>. The
-              task will no longer appear in the daily schedule but can be
-              reactivated later.
+              <Trans
+                i18nKey="taskList.actions.deactivateBody"
+                values={{ name: task.name }}
+                components={{ strong: <strong /> }}
+              />
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeactivate}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Deactivate
+              {t("taskList.actions.deactivate")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

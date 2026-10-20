@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom';
 import { MemoryRouter } from 'react-router-dom';
 import { TasksPage } from './tasks-page';
@@ -7,6 +7,7 @@ import { useTasks } from '@/hooks/use-tasks';
 import React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
+import i18n from '@/lib/i18n';
 
 type UseTasksResult = ReturnType<typeof useTasks>;
 
@@ -31,6 +32,10 @@ vi.mock('@/components/ui/tooltip', () => ({
 }));
 
 describe('TasksPage - Delegations Tooltip', () => {
+    beforeAll(async () => {
+        await i18n.changeLanguage('fr');
+    });
+
     beforeEach(() => {
         vi.clearAllMocks();
     });

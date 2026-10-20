@@ -1,6 +1,7 @@
 import { assertPasskeyOrigin, passkeyErrorMessage } from '@/lib/passkeys';
 import { useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import { Trans, useTranslation } from 'react-i18next';
+import { getDateLocale } from '@/lib/date-locale';
 import {
     Dialog,
     DialogContent,
@@ -40,7 +41,8 @@ export function PasskeysManageDialog({
     onOpenChange,
     isEnforced,
 }: PasskeysManageDialogProps) {
-    useTranslation();
+    const { t } = useTranslation();
+    const dateCode = getDateLocale().code;
     const [step, setStep] = useState<'list' | 'add'>('list');
     const [passkeyName, setPasskeyName] = useState('');
     const [passkeyToDelete, setPasskeyToDelete] = useState<string | null>(null);
@@ -70,12 +72,12 @@ export function PasskeysManageDialog({
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['passkeys'] });
-            toast.success('Passkey added successfully');
+            toast.success(t('passkeysManage.toasts.added'));
             setPasskeyName('');
             setStep('list');
         },
         onError: (err: unknown) => {
-            toast.error(passkeyErrorMessage(err, 'Failed to add passkey'));
+            toast.error(passkeyErrorMessage(err, t('passkeysManage.toasts.addFailed')));
         },
     });
 
@@ -85,17 +87,17 @@ export function PasskeysManageDialog({
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['passkeys'] });
-            toast.success('Passkey removed successfully');
+            toast.success(t('passkeysManage.toasts.removed'));
             setPasskeyToDelete(null);
         },
         onError: () => {
-            toast.error('Failed to remove passkey');
+            toast.error(t('passkeysManage.toasts.removeFailed'));
         },
     });
 
     const handleAddPasskey = async () => {
         if (!passkeyName.trim()) {
-            toast.error('Please enter a name for this passkey');
+            toast.error(t('passkeysManage.toasts.nameRequired'));
             return;
         }
 
@@ -104,7 +106,7 @@ export function PasskeysManageDialog({
 
     const handleDeletePasskey = async (id: string) => {
         if (isEnforced && passkeys.length === 1) {
-            toast.error('You must have at least one passkey when enforcement is enabled');
+            toast.error(t('passkeysManage.toasts.keepOne'));
             return;
         }
 
@@ -126,12 +128,12 @@ export function PasskeysManageDialog({
                 <DialogContent className="sm:max-w-lg">
                     <DialogHeader>
                         <DialogTitle>
-                            {step === 'list' ? 'Manage Passkeys' : 'Add New Passkey'}
+                            {step === 'list' ? t('passkeysManage.manageTitle') : t('passkeysManage.addTitle')}
                         </DialogTitle>
                         <DialogDescription>
                             {step === 'list'
-                                ? 'Use biometrics or security keys for passwordless sign-in.'
-                                : 'Give your passkey a recognizable name.'}
+                                ? t('passkeysManage.listDescription')
+                                : t('passkeysManage.addDescription')}
                         </DialogDescription>
                     </DialogHeader>
 
@@ -144,8 +146,8 @@ export function PasskeysManageDialog({
                             ) : passkeys.length === 0 ? (
                                 <div className="text-center py-8 text-muted-foreground">
                                     <Fingerprint className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                                    <p className="text-sm">No passkeys configured</p>
-                                    <p className="text-xs">Add a passkey to enable passwordless sign-in</p>
+                                    <p className="text-sm">{t('passkeysManage.none')}</p>
+                                    <p className="text-xs">{t('passkeysManage.noneHint')}</p>
                                 </div>
                             ) : (
                                 <div className="space-y-2">
@@ -161,9 +163,9 @@ export function PasskeysManageDialog({
                                                 <div className="space-y-1">
                                                     <div className="font-medium">{passkey.name || passkey.deviceType}</div>
                                                     <div className="text-xs text-muted-foreground">
-                                                        Added {new Date(passkey.createdAt).toLocaleDateString()}
+                                                        {t('passkeysManage.added', { date: new Date(passkey.createdAt).toLocaleDateString(dateCode) })}
                                                         {passkey.lastUsedAt && (
-                                                            <> · Last used {new Date(passkey.lastUsedAt).toLocaleDateString()}</>
+                                                            <> · {t('passkeysManage.lastUsed', { date: new Date(passkey.lastUsedAt).toLocaleDateString(dateCode) })}</>
                                                         )}
                                                     </div>
                                                 </div>
@@ -183,14 +185,13 @@ export function PasskeysManageDialog({
 
                             {isEnforced && (
                                 <div className="rounded-lg bg-muted p-3 text-sm text-muted-foreground">
-                                    <strong>Note:</strong> Passkeys are required by your administrator.
-                                    You must have at least one passkey configured.
+                                    <Trans i18nKey="passkeysManage.enforcedNote" components={{ strong: <strong /> }} />
                                 </div>
                             )}
 
                             <DialogFooter>
                                 <Button onClick={() => setStep('add')}>
-                                    Add Passkey
+                                    {t('passkeysManage.add')}
                                 </Button>
                             </DialogFooter>
                         </div>
@@ -199,25 +200,25 @@ export function PasskeysManageDialog({
                     {step === 'add' && (
                         <div className="space-y-4">
                             <div className="space-y-2">
-                                <Label htmlFor="passkey-name">Passkey Name</Label>
+                                <Label htmlFor="passkey-name">{t('passkeysManage.name')}</Label>
                                 <Input
                                     id="passkey-name"
-                                    placeholder="My MacBook, YubiKey, etc."
+                                    placeholder={t('passkeysManage.namePlaceholder')}
                                     value={passkeyName}
                                     onChange={(e) => setPasskeyName(e.target.value)}
                                     autoFocus
                                 />
                                 <p className="text-sm text-muted-foreground">
-                                    Choose a name that helps you identify this device or security key.
+                                    {t('passkeysManage.nameHint')}
                                 </p>
                             </div>
 
                             <div className="rounded-lg bg-muted p-3 text-sm text-muted-foreground space-y-2">
-                                <div><strong>What happens next?</strong></div>
+                                <div><strong>{t('passkeysManage.whatNext')}</strong></div>
                                 <ol className="list-decimal list-inside space-y-1 ml-2">
-                                    <li>You'll be prompted to use your device biometrics or security key</li>
-                                    <li>The passkey will be securely stored on your device</li>
-                                    <li>You can use it to sign in without a password</li>
+                                    <li>{t('passkeysManage.step1')}</li>
+                                    <li>{t('passkeysManage.step2')}</li>
+                                    <li>{t('passkeysManage.step3')}</li>
                                 </ol>
                             </div>
 
@@ -231,11 +232,11 @@ export function PasskeysManageDialog({
                                     }}
                                     disabled={addMutation.isPending}
                                 >
-                                    Cancel
+                                    {t('common.cancel')}
                                 </Button>
                                 <Button onClick={handleAddPasskey} disabled={addMutation.isPending}>
                                     {addMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                    Create Passkey
+                                    {t('passkeysManage.create')}
                                 </Button>
                             </DialogFooter>
                         </div>
@@ -247,21 +248,20 @@ export function PasskeysManageDialog({
             <AlertDialog open={!!passkeyToDelete} onOpenChange={() => setPasskeyToDelete(null)}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
-                        <AlertDialogTitle>Remove Passkey?</AlertDialogTitle>
+                        <AlertDialogTitle>{t('passkeysManage.removeTitle')}</AlertDialogTitle>
                         <AlertDialogDescription>
-                            This passkey will no longer be able to sign in to your account.
-                            This action cannot be undone.
+                            {t('passkeysManage.removeBody')}
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel disabled={deleteMutation.isPending}>Cancel</AlertDialogCancel>
+                        <AlertDialogCancel disabled={deleteMutation.isPending}>{t('common.cancel')}</AlertDialogCancel>
                         <AlertDialogAction
                             onClick={() => passkeyToDelete && handleDeletePasskey(passkeyToDelete)}
                             disabled={deleteMutation.isPending}
                             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                         >
                             {deleteMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            Remove
+                            {t('passkeysManage.remove')}
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>

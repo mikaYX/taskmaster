@@ -13,6 +13,7 @@ import { NumberInput } from "@/components/ui/number-input";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Clock, RotateCcw, Info } from "lucide-react";
+import { Trans, useTranslation } from "react-i18next";
 import { useSettings } from "@/features/settings/hooks/use-settings";
 import {
     Select,
@@ -51,6 +52,7 @@ interface RecurrenceSelectorProps {
 }
 
 export function RecurrenceSelector({ fcEnabled }: RecurrenceSelectorProps) {
+    const { t } = useTranslation();
     const { control, watch, setValue, getValues } = useFormContext();
     const periodicity = watch("periodicity");
     const { getSetting } = useSettings();
@@ -73,7 +75,7 @@ export function RecurrenceSelector({ fcEnabled }: RecurrenceSelectorProps) {
 
     return (
         <div className="space-y-4 border p-4 rounded-md bg-muted/20 mt-4">
-            <h4 className="text-sm font-medium text-muted-foreground mb-2">Advanced Scheduling</h4>
+            <h4 className="text-sm font-medium text-muted-foreground mb-2">{t('taskWizard.recurrence.advanced')}</h4>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Interval: Every X [Frequency] */}
@@ -83,7 +85,7 @@ export function RecurrenceSelector({ fcEnabled }: RecurrenceSelectorProps) {
                         name="interval"
                         render={({ field }) => (
                             <FormItem>
-                                <FormLabel>Repeat Every</FormLabel>
+                                <FormLabel>{t('taskWizard.recurrence.repeatEvery')}</FormLabel>
                                 <div className="flex items-center gap-2">
                                     <FormControl>
                                         <NumberInput
@@ -95,11 +97,7 @@ export function RecurrenceSelector({ fcEnabled }: RecurrenceSelectorProps) {
                                         />
                                     </FormControl>
                                     <span className="text-sm text-muted-foreground capitalize">
-                                        {periodicity === 'daily' ? 'Days' :
-                                            periodicity === 'weekly' ? 'Weeks' :
-                                                periodicity === 'monthly' ? 'Months' :
-                                                    periodicity === 'yearly' ? 'Years' :
-                                                        'Cycles'}
+                                        {t(`taskWizard.recurrence.units.${['daily', 'weekly', 'monthly', 'yearly'].includes(periodicity) ? periodicity : 'custom'}`)}
                                     </span>
                                 </div>
                                 <FormMessage />
@@ -113,11 +111,11 @@ export function RecurrenceSelector({ fcEnabled }: RecurrenceSelectorProps) {
                     name="timezone"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Timezone</FormLabel>
+                            <FormLabel>{t('taskWizard.recurrence.timezone')}</FormLabel>
                             <Select onValueChange={field.onChange} value={field.value || defaultTimezone}>
                                 <FormControl>
                                     <SelectTrigger>
-                                        <SelectValue placeholder="Select timezone" />
+                                        <SelectValue placeholder={t('taskWizard.recurrence.selectTimezone')} />
                                     </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
@@ -139,7 +137,7 @@ export function RecurrenceSelector({ fcEnabled }: RecurrenceSelectorProps) {
                     render={({ field }) => (
                         <FormItem>
                             <div className="flex items-center gap-2">
-                                <FormLabel>Due Offset (Minutes)</FormLabel>
+                                <FormLabel>{t('taskWizard.recurrence.dueOffset')}</FormLabel>
                                 <Popover>
                                     <PopoverTrigger asChild>
                                         <button type="button" className="text-blue-500 hover:text-blue-600">
@@ -147,13 +145,15 @@ export function RecurrenceSelector({ fcEnabled }: RecurrenceSelectorProps) {
                                         </button>
                                     </PopoverTrigger>
                                     <PopoverContent className="w-80 text-sm">
-                                        <p className="font-semibold mb-2">Qu'est-ce que l'offset ?</p>
+                                        <p className="font-semibold mb-2">{t('taskWizard.recurrence.offsetHelpTitle')}</p>
                                         <p className="text-muted-foreground mb-4">
-                                            L'offset définit le délai supplémentaire accordé au-delà de la fin de la fenêtre planifiée pour compléter la tâche.
+                                            {t('taskWizard.recurrence.offsetHelpBody')}
                                         </p>
                                         <div className="bg-muted p-2 rounded text-xs">
-                                            <strong>Exemple :</strong><br />
-                                            Si la fenêtre se termine à <strong>18:00</strong> avec un offset de <strong>120 minutes</strong>, la tâche sera considérée en retard ("Due") à partir de <strong>20:00</strong>.
+                                            <Trans
+                                                i18nKey="taskWizard.recurrence.offsetExample"
+                                                components={{ strong: <strong />, br: <br /> }}
+                                            />
                                         </div>
                                     </PopoverContent>
                                 </Popover>
@@ -168,7 +168,7 @@ export function RecurrenceSelector({ fcEnabled }: RecurrenceSelectorProps) {
                                 />
                             </FormControl>
                             <FormDescription>
-                                Time to complete task after scheduled time.
+                                {t('taskWizard.recurrence.dueOffsetDescription')}
                             </FormDescription>
                             <FormMessage />
                         </FormItem>
@@ -182,7 +182,7 @@ export function RecurrenceSelector({ fcEnabled }: RecurrenceSelectorProps) {
                         name="recurrenceMode"
                         render={({ field }) => (
                             <FormItem className="col-span-2">
-                                <FormLabel>Recurrence Mode</FormLabel>
+                                <FormLabel>{t('taskWizard.recurrence.mode')}</FormLabel>
                                 <FormControl>
                                     <RadioGroup
                                         onValueChange={field.onChange}
@@ -194,7 +194,7 @@ export function RecurrenceSelector({ fcEnabled }: RecurrenceSelectorProps) {
                                                 <RadioGroupItem value="ON_SCHEDULE" />
                                             </FormControl>
                                             <FormLabel className="font-normal">
-                                                On Schedule (Strict time-based)
+                                                {t('taskWizard.recurrence.onSchedule')}
                                             </FormLabel>
                                         </FormItem>
                                         <FormItem className="flex items-center space-x-3 space-y-0">
@@ -202,7 +202,7 @@ export function RecurrenceSelector({ fcEnabled }: RecurrenceSelectorProps) {
                                                 <RadioGroupItem value="FROM_COMPLETION" />
                                             </FormControl>
                                             <FormLabel className="font-normal">
-                                                From Completion (Rolling based on last success)
+                                                {t('taskWizard.recurrence.fromCompletion')}
                                             </FormLabel>
                                         </FormItem>
                                     </RadioGroup>
@@ -218,10 +218,10 @@ export function RecurrenceSelector({ fcEnabled }: RecurrenceSelectorProps) {
                     <div className="flex items-center justify-between">
                         <div>
                             <FormLabel className="flex items-center gap-2">
-                                <Clock className="h-4 w-4" /> Time Window
+                                <Clock className="h-4 w-4" /> {t('taskWizard.recurrence.timeWindow')}
                             </FormLabel>
                             <FormDescription>
-                                Defines the allowed execution window for the task.
+                                {t('taskWizard.recurrence.timeWindowDescription')}
                             </FormDescription>
                         </div>
                         <FormField
@@ -230,7 +230,7 @@ export function RecurrenceSelector({ fcEnabled }: RecurrenceSelectorProps) {
                             render={({ field }) => (
                                 <FormItem className="flex items-center space-x-2 space-y-0">
                                     <FormLabel className="font-normal text-sm">
-                                        Use global defaults
+                                        {t('taskWizard.recurrence.useGlobalDefaults')}
                                     </FormLabel>
                                     <FormControl>
                                         <Switch
@@ -261,7 +261,7 @@ export function RecurrenceSelector({ fcEnabled }: RecurrenceSelectorProps) {
                                 name="windowStartTime"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Start Time</FormLabel>
+                                        <FormLabel>{t('taskWizard.recurrence.startTime')}</FormLabel>
                                         <FormControl>
                                             <Input type="time" {...field} value={field.value || defaultStart} />
                                         </FormControl>
@@ -274,7 +274,7 @@ export function RecurrenceSelector({ fcEnabled }: RecurrenceSelectorProps) {
                                 name="windowEndTime"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>End Time</FormLabel>
+                                        <FormLabel>{t('taskWizard.recurrence.endTime')}</FormLabel>
                                         <FormControl>
                                             <Input type="time" {...field} value={field.value || defaultEnd} />
                                         </FormControl>
@@ -294,7 +294,7 @@ export function RecurrenceSelector({ fcEnabled }: RecurrenceSelectorProps) {
                                     }}
                                 >
                                     <RotateCcw className="h-3 w-3 mr-2" />
-                                    Reset to Defaults
+                                    {t('taskWizard.recurrence.resetToDefaults')}
                                 </Button>
                             </div>
                         </div>
@@ -304,7 +304,7 @@ export function RecurrenceSelector({ fcEnabled }: RecurrenceSelectorProps) {
                 {/* Monthly specific: Day of Month vs Nth Weekday */}
                 {periodicity === 'monthly' && (
                     <div className="col-span-2 border-t pt-4 mt-2">
-                        <FormLabel className="block mb-2">Monthly Pattern</FormLabel>
+                        <FormLabel className="block mb-2">{t('taskWizard.recurrence.monthlyPattern')}</FormLabel>
                         <div className="flex gap-4">
                             <FormField
                                 control={control}
@@ -317,16 +317,16 @@ export function RecurrenceSelector({ fcEnabled }: RecurrenceSelectorProps) {
                                         >
                                             <FormControl>
                                                 <SelectTrigger>
-                                                    <SelectValue placeholder="On Day..." />
+                                                    <SelectValue placeholder={t('taskWizard.recurrence.onDay')} />
                                                 </SelectTrigger>
                                             </FormControl>
                                             <SelectContent>
-                                                <SelectItem value="0">Specific Date (e.g. 15th)</SelectItem>
-                                                <SelectItem value="1">First</SelectItem>
-                                                <SelectItem value="2">Second</SelectItem>
-                                                <SelectItem value="3">Third</SelectItem>
-                                                <SelectItem value="4">Fourth</SelectItem>
-                                                <SelectItem value="-1">Last</SelectItem>
+                                                <SelectItem value="0">{t('taskWizard.recurrence.specificDate')}</SelectItem>
+                                                <SelectItem value="1">{t('taskWizard.positions.first')}</SelectItem>
+                                                <SelectItem value="2">{t('taskWizard.positions.second')}</SelectItem>
+                                                <SelectItem value="3">{t('taskWizard.positions.third')}</SelectItem>
+                                                <SelectItem value="4">{t('taskWizard.positions.fourth')}</SelectItem>
+                                                <SelectItem value="-1">{t('taskWizard.positions.last')}</SelectItem>
                                             </SelectContent>
                                         </Select>
                                     </FormItem>
@@ -342,7 +342,7 @@ export function RecurrenceSelector({ fcEnabled }: RecurrenceSelectorProps) {
                                         <FormItem className="flex-1">
                                             <NumberInput
                                                 min={1} max={31}
-                                                placeholder="Day (1-31)"
+                                                placeholder={t('taskWizard.recurrence.dayPlaceholder')}
                                                 {...field}
                                                 onChange={field.onChange}
                                                 value={field.value || 1}
@@ -362,17 +362,15 @@ export function RecurrenceSelector({ fcEnabled }: RecurrenceSelectorProps) {
                                             >
                                                 <FormControl>
                                                     <SelectTrigger>
-                                                        <SelectValue placeholder="Weekday" />
+                                                        <SelectValue placeholder={t('taskWizard.recurrence.weekdayPlaceholder')} />
                                                     </SelectTrigger>
                                                 </FormControl>
                                                 <SelectContent>
-                                                    <SelectItem value="0">Monday</SelectItem>
-                                                    <SelectItem value="1">Tuesday</SelectItem>
-                                                    <SelectItem value="2">Wednesday</SelectItem>
-                                                    <SelectItem value="3">Thursday</SelectItem>
-                                                    <SelectItem value="4">Friday</SelectItem>
-                                                    <SelectItem value="5">Saturday</SelectItem>
-                                                    <SelectItem value="6">Sunday</SelectItem>
+                                                    {[0, 1, 2, 3, 4, 5, 6].map((day) => (
+                                                        <SelectItem key={day} value={String(day)}>
+                                                            {t(`taskWizard.weekdays.long.${day}`)}
+                                                        </SelectItem>
+                                                    ))}
                                                 </SelectContent>
                                             </Select>
                                         </FormItem>

@@ -41,7 +41,13 @@
         "type": "Type",
         "confirmDelete": "Êtes-vous sûr ?",
         "actions": "Actions",
-        "saving": "Enregistrement..."
+        "saving": "Enregistrement...",
+        "toggleLanguage": "Changer de langue",
+        "more": "Plus",
+        "toggleSidebar": "Afficher ou masquer le menu latéral",
+        "unknownError": "Erreur inconnue",
+        "sidebar": "Menu latéral",
+        "mobileSidebar": "Affiche le menu latéral mobile."
     },
     "auth": {
         "signIn": "Se connecter",
@@ -310,8 +316,45 @@
                 "emailConfigured": "Paramètres email configurés",
                 "backupConfigured": "Rétention des sauvegardes configurée",
                 "preferencesSet": "Préférences de l'application définies"
+            },
+            "admin": {
+                "name": "Compte administrateur",
+                "description": "Créer l'identité de l'administrateur",
+                "title": "Compte administrateur",
+                "subtitle": "Créez l'identité du compte administrateur principal.",
+                "email": "Email de l'administrateur",
+                "emailPlaceholder": "admin@exemple.com",
+                "emailHint": "Cet email servira de compte administrateur principal et d'identifiant de connexion.",
+                "password": "Mot de passe",
+                "passwordPlaceholder": "Mot de passe robuste (12 caractères min., majuscules, minuscules, chiffre, symbole)",
+                "passwordHint": "Au moins 12 caractères, avec une majuscule, une minuscule, un chiffre et un caractère spécial (tout caractère qui n'est ni une lettre ni un chiffre). Ils peuvent être à n'importe quelle position.",
+                "confirmPassword": "Confirmer le mot de passe",
+                "confirmPlaceholder": "Saisissez à nouveau le mot de passe",
+                "creating": "Création...",
+                "rules": {
+                    "length": "au moins 12 caractères",
+                    "lowercase": "une lettre minuscule",
+                    "uppercase": "une lettre majuscule (à n'importe quelle position)",
+                    "digit": "un chiffre",
+                    "special": "un caractère spécial (tout caractère qui n'est ni une lettre ni un chiffre)"
+                },
+                "errors": {
+                    "invalidEmail": "Veuillez saisir une adresse email valide",
+                    "missing": "Il manque au mot de passe : {{rules}}.",
+                    "mismatch": "Les mots de passe ne correspondent pas",
+                    "createFailed": "Échec de la création de l'administrateur",
+                    "alreadyDone": "La configuration est déjà terminée. Redirection vers la connexion...",
+                    "bootstrapSecret": "BOOTSTRAP_SECRET est absent de l'environnement du serveur. Ajoutez-le au fichier .env avant de lancer la configuration.",
+                    "status": "Échec de la création du compte ({{status}} {{statusText}})",
+                    "unexpected": "Échec de la création du compte à cause d'une erreur inattendue."
+                }
+            },
+            "summaryItems": {
+                "admin": "Compte administrateur créé"
             }
-        }
+        },
+        "languageLabel": "Language / Langue",
+        "languageHint": "La langue de l'interface change immédiatement."
     },
     "settings": {
         "title": "Paramètres",
@@ -334,8 +377,8 @@
         "addonsDescription": "Activer ou désactiver des fonctionnalités supplémentaires",
         "todoListEnabled": "Activer la Liste de tâches",
         "todoListHint": "Affiche une liste de tâches personnelle et collective dans la barre latérale",
-        "todoListReminders": "Rappels par email",
-        "todoListRemindersHint": "Envoie un email lorsqu'une tâche arrive à échéance dans les 24 h (nécessite que l'envoi d'emails soit activé)",
+        "todoListReminders": "Rappels",
+        "todoListRemindersHint": "Prévient lorsqu'une tâche arrive à échéance : centre de notifications, pop-up navigateur et email (chacun choisit ; l'email nécessite aussi l'envoi d'emails activé)",
         "apiKeys": {
             "title": "Clés API",
             "description": "Gérer les clés d'accès pour les intégrations externes"
@@ -1175,7 +1218,9 @@
             "timeout": "Timeout (secondes)",
             "enabled": "Activé",
             "save": "Enregistrer la configuration"
-        }
+        },
+        "runFailed": "Échec de l'exécution de la tâche planifiée",
+        "toggleFailed": "Échec du changement d'état de la tâche planifiée"
     },
     "tasks": {
         "title": "Définitions de Tâches",
@@ -1344,5 +1389,1245 @@
         "deniedTitle": "Accès non autorisé",
         "deniedDescription": "Votre compte ne dispose pas des droits nécessaires pour cette page.",
         "backToBoard": "Retour au tableau de bord"
+    },
+    "taskWizard": {
+        "title": "Créer une tâche",
+        "subtitle": "Suivez les étapes pour configurer votre nouvelle tâche.",
+        "fillDetails": "Renseignez les informations ci-dessous.",
+        "processing": "Traitement...",
+        "createButton": "Confirmer et créer",
+        "steps": {
+            "definition": {
+                "title": "Définition",
+                "description": "Choisissez la périodicité et les informations de base"
+            },
+            "scheduling": {
+                "title": "Planification",
+                "description": "Configurez les règles et les dates de planification"
+            },
+            "assignment": {
+                "title": "Affectation",
+                "description": "Affectez la tâche à des utilisateurs ou des groupes"
+            },
+            "notifications": {
+                "title": "Notifications",
+                "description": "Configurez les alertes de cette tâche"
+            },
+            "review": {
+                "title": "Vérifier et créer",
+                "description": "Vérifiez les paramètres et prévisualisez les occurrences"
+            }
+        },
+        "toasts": {
+            "invalidConfig": "Configuration invalide",
+            "fromCompletionNoRule": "Le mode « À partir de la complétion » nécessite un modèle de planification valide (la règle de récurrence n'a pas pu être générée).",
+            "recurrentNeedsRule": "Les tâches récurrentes nécessitent obligatoirement une règle de récurrence.",
+            "created": "Tâche créée",
+            "createdDescription": "La tâche a été planifiée avec succès.",
+            "notificationsFailed": "La tâche a été créée, mais les notifications n'ont pas pu être enregistrées.",
+            "uploadFailed": "La tâche a été créée, mais le fichier de procédure n'a pas pu être envoyé. Vous pouvez réessayer en modifiant la tâche.",
+            "error": "Erreur",
+            "createFailed": "Échec de la création de la tâche"
+        },
+        "priorities": {
+            "LOW": "Basse",
+            "MEDIUM": "Moyenne",
+            "HIGH": "Haute",
+            "CRITICAL": "Critique"
+        },
+        "periodicities": {
+            "daily": {
+                "label": "Quotidienne",
+                "desc": "Chaque jour"
+            },
+            "weekly": {
+                "label": "Hebdomadaire",
+                "desc": "Chaque semaine"
+            },
+            "monthly": {
+                "label": "Mensuelle",
+                "desc": "Chaque mois"
+            },
+            "yearly": {
+                "label": "Annuelle",
+                "desc": "Chaque année"
+            },
+            "custom": {
+                "label": "Personnalisée",
+                "desc": "Règles avancées"
+            }
+        },
+        "weekdays": {
+            "long": {
+                "0": "Lundi",
+                "1": "Mardi",
+                "2": "Mercredi",
+                "3": "Jeudi",
+                "4": "Vendredi",
+                "5": "Samedi",
+                "6": "Dimanche"
+            },
+            "short": {
+                "0": "Lun",
+                "1": "Mar",
+                "2": "Mer",
+                "3": "Jeu",
+                "4": "Ven",
+                "5": "Sam",
+                "6": "Dim"
+            },
+            "inline": {
+                "0": "lundi",
+                "1": "mardi",
+                "2": "mercredi",
+                "3": "jeudi",
+                "4": "vendredi",
+                "5": "samedi",
+                "6": "dimanche"
+            }
+        },
+        "positions": {
+            "first": "Premier",
+            "second": "Deuxième",
+            "third": "Troisième",
+            "fourth": "Quatrième",
+            "last": "Dernier",
+            "firstInline": "premier",
+            "secondInline": "deuxième",
+            "thirdInline": "troisième",
+            "fourthInline": "quatrième",
+            "lastInline": "dernier"
+        },
+        "definition": {
+            "name": "Nom de la tâche",
+            "namePlaceholder": "ex. Sauvegarde du serveur",
+            "priority": "Priorité",
+            "procedure": "Procédure (facultatif)",
+            "procedureLink": "Lien web",
+            "procedureFile": "Fichier",
+            "procedureUrlPlaceholder": "https://wiki...",
+            "selectedFile": "Sélectionné : {{name}}",
+            "description": "Description",
+            "descriptionPlaceholder": "Décrivez ce qui doit être fait...",
+            "periodicity": "Périodicité"
+        },
+        "assignment": {
+            "usersTab": "Utilisateurs ({{n}})",
+            "groupsTab": "Groupes ({{n}})",
+            "assignToUsers": "Affecter à des utilisateurs",
+            "assignToGroups": "Affecter à des groupes",
+            "noUsers": "Aucun utilisateur trouvé.",
+            "noGroups": "Aucun groupe trouvé."
+        },
+        "notifications": {
+            "noChannelsTitle": "Aucun canal actif",
+            "noChannelsBody": "Aucun canal de notification actif n'est configuré.",
+            "noChannelsHelp": "Pour configurer des alertes, rendez-vous dans <settings>Paramètres > Notifications</settings> et activez au moins un canal.",
+            "intro": "Sélectionnez les canaux à utiliser pour cette tâche et configurez le moment d'envoi des alertes.",
+            "onFailure": "En cas d'échec",
+            "onFailureDesc": "Notifier lorsque la tâche échoue",
+            "onMissing": "En cas d'oubli",
+            "onMissingDesc": "Notifier si la tâche est manquée",
+            "reminder": "Rappel",
+            "reminderDesc": "Rappeler avant l'échéance",
+            "emailRecipients": "Destinataires des emails",
+            "selectUsers": "Sélectionner des utilisateurs",
+            "selectGroups": "Sélectionner des groupes",
+            "customEmails": "Emails personnalisés (séparés par des virgules)",
+            "customEmailsPlaceholder": "admin@exemple.com, responsable@exemple.com"
+        },
+        "scheduling": {
+            "weeklyInfo": "Cette tâche s'alignera automatiquement sur le <strong>début de la semaine</strong> selon les paramètres de votre pays (ex. lundi pour la France, dimanche pour les États-Unis).",
+            "weeklyInfoSub": "Les tâches hebdomadaires sont valables toute la semaine. La validation peut avoir lieu à tout moment pendant cette période.",
+            "monthlyInfo": "Cette tâche se répète <strong>{{pattern}}</strong>.",
+            "monthlyNth": "le {{position}} {{weekday}} de chaque mois",
+            "monthlyDay": "le {{day}} de chaque mois",
+            "unknownWeekday": "jour",
+            "startDate": "Date de début",
+            "endDate": "Date de fin",
+            "pickDate": "Choisir une date",
+            "startDateHint": {
+                "daily": "Les tâches quotidiennes doivent commencer aujourd'hui ou plus tard",
+                "weekly": "Les tâches hebdomadaires peuvent commencer dès aujourd'hui",
+                "monthly": "Les tâches mensuelles peuvent commencer dès aujourd'hui",
+                "yearly": "Les tâches annuelles peuvent commencer dès aujourd'hui",
+                "custom": "Les tâches personnalisées ne peuvent pas avoir de date de début passée",
+                "default": "Les tâches doivent commencer aujourd'hui ou plus tard"
+            },
+            "startDateDescription": {
+                "weekly": "Détermine la première semaine.",
+                "monthly": "Détermine le premier mois.",
+                "default": "La date de la première occurrence."
+            },
+            "endDateHint": "Les tâches annuelles peuvent être dues dès le 1er janvier de l'année dernière",
+            "endDateDescription": "Définit la fin du bloc de données annuel.",
+            "customPatternTitle": "Modèle de récurrence personnalisé",
+            "ruleType": "Type de règle",
+            "selectRuleType": "Sélectionner un type de règle...",
+            "ruleTypes": {
+                "every_x_days": "Tous les X jours",
+                "selected_weekdays": "Jours de la semaine choisis",
+                "weeks_of_month": "Semaines du mois",
+                "days_of_year": "Jours de l'année"
+            },
+            "intervalLabel": {
+                "every_x_days": "Intervalle (jours)",
+                "selected_weekdays": "Intervalle (semaines)",
+                "weeks_of_month": "Intervalle (mois)",
+                "days_of_year": "Intervalle (années)"
+            },
+            "intervalHint": "ex. un intervalle de 2 signifie « un sur deux »",
+            "weekdays": "Jours de la semaine",
+            "continuousBlock": "Traiter comme un bloc continu",
+            "continuousBlockHint": "Si activé, la tâche couvre en continu la période du premier au dernier jour sélectionné, au lieu de créer des occurrences quotidiennes séparées.",
+            "continuousBlockDescription": "Fait de la récurrence une période ininterrompue plutôt que des jours séparés.",
+            "weekPosition": "Position dans le mois",
+            "weekPositionPlaceholder": "ex. premier, dernier...",
+            "daysOfYear": "Jours de l'année",
+            "daysOfYearPlaceholder": "ex. 1, 150, 365",
+            "daysOfYearHint": "Liste de jours séparés par des virgules (1-366).",
+            "businessRules": "Règles métier",
+            "skipWeekends": "Ignorer les week-ends",
+            "skipWeekendsDescription": "Décale l'occurrence au lundi si elle tombe un samedi ou un dimanche.",
+            "skipHolidays": "Ignorer les jours fériés",
+            "skipHolidaysDescription": "Décale l'occurrence au prochain jour ouvré si elle tombe un jour férié."
+        },
+        "recurrence": {
+            "advanced": "Planification avancée",
+            "repeatEvery": "Répéter tous les",
+            "units": {
+                "daily": "jours",
+                "weekly": "semaines",
+                "monthly": "mois",
+                "yearly": "ans",
+                "custom": "cycles"
+            },
+            "timezone": "Fuseau horaire",
+            "selectTimezone": "Sélectionner un fuseau horaire",
+            "dueOffset": "Délai de grâce (minutes)",
+            "offsetHelpTitle": "Qu'est-ce que le délai de grâce ?",
+            "offsetHelpBody": "Le délai de grâce est le temps supplémentaire accordé au-delà de la fin de la fenêtre planifiée pour terminer la tâche.",
+            "offsetExample": "<strong>Exemple :</strong><br />Si la fenêtre se termine à <strong>18:00</strong> avec un délai de <strong>120 minutes</strong>, la tâche est considérée en retard (« Due ») à partir de <strong>20:00</strong>.",
+            "dueOffsetDescription": "Temps accordé pour terminer la tâche après l'heure planifiée.",
+            "mode": "Mode de récurrence",
+            "onSchedule": "Selon le calendrier (strictement basé sur l'horaire)",
+            "fromCompletion": "À partir de la complétion (glissant, selon la dernière réussite)",
+            "timeWindow": "Fenêtre horaire",
+            "timeWindowDescription": "Définit la plage d'exécution autorisée pour la tâche.",
+            "useGlobalDefaults": "Utiliser les valeurs globales",
+            "startTime": "Heure de début",
+            "endTime": "Heure de fin",
+            "resetToDefaults": "Rétablir les valeurs par défaut",
+            "monthlyPattern": "Modèle mensuel",
+            "onDay": "Le...",
+            "specificDate": "Date précise (ex. le 15)",
+            "dayPlaceholder": "Jour (1-31)",
+            "weekdayPlaceholder": "Jour de la semaine"
+        },
+        "review": {
+            "configuration": "Configuration",
+            "name": "Nom :",
+            "periodicity": "Périodicité :",
+            "customPattern": "Modèle personnalisé :",
+            "rrule": "RRule (V2) :",
+            "incompleteRule": "RÈGLE_INCOMPLÈTE",
+            "recurrence": "Récurrence :",
+            "timeWindow": "Fenêtre horaire :",
+            "globalDefaults": "Valeurs globales",
+            "startDate": "Date de début :",
+            "assignments": "Affectations :",
+            "recipients": "{{n}} destinataire(s)",
+            "nextOccurrences": "Prochaines occurrences (aperçu)",
+            "error": "Erreur",
+            "previewFailed": "Impossible de générer l'aperçu.",
+            "previewUnreachable": "Le serveur est injoignable : impossible de calculer l'aperçu. Vérifiez la connexion et l'adresse utilisée pour ouvrir l'application.",
+            "shiftedFrom": "(Décalée depuis le {{date}})",
+            "noInstances": "Aucune occurrence générée pour la fenêtre d'aperçu actuelle.",
+            "readyTitle": "Prêt à créer ?",
+            "readyBody": "Vérifiez les occurrences ci-dessus. Une fois la tâche créée, le système générera automatiquement les occurrences selon cette planification.",
+            "customRule": {
+                "every_x_days": "Tous les {{n}} jours",
+                "selected_weekdays": "Toutes les {{n}} semaines, les jours choisis",
+                "weeks_of_month": "Tous les {{n}} mois, à la position choisie",
+                "days_of_year": "Tous les {{n}} ans, à des jours précis",
+                "fallback": "Règles personnalisées"
+            }
+        },
+        "validation": {
+            "nameMin": "Le nom doit contenir au moins 3 caractères",
+            "nameMax": "Le nom doit contenir moins de 50 caractères",
+            "descriptionMin": "La description doit contenir au moins 5 caractères",
+            "invalidUrl": "Doit être une URL valide",
+            "invalidEmail": "Adresse email invalide",
+            "invalidTimezone": "Fuseau horaire invalide",
+            "startTimeRequired": "L'heure de début est requise lorsque les valeurs globales sont remplacées",
+            "endTimeRequired": "L'heure de fin est requise lorsque les valeurs globales sont remplacées",
+            "invalidTimeFormat": "Format d'heure invalide (HH:mm)",
+            "intervalMin": "L'intervalle doit être supérieur ou égal à 1",
+            "selectWeekday": "Sélectionnez au moins un jour de la semaine",
+            "selectWeekPosition": "Sélectionnez une position dans le mois (ex. premier, dernier)",
+            "selectYearDay": "Indiquez au moins un jour de l'année valide (1-366)",
+            "dailyStart": "Les tâches quotidiennes doivent commencer aujourd'hui ou plus tard (min : {{date}})",
+            "weeklyDue": "Les tâches hebdomadaires ne peuvent pas être dues avant le {{date}}",
+            "monthlyDue": "Les tâches mensuelles ne peuvent pas être dues avant le {{date}}",
+            "yearlyDue": "Les tâches annuelles ne peuvent pas être dues avant le {{date}}",
+            "customDue": "La date d'échéance ne peut pas être dans le passé (min : {{date}})"
+        }
+    },
+    "todos": {
+        "subtitle": "Vos tâches personnelles et collectives",
+        "tabPrivate": "Privé ({{n}})",
+        "tabCollective": "Collectif ({{n}})",
+        "newTaskPlaceholder": "Nouvelle tâche... (n)",
+        "newTask": "Nouvelle tâche",
+        "dueDate": "Échéance",
+        "priority": "Priorité",
+        "add": "Ajouter",
+        "search": "Rechercher...",
+        "searchLabel": "Rechercher une tâche",
+        "dueFilterLabel": "Filtrer par échéance",
+        "filters": {
+            "all": "Toutes les échéances",
+            "overdue": "En retard",
+            "today": "Aujourd'hui",
+            "week": "Cette semaine",
+            "mine": "Qui me sont assignées"
+        },
+        "emptyTitle": "Aucune tâche",
+        "emptyCanAdd": "Ajoutez-en une ci-dessus pour commencer.",
+        "emptyReadOnly": "Rien à faire pour le moment.",
+        "completedSection": "Terminées ces dernières 24 h ({{n}})",
+        "clearCompleted": "Tout supprimer",
+        "selectGroup": "Sélectionner un groupe...",
+        "wholeSite": "Tout le site",
+        "toasts": {
+            "deleted": "Tâche supprimée",
+            "undo": "Annuler",
+            "cleared_one": "{{count}} tâche supprimée",
+            "cleared_other": "{{count}} tâches supprimées"
+        },
+        "priorities": {
+            "LOW": "Basse",
+            "NORMAL": "Normale",
+            "HIGH": "Haute",
+            "URGENT": "Urgente"
+        },
+        "priorityAria": "Priorité {{priority}}",
+        "recurrences": {
+            "NONE": "Aucune",
+            "DAILY": "Chaque jour",
+            "WEEKLY": "Chaque semaine",
+            "MONTHLY": "Chaque mois"
+        },
+        "due": {
+            "today": "Aujourd'hui",
+            "tomorrow": "Demain",
+            "inDays": "Dans {{n}} j",
+            "lateByDays": "En retard de {{n}} j"
+        },
+        "item": {
+            "complete": "Terminer « {{title}} »",
+            "renameHint": "Double-clic pour renommer",
+            "titleLabel": "Titre de la tâche",
+            "recurring": "Tâche récurrente",
+            "completedBy": "par {{name}}",
+            "showSubtasks": "Afficher les sous-tâches",
+            "hideSubtasks": "Masquer les sous-tâches",
+            "edit": "Modifier la tâche",
+            "delete": "Supprimer la tâche",
+            "newSubtaskPlaceholder": "Nouvelle sous-tâche...",
+            "newSubtask": "Nouvelle sous-tâche",
+            "dragHandle": "Déplacer « {{title}} »",
+            "dragHint": "Glisser pour réordonner, ou Alt + flèche haut / bas",
+            "assignedToYou": "Vous",
+            "take": "Je prends",
+            "release": "Libérer",
+            "details": "Commentaires et fichiers"
+        },
+        "dialog": {
+            "title": "Modifier la tâche",
+            "description": "Changez le titre, les notes, l'échéance, la priorité, la répétition ou le groupe.",
+            "titleField": "Titre",
+            "notes": "Notes",
+            "dueDate": "Échéance",
+            "clear": "Effacer",
+            "priority": "Priorité",
+            "repeat": "Répétition",
+            "repeatHint": "Une nouvelle tâche est créée à la prochaine échéance quand celle-ci est cochée.",
+            "group": "Groupe",
+            "dueTime": "Heure",
+            "remind": "Me rappeler",
+            "assignee": "Assignée à",
+            "nobody": "Personne"
+        },
+        "fab": {
+            "title": "Mes tâches",
+            "viewAll": "Voir tout",
+            "newPrivate": "Nouvelle tâche privée...",
+            "none": "Aucune tâche en cours 🎉",
+            "collective": "Collectif"
+        },
+        "badge": "{{overdue}} en retard, {{today}} pour aujourd'hui",
+        "quickAddHint": "Astuce : tapez @demain, @lundi, @+3j, @14h30 ou !urgente dans le titre pour fixer la date, l'heure et la priorité.",
+        "options": {
+            "toggle": "Plus d'options"
+        },
+        "errors": {
+            "create": "La tâche n'a pas pu être créée",
+            "update": "La tâche n'a pas pu être modifiée",
+            "reorder": "L'ordre n'a pas pu être enregistré"
+        },
+        "remind": {
+            "default": "1 jour avant",
+            "atDue": "À l'heure prévue",
+            "min15": "15 minutes avant",
+            "hour1": "1 heure avant",
+            "hour2": "2 heures avant",
+            "day1": "1 jour avant",
+            "day2": "2 jours avant",
+            "week1": "1 semaine avant"
+        },
+        "openReminder": {
+            "title": "Votre liste de tâches vous attend",
+            "overdue_one": "{{count}} tâche en retard",
+            "overdue_other": "{{count}} tâches en retard",
+            "today_one": "{{count}} tâche pour aujourd'hui",
+            "today_other": "{{count}} tâches pour aujourd'hui",
+            "view": "Voir"
+        },
+        "history": {
+            "button": "Historique",
+            "title": "Tâches terminées",
+            "descriptionPrivate": "Tout ce que vous avez coché dans votre liste privée.",
+            "descriptionCollective": "Tout ce qui a été coché dans la liste collective.",
+            "empty": "Aucune tâche terminée",
+            "loadMore": "Voir plus"
+        },
+        "details": {
+            "description": "Commentaires et fichiers de cette tâche",
+            "comments": "Commentaires",
+            "noComments": "Aucun commentaire pour le moment.",
+            "newComment": "Nouveau commentaire",
+            "newCommentPlaceholder": "Écrire un commentaire... (Ctrl+Entrée pour envoyer)",
+            "send": "Envoyer",
+            "deleteComment": "Supprimer le commentaire",
+            "commentFailed": "Le commentaire n'a pas pu être envoyé",
+            "attachments": "Fichiers",
+            "noAttachments": "Aucun fichier pour le moment.",
+            "addFile": "Ajouter un fichier",
+            "chooseFile": "Choisir un fichier",
+            "fileHint": "Images (PNG, JPEG, WebP) ou PDF, 5 Mo maximum.",
+            "download": "Télécharger",
+            "deleteAttachment": "Supprimer le fichier",
+            "uploadFailed": "Le fichier n'a pas pu être ajouté",
+            "downloadFailed": "Le fichier n'a pas pu être téléchargé"
+        },
+        "reminders": {
+            "button": "Rappels",
+            "title": "Mes rappels",
+            "description": "Comment vous souhaitez être prévenu lorsqu'une tâche arrive à échéance.",
+            "email": "Par email",
+            "push": "Notification pop-up",
+            "collective": "Tâches collectives de mes groupes",
+            "collectiveHint": "Sinon, seules les tâches qui vous sont assignées vous rappellent.",
+            "device": "Cet appareil",
+            "deviceOn": "Les pop-ups sont activés sur cet appareil.",
+            "deviceOff": "Les pop-ups ne sont pas activés sur cet appareil.",
+            "deviceCount_one": "({{count}} appareil au total)",
+            "deviceCount_other": "({{count}} appareils au total)",
+            "enableDevice": "Activer sur cet appareil",
+            "disableDevice": "Désactiver sur cet appareil",
+            "pushServerOff": "Les notifications pop-up ne sont pas disponibles sur ce serveur.",
+            "pushUnsupported": "Ce navigateur ne gère pas les notifications pop-up (HTTPS requis).",
+            "pushDenied": "Les notifications sont bloquées dans ce navigateur : autorisez-les dans les réglages du site.",
+            "saveFailed": "Vos préférences n'ont pas pu être enregistrées"
+        }
+    },
+    "taskList": {
+        "counts": "{{active}} active(s), {{inactive}} inactive(s)",
+        "searchPlaceholder": "Rechercher une tâche...",
+        "showInactive": "Afficher les inactives",
+        "filterUser": "Filtrer par utilisateur",
+        "allUsers": "Tous les utilisateurs",
+        "filterGroup": "Filtrer par groupe",
+        "allGroups": "Tous les groupes",
+        "clear": "Effacer",
+        "emptyTitle": "Aucune tâche pour le moment",
+        "emptyBody": "Créez votre première tâche récurrente pour commencer.",
+        "columns": {
+            "name": "Nom de la tâche",
+            "periodicity": "Périodicité et règles",
+            "assignments": "Affectations",
+            "status": "Statut"
+        },
+        "skipWeekends": "Sans week-ends",
+        "skipHolidays": "Sans jours fériés",
+        "userCount": "{{n}} utilisateur(s)",
+        "groupCount": "{{n}} groupe(s)",
+        "noAssignments": "Aucune affectation",
+        "active": "Active",
+        "inactive": "Inactive",
+        "delegated": "Délégué",
+        "delegatedMany": "Délégué ({{n}})",
+        "delegationsAria": "{{n}} délégation(s) active(s)",
+        "delegationsTitle": "Délégations actives",
+        "unknown": "Inconnu",
+        "noRecipient": "Aucun bénéficiaire",
+        "groupSuffix": "{{name}} (groupe)",
+        "delegationLine": "Délégué de <b>{{delegator}}</b> vers <b>{{targets}}</b> du {{start}} au {{end}}",
+        "actions": {
+            "openMenu": "Ouvrir le menu",
+            "manageAssignments": "Gérer les affectations",
+            "manageDelegations": "Gérer les délégations",
+            "deactivate": "Désactiver",
+            "reactivate": "Réactiver",
+            "deleteTask": "Supprimer la tâche",
+            "deactivateTitle": "Désactiver la tâche ?",
+            "deactivateBody": "Cela désactivera la tâche <strong>{{name}}</strong>. Elle n'apparaîtra plus dans le planning quotidien mais pourra être réactivée plus tard.",
+            "deactivated": "Tâche désactivée",
+            "deactivateFailed": "Échec de la désactivation de la tâche",
+            "reactivated": "Tâche réactivée",
+            "reactivateFailed": "Échec de la réactivation de la tâche"
+        }
+    },
+    "taskDelete": {
+        "title": "Supprimer la tâche",
+        "description": "Cette action supprimera la tâche <strong>« {{name}} »</strong>. La tâche pourra être restaurée pendant 30 jours.",
+        "warning": "Attention :",
+        "hideStatuses": "Tous les statuts seront masqués",
+        "loseAccess": "Les utilisateurs affectés perdront l'accès",
+        "cancelDelegations": "Les délégations actives seront annulées",
+        "confirmPrompt": "Saisissez <name>{{name}}</name> pour confirmer :",
+        "placeholder": "Saisissez le nom de la tâche",
+        "deleting": "Suppression...",
+        "deleted": "Tâche supprimée avec succès",
+        "restoreHint": "Vous pouvez la restaurer pendant 30 jours depuis les archives.",
+        "failed": "Échec de la suppression de la tâche"
+    },
+    "taskDetails": {
+        "dryRun": "Mode DRY_RUN actif",
+        "triggered": "Exécution de la tâche déclenchée",
+        "triggerFailed": "Échec du déclenchement de la tâche",
+        "notFound": "Tâche introuvable",
+        "backToTasks": "Retour aux tâches",
+        "noDescription": "Aucune description fournie",
+        "runNow": "Exécuter maintenant",
+        "tabs": {
+            "overview": "Vue d'ensemble",
+            "logs": "Journaux",
+            "configuration": "Configuration"
+        },
+        "notImplemented": "Pas encore disponible",
+        "start": "Début : {{date}}",
+        "noWeekends": "Sans week-ends",
+        "noHolidays": "Sans jours fériés",
+        "assignmentsSummary": "{{users}} utilisateurs, {{groups}} groupes",
+        "schedule": "Planification",
+        "globalWindow": "Fenêtre horaire globale par défaut",
+        "dueOffset": "Délai de grâce : {{n}} h",
+        "notifications": "Notifications",
+        "noChannels": "Aucun canal configuré",
+        "channelFallback": "Canal n° {{id}}",
+        "badges": {
+            "fail": "Échec",
+            "missing": "Manquée",
+            "reminder": "Rappel"
+        },
+        "configTitle": "Configuration de la tâche",
+        "configDescription": "Détails de la définition de la tâche.",
+        "createdAt": "Créée le",
+        "updatedAt": "Modifiée le"
+    },
+    "taskEdit": {
+        "title": "Modifier la tâche : {{name}}",
+        "saveChanges": "Enregistrer les modifications",
+        "saveNotifications": "Enregistrer les notifications",
+        "notFound": "Tâche introuvable",
+        "basicInformation": "Informations de base",
+        "schedulingRecurrence": "Planification et récurrence",
+        "toasts": {
+            "notificationsSaved": "Notifications enregistrées",
+            "notificationsFailed": "Échec de l'enregistrement des notifications",
+            "invalidConfig": "Configuration invalide",
+            "fromCompletionNoRule": "Le mode « À partir de la complétion » nécessite un modèle de planification valide.",
+            "recurrentNeedsRule": "Les tâches récurrentes nécessitent obligatoirement une règle de récurrence.",
+            "updated": "Tâche mise à jour",
+            "uploadFailed": "La tâche a été mise à jour, mais le nouveau fichier de procédure n'a pas pu être envoyé.",
+            "updateFailed": "Échec de la mise à jour de la tâche"
+        }
+    },
+    "taskArchive": {
+        "title": "Tâches archivées",
+        "description": "Les tâches peuvent être restaurées dans les 30 jours suivant leur suppression. Passé ce délai, elles peuvent être supprimées définitivement par les administrateurs.",
+        "count": "{{n}} tâche(s)",
+        "loading": "Chargement des archives...",
+        "emptyTitle": "Archives vides",
+        "emptyBody": "Vous n'avez aucune tâche archivée",
+        "periodicity": "Périodicité : {{periodicity}}",
+        "deleted": "• Supprimée {{when}}",
+        "restore": "Restaurer la tâche",
+        "restored": "Tâche restaurée avec succès",
+        "restoreFailed": "Échec de la restauration de la tâche"
+    },
+    "taskAssignments": {
+        "title": "Affectations de la tâche",
+        "description": "Gérez les responsables de <strong>{{name}}</strong>",
+        "usersTab": "Utilisateurs ({{n}})",
+        "groupsTab": "Groupes ({{n}})",
+        "selectUser": "Sélectionner un utilisateur...",
+        "noUsersAvailable": "Aucun utilisateur disponible",
+        "selectGroup": "Sélectionner un groupe...",
+        "noGroupsAvailable": "Aucun groupe disponible",
+        "add": "Ajouter",
+        "noUsersAssigned": "Aucun utilisateur affecté à cette tâche.",
+        "noGroupsAssigned": "Aucun groupe affecté à cette tâche.",
+        "noDescription": "Aucune description",
+        "toasts": {
+            "userAssigned": "Utilisateur affecté",
+            "userAssignFailed": "Échec de l'affectation de l'utilisateur",
+            "userUnassigned": "Utilisateur retiré",
+            "userUnassignFailed": "Échec du retrait de l'utilisateur",
+            "groupAssigned": "Groupe affecté",
+            "groupAssignFailed": "Échec de l'affectation du groupe",
+            "groupUnassigned": "Groupe retiré",
+            "groupUnassignFailed": "Échec du retrait du groupe"
+        }
+    },
+    "taskDelegations": {
+        "title": "Délégations de la tâche",
+        "description": "Déléguez <strong>{{name}}</strong> à d'autres personnes pour une période donnée.",
+        "newDelegation": "Nouvelle délégation",
+        "startTime": "Début",
+        "endTime": "Fin",
+        "reason": "Motif (facultatif)",
+        "reasonPlaceholder": "Ex. Congés annuels",
+        "delegateToUsers": "Déléguer à (utilisateurs)",
+        "delegateToGroups": "Déléguer à (groupes)",
+        "selectUser": "Sélectionner un utilisateur...",
+        "selectGroup": "Sélectionner un groupe...",
+        "create": "Créer la délégation",
+        "creating": "Création...",
+        "activeAndPlanned": "En cours et planifiées",
+        "loading": "Chargement des délégations...",
+        "none": "Aucune délégation pour cette tâche.",
+        "reasonLine": "Motif : {{reason}}",
+        "toasts": {
+            "datesRequired": "Les dates de début et de fin sont requises",
+            "targetRequired": "Vous devez sélectionner au moins un utilisateur ou un groupe bénéficiaire",
+            "created": "Délégation créée avec succès",
+            "createFailed": "Échec de la création de la délégation",
+            "removed": "Délégation supprimée",
+            "removeFailed": "Échec de la suppression de la délégation"
+        }
+    },
+    "userMgmt": {
+        "validation": {
+            "firstNameRequired": "Le prénom est requis",
+            "lastNameRequired": "Le nom est requis",
+            "invalidEmail": "Adresse email invalide",
+            "usernameMin": "L'identifiant doit contenir au moins 3 caractères",
+            "passwordMin": "Le mot de passe doit contenir au moins 8 caractères",
+            "passwordsMismatch": "Les mots de passe ne correspondent pas"
+        },
+        "page": {
+            "count": "{{n}} utilisateur(s)",
+            "showDeleted": "Afficher les comptes supprimés",
+            "emptyTitle": "Aucun utilisateur pour le moment",
+            "emptyBody": "Commencez par créer votre premier compte utilisateur.",
+            "guestLinks": "Liens invités TV",
+            "columns": {
+                "fullName": "Nom complet",
+                "email": "Email",
+                "role": "Rôle",
+                "status": "Statut"
+            }
+        },
+        "form": {
+            "createTitle": "Créer un nouvel utilisateur",
+            "editDescription": "Mettez à jour les informations de l'utilisateur ci-dessous.",
+            "createDescription": "Renseignez les informations pour créer un nouvel utilisateur. Un mot de passe sécurisé sera généré automatiquement.",
+            "firstName": "Prénom",
+            "firstNamePlaceholder": "Jean",
+            "lastName": "Nom",
+            "lastNamePlaceholder": "Dupont",
+            "email": "Adresse email",
+            "emailPlaceholder": "jean.dupont@entreprise.com",
+            "role": "Rôle",
+            "selectRole": "Sélectionner un rôle",
+            "roles": {
+                "superAdmin": "Super administrateur",
+                "manager": "Manager",
+                "user": "Utilisateur standard"
+            },
+            "site": "Site",
+            "selectSite": "Sélectionner un site",
+            "sendEmail": "Envoyer l'identifiant et le mot de passe temporaire à l'utilisateur par email",
+            "sendEmailHint": "Le mot de passe temporaire reste affiché après la création.",
+            "emailInactive": "L'envoi d'emails n'est pas activé, aucun email ne sera envoyé. Après la création, transmettez directement le mot de passe temporaire à l'utilisateur.",
+            "update": "Mettre à jour l'utilisateur",
+            "create": "Créer l'utilisateur",
+            "createFailed": "Échec de la création de l'utilisateur"
+        },
+        "reset": {
+            "confirm": "Voulez-vous vraiment réinitialiser le mot de passe de <strong>{{name}}</strong> ?",
+            "autoGenerated": "Un nouveau mot de passe sécurisé sera généré automatiquement.",
+            "shownOnce": "⚠️ Le mot de passe généré ne sera affiché <strong>qu'une seule fois</strong>.",
+            "sendEmail": "Envoyer le mot de passe temporaire à l'utilisateur par email",
+            "sendEmailHint": "Le mot de passe temporaire reste affiché après la réinitialisation.",
+            "emailInactive": "L'envoi d'emails n'est pas activé, aucun email ne sera envoyé. Après la réinitialisation, transmettez directement le mot de passe temporaire à l'utilisateur.",
+            "generating": "Génération...",
+            "confirmButton": "Confirmer et générer un nouveau mot de passe",
+            "successTitle": "Mot de passe réinitialisé",
+            "success": "Mot de passe réinitialisé avec succès",
+            "failed": "Échec de la réinitialisation du mot de passe"
+        },
+        "newPassword": {
+            "title": "Nouveau mot de passe généré",
+            "generatedFor": "Un nouveau mot de passe a été généré pour <strong>{{username}}</strong>.",
+            "important": "⚠️ Important : copiez ce mot de passe maintenant. Il ne sera plus affiché.",
+            "copy": "Copier dans le presse-papiers",
+            "copied": "Mot de passe copié dans le presse-papiers",
+            "done": "Je l'ai copié",
+            "emailStatus": {
+                "SENT": "Les identifiants ont aussi été envoyés à l'utilisateur par email.",
+                "FAILED": "L'email n'a pas pu être envoyé. Transmettez directement le mot de passe temporaire à l'utilisateur.",
+                "NOT_ACTIVE": "L'envoi d'emails n'est pas activé, rien n'a été envoyé. Transmettez directement le mot de passe temporaire à l'utilisateur.",
+                "NO_ADDRESS": "Ce compte n'a pas d'adresse email, rien n'a été envoyé. Transmettez directement le mot de passe temporaire à l'utilisateur."
+            }
+        },
+        "actions": {
+            "openMenu": "Ouvrir le menu",
+            "managedByGuestLinks": "Géré par Guest TV Links",
+            "restore": "Restaurer",
+            "deleteBody": "Cette action supprimera l'utilisateur <strong>{{username}}</strong> (suppression logique). Il ne pourra plus se connecter, mais ses données sont conservées.",
+            "restoreTitle": "Restaurer l'utilisateur ?",
+            "restoreBody": "Cela rétablira l'accès de <strong>{{username}}</strong>."
+        },
+        "guest": {
+            "title": "Liens invités TV",
+            "description": "Générez des liens sécurisés en lecture seule pour les écrans TV. Chaque site peut avoir un lien pour le tableau de bord et un lien pour les analytiques.",
+            "policyTitle": "Politique de sécurité du mode TV",
+            "policy": "Les invités sont en <strong>lecture seule</strong> et ne voient que les chiffres de <strong>leur site</strong>. Le lien <strong>tableau de bord</strong> affiche les tâches en cours ; le lien <strong>analytiques</strong> affiche les indicateurs de conformité, sans donnée par personne et sans export. Un lien n'ouvre que son propre écran.",
+            "noSite": "Aucun site configuré",
+            "noSiteHint": "Créez d'abord un site (Paramètres → Sites) pour pouvoir générer un lien invité TV par site.",
+            "views": {
+                "DASHBOARD": {
+                    "label": "Tableau de bord",
+                    "hint": "Tâches en cours du site"
+                },
+                "ANALYTICS": {
+                    "label": "Analytiques",
+                    "hint": "Indicateurs de conformité du site"
+                }
+            },
+            "active": "Actif",
+            "notCreated": "Non créé",
+            "newLink": "Nouveau lien",
+            "newLinkAria": "Nouveau lien {{view}} pour {{site}}",
+            "reset": "Réinitialiser",
+            "resetAria": "Réinitialiser l'accès {{view}} pour {{site}}",
+            "resetTitle": "Déconnecter l'écran et générer un nouveau lien",
+            "revoke": "Révoquer",
+            "revokeAria": "Révoquer le lien {{view}} pour {{site}}",
+            "createLabel": "Créer :",
+            "createAria": "Lien {{view}} pour {{site}}",
+            "createMany": "Créer {{n}} liens",
+            "createOne": "Créer le lien",
+            "oneTimeTitle_one": "Lien à usage unique",
+            "oneTimeTitle_other": "Liens à usage unique",
+            "oneTimeAria": "Lien TV à usage unique, {{site}} {{view}}",
+            "copy": "Copier",
+            "oneTimeHelp": "Ouvrez chaque lien <strong>une seule fois</strong> sur son écran TV (ou dans une fenêtre privée) : il connecte l'écran tant qu'il reste connecté, sans mot de passe dans l'adresse. Valable jusqu'au {{date}} ; un nouveau lien annule le précédent.",
+            "footer": "Un lien par écran et par site.",
+            "toasts": {
+                "linkFailed": "Échec de la génération du lien",
+                "copied": "Lien copié",
+                "copyFailed": "Échec de la copie : sélectionnez le lien et copiez-le manuellement",
+                "createdMany": "Liens invités créés pour {{site}}",
+                "createdOne": "Lien invité créé pour {{site}}",
+                "createFailed": "Échec de la création du lien invité",
+                "revoked": "Lien invité révoqué",
+                "revokeFailed": "Échec de la révocation du lien invité",
+                "resetDone": "Écran déconnecté et accès réinitialisé",
+                "resetFailed": "Échec de la réinitialisation de l'accès"
+            }
+        }
+    },
+    "groupMgmt": {
+        "validation": {
+            "nameMin3": "Le nom du groupe doit contenir au moins 3 caractères",
+            "nameMin2": "Le nom du groupe doit contenir au moins 2 caractères"
+        },
+        "page": {
+            "count": "{{n}} groupe(s)",
+            "emptyTitle": "Aucun groupe pour le moment",
+            "emptyBody": "Créez des groupes pour organiser les utilisateurs et simplifier l'affectation des tâches.",
+            "columns": {
+                "name": "Nom",
+                "site": "Site",
+                "members": "Membres",
+                "description": "Description"
+            },
+            "noDescription": "Aucune description"
+        },
+        "form": {
+            "createTitle": "Créer un nouveau groupe",
+            "editDescription": "Mettez à jour les informations du groupe ci-dessous.",
+            "createDescription": "Créez un groupe pour organiser les utilisateurs et simplifier l'affectation des tâches.",
+            "name": "Nom du groupe",
+            "namePlaceholder": "Équipe technique",
+            "site": "Site",
+            "selectSite": "Sélectionner un site",
+            "description": "Description",
+            "descriptionPlaceholder": "Description facultative de l'objectif du groupe...",
+            "update": "Mettre à jour le groupe",
+            "create": "Créer le groupe"
+        },
+        "actions": {
+            "openMenu": "Ouvrir le menu",
+            "editDetails": "Modifier les détails",
+            "manageMembers": "Gérer les membres",
+            "deleteGroup": "Supprimer le groupe",
+            "deleteTitle": "Supprimer le groupe ?",
+            "deleteBody": "Cela supprimera définitivement le groupe <strong>{{name}}</strong>. Les affectations de tâches liées à ce groupe peuvent être impactées."
+        },
+        "members": {
+            "title": "Membres du groupe",
+            "description": "Gérez les membres de <strong>{{name}}</strong>",
+            "addTitle": "Ajouter un membre",
+            "searchPlaceholder": "Rechercher par nom, identifiant ou email...",
+            "noneToAdd": "Aucun utilisateur à ajouter",
+            "noResults": "Aucun résultat pour « {{query}} »",
+            "add": "Ajouter",
+            "current": "Membres actuels",
+            "count": "{{n}} membre(s)",
+            "loading": "Chargement des membres...",
+            "empty": "Aucun membre dans ce groupe pour le moment.",
+            "emptyHint": "Utilisez le sélecteur ci-dessus pour ajouter des utilisateurs.",
+            "toasts": {
+                "added": "Membre ajouté avec succès",
+                "addFailed": "Échec de l'ajout du membre",
+                "removed": "Membre retiré avec succès",
+                "removeFailed": "Échec du retrait du membre"
+            }
+        }
+    },
+    "profilePage": {
+        "defaultName": "Utilisateur",
+        "roleBadge": {
+            "SUPER_ADMIN": "Super admin",
+            "ADMIN": "Admin",
+            "MANAGER": "Manager",
+            "GUEST": "Invité",
+            "USER": "Utilisateur"
+        },
+        "roleLong": {
+            "SUPER_ADMIN": "Super administrateur",
+            "ADMIN": "Administrateur",
+            "MANAGER": "Manager",
+            "USER": "Utilisateur",
+            "GUEST": "Invité"
+        },
+        "avatar": {
+            "unsupportedFormat": "Format non supporté. Utilisez PNG, JPG ou WebP.",
+            "updated": "Avatar mis à jour",
+            "failed": "Échec de la mise à jour de l'avatar",
+            "change": "Changer l'avatar"
+        },
+        "info": {
+            "title": "Informations du profil",
+            "description": "Mettez à jour vos informations personnelles et votre avatar",
+            "fullName": "Nom complet",
+            "fullNamePlaceholder": "Votre nom complet",
+            "fullNameHint": "C'est le nom affiché dans toute l'application.",
+            "email": "Email",
+            "emailHint": "Votre adresse email ne peut pas être modifiée.",
+            "role": "Rôle",
+            "roleHint": "Votre rôle est géré par votre administrateur."
+        },
+        "security": {
+            "title": "Sécurité",
+            "description": "Gérez votre mot de passe et vos méthodes d'authentification",
+            "password": "Mot de passe",
+            "passwordDescription": "Modifiez le mot de passe de votre compte",
+            "required": "Obligatoire",
+            "mfa": "Authentification multifacteur",
+            "mfaDisabled": "L'authentification multifacteur n'est pas activée par votre administrateur.",
+            "mfaEnabled": "Ajoutez une couche de sécurité supplémentaire à votre compte.",
+            "mfaNone": "Protégez votre compte avec l'authentification à deux facteurs.",
+            "mfaContact": "Contactez votre administrateur pour activer l'authentification multifacteur.",
+            "passkeys": "Passkeys (WebAuthn)",
+            "passkeysDisabled": "Les passkeys ne sont pas activées par votre administrateur.",
+            "passkeysDescription": "Utilisez la biométrie ou des clés de sécurité pour vous connecter sans mot de passe.",
+            "managePasskeys": "Gérer les passkeys",
+            "addPasskey": "Ajouter une passkey",
+            "passkeysContact": "Contactez votre administrateur pour activer les passkeys."
+        }
+    },
+    "mfaSetup": {
+        "manageTitle": "Gérer l'authentification multifacteur",
+        "setupTitle": "Configurer l'authentification multifacteur",
+        "manageDescription": "Gérez vos méthodes d'authentification et vos codes de secours.",
+        "setupDescription": "Ajoutez une couche de sécurité supplémentaire à votre compte.",
+        "chooseMethod": "Choisissez une méthode pour sécuriser votre compte :",
+        "authenticatorApp": "Application d'authentification (recommandé)",
+        "authenticatorAppHint": "Utilisez Google Authenticator, Authy ou une application similaire",
+        "scanQr": "1. Scannez le QR code",
+        "qrAlt": "QR code",
+        "scanHint": "Scannez ce QR code avec votre application d'authentification.",
+        "enterManually": "Ou saisissez ce code manuellement :",
+        "enterCode": "2. Saisissez le code de vérification",
+        "codeHint": "Saisissez le code à 6 chiffres de votre application d'authentification.",
+        "enable": "Activer l'authentification multifacteur",
+        "saveCodesTitle": "Conservez vos codes de secours",
+        "saveCodesBody": "Rangez ces codes en lieu sûr. Ils vous permettront d'accéder à votre compte si vous perdez votre appareil d'authentification.",
+        "backupCodes": "Codes de secours",
+        "copied": "Copié",
+        "copyAll": "Tout copier",
+        "done": "Terminé",
+        "enabledTitle": "L'authentification multifacteur est activée",
+        "enabledBody": "Votre compte est protégé par l'authentification à deux facteurs.",
+        "viewCodes": "Afficher les codes de secours",
+        "disable": "Désactiver l'authentification multifacteur",
+        "enforcedNote": "L'authentification multifacteur est exigée par votre administrateur et ne peut pas être désactivée.",
+        "toasts": {
+            "secretCopied": "Secret copié dans le presse-papiers",
+            "codesCopied": "Codes de secours copiés dans le presse-papiers",
+            "generateFailed": "Échec de la génération de la configuration",
+            "invalidFormat": "Veuillez saisir un code valide à 6 chiffres",
+            "enabled": "Authentification multifacteur activée",
+            "invalidCode": "Code de vérification invalide",
+            "enforced": "L'authentification multifacteur est exigée par votre administrateur",
+            "disabled": "Authentification multifacteur désactivée",
+            "disableFailed": "Échec de la désactivation"
+        }
+    },
+    "passkeysManage": {
+        "manageTitle": "Gérer les passkeys",
+        "addTitle": "Ajouter une passkey",
+        "listDescription": "Utilisez la biométrie ou des clés de sécurité pour vous connecter sans mot de passe.",
+        "addDescription": "Donnez un nom reconnaissable à votre passkey.",
+        "none": "Aucune passkey configurée",
+        "noneHint": "Ajoutez une passkey pour vous connecter sans mot de passe",
+        "added": "Ajoutée le {{date}}",
+        "lastUsed": "Dernière utilisation le {{date}}",
+        "enforcedNote": "<strong>Remarque :</strong> les passkeys sont exigées par votre administrateur. Vous devez avoir au moins une passkey configurée.",
+        "add": "Ajouter une passkey",
+        "name": "Nom de la passkey",
+        "namePlaceholder": "Mon MacBook, YubiKey, etc.",
+        "nameHint": "Choisissez un nom qui vous aide à identifier cet appareil ou cette clé de sécurité.",
+        "whatNext": "Que se passe-t-il ensuite ?",
+        "step1": "Il vous sera demandé d'utiliser la biométrie de votre appareil ou votre clé de sécurité",
+        "step2": "La passkey sera stockée de manière sécurisée sur votre appareil",
+        "step3": "Vous pourrez l'utiliser pour vous connecter sans mot de passe",
+        "create": "Créer la passkey",
+        "removeTitle": "Supprimer la passkey ?",
+        "removeBody": "Cette passkey ne pourra plus servir à se connecter à votre compte. Cette action est irréversible.",
+        "remove": "Supprimer",
+        "toasts": {
+            "added": "Passkey ajoutée avec succès",
+            "addFailed": "Échec de l'ajout de la passkey",
+            "removed": "Passkey supprimée avec succès",
+            "removeFailed": "Échec de la suppression de la passkey",
+            "nameRequired": "Veuillez saisir un nom pour cette passkey",
+            "keepOne": "Vous devez conserver au moins une passkey lorsque l'obligation est activée"
+        }
+    },
+    "restoreZone": {
+        "toasts": {
+            "needsKey": "Ce backup nécessite une clé de déchiffrement.",
+            "validationError": "Erreur de validation",
+            "invalidFile": "Fichier invalide",
+            "analysed": "Fichier analysé avec succès. Prêt à restaurer.",
+            "analyseFailed": "Échec de l'analyse du fichier",
+            "externalRejected": "Fichier externe refusé",
+            "restored": "Système restauré. Redirection...",
+            "restoreFailed": "Échec de la restauration."
+        },
+        "types": {
+            "system": "Système",
+            "database": "Base de données"
+        },
+        "externalFile": "Fichier Externe (Temporaire)",
+        "dangerTitle": "Zone de Danger : Restauration Système",
+        "dangerBody": "Restaurez le système depuis une sauvegarde.",
+        "dangerWarning": "Cette action est irréversible et remplacera toutes les données actuelles.",
+        "externalArchive": "Archive Externe",
+        "selectedBackup": "Sauvegarde Sélectionnée",
+        "encrypted": "Chiffré",
+        "externalBadge": "Restauration externe",
+        "change": "Changer...",
+        "clear": "Effacer",
+        "validating": "Validation en cours...",
+        "invalidBackup": "Sauvegarde Invalide",
+        "encryptedBackup": "Backup Chiffré",
+        "encryptedBody": "Ce fichier est protégé par une clé inconnue. Entrez la clé ci-dessous pour continuer.",
+        "verified": "Backup Vérifié",
+        "versionLine": "Version App : {{version}} • Type : {{type}}",
+        "unknown": "Inconnue",
+        "keyRequired": "Clé de déchiffrement requise",
+        "keyPlaceholder": "Entrez la clé de chiffrement...",
+        "keyHint": "Utilisée une seule fois pour cette restauration. Jamais stockée.",
+        "warningTitle": "Attention",
+        "warningBody": "Toutes les sessions seront invalidées. Vous serez déconnecté immédiatement.",
+        "restoreButton": "Restaurer le Système",
+        "noneTitle": "Aucune sauvegarde sélectionnée",
+        "noneBody": "Sélectionnez une sauvegarde existante ou uploadez un fichier externe <br />pour lancer une restauration.",
+        "pickOnServer": "Choisir sur le serveur",
+        "restoreExternal": "Restaurer un fichier externe",
+        "pickerTitle": "Sélectionner une sauvegarde",
+        "pickerDescription": "Choisissez un point de restauration depuis l'historique serveur.",
+        "noBackups": "Aucune sauvegarde disponible",
+        "confirmTitle": "Confirmation Critique",
+        "confirmDescription": "Vous êtes sur le point de restaurer le système.",
+        "impactTitle": "Impact Immédiat :",
+        "impact1": "La base de données sera <strong>écrasée</strong>.",
+        "impact2": "Les fichiers uploadés seront <strong>remplacés</strong>.",
+        "impact3": "Vous serez <strong>déconnecté</strong> immédiatement.",
+        "typePrompt": "Tapez <strong>RESTORE</strong> pour confirmer :",
+        "confirmButton": "CONFIRMER RESTORE"
+    },
+    "apiKeys": {
+        "scopes": {
+            "task_read": "Lecture Tâches",
+            "task_create": "Création Tâches",
+            "task_update": "Modification Tâches",
+            "task_delete": "Suppression Tâches",
+            "schedule_read": "Lecture Plannings",
+            "schedule_create": "Création Plannings",
+            "user_read": "Lecture Utilisateurs",
+            "settings_read": "Lecture Réglages",
+            "api_keys_read": "Lecture Clés API",
+            "api_keys_write": "Gestion Clés API"
+        },
+        "toasts": {
+            "loadFailed": "Erreur lors du chargement des clés API",
+            "required": "Veuillez remplir les champs obligatoires",
+            "created": "Clé API générée avec succès",
+            "createFailed": "Erreur lors de la création",
+            "rotateConfirm": "Voulez-vous vraiment régénérer cette clé ? L'ancienne sera révoquée immédiatement.",
+            "rotated": "Clé API régénérée",
+            "rotateFailed": "Erreur lors de la rotation",
+            "revokeConfirm": "Êtes-vous sûr de vouloir révoquer cette clé ? Elle deviendra inutilisable immédiatement.",
+            "revoked": "Clé API révoquée",
+            "revokeFailed": "Erreur lors de la révocation",
+            "copied": "Copié dans le presse-papier"
+        },
+        "search": "Rechercher une clé...",
+        "status": "Statut",
+        "statuses": {
+            "all": "Tous les statuts",
+            "active": "Actives",
+            "revoked": "Révoquées / Expirées"
+        },
+        "generate": "Générer une clé",
+        "dialogNew": "Nouvelle clé API",
+        "dialogDone": "Clé API générée",
+        "descriptionNew": "Définissez le nom et les permissions de votre nouvelle clé.",
+        "descriptionDone": "Conservez précieusement cette clé, elle ne sera plus affichée ensuite.",
+        "name": "Nom de la clé *",
+        "namePlaceholder": "ex : intégration Zapier",
+        "expiry": "Expiration (optionnel)",
+        "description": "Description",
+        "descriptionPlaceholder": "Usage de cette clé...",
+        "scopesLabel": "Scopes (Permissions)",
+        "warning": "Attention !",
+        "copyNow": "Copiez cette clé maintenant. Pour des raisons de sécurité, nous ne pourrons plus vous la montrer.",
+        "generateKey": "Générer la clé",
+        "noted": "J'ai bien noté la clé",
+        "orgTitle": "Clés API de l'organisation",
+        "orgDescription": "Utilisez ces clés pour authentifier les scripts ou services tiers (Header X-API-KEY).",
+        "columns": {
+            "name": "Nom / Préfixe",
+            "permissions": "Permissions",
+            "lastUsed": "Dernière utilisation",
+            "status": "Statut",
+            "actions": "Actions"
+        },
+        "empty": "Aucune clé API trouvée.",
+        "unnamed": "Sans nom",
+        "used": "Utilisée : {{when}}",
+        "never": "Jamais",
+        "created": "Créée : {{date}}",
+        "revokedBadge": "Révoquée",
+        "expiredBadge": "Expirée",
+        "activeBadge": "Active",
+        "expiresOn": "Expire le {{date}}",
+        "rotate": "Régénérer",
+        "revoke": "Révoquer"
+    },
+    "bulkSchedules": {
+        "manage": "Gérer les plannings",
+        "title": "Gérer les plannings (en masse)",
+        "description": "Créez des plannings pour plusieurs tâches en une seule fois.",
+        "addToList": "Ajouter à la liste",
+        "task": "Tâche",
+        "selectTask": "Sélectionner une tâche...",
+        "siteId": "ID du site (opt.)",
+        "sitePlaceholder": "ex. PAR-01",
+        "label": "Libellé (opt.)",
+        "labelPlaceholder": "ex. Équipe du matin",
+        "addToDraft": "Ajouter au brouillon",
+        "draftItems": "Éléments du brouillon ({{n}})",
+        "limitExceeded": "Limite dépassée (50 max)",
+        "noItems": "Aucun élément ajouté pour le moment.",
+        "reviewAndSave": "Vérifier et enregistrer",
+        "toasts": {
+            "duplicate": "Cette tâche est déjà dans votre brouillon.",
+            "created": "{{n}} planning(s) créé(s) avec succès.",
+            "failed": "Échec de la création des plannings."
+        },
+        "review": {
+            "title": "Vérifier la création de plannings en masse",
+            "description": "Vous allez créer {{n}} planning(s). Vérifiez les détails ci-dessous.",
+            "limitTitle": "Limite dépassée",
+            "limitBody": "Vous ne pouvez pas créer plus de 50 plannings à la fois. Actuellement : {{n}}.",
+            "duplicatesTitle": "Tâches en double",
+            "duplicatesBody": "Vous avez sélectionné plusieurs fois la même tâche. Veuillez supprimer les doublons.",
+            "conflictsTitle": "Conflits possibles",
+            "conflictsBody": "{{n}} tâche(s) ont déjà un planning actif. Un second planning sera créé pour elles.",
+            "empty": "Aucun élément à vérifier.",
+            "existing": "Existant",
+            "id": "ID : {{id}}",
+            "site": "• Site : {{site}}",
+            "labelLine": "• Libellé : {{label}}",
+            "backToEdit": "Retour à la modification",
+            "confirm": "Confirmer et créer"
+        }
+    },
+    "adminStatus": {
+        "title": "Modifier le statut",
+        "previousFailure": "Motif de l'échec précédent",
+        "newStatus": "Nouveau statut",
+        "comment": "Commentaire (optionnel)",
+        "commentPlaceholder": "Raison du changement...",
+        "confirm": "Confirmer"
+    },
+    "systemUnavailable": {
+        "title": "Système Indisponible",
+        "description": "La connexion avec le serveur a échoué.",
+        "maintenance": "Cela peut être dû à une maintenance en cours ou à un problème de réseau.",
+        "checkConnection": "Veuillez vérifier votre connexion internet.",
+        "starting": "Le serveur est peut-être encore en cours de lancement.",
+        "firstStart": "Le premier démarrage peut prendre jusqu'à 1 minute.",
+        "connecting": "Connexion...",
+        "retry": "Réessayer"
+    },
+    "pageLoading": {
+        "default": "Chargement…",
+        "dashboard": "Chargement du tableau de bord…",
+        "analytics": "Chargement des analytiques…",
+        "settings": "Chargement des paramètres…",
+        "profile": "Chargement du profil…"
+    },
+    "analytics": {
+        "title": "Analytiques",
+        "subtitle": "KPI, conformité et rapports opérationnels.",
+        "tvMode": "Mode TV",
+        "periods": {
+            "1": "Auj.",
+            "7": "7j",
+            "30": "30j",
+            "90": "90j"
+        },
+        "summary": "Synthèse",
+        "tabs": {
+            "overview": "Vue d'ensemble",
+            "byTask": "Par tâche",
+            "byUser": "Par utilisateur",
+            "reports": "Rapports"
+        },
+        "tvBanner": "MODE AFFICHAGE TV ANALYTICS",
+        "readOnly": "(LECTURE SEULE)",
+        "periodBadge": "Période : {{period}}",
+        "exit": "Quitter",
+        "kpi": {
+            "success": "Succès",
+            "failed": "Échecs",
+            "missing": "Manquants",
+            "total": "Total"
+        },
+        "breakdown": "Répartition",
+        "top10": "Top 10 tâches",
+        "relatedTasks": "Tâches associées",
+        "noData": "Aucune donnée",
+        "failShort": "{{n}} éch.",
+        "viewAllTasks": "Voir toutes les tâches",
+        "pctOfTotal": "{{pct}}% du total",
+        "complianceRate": "Taux de conformité",
+        "complianceFormula": "Succès / (Succès + Échecs + Manquants)",
+        "goalReached": "✓ Objectif atteint",
+        "belowGoal": "⚠ En dessous de l'objectif",
+        "critical": "✗ Critique",
+        "trendTitle": "Tendance des statuts",
+        "byWeek": "Agrégé par semaine",
+        "byDay": "Par jour",
+        "noDataPeriod": "Aucune donnée pour cette période.",
+        "byTask": {
+            "title": "Conformité par tâche",
+            "description": "Les pires tâches en premier — limit 50",
+            "task": "Tâche",
+            "compliance": "Conformité"
+        },
+        "byUser": {
+            "title": "Conformité par utilisateur",
+            "description": "Les moins performants en premier",
+            "user": "Utilisateur"
+        },
+        "reports": {
+            "csvTitle": "Export CSV",
+            "csvDescription": "Données brutes pour Excel ou Google Sheets",
+            "pdfTitle": "Export PDF",
+            "pdfDescription": "Rapport prêt à partager avec votre direction",
+            "downloadCsv": "Télécharger CSV",
+            "downloadPdf": "Télécharger PDF",
+            "exporting": "Exportation...",
+            "started": "Téléchargement démarré",
+            "failed": "Échec lors du téléchargement"
+        },
+        "summaryDialog": {
+            "title": "Synthèse analytique",
+            "description": "Vue rapide de vos KPI et comparaison de périodes.",
+            "tabs": {
+                "summary": "Résumé",
+                "compare": "Comparer",
+                "export": "Exporter"
+            },
+            "top3": "Top 3 tâches problématiques",
+            "copy": "Copier le résumé",
+            "copied": "Résumé copié ✓",
+            "copyText": "Taskmaster — {{start}} → {{end}} | Conformité: {{rate}}% | Succès: {{success}} | Échecs: {{failed}} | Manquants: {{missing}}",
+            "periodA": "Période A",
+            "periodB": "Période B",
+            "variation": "Variation B vs A",
+            "pts": "pts",
+            "csvSub": "Excel / Google Sheets",
+            "pdfSub": "Rapport de conformité",
+            "inProgress": "En cours...",
+            "download": "Télécharger"
+        },
+        "thresholds": {
+            "title": "Seuils de conformité",
+            "description": "Personnalisez les couleurs de l'indicateur de conformité.",
+            "warning": "Seuil attention (orange)",
+            "critical": "Seuil critique (rouge)",
+            "invalid": "Le seuil attention doit être supérieur au seuil critique.",
+            "preview": "Aperçu",
+            "ok": "OK",
+            "attention": "Attention",
+            "criticalLabel": "Critique",
+            "reset": "Réinitialiser",
+            "updated": "Seuils mis à jour"
+        }
+    },
+    "push": {
+        "permissionDenied": "Autorisation refusée par l'utilisateur.",
+        "notConfigured": "Les notifications push ne sont pas configurées sur le serveur."
+    },
+    "inbox": {
+        "title": "Notifications",
+        "open": "Notifications ({{count}} non lue(s))",
+        "markAllRead": "Tout marquer comme lu",
+        "empty": "Aucune notification"
     }
 }

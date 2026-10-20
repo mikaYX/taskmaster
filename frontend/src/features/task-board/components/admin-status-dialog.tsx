@@ -40,7 +40,7 @@ export function AdminStatusDialog({ item, open, onOpenChange, onConfirm }: Admin
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-[400px]">
                 <DialogHeader>
-                    <DialogTitle>Modifier le statut</DialogTitle>
+                    <DialogTitle>{t('adminStatus.title')}</DialogTitle>
                     <DialogDescription>
                         {item.taskName} — {item.instanceDate}
                     </DialogDescription>
@@ -49,12 +49,12 @@ export function AdminStatusDialog({ item, open, onOpenChange, onConfirm }: Admin
                     {item.status === 'FAILED' && item.validation?.comment && (
                         <Alert variant="destructive">
                             <AlertTriangle className="h-4 w-4" />
-                            <AlertTitle className="text-sm font-semibold mb-1">Motif de l'échec précédent</AlertTitle>
+                            <AlertTitle className="text-sm font-semibold mb-1">{t('adminStatus.previousFailure')}</AlertTitle>
                             <AlertDescription className="text-xs">{item.validation.comment}</AlertDescription>
                         </Alert>
                     )}
                     <div className="space-y-2">
-                        <Label>Nouveau statut</Label>
+                        <Label>{t('adminStatus.newStatus')}</Label>
                         <Select value={status} onValueChange={(v) => setStatus(v as TaskStatusValue)}>
                             <SelectTrigger>
                                 <SelectValue />
@@ -68,21 +68,21 @@ export function AdminStatusDialog({ item, open, onOpenChange, onConfirm }: Admin
                         </Select>
                     </div>
                     <div className="space-y-2">
-                        <Label>Commentaire (optionnel)</Label>
+                        <Label>{t('adminStatus.comment')}</Label>
                         <Textarea
                             value={comment}
                             onChange={(e) => setComment(e.target.value)}
-                            placeholder="Raison du changement..."
+                            placeholder={t('adminStatus.commentPlaceholder')}
                             rows={3}
                         />
                     </div>
                 </div>
                 <DialogFooter>
                     <Button variant="outline" onClick={() => onOpenChange(false)}>
-                        Annuler
+                        {t('common.cancel')}
                     </Button>
                     <Button onClick={handleConfirm}>
-                        Confirmer
+                        {t('adminStatus.confirm')}
                     </Button>
                 </DialogFooter>
             </DialogContent>

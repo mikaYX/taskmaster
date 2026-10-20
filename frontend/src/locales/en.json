@@ -41,7 +41,13 @@
         "type": "Type",
         "confirmDelete": "Are you sure?",
         "actions": "Actions",
-        "saving": "Saving..."
+        "saving": "Saving...",
+        "toggleLanguage": "Toggle language",
+        "more": "More",
+        "toggleSidebar": "Toggle Sidebar",
+        "unknownError": "Unknown error",
+        "sidebar": "Sidebar",
+        "mobileSidebar": "Displays the mobile sidebar."
     },
     "auth": {
         "signIn": "Sign in",
@@ -310,8 +316,45 @@
                 "emailConfigured": "Email settings configured",
                 "backupConfigured": "Backup retention configured",
                 "preferencesSet": "Application preferences set"
+            },
+            "admin": {
+                "name": "Administrator Account",
+                "description": "Create admin identity",
+                "title": "Administrator Account",
+                "subtitle": "Create the primary administrator identity.",
+                "email": "Admin Email",
+                "emailPlaceholder": "admin@example.com",
+                "emailHint": "This email will be used as the primary administrator account and login.",
+                "password": "Password",
+                "passwordPlaceholder": "Strong password (min 12 chars, mixed case, number, symbol)",
+                "passwordHint": "At least 12 characters, with uppercase, lowercase, a number, and a special character (any character that is not a letter or a number). They can be in any position.",
+                "confirmPassword": "Confirm Password",
+                "confirmPlaceholder": "Re-enter password",
+                "creating": "Creating...",
+                "rules": {
+                    "length": "at least 12 characters",
+                    "lowercase": "a lowercase letter",
+                    "uppercase": "an uppercase letter (anywhere in the password)",
+                    "digit": "a number",
+                    "special": "a special character (any character that is not a letter or a number)"
+                },
+                "errors": {
+                    "invalidEmail": "Please enter a valid email address",
+                    "missing": "Password is missing: {{rules}}.",
+                    "mismatch": "Passwords do not match",
+                    "createFailed": "Failed to create admin",
+                    "alreadyDone": "Setup already completed. Redirecting to login...",
+                    "bootstrapSecret": "BOOTSTRAP_SECRET is missing from the server environment. Add it to the .env file before running setup.",
+                    "status": "Failed to create account ({{status}} {{statusText}})",
+                    "unexpected": "Failed to create account due to an unexpected error."
+                }
+            },
+            "summaryItems": {
+                "admin": "Administrator account created"
             }
-        }
+        },
+        "languageLabel": "Language / Langue",
+        "languageHint": "The interface language updates immediately."
     },
     "settings": {
         "title": "Settings",
@@ -334,8 +377,8 @@
         "addonsDescription": "Enable or disable additional features",
         "todoListEnabled": "Enable Todo List",
         "todoListHint": "Shows a personal and collective todo list in the sidebar",
-        "todoListReminders": "Email reminders",
-        "todoListRemindersHint": "Emails a reminder when a task is due within 24 hours (email sending must be enabled)",
+        "todoListReminders": "Reminders",
+        "todoListRemindersHint": "Reminds people when a task is due: notification center, browser pop-up and email (each person chooses; email also needs email sending enabled)",
         "apiKeys": {
             "title": "API Keys",
             "description": "Manage access keys for external integrations"
@@ -1175,7 +1218,9 @@
             "timeout": "Timeout (seconds)",
             "enabled": "Enabled",
             "save": "Save Configuration"
-        }
+        },
+        "runFailed": "Failed to run job",
+        "toggleFailed": "Failed to toggle job"
     },
     "tasks": {
         "title": "Task Definitions",
@@ -1344,5 +1389,1245 @@
         "deniedTitle": "Access denied",
         "deniedDescription": "Your account does not have permission to access this page.",
         "backToBoard": "Back to the board"
+    },
+    "taskWizard": {
+        "title": "Create Task",
+        "subtitle": "Follow the steps to configure your new task.",
+        "fillDetails": "Please fill in the details below.",
+        "processing": "Processing...",
+        "createButton": "Create Task",
+        "steps": {
+            "definition": {
+                "title": "Definition",
+                "description": "Choose periodicity and basic details"
+            },
+            "scheduling": {
+                "title": "Scheduling",
+                "description": "Configure schedule rules and dates"
+            },
+            "assignment": {
+                "title": "Assignment",
+                "description": "Assign to users or groups"
+            },
+            "notifications": {
+                "title": "Notifications",
+                "description": "Configure alerts for this task"
+            },
+            "review": {
+                "title": "Review & Create",
+                "description": "Verify settings and preview duties"
+            }
+        },
+        "toasts": {
+            "invalidConfig": "Invalid Configuration",
+            "fromCompletionNoRule": "From Completion mode requires a valid schedule pattern (the recurrence rule could not be generated).",
+            "recurrentNeedsRule": "Recurrent tasks strictly require a recurrence rule.",
+            "created": "Task Created",
+            "createdDescription": "The task has been successfully scheduled.",
+            "notificationsFailed": "Task was created, but notifications failed to save.",
+            "uploadFailed": "Task was created, but the procedure file failed to upload. You can retry by editing the task.",
+            "error": "Error",
+            "createFailed": "Failed to create task"
+        },
+        "priorities": {
+            "LOW": "Low",
+            "MEDIUM": "Medium",
+            "HIGH": "High",
+            "CRITICAL": "Critical"
+        },
+        "periodicities": {
+            "daily": {
+                "label": "Daily",
+                "desc": "Every day"
+            },
+            "weekly": {
+                "label": "Weekly",
+                "desc": "Every week"
+            },
+            "monthly": {
+                "label": "Monthly",
+                "desc": "Every month"
+            },
+            "yearly": {
+                "label": "Yearly",
+                "desc": "Every year"
+            },
+            "custom": {
+                "label": "Custom",
+                "desc": "Advanced Rules"
+            }
+        },
+        "weekdays": {
+            "long": {
+                "0": "Monday",
+                "1": "Tuesday",
+                "2": "Wednesday",
+                "3": "Thursday",
+                "4": "Friday",
+                "5": "Saturday",
+                "6": "Sunday"
+            },
+            "short": {
+                "0": "Mon",
+                "1": "Tue",
+                "2": "Wed",
+                "3": "Thu",
+                "4": "Fri",
+                "5": "Sat",
+                "6": "Sun"
+            },
+            "inline": {
+                "0": "Monday",
+                "1": "Tuesday",
+                "2": "Wednesday",
+                "3": "Thursday",
+                "4": "Friday",
+                "5": "Saturday",
+                "6": "Sunday"
+            }
+        },
+        "positions": {
+            "first": "First",
+            "second": "Second",
+            "third": "Third",
+            "fourth": "Fourth",
+            "last": "Last",
+            "firstInline": "first",
+            "secondInline": "second",
+            "thirdInline": "third",
+            "fourthInline": "fourth",
+            "lastInline": "last"
+        },
+        "definition": {
+            "name": "Task Name",
+            "namePlaceholder": "e.g. Server Backup",
+            "priority": "Priority",
+            "procedure": "Procedure (Optional)",
+            "procedureLink": "Web link",
+            "procedureFile": "File",
+            "procedureUrlPlaceholder": "https://wiki...",
+            "selectedFile": "Selected: {{name}}",
+            "description": "Description",
+            "descriptionPlaceholder": "Describe what needs to be done...",
+            "periodicity": "Periodicity"
+        },
+        "assignment": {
+            "usersTab": "Users ({{n}})",
+            "groupsTab": "Groups ({{n}})",
+            "assignToUsers": "Assign to Users",
+            "assignToGroups": "Assign to Groups",
+            "noUsers": "No users found.",
+            "noGroups": "No groups found."
+        },
+        "notifications": {
+            "noChannelsTitle": "No Active Channels",
+            "noChannelsBody": "You don't have any active notification channels configured.",
+            "noChannelsHelp": "To set up alerts, please visit <settings>Settings > Notifications</settings> and enable at least one channel.",
+            "intro": "Select the channels you want to use for this task, and configure when alerts should be sent.",
+            "onFailure": "On Failure",
+            "onFailureDesc": "Notify when task fails",
+            "onMissing": "On Missing",
+            "onMissingDesc": "Notify if missed",
+            "reminder": "Reminder",
+            "reminderDesc": "Remind before due",
+            "emailRecipients": "Email Recipients",
+            "selectUsers": "Select Users",
+            "selectGroups": "Select Groups",
+            "customEmails": "Custom Emails (comma separated)",
+            "customEmailsPlaceholder": "admin@example.com, manager@example.com"
+        },
+        "scheduling": {
+            "weeklyInfo": "This task will automatically anchor to the <strong>Start of the Week</strong> based on your country settings (e.g. Monday for FR, Sunday for US).",
+            "weeklyInfoSub": "Weekly tasks are valid for the entire week. Validation can occur at any time during this period.",
+            "monthlyInfo": "This task recurs on the <strong>{{pattern}}</strong>.",
+            "monthlyNth": "{{position}} {{weekday}} of every month",
+            "monthlyDay": "{{day}} day of every month",
+            "unknownWeekday": "day",
+            "startDate": "Start Date",
+            "endDate": "End Date",
+            "pickDate": "Pick a date",
+            "startDateHint": {
+                "daily": "Daily tasks must start today or later",
+                "weekly": "Weekly tasks can start as early as today",
+                "monthly": "Monthly tasks can start as early as today",
+                "yearly": "Yearly tasks can start as early as today",
+                "custom": "Custom tasks cannot have past start dates",
+                "default": "Tasks must start today or later"
+            },
+            "startDateDescription": {
+                "weekly": "Determines the first week.",
+                "monthly": "Determines the first month.",
+                "default": "The first occurrence date."
+            },
+            "endDateHint": "Yearly tasks can be due as early as January 1st of last year",
+            "endDateDescription": "Defines the end of the yearly data block.",
+            "customPatternTitle": "Custom Recurrence Pattern",
+            "ruleType": "Rule Type",
+            "selectRuleType": "Select rule type...",
+            "ruleTypes": {
+                "every_x_days": "Every X days",
+                "selected_weekdays": "Selected weekdays",
+                "weeks_of_month": "Weeks of month",
+                "days_of_year": "Days of year"
+            },
+            "intervalLabel": {
+                "every_x_days": "Interval (days)",
+                "selected_weekdays": "Interval (weeks)",
+                "weeks_of_month": "Interval (months)",
+                "days_of_year": "Interval (years)"
+            },
+            "intervalHint": "e.g. interval=2 means \"every other\"",
+            "weekdays": "Weekdays",
+            "continuousBlock": "Treat as a continuous block",
+            "continuousBlockHint": "If enabled, tasks will span continuously from the first selected day to the last, rather than creating separate daily instances.",
+            "continuousBlockDescription": "Makes the recurrence an unbroken time span instead of detached days.",
+            "weekPosition": "Week Position",
+            "weekPositionPlaceholder": "e.g. First, Last...",
+            "daysOfYear": "Days of Year",
+            "daysOfYearPlaceholder": "e.g. 1, 150, 365",
+            "daysOfYearHint": "Comma-separated list of days (1-366).",
+            "businessRules": "Business Rules",
+            "skipWeekends": "Skip Weekends",
+            "skipWeekendsDescription": "Shift instance to Monday if it falls on Sat/Sun.",
+            "skipHolidays": "Skip Holidays",
+            "skipHolidaysDescription": "Shift instance to next business day if it falls on a Holiday."
+        },
+        "recurrence": {
+            "advanced": "Advanced Scheduling",
+            "repeatEvery": "Repeat Every",
+            "units": {
+                "daily": "Days",
+                "weekly": "Weeks",
+                "monthly": "Months",
+                "yearly": "Years",
+                "custom": "Cycles"
+            },
+            "timezone": "Timezone",
+            "selectTimezone": "Select timezone",
+            "dueOffset": "Due Offset (Minutes)",
+            "offsetHelpTitle": "What is the offset?",
+            "offsetHelpBody": "The offset is the extra time allowed beyond the end of the scheduled window to complete the task.",
+            "offsetExample": "<strong>Example:</strong><br />If the window ends at <strong>18:00</strong> with an offset of <strong>120 minutes</strong>, the task is considered late (\"Due\") from <strong>20:00</strong>.",
+            "dueOffsetDescription": "Time to complete task after scheduled time.",
+            "mode": "Recurrence Mode",
+            "onSchedule": "On Schedule (Strict time-based)",
+            "fromCompletion": "From Completion (Rolling based on last success)",
+            "timeWindow": "Time Window",
+            "timeWindowDescription": "Defines the allowed execution window for the task.",
+            "useGlobalDefaults": "Use global defaults",
+            "startTime": "Start Time",
+            "endTime": "End Time",
+            "resetToDefaults": "Reset to Defaults",
+            "monthlyPattern": "Monthly Pattern",
+            "onDay": "On Day...",
+            "specificDate": "Specific Date (e.g. 15th)",
+            "dayPlaceholder": "Day (1-31)",
+            "weekdayPlaceholder": "Weekday"
+        },
+        "review": {
+            "configuration": "Configuration",
+            "name": "Name:",
+            "periodicity": "Periodicity:",
+            "customPattern": "Custom Pattern:",
+            "rrule": "RRule (V2):",
+            "incompleteRule": "INCOMPLETE_RULE",
+            "recurrence": "Recurrence:",
+            "timeWindow": "Time Window:",
+            "globalDefaults": "Global Defaults",
+            "startDate": "Start Date:",
+            "assignments": "Assignments:",
+            "recipients": "{{n}} recipients",
+            "nextOccurrences": "Next Occurrences (Preview)",
+            "error": "Error",
+            "previewFailed": "Could not generate preview.",
+            "previewUnreachable": "The server could not be reached, so the preview cannot be computed. Check the connection and the address used to open the app.",
+            "shiftedFrom": "(Shifted from {{date}})",
+            "noInstances": "No instances generated for the current preview window.",
+            "readyTitle": "Ready to Create?",
+            "readyBody": "Verify the occurrences above. Once created, the system will automatically generate tasks according to this schedule.",
+            "customRule": {
+                "every_x_days": "Every {{n}} days",
+                "selected_weekdays": "Every {{n}} weeks on selected days",
+                "weeks_of_month": "Every {{n}} months on week position",
+                "days_of_year": "Every {{n}} years on specific days",
+                "fallback": "Custom Rules"
+            }
+        },
+        "validation": {
+            "nameMin": "Name must be at least 3 characters",
+            "nameMax": "Name must be less than 50 characters",
+            "descriptionMin": "Description must be at least 5 characters",
+            "invalidUrl": "Must be a valid URL",
+            "invalidEmail": "Invalid email",
+            "invalidTimezone": "Invalid Timezone",
+            "startTimeRequired": "Start time is required when overriding global defaults",
+            "endTimeRequired": "End time is required when overriding global defaults",
+            "invalidTimeFormat": "Invalid time format (HH:mm)",
+            "intervalMin": "Interval must be >= 1",
+            "selectWeekday": "Select at least one weekday",
+            "selectWeekPosition": "Select a week position (e.g., First, Last)",
+            "selectYearDay": "Provide at least one valid day of year (1-366)",
+            "dailyStart": "Daily tasks must start today or later (min: {{date}})",
+            "weeklyDue": "Weekly tasks cannot be due before {{date}}",
+            "monthlyDue": "Monthly tasks cannot be due before {{date}}",
+            "yearlyDue": "Yearly tasks cannot be due before {{date}}",
+            "customDue": "Due date cannot be in the past (min: {{date}})"
+        }
+    },
+    "todos": {
+        "subtitle": "Your personal and collective tasks",
+        "tabPrivate": "Private ({{n}})",
+        "tabCollective": "Collective ({{n}})",
+        "newTaskPlaceholder": "New task... (n)",
+        "newTask": "New task",
+        "dueDate": "Due date",
+        "priority": "Priority",
+        "add": "Add",
+        "search": "Search...",
+        "searchLabel": "Search tasks",
+        "dueFilterLabel": "Filter by due date",
+        "filters": {
+            "all": "All due dates",
+            "overdue": "Overdue",
+            "today": "Today",
+            "week": "This week",
+            "mine": "Assigned to me"
+        },
+        "emptyTitle": "No tasks",
+        "emptyCanAdd": "Add one above to get started.",
+        "emptyReadOnly": "Nothing to do right now.",
+        "completedSection": "Completed in the last 24 h ({{n}})",
+        "clearCompleted": "Delete all",
+        "selectGroup": "Select a group...",
+        "wholeSite": "Whole site",
+        "toasts": {
+            "deleted": "Task deleted",
+            "undo": "Undo",
+            "cleared_one": "{{count}} task deleted",
+            "cleared_other": "{{count}} tasks deleted"
+        },
+        "priorities": {
+            "LOW": "Low",
+            "NORMAL": "Normal",
+            "HIGH": "High",
+            "URGENT": "Urgent"
+        },
+        "priorityAria": "{{priority}} priority",
+        "recurrences": {
+            "NONE": "None",
+            "DAILY": "Every day",
+            "WEEKLY": "Every week",
+            "MONTHLY": "Every month"
+        },
+        "due": {
+            "today": "Today",
+            "tomorrow": "Tomorrow",
+            "inDays": "In {{n}} d",
+            "lateByDays": "Late by {{n}} d"
+        },
+        "item": {
+            "complete": "Complete “{{title}}”",
+            "renameHint": "Double-click to rename",
+            "titleLabel": "Task title",
+            "recurring": "Recurring task",
+            "completedBy": "by {{name}}",
+            "showSubtasks": "Show subtasks",
+            "hideSubtasks": "Hide subtasks",
+            "edit": "Edit task",
+            "delete": "Delete task",
+            "newSubtaskPlaceholder": "New subtask...",
+            "newSubtask": "New subtask",
+            "dragHandle": "Move “{{title}}”",
+            "dragHint": "Drag to reorder, or Alt + arrow up / down",
+            "assignedToYou": "You",
+            "take": "I'll take it",
+            "release": "Give it back",
+            "details": "Comments and files"
+        },
+        "dialog": {
+            "title": "Edit task",
+            "description": "Change the title, notes, due date, priority, repeat or group.",
+            "titleField": "Title",
+            "notes": "Notes",
+            "dueDate": "Due date",
+            "clear": "Clear",
+            "priority": "Priority",
+            "repeat": "Repeat",
+            "repeatHint": "A new task is created for the next due date when this one is ticked.",
+            "group": "Group",
+            "dueTime": "Time",
+            "remind": "Remind me",
+            "assignee": "Assigned to",
+            "nobody": "Nobody"
+        },
+        "fab": {
+            "title": "My todos",
+            "viewAll": "View all",
+            "newPrivate": "New private task...",
+            "none": "No tasks in progress 🎉",
+            "collective": "Collective"
+        },
+        "badge": "{{overdue}} overdue, {{today}} due today",
+        "quickAddHint": "Tip: type @tomorrow, @monday, @+3d, @14:30 or !urgent in the title to set the date, time and priority.",
+        "options": {
+            "toggle": "More options"
+        },
+        "errors": {
+            "create": "The task could not be created",
+            "update": "The task could not be updated",
+            "reorder": "The order could not be saved"
+        },
+        "remind": {
+            "default": "1 day before",
+            "atDue": "At the due time",
+            "min15": "15 minutes before",
+            "hour1": "1 hour before",
+            "hour2": "2 hours before",
+            "day1": "1 day before",
+            "day2": "2 days before",
+            "week1": "1 week before"
+        },
+        "openReminder": {
+            "title": "Your todo list needs you",
+            "overdue_one": "{{count}} task overdue",
+            "overdue_other": "{{count}} tasks overdue",
+            "today_one": "{{count}} task due today",
+            "today_other": "{{count}} tasks due today",
+            "view": "View"
+        },
+        "history": {
+            "button": "History",
+            "title": "Completed tasks",
+            "descriptionPrivate": "Everything you have ticked in your private list.",
+            "descriptionCollective": "Everything ticked in the collective list.",
+            "empty": "No completed tasks",
+            "loadMore": "Load more"
+        },
+        "details": {
+            "description": "Comments and files of this task",
+            "comments": "Comments",
+            "noComments": "No comments yet.",
+            "newComment": "New comment",
+            "newCommentPlaceholder": "Write a comment... (Ctrl+Enter to send)",
+            "send": "Send",
+            "deleteComment": "Delete comment",
+            "commentFailed": "The comment could not be sent",
+            "attachments": "Files",
+            "noAttachments": "No files yet.",
+            "addFile": "Add a file",
+            "chooseFile": "Choose a file",
+            "fileHint": "Images (PNG, JPEG, WebP) or PDF, 5 MB at most.",
+            "download": "Download",
+            "deleteAttachment": "Delete file",
+            "uploadFailed": "The file could not be added",
+            "downloadFailed": "The file could not be downloaded"
+        },
+        "reminders": {
+            "button": "Reminders",
+            "title": "My reminders",
+            "description": "How you want to be warned when a task is due.",
+            "email": "By email",
+            "push": "Pop-up notification",
+            "collective": "Collective tasks of my groups",
+            "collectiveHint": "Otherwise only the tasks assigned to you remind you.",
+            "device": "This device",
+            "deviceOn": "Pop-ups are enabled on this device.",
+            "deviceOff": "Pop-ups are not enabled on this device.",
+            "deviceCount_one": "({{count}} device in total)",
+            "deviceCount_other": "({{count}} devices in total)",
+            "enableDevice": "Enable on this device",
+            "disableDevice": "Disable on this device",
+            "pushServerOff": "Pop-up notifications are not available on this server.",
+            "pushUnsupported": "This browser does not support pop-up notifications (HTTPS is required).",
+            "pushDenied": "Notifications are blocked in this browser: allow them in the site settings.",
+            "saveFailed": "Your preferences could not be saved"
+        }
+    },
+    "taskList": {
+        "counts": "{{active}} active, {{inactive}} inactive",
+        "searchPlaceholder": "Search tasks...",
+        "showInactive": "Show inactive",
+        "filterUser": "Filter by User",
+        "allUsers": "All users",
+        "filterGroup": "Filter by Group",
+        "allGroups": "All groups",
+        "clear": "Clear",
+        "emptyTitle": "No tasks yet",
+        "emptyBody": "Create your first recurring task to get started.",
+        "columns": {
+            "name": "Task Name",
+            "periodicity": "Periodicity & Rules",
+            "assignments": "Assignments",
+            "status": "Status"
+        },
+        "skipWeekends": "Skip Wknds",
+        "skipHolidays": "Skip Holidays",
+        "userCount": "{{n}} user(s)",
+        "groupCount": "{{n}} group(s)",
+        "noAssignments": "No assignments",
+        "active": "Active",
+        "inactive": "Inactive",
+        "delegated": "Delegated",
+        "delegatedMany": "Delegated ({{n}})",
+        "delegationsAria": "{{n}} active delegation(s)",
+        "delegationsTitle": "Active delegations",
+        "unknown": "Unknown",
+        "noRecipient": "No recipient",
+        "groupSuffix": "{{name}} (group)",
+        "delegationLine": "Delegated by <b>{{delegator}}</b> to <b>{{targets}}</b> from {{start}} to {{end}}",
+        "actions": {
+            "openMenu": "Open menu",
+            "manageAssignments": "Manage Assignments",
+            "manageDelegations": "Manage Delegations",
+            "deactivate": "Deactivate",
+            "reactivate": "Reactivate",
+            "deleteTask": "Delete Task",
+            "deactivateTitle": "Deactivate Task?",
+            "deactivateBody": "This will deactivate the task <strong>{{name}}</strong>. The task will no longer appear in the daily schedule but can be reactivated later.",
+            "deactivated": "Task deactivated",
+            "deactivateFailed": "Failed to deactivate task",
+            "reactivated": "Task reactivated",
+            "reactivateFailed": "Failed to reactivate task"
+        }
+    },
+    "taskDelete": {
+        "title": "Delete Task",
+        "description": "This action will delete the task <strong>“{{name}}”</strong>. The task can be restored within 30 days.",
+        "warning": "Warning:",
+        "hideStatuses": "All statuses will be hidden",
+        "loseAccess": "Assigned users will lose access",
+        "cancelDelegations": "Active delegations will be cancelled",
+        "confirmPrompt": "Type <name>{{name}}</name> to confirm:",
+        "placeholder": "Enter task name",
+        "deleting": "Deleting...",
+        "deleted": "Task deleted successfully",
+        "restoreHint": "You can restore it within 30 days from the archive.",
+        "failed": "Failed to delete task"
+    },
+    "taskDetails": {
+        "dryRun": "DRY_RUN Mode Active",
+        "triggered": "Task execution triggered",
+        "triggerFailed": "Failed to trigger task",
+        "notFound": "Task not found",
+        "backToTasks": "Back to Tasks",
+        "noDescription": "No description provided",
+        "runNow": "Run Now",
+        "tabs": {
+            "overview": "Overview",
+            "logs": "Logs",
+            "configuration": "Configuration"
+        },
+        "notImplemented": "Not implemented yet",
+        "start": "Start: {{date}}",
+        "noWeekends": "No Wknds",
+        "noHolidays": "No Holidays",
+        "assignmentsSummary": "{{users}} users, {{groups}} groups",
+        "schedule": "Schedule",
+        "globalWindow": "Global window defaults",
+        "dueOffset": "Due offset: {{n}}h",
+        "notifications": "Notifications",
+        "noChannels": "No channels configured",
+        "channelFallback": "Channel #{{id}}",
+        "badges": {
+            "fail": "Fail",
+            "missing": "Missing",
+            "reminder": "Reminder"
+        },
+        "configTitle": "Task Configuration",
+        "configDescription": "Details about the task definition.",
+        "createdAt": "Created At",
+        "updatedAt": "Updated At"
+    },
+    "taskEdit": {
+        "title": "Edit Task: {{name}}",
+        "saveChanges": "Save Changes",
+        "saveNotifications": "Save Notifications",
+        "notFound": "Task not found",
+        "basicInformation": "Basic Information",
+        "schedulingRecurrence": "Scheduling & Recurrence",
+        "toasts": {
+            "notificationsSaved": "Notifications saved",
+            "notificationsFailed": "Failed to save notifications",
+            "invalidConfig": "Invalid Configuration",
+            "fromCompletionNoRule": "From Completion mode requires a valid schedule pattern.",
+            "recurrentNeedsRule": "Recurrent tasks strictly require a recurrence rule.",
+            "updated": "Task Updated",
+            "uploadFailed": "Task was updated, but the new procedure file failed to upload.",
+            "updateFailed": "Failed to update task"
+        }
+    },
+    "taskArchive": {
+        "title": "Archived Tasks",
+        "description": "Tasks can be restored within 30 days of deletion. After 30 days, they may be permanently deleted by administrators.",
+        "count": "{{n}} tasks",
+        "loading": "Loading archive...",
+        "emptyTitle": "Archive empty",
+        "emptyBody": "You have no archived tasks",
+        "periodicity": "{{periodicity}} periodicity",
+        "deleted": "• Deleted {{when}}",
+        "restore": "Restore Task",
+        "restored": "Task restored successfully",
+        "restoreFailed": "Failed to restore task"
+    },
+    "taskAssignments": {
+        "title": "Task Assignments",
+        "description": "Manage who is responsible for <strong>{{name}}</strong>",
+        "usersTab": "Users ({{n}})",
+        "groupsTab": "Groups ({{n}})",
+        "selectUser": "Select a user...",
+        "noUsersAvailable": "No users available",
+        "selectGroup": "Select a group...",
+        "noGroupsAvailable": "No groups available",
+        "add": "Add",
+        "noUsersAssigned": "No users assigned to this task.",
+        "noGroupsAssigned": "No groups assigned to this task.",
+        "noDescription": "No description",
+        "toasts": {
+            "userAssigned": "User assigned",
+            "userAssignFailed": "Failed to assign user",
+            "userUnassigned": "User unassigned",
+            "userUnassignFailed": "Failed to unassign user",
+            "groupAssigned": "Group assigned",
+            "groupAssignFailed": "Failed to assign group",
+            "groupUnassigned": "Group unassigned",
+            "groupUnassignFailed": "Failed to unassign group"
+        }
+    },
+    "taskDelegations": {
+        "title": "Task Delegations",
+        "description": "Delegate <strong>{{name}}</strong> to others for a specific period of time.",
+        "newDelegation": "New Delegation",
+        "startTime": "Start Time",
+        "endTime": "End Time",
+        "reason": "Reason (Optional)",
+        "reasonPlaceholder": "E.g. Annual Leave",
+        "delegateToUsers": "Delegate to (Users)",
+        "delegateToGroups": "Delegate to (Groups)",
+        "selectUser": "Select a user...",
+        "selectGroup": "Select a group...",
+        "create": "Create Delegation",
+        "creating": "Creating...",
+        "activeAndPlanned": "Active & Planned",
+        "loading": "Loading delegations...",
+        "none": "No delegations for this task.",
+        "reasonLine": "Reason: {{reason}}",
+        "toasts": {
+            "datesRequired": "Start and End dates are required",
+            "targetRequired": "You must select at least one target user or group",
+            "created": "Delegation created successfully",
+            "createFailed": "Failed to create delegation",
+            "removed": "Delegation removed",
+            "removeFailed": "Failed to remove delegation"
+        }
+    },
+    "userMgmt": {
+        "validation": {
+            "firstNameRequired": "First name is required",
+            "lastNameRequired": "Last name is required",
+            "invalidEmail": "Invalid email address",
+            "usernameMin": "Username must be at least 3 characters",
+            "passwordMin": "Password must be at least 8 characters",
+            "passwordsMismatch": "Passwords don't match"
+        },
+        "page": {
+            "count": "{{n}} user(s)",
+            "showDeleted": "Show deleted accounts",
+            "emptyTitle": "No users yet",
+            "emptyBody": "Get started by creating your first user account.",
+            "guestLinks": "Guest TV Links",
+            "columns": {
+                "fullName": "Full Name",
+                "email": "Email",
+                "role": "Role",
+                "status": "Status"
+            }
+        },
+        "form": {
+            "createTitle": "Create New User",
+            "editDescription": "Update the user's information below.",
+            "createDescription": "Fill in the details to create a new user. A secure password will be generated automatically.",
+            "firstName": "First Name",
+            "firstNamePlaceholder": "John",
+            "lastName": "Last Name",
+            "lastNamePlaceholder": "Doe",
+            "email": "Email Address",
+            "emailPlaceholder": "john.doe@company.com",
+            "role": "Role",
+            "selectRole": "Select a role",
+            "roles": {
+                "superAdmin": "Super Admin",
+                "manager": "Manager",
+                "user": "Standard User"
+            },
+            "site": "Site",
+            "selectSite": "Select a site",
+            "sendEmail": "Send the login and temporary password to the user by email",
+            "sendEmailHint": "The temporary password is still shown after creation.",
+            "emailInactive": "Email sending is not active, so no email will be sent. After creation, give the temporary password to the user directly.",
+            "update": "Update User",
+            "create": "Create User",
+            "createFailed": "Failed to create the user"
+        },
+        "reset": {
+            "confirm": "Are you sure you want to reset the password for <strong>{{name}}</strong>?",
+            "autoGenerated": "A new secure password will be generated automatically.",
+            "shownOnce": "⚠️ The generated password will be shown <strong>only once</strong>.",
+            "sendEmail": "Send the temporary password to the user by email",
+            "sendEmailHint": "The temporary password is still shown after the reset.",
+            "emailInactive": "Email sending is not active, so no email will be sent. After the reset, give the temporary password to the user directly.",
+            "generating": "Generating...",
+            "confirmButton": "Confirm & Generate New Password",
+            "successTitle": "Password Reset Successful",
+            "success": "Password reset successfully",
+            "failed": "Failed to reset password"
+        },
+        "newPassword": {
+            "title": "New Password Generated",
+            "generatedFor": "A new password has been generated for <strong>{{username}}</strong>.",
+            "important": "⚠️ Important: Copy this password now. It will not be shown again.",
+            "copy": "Copy to Clipboard",
+            "copied": "Password copied to clipboard",
+            "done": "I have copied it",
+            "emailStatus": {
+                "SENT": "The credentials were also sent to the user by email.",
+                "FAILED": "The email could not be sent. Give the temporary password to the user directly.",
+                "NOT_ACTIVE": "Email sending is not active, so nothing was sent. Give the temporary password to the user directly.",
+                "NO_ADDRESS": "This account has no email address, so nothing was sent. Give the temporary password to the user directly."
+            }
+        },
+        "actions": {
+            "openMenu": "Open menu",
+            "managedByGuestLinks": "Managed via Guest TV Links",
+            "restore": "Restore",
+            "deleteBody": "This action will soft-delete the user <strong>{{username}}</strong>. They will no longer be able to login, but data is preserved.",
+            "restoreTitle": "Restore User?",
+            "restoreBody": "This will restore access for <strong>{{username}}</strong>."
+        },
+        "guest": {
+            "title": "Guest TV Links",
+            "description": "Generate secure, read-only links for TV screens. Each site can have a link for the dashboard and a link for the analytics.",
+            "policyTitle": "TV Mode Security Policy",
+            "policy": "Guests are <strong>read-only</strong> and see the figures of <strong>their site</strong> only. The <strong>dashboard</strong> link shows in-progress tasks; the <strong>analytics</strong> link shows compliance figures, with no per-person data and no exports. A link opens only its own screen.",
+            "noSite": "No site configured",
+            "noSiteHint": "Create a site first (Settings → Sites) to generate a TV guest link per site.",
+            "views": {
+                "DASHBOARD": {
+                    "label": "Dashboard",
+                    "hint": "In-progress tasks of the site"
+                },
+                "ANALYTICS": {
+                    "label": "Analytics",
+                    "hint": "Compliance figures of the site"
+                }
+            },
+            "active": "Active",
+            "notCreated": "Not created",
+            "newLink": "New link",
+            "newLinkAria": "New {{view}} link for {{site}}",
+            "reset": "Reset",
+            "resetAria": "Reset {{view}} access for {{site}}",
+            "resetTitle": "Sign the screen out and generate a fresh link",
+            "revoke": "Revoke",
+            "revokeAria": "Revoke {{view}} link for {{site}}",
+            "createLabel": "Create:",
+            "createAria": "{{view}} link for {{site}}",
+            "createMany": "Create {{n}} links",
+            "createOne": "Create link",
+            "oneTimeTitle_one": "One-time link",
+            "oneTimeTitle_other": "One-time links",
+            "oneTimeAria": "One-time TV link, {{site}} {{view}}",
+            "copy": "Copy",
+            "oneTimeHelp": "Open each link <strong>once</strong> on its TV screen (or in a private window): it signs the screen in for as long as it stays connected, with no password in the address. Valid until {{date}}; a new link cancels the previous one.",
+            "footer": "One link per screen and per site.",
+            "toasts": {
+                "linkFailed": "Failed to generate the link",
+                "copied": "Link copied",
+                "copyFailed": "Copy failed: select the link and copy it manually",
+                "createdMany": "Guest links created for {{site}}",
+                "createdOne": "Guest link created for {{site}}",
+                "createFailed": "Failed to create the guest link",
+                "revoked": "Guest link revoked",
+                "revokeFailed": "Failed to revoke guest link",
+                "resetDone": "Screen signed out and access reset",
+                "resetFailed": "Failed to reset the access"
+            }
+        }
+    },
+    "groupMgmt": {
+        "validation": {
+            "nameMin3": "Group name must be at least 3 characters",
+            "nameMin2": "Group name must be at least 2 characters"
+        },
+        "page": {
+            "count": "{{n}} group(s)",
+            "emptyTitle": "No groups yet",
+            "emptyBody": "Create groups to organize users and simplify task assignments.",
+            "columns": {
+                "name": "Name",
+                "site": "Site",
+                "members": "Members",
+                "description": "Description"
+            },
+            "noDescription": "No description"
+        },
+        "form": {
+            "createTitle": "Create New Group",
+            "editDescription": "Update the group's information below.",
+            "createDescription": "Create a new group to organize users and simplify task assignments.",
+            "name": "Group Name",
+            "namePlaceholder": "Engineering Team",
+            "site": "Site",
+            "selectSite": "Select a site",
+            "description": "Description",
+            "descriptionPlaceholder": "Optional description of the group's purpose...",
+            "update": "Update Group",
+            "create": "Create Group"
+        },
+        "actions": {
+            "openMenu": "Open menu",
+            "editDetails": "Edit Details",
+            "manageMembers": "Manage Members",
+            "deleteGroup": "Delete Group",
+            "deleteTitle": "Delete Group?",
+            "deleteBody": "This will properly delete the group <strong>{{name}}</strong>. Task assignments related to this group might be affected."
+        },
+        "members": {
+            "title": "Group Members",
+            "description": "Manage members for <strong>{{name}}</strong>",
+            "addTitle": "Add New Member",
+            "searchPlaceholder": "Search by name, username or email...",
+            "noneToAdd": "No users to add",
+            "noResults": "No results for “{{query}}”",
+            "add": "Add",
+            "current": "Current Members",
+            "count": "{{n}} member(s)",
+            "loading": "Loading members...",
+            "empty": "No members in this group yet.",
+            "emptyHint": "Use the selector above to add users.",
+            "toasts": {
+                "added": "Member added successfully",
+                "addFailed": "Failed to add member",
+                "removed": "Member removed successfully",
+                "removeFailed": "Failed to remove member"
+            }
+        }
+    },
+    "profilePage": {
+        "defaultName": "User",
+        "roleBadge": {
+            "SUPER_ADMIN": "Super Admin",
+            "ADMIN": "Admin",
+            "MANAGER": "Manager",
+            "GUEST": "Guest",
+            "USER": "User"
+        },
+        "roleLong": {
+            "SUPER_ADMIN": "Super Administrator",
+            "ADMIN": "Administrator",
+            "MANAGER": "Manager",
+            "USER": "User",
+            "GUEST": "Guest"
+        },
+        "avatar": {
+            "unsupportedFormat": "Unsupported format. Use PNG, JPG or WebP.",
+            "updated": "Avatar updated",
+            "failed": "Failed to update the avatar",
+            "change": "Change Avatar"
+        },
+        "info": {
+            "title": "Profile Information",
+            "description": "Update your personal information and avatar",
+            "fullName": "Full Name",
+            "fullNamePlaceholder": "Your full name",
+            "fullNameHint": "This is your display name across the application.",
+            "email": "Email",
+            "emailHint": "Your email address cannot be changed.",
+            "role": "Role",
+            "roleHint": "Your role is managed by your administrator."
+        },
+        "security": {
+            "title": "Security",
+            "description": "Manage your password and authentication methods",
+            "password": "Password",
+            "passwordDescription": "Change your account password",
+            "required": "Required",
+            "mfa": "Multi-Factor Authentication",
+            "mfaDisabled": "MFA is not enabled by your administrator.",
+            "mfaEnabled": "Add an extra layer of security to your account.",
+            "mfaNone": "Protect your account with two-factor authentication.",
+            "mfaContact": "Contact your administrator to enable multi-factor authentication.",
+            "passkeys": "Passkeys (WebAuthn)",
+            "passkeysDisabled": "Passkeys are not enabled by your administrator.",
+            "passkeysDescription": "Use biometrics or security keys for passwordless sign-in.",
+            "managePasskeys": "Manage Passkeys",
+            "addPasskey": "Add Passkey",
+            "passkeysContact": "Contact your administrator to enable passkeys."
+        }
+    },
+    "mfaSetup": {
+        "manageTitle": "Manage MFA",
+        "setupTitle": "Set Up Multi-Factor Authentication",
+        "manageDescription": "Manage your authentication methods and backup codes.",
+        "setupDescription": "Add an extra layer of security to your account.",
+        "chooseMethod": "Choose a method to secure your account:",
+        "authenticatorApp": "Authenticator App (Recommended)",
+        "authenticatorAppHint": "Use Google Authenticator, Authy, or similar",
+        "scanQr": "1. Scan QR Code",
+        "qrAlt": "QR Code",
+        "scanHint": "Scan this QR code with your authenticator app.",
+        "enterManually": "Or enter this code manually:",
+        "enterCode": "2. Enter Verification Code",
+        "codeHint": "Enter the 6-digit code from your authenticator app.",
+        "enable": "Enable MFA",
+        "saveCodesTitle": "Save Your Backup Codes",
+        "saveCodesBody": "Store these codes in a safe place. You can use them to access your account if you lose your authenticator device.",
+        "backupCodes": "Backup Codes",
+        "copied": "Copied",
+        "copyAll": "Copy All",
+        "done": "Done",
+        "enabledTitle": "MFA is enabled",
+        "enabledBody": "Your account is protected with two-factor authentication.",
+        "viewCodes": "View Backup Codes",
+        "disable": "Disable MFA",
+        "enforcedNote": "MFA is required by your administrator and cannot be disabled.",
+        "toasts": {
+            "secretCopied": "Secret copied to clipboard",
+            "codesCopied": "Backup codes copied to clipboard",
+            "generateFailed": "Failed to generate MFA setup",
+            "invalidFormat": "Please enter a valid 6-digit code",
+            "enabled": "MFA enabled successfully",
+            "invalidCode": "Invalid verification code",
+            "enforced": "MFA is required by your administrator",
+            "disabled": "MFA disabled successfully",
+            "disableFailed": "Failed to disable MFA"
+        }
+    },
+    "passkeysManage": {
+        "manageTitle": "Manage Passkeys",
+        "addTitle": "Add New Passkey",
+        "listDescription": "Use biometrics or security keys for passwordless sign-in.",
+        "addDescription": "Give your passkey a recognizable name.",
+        "none": "No passkeys configured",
+        "noneHint": "Add a passkey to enable passwordless sign-in",
+        "added": "Added {{date}}",
+        "lastUsed": "Last used {{date}}",
+        "enforcedNote": "<strong>Note:</strong> Passkeys are required by your administrator. You must have at least one passkey configured.",
+        "add": "Add Passkey",
+        "name": "Passkey Name",
+        "namePlaceholder": "My MacBook, YubiKey, etc.",
+        "nameHint": "Choose a name that helps you identify this device or security key.",
+        "whatNext": "What happens next?",
+        "step1": "You'll be prompted to use your device biometrics or security key",
+        "step2": "The passkey will be securely stored on your device",
+        "step3": "You can use it to sign in without a password",
+        "create": "Create Passkey",
+        "removeTitle": "Remove Passkey?",
+        "removeBody": "This passkey will no longer be able to sign in to your account. This action cannot be undone.",
+        "remove": "Remove",
+        "toasts": {
+            "added": "Passkey added successfully",
+            "addFailed": "Failed to add passkey",
+            "removed": "Passkey removed successfully",
+            "removeFailed": "Failed to remove passkey",
+            "nameRequired": "Please enter a name for this passkey",
+            "keepOne": "You must have at least one passkey when enforcement is enabled"
+        }
+    },
+    "restoreZone": {
+        "toasts": {
+            "needsKey": "This backup requires a decryption key.",
+            "validationError": "Validation error",
+            "invalidFile": "Invalid file",
+            "analysed": "File analysed successfully. Ready to restore.",
+            "analyseFailed": "Failed to analyse the file",
+            "externalRejected": "External file rejected",
+            "restored": "System restored. Redirecting...",
+            "restoreFailed": "Restore failed."
+        },
+        "types": {
+            "system": "System",
+            "database": "Database"
+        },
+        "externalFile": "External file (temporary)",
+        "dangerTitle": "Danger zone: system restore",
+        "dangerBody": "Restore the system from a backup.",
+        "dangerWarning": "This action is irreversible and will replace all current data.",
+        "externalArchive": "External archive",
+        "selectedBackup": "Selected backup",
+        "encrypted": "Encrypted",
+        "externalBadge": "External restore",
+        "change": "Change...",
+        "clear": "Clear",
+        "validating": "Validating...",
+        "invalidBackup": "Invalid backup",
+        "encryptedBackup": "Encrypted backup",
+        "encryptedBody": "This file is protected by an unknown key. Enter the key below to continue.",
+        "verified": "Verified backup",
+        "versionLine": "App version: {{version}} • Type: {{type}}",
+        "unknown": "Unknown",
+        "keyRequired": "Decryption key required",
+        "keyPlaceholder": "Enter the encryption key...",
+        "keyHint": "Used once for this restore. Never stored.",
+        "warningTitle": "Warning",
+        "warningBody": "All sessions will be invalidated. You will be signed out immediately.",
+        "restoreButton": "Restore system",
+        "noneTitle": "No backup selected",
+        "noneBody": "Select an existing backup or upload an external file <br />to start a restore.",
+        "pickOnServer": "Choose from the server",
+        "restoreExternal": "Restore external file",
+        "pickerTitle": "Select a backup",
+        "pickerDescription": "Choose a restore point from the server history.",
+        "noBackups": "No backups available",
+        "confirmTitle": "Critical confirmation",
+        "confirmDescription": "You are about to restore the system.",
+        "impactTitle": "Immediate impact:",
+        "impact1": "The database will be <strong>overwritten</strong>.",
+        "impact2": "Uploaded files will be <strong>replaced</strong>.",
+        "impact3": "You will be <strong>signed out</strong> immediately.",
+        "typePrompt": "Type <strong>RESTORE</strong> to confirm:",
+        "confirmButton": "CONFIRM RESTORE"
+    },
+    "apiKeys": {
+        "scopes": {
+            "task_read": "Read tasks",
+            "task_create": "Create tasks",
+            "task_update": "Update tasks",
+            "task_delete": "Delete tasks",
+            "schedule_read": "Read schedules",
+            "schedule_create": "Create schedules",
+            "user_read": "Read users",
+            "settings_read": "Read settings",
+            "api_keys_read": "Read API keys",
+            "api_keys_write": "Manage API keys"
+        },
+        "toasts": {
+            "loadFailed": "Error loading API keys",
+            "required": "Please fill in the required fields",
+            "created": "API key generated successfully",
+            "createFailed": "Error while creating the key",
+            "rotateConfirm": "Do you really want to regenerate this key? The old one will be revoked immediately.",
+            "rotated": "API key regenerated",
+            "rotateFailed": "Error while rotating the key",
+            "revokeConfirm": "Are you sure you want to revoke this key? It will become unusable immediately.",
+            "revoked": "API key revoked",
+            "revokeFailed": "Error while revoking the key",
+            "copied": "Copied to clipboard"
+        },
+        "search": "Search a key...",
+        "status": "Status",
+        "statuses": {
+            "all": "All statuses",
+            "active": "Active",
+            "revoked": "Revoked / Expired"
+        },
+        "generate": "Generate a key",
+        "dialogNew": "New API key",
+        "dialogDone": "API key generated",
+        "descriptionNew": "Set the name and permissions of your new key.",
+        "descriptionDone": "Keep this key safe, it will not be shown again.",
+        "name": "Key name *",
+        "namePlaceholder": "e.g. Zapier integration",
+        "expiry": "Expiration (optional)",
+        "description": "Description",
+        "descriptionPlaceholder": "What this key is used for...",
+        "scopesLabel": "Scopes (Permissions)",
+        "warning": "Warning!",
+        "copyNow": "Copy this key now. For security reasons, we will not be able to show it to you again.",
+        "generateKey": "Generate key",
+        "noted": "I have noted the key",
+        "orgTitle": "Organisation API keys",
+        "orgDescription": "Use these keys to authenticate scripts or third-party services (X-API-KEY header).",
+        "columns": {
+            "name": "Name / Prefix",
+            "permissions": "Permissions",
+            "lastUsed": "Last used",
+            "status": "Status",
+            "actions": "Actions"
+        },
+        "empty": "No API key found.",
+        "unnamed": "Unnamed",
+        "used": "Used: {{when}}",
+        "never": "Never",
+        "created": "Created: {{date}}",
+        "revokedBadge": "Revoked",
+        "expiredBadge": "Expired",
+        "activeBadge": "Active",
+        "expiresOn": "Expires on {{date}}",
+        "rotate": "Regenerate",
+        "revoke": "Revoke"
+    },
+    "bulkSchedules": {
+        "manage": "Manage Schedules",
+        "title": "Manage Schedules (Bulk)",
+        "description": "Create schedules for multiple tasks at once.",
+        "addToList": "Add to List",
+        "task": "Task",
+        "selectTask": "Select a task...",
+        "siteId": "Site ID (Opt)",
+        "sitePlaceholder": "e.g. PAR-01",
+        "label": "Label (Opt)",
+        "labelPlaceholder": "e.g. Morning Shift",
+        "addToDraft": "Add to Draft",
+        "draftItems": "Draft Items ({{n}})",
+        "limitExceeded": "Limit Exceeded (Max 50)",
+        "noItems": "No items added yet.",
+        "reviewAndSave": "Review & Save",
+        "toasts": {
+            "duplicate": "This task is already in your draft list.",
+            "created": "Successfully created {{n}} schedules.",
+            "failed": "Failed to create schedules."
+        },
+        "review": {
+            "title": "Review Bulk Schedule Creation",
+            "description": "You are about to create {{n}} schedule(s). Please review details below.",
+            "limitTitle": "Start Limit Exceeded",
+            "limitBody": "You cannot create more than 50 schedules at once. Current: {{n}}.",
+            "duplicatesTitle": "Duplicate Tasks",
+            "duplicatesBody": "You have selected the same task multiple times. Please remove duplicates.",
+            "conflictsTitle": "Potential Conflicts",
+            "conflictsBody": "{{n}} task(s) already have an active schedule. This will create a second schedule for them.",
+            "empty": "No items to review.",
+            "existing": "Existing",
+            "id": "ID: {{id}}",
+            "site": "• Site: {{site}}",
+            "labelLine": "• Label: {{label}}",
+            "backToEdit": "Back to Edit",
+            "confirm": "Confirm & Create"
+        }
+    },
+    "adminStatus": {
+        "title": "Change status",
+        "previousFailure": "Reason for the previous failure",
+        "newStatus": "New status",
+        "comment": "Comment (optional)",
+        "commentPlaceholder": "Reason for the change...",
+        "confirm": "Confirm"
+    },
+    "systemUnavailable": {
+        "title": "System Unavailable",
+        "description": "The connection to the server failed.",
+        "maintenance": "This may be due to ongoing maintenance or a network problem.",
+        "checkConnection": "Please check your internet connection.",
+        "starting": "The server may still be starting up.",
+        "firstStart": "The first start can take up to 1 minute.",
+        "connecting": "Connecting...",
+        "retry": "Retry"
+    },
+    "pageLoading": {
+        "default": "Loading…",
+        "dashboard": "Loading the dashboard…",
+        "analytics": "Loading analytics…",
+        "settings": "Loading settings…",
+        "profile": "Loading profile…"
+    },
+    "analytics": {
+        "title": "Analytics",
+        "subtitle": "KPIs, compliance and operational reports.",
+        "tvMode": "TV mode",
+        "periods": {
+            "1": "Today",
+            "7": "7d",
+            "30": "30d",
+            "90": "90d"
+        },
+        "summary": "Summary",
+        "tabs": {
+            "overview": "Overview",
+            "byTask": "By task",
+            "byUser": "By user",
+            "reports": "Reports"
+        },
+        "tvBanner": "ANALYTICS TV DISPLAY MODE",
+        "readOnly": "(READ ONLY)",
+        "periodBadge": "Period: {{period}}",
+        "exit": "Exit",
+        "kpi": {
+            "success": "Success",
+            "failed": "Failures",
+            "missing": "Missing",
+            "total": "Total"
+        },
+        "breakdown": "Breakdown",
+        "top10": "Top 10 tasks",
+        "relatedTasks": "Related tasks",
+        "noData": "No data",
+        "failShort": "{{n}} fail.",
+        "viewAllTasks": "View all tasks",
+        "pctOfTotal": "{{pct}}% of total",
+        "complianceRate": "Compliance rate",
+        "complianceFormula": "Success / (Success + Failures + Missing)",
+        "goalReached": "✓ Goal reached",
+        "belowGoal": "⚠ Below goal",
+        "critical": "✗ Critical",
+        "trendTitle": "Status trend",
+        "byWeek": "Aggregated by week",
+        "byDay": "By day",
+        "noDataPeriod": "No data for this period.",
+        "byTask": {
+            "title": "Compliance by task",
+            "description": "Worst tasks first — limit 50",
+            "task": "Task",
+            "compliance": "Compliance"
+        },
+        "byUser": {
+            "title": "Compliance by user",
+            "description": "Lowest performers first",
+            "user": "User"
+        },
+        "reports": {
+            "csvTitle": "CSV export",
+            "csvDescription": "Raw data for Excel or Google Sheets",
+            "pdfTitle": "PDF export",
+            "pdfDescription": "Report ready to share with your management",
+            "downloadCsv": "Download CSV",
+            "downloadPdf": "Download PDF",
+            "exporting": "Exporting...",
+            "started": "Download started",
+            "failed": "Download failed"
+        },
+        "summaryDialog": {
+            "title": "Analytics summary",
+            "description": "Quick view of your KPIs and period comparison.",
+            "tabs": {
+                "summary": "Summary",
+                "compare": "Compare",
+                "export": "Export"
+            },
+            "top3": "Top 3 problem tasks",
+            "copy": "Copy summary",
+            "copied": "Summary copied ✓",
+            "copyText": "Taskmaster — {{start}} → {{end}} | Compliance: {{rate}}% | Success: {{success}} | Failures: {{failed}} | Missing: {{missing}}",
+            "periodA": "Period A",
+            "periodB": "Period B",
+            "variation": "Change B vs A",
+            "pts": "pts",
+            "csvSub": "Excel / Google Sheets",
+            "pdfSub": "Compliance report",
+            "inProgress": "In progress...",
+            "download": "Download"
+        },
+        "thresholds": {
+            "title": "Compliance thresholds",
+            "description": "Customise the colours of the compliance indicator.",
+            "warning": "Warning threshold (orange)",
+            "critical": "Critical threshold (red)",
+            "invalid": "The warning threshold must be higher than the critical threshold.",
+            "preview": "Preview",
+            "ok": "OK",
+            "attention": "Warning",
+            "criticalLabel": "Critical",
+            "reset": "Reset",
+            "updated": "Thresholds updated"
+        }
+    },
+    "push": {
+        "permissionDenied": "Permission denied by the user.",
+        "notConfigured": "Push is not configured on the server."
+    },
+    "inbox": {
+        "title": "Notifications",
+        "open": "Notifications ({{count}} unread)",
+        "markAllRead": "Mark all as read",
+        "empty": "No notifications"
     }
 }

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Trans, useTranslation } from 'react-i18next';
 import { MoreHorizontal, Pencil, Trash, RotateCcw, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -29,6 +30,7 @@ interface UserActionsProps {
 }
 
 export function UserActions({ user, onEdit, onResetPassword }: UserActionsProps) {
+    const { t } = useTranslation();
     const [showDeleteAlert, setShowDeleteAlert] = useState(false);
     const [showRestoreAlert, setShowRestoreAlert] = useState(false);
     const deleteUser = useDeleteUser();
@@ -52,28 +54,28 @@ export function UserActions({ user, onEdit, onResetPassword }: UserActionsProps)
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="h-8 w-8 p-0">
-                        <span className="sr-only">Open menu</span>
+                        <span className="sr-only">{t('userMgmt.actions.openMenu')}</span>
                         <MoreHorizontal className="h-4 w-4" />
                     </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                    <DropdownMenuLabel>{t('common.actions')}</DropdownMenuLabel>
                     {/* A deleted account is restored first: no edit, no password reset. */}
                     {!isGuest && !isDeleted && (
                         <>
                             <DropdownMenuItem onClick={() => onEdit(user)}>
                                 <Pencil className="mr-2 h-4 w-4" />
-                                Edit
+                                {t('common.edit')}
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => onResetPassword(user)}>
                                 <Lock className="mr-2 h-4 w-4" />
-                                Reset Password
+                                {t('users.actions.resetPassword')}
                             </DropdownMenuItem>
                         </>
                     )}
                     {isGuest && (
                         <DropdownMenuItem disabled className="text-muted-foreground">
-                            Géré par Guest TV Links
+                            {t('userMgmt.actions.managedByGuestLinks')}
                         </DropdownMenuItem>
                     )}
                     {!isGuest && !isDeleted && <DropdownMenuSeparator />}
@@ -83,7 +85,7 @@ export function UserActions({ user, onEdit, onResetPassword }: UserActionsProps)
                             className="text-green-600"
                         >
                             <RotateCcw className="mr-2 h-4 w-4" />
-                            Restore
+                            {t('userMgmt.actions.restore')}
                         </DropdownMenuItem>
                     ) : (
                         <DropdownMenuItem
@@ -91,7 +93,7 @@ export function UserActions({ user, onEdit, onResetPassword }: UserActionsProps)
                             className="text-destructive"
                         >
                             <Trash className="mr-2 h-4 w-4" />
-                            Delete
+                            {t('common.delete')}
                         </DropdownMenuItem>
                     ))}
                 </DropdownMenuContent>
@@ -100,19 +102,22 @@ export function UserActions({ user, onEdit, onResetPassword }: UserActionsProps)
             <AlertDialog open={showDeleteAlert} onOpenChange={setShowDeleteAlert}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
-                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                        <AlertDialogTitle>{t('common.confirmDelete')}</AlertDialogTitle>
                         <AlertDialogDescription>
-                            This action will soft-delete the user <strong>{user.username}</strong>.
-                            They will no longer be able to login, but data is preserved.
+                            <Trans
+                                i18nKey="userMgmt.actions.deleteBody"
+                                values={{ username: user.username }}
+                                components={{ strong: <strong /> }}
+                            />
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
                         <AlertDialogAction
                             onClick={handleDelete}
                             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                         >
-                            Delete
+                            {t('common.delete')}
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
@@ -121,14 +126,18 @@ export function UserActions({ user, onEdit, onResetPassword }: UserActionsProps)
             <AlertDialog open={showRestoreAlert} onOpenChange={setShowRestoreAlert}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
-                        <AlertDialogTitle>Restore User?</AlertDialogTitle>
+                        <AlertDialogTitle>{t('userMgmt.actions.restoreTitle')}</AlertDialogTitle>
                         <AlertDialogDescription>
-                            This will restore access for <strong>{user.username}</strong>.
+                            <Trans
+                                i18nKey="userMgmt.actions.restoreBody"
+                                values={{ username: user.username }}
+                                components={{ strong: <strong /> }}
+                            />
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleRestore}>Restore</AlertDialogAction>
+                        <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleRestore}>{t('userMgmt.actions.restore')}</AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>

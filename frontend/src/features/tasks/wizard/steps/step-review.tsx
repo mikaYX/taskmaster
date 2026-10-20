@@ -10,8 +10,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { CalendarCheck, AlertCircle } from "lucide-react";
 import { format, parseISO, isSameDay } from "date-fns";
+import { useTranslation } from "react-i18next";
+import { getDateLocale } from "@/lib/date-locale";
 
 export function StepReview() {
+    const { t } = useTranslation();
+    const dateLocale = getDateLocale();
     const { getValues } = useFormContext<CreateTaskFormValues>();
     const formValues = getValues();
 
@@ -81,11 +85,11 @@ export function StepReview() {
 
     const customRuleLabel = (() => {
         if (formValues.periodicity !== 'custom') return null;
-        if (formValues.customRuleType === 'every_x_days') return `Every ${formValues.interval} days`;
-        if (formValues.customRuleType === 'selected_weekdays') return `Every ${formValues.interval} weeks on selected days`;
-        if (formValues.customRuleType === 'weeks_of_month') return `Every ${formValues.interval} months on week position`;
-        if (formValues.customRuleType === 'days_of_year') return `Every ${formValues.interval} years on specific days`;
-        return 'Custom Rules';
+        const type = formValues.customRuleType;
+        if (type === 'every_x_days' || type === 'selected_weekdays' || type === 'weeks_of_month' || type === 'days_of_year') {
+            return t(`taskWizard.review.customRule.${type}`, { n: formValues.interval });
+        }
+        return t('taskWizard.review.customRule.fallback');
     })();
 
     const { data: instances, isLoading, error } = useQuery({
@@ -100,39 +104,39 @@ export function StepReview() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Card>
                     <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium text-muted-foreground">Configuration</CardTitle>
+                        <CardTitle className="text-sm font-medium text-muted-foreground">{t('taskWizard.review.configuration')}</CardTitle>
                     </CardHeader>
                     <CardContent className="text-sm space-y-2">
                         <div>
-                            <span className="font-semibold">Name:</span> {formValues.name}
+                            <span className="font-semibold">{t('taskWizard.review.name')}</span> {formValues.name}
                         </div>
                         <div>
-                            <span className="font-semibold">Periodicity:</span> <Badge variant="outline" className="uppercase">{formValues.periodicity}</Badge>
+                            <span className="font-semibold">{t('taskWizard.review.periodicity')}</span> <Badge variant="outline" className="uppercase">{t(`taskWizard.periodicities.${formValues.periodicity}.label`)}</Badge>
                         </div>
                         {formValues.periodicity === 'custom' && (
                             <div>
-                                <span className="font-semibold">Custom Pattern:</span> {customRuleLabel}
+                                <span className="font-semibold">{t('taskWizard.review.customPattern')}</span> {customRuleLabel}
                             </div>
                         )}
                         {formValues.periodicity === 'custom' && (
                             <div>
-                                <span className="font-semibold text-muted-foreground mr-1">RRule (V2):</span>
+                                <span className="font-semibold text-muted-foreground mr-1">{t('taskWizard.review.rrule')}</span>
                                 <span className="font-mono text-xs p-1 bg-muted rounded">
-                                    {generateRRuleFromForm(formValues) || 'INCOMPLETE_RULE'}
+                                    {generateRRuleFromForm(formValues) || t('taskWizard.review.incompleteRule')}
                                 </span>
                             </div>
                         )}
                         <div>
-                            <span className="font-semibold">Recurrence:</span> <Badge variant="secondary">{formValues.recurrenceMode || 'ON_SCHEDULE'}</Badge>
+                            <span className="font-semibold">{t('taskWizard.review.recurrence')}</span> <Badge variant="secondary">{formValues.recurrenceMode || 'ON_SCHEDULE'}</Badge>
                         </div>
                         <div>
-                            <span className="font-semibold">Time Window:</span> {formValues.useGlobalWindowDefaults !== false ? "Global Defaults" : `${formValues.windowStartTime || '?'} - ${formValues.windowEndTime || '?'}`}
+                            <span className="font-semibold">{t('taskWizard.review.timeWindow')}</span> {formValues.useGlobalWindowDefaults !== false ? t('taskWizard.review.globalDefaults') : `${formValues.windowStartTime || '?'} - ${formValues.windowEndTime || '?'}`}
                         </div>
                         <div>
-                            <span className="font-semibold">Start Date:</span> {formValues.startDate ? format(formValues.startDate, 'PPP') : '-'}
+                            <span className="font-semibold">{t('taskWizard.review.startDate')}</span> {formValues.startDate ? format(formValues.startDate, 'PPP', { locale: dateLocale }) : '-'}
                         </div>
                         <div>
-                            <span className="font-semibold">Assignments:</span> {((formValues.userIds?.length || 0) + (formValues.groupIds?.length || 0))} recipients
+                            <span className="font-semibold">{t('taskWizard.review.assignments')}</span> {t('taskWizard.review.recipients', { n: (formValues.userIds?.length || 0) + (formValues.groupIds?.length || 0) })}
                         </div>
                     </CardContent>
                 </Card>
@@ -141,7 +145,7 @@ export function StepReview() {
                     <CardHeader className="pb-2">
                         <CardTitle className="text-sm font-medium text-primary flex items-center gap-2">
                             <CalendarCheck className="h-4 w-4" />
-                            Next Occurrences (Preview)
+                            {t('taskWizard.review.nextOccurrences')}
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
@@ -154,7 +158,7 @@ export function StepReview() {
                         ) : error ? (
                             <Alert variant="destructive">
                                 <AlertCircle className="h-4 w-4" />
-                                <AlertTitle>Error</AlertTitle>
+                                <AlertTitle>{t('taskWizard.review.error')}</AlertTitle>
                                 <AlertDescription>
                                     {(() => {
                                         const e = error as unknown;
@@ -165,7 +169,8 @@ export function StepReview() {
                                                 if (typeof msg === 'string') return msg;
                                             }
                                         }
-                                        return error instanceof Error ? error.message : 'Could not generate preview.';
+                                        if (error instanceof TypeError) return t('taskWizard.review.previewUnreachable');
+                                        return error instanceof Error ? error.message : t('taskWizard.review.previewFailed');
                                     })()}
                                 </AlertDescription>
                             </Alert>
@@ -183,18 +188,18 @@ export function StepReview() {
                                                     {idx + 1}
                                                 </Badge>
                                                 <span className="font-medium">
-                                                    {format(date, 'PPP')}
+                                                    {format(date, 'PPP', { locale: dateLocale })}
                                                 </span>
                                             </div>
                                             {isShifted && (
                                                 <div className="flex items-center text-xs text-muted-foreground">
-                                                    <span>(Shifted from {format(original, 'MMM d')})</span>
+                                                    <span>{t('taskWizard.review.shiftedFrom', { date: format(original, 'PP', { locale: dateLocale }) })}</span>
                                                 </div>
                                             )}
                                         </div>
                                     )
                                 })}
-                                {!instances?.length && <p className="text-sm text-muted-foreground">No instances generated for the current preview window.</p>}
+                                {!instances?.length && <p className="text-sm text-muted-foreground">{t('taskWizard.review.noInstances')}</p>}
                             </div>
                         )}
                     </CardContent>
@@ -203,9 +208,9 @@ export function StepReview() {
 
             <Alert className="bg-muted">
                 <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Ready to Create?</AlertTitle>
+                <AlertTitle>{t('taskWizard.review.readyTitle')}</AlertTitle>
                 <AlertDescription>
-                    Verify the occurrences above. Once created, the system will automatically generate tasks according to this schedule.
+                    {t('taskWizard.review.readyBody')}
                 </AlertDescription>
             </Alert>
         </div>

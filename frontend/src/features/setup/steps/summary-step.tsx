@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { useSetupStore } from '@/stores';
 import { CheckCircle, XCircle, Rocket } from 'lucide-react';
@@ -11,11 +12,12 @@ interface SummaryStepProps {
  * Summary Step - Review and complete setup.
  */
 export function SummaryStep({ onComplete, onBack }: SummaryStepProps) {
+    const { t } = useTranslation();
     const { adminPasswordSet, preferencesSet } = useSetupStore();
 
     const items = [
-        { label: 'Administrator account created', completed: adminPasswordSet },
-        { label: 'Application preferences set', completed: preferencesSet },
+        { label: t('setup.steps.summaryItems.admin'), completed: adminPasswordSet },
+        { label: t('setup.steps.summary.preferencesSet'), completed: preferencesSet },
     ];
 
     const requiredComplete = adminPasswordSet && preferencesSet;
@@ -25,9 +27,9 @@ export function SummaryStep({ onComplete, onBack }: SummaryStepProps) {
             <div className="flex items-center gap-3 text-primary">
                 <Rocket className="h-8 w-8" />
                 <div>
-                    <h3 className="font-semibold">Setup Complete!</h3>
+                    <h3 className="font-semibold">{t('setup.complete')}</h3>
                     <p className="text-sm text-muted-foreground">
-                        Review your configuration before finishing
+                        {t('setup.reviewConfig')}
                     </p>
                 </div>
             </div>
@@ -56,15 +58,15 @@ export function SummaryStep({ onComplete, onBack }: SummaryStepProps) {
             <div className="p-4 bg-muted rounded-lg">
                 <p className="text-sm">
                     {requiredComplete
-                        ? '✅ All required settings are configured. You can now start using Taskmaster!'
-                        : '⚠️ Some required settings are missing. Please go back and complete them.'}
+                        ? `✅ ${t('setup.allConfigured')}`
+                        : `⚠️ ${t('setup.someMissing')}`}
                 </p>
             </div>
 
             <div className="flex justify-between">
-                <Button variant="outline" onClick={onBack}>Back</Button>
+                <Button variant="outline" onClick={onBack}>{t('common.back')}</Button>
                 <Button onClick={onComplete} disabled={!requiredComplete}>
-                    Complete Setup
+                    {t('setup.completeSetup')}
                 </Button>
             </div>
         </div>

@@ -24,6 +24,7 @@ import { useUsers } from '@/hooks/use-users';
 import { useGroups } from '@/hooks/use-groups';
 import { useAssignUsers, useUnassignUsers, useAssignGroups, useUnassignGroups } from '@/hooks/use-tasks';
 import { toast } from 'sonner';
+import { Trans, useTranslation } from 'react-i18next';
 
 interface TaskAssignmentsSheetProps {
     task: Task | undefined;
@@ -38,6 +39,7 @@ interface TaskAssignmentsSheetProps {
  * Uses tabs to separate Users and Groups.
  */
 export function TaskAssignmentsSheet({ task, open, onOpenChange }: TaskAssignmentsSheetProps) {
+    const { t } = useTranslation();
     const [selectedUserId, setSelectedUserId] = useState<string>('');
     const [selectedGroupId, setSelectedGroupId] = useState<string>('');
 
@@ -70,9 +72,9 @@ export function TaskAssignmentsSheet({ task, open, onOpenChange }: TaskAssignmen
             {
                 onSuccess: () => {
                     setSelectedUserId('');
-                    toast.success('User assigned');
+                    toast.success(t('taskAssignments.toasts.userAssigned'));
                 },
-                onError: () => toast.error('Failed to assign user'),
+                onError: () => toast.error(t('taskAssignments.toasts.userAssignFailed')),
             }
         );
     };
@@ -81,8 +83,8 @@ export function TaskAssignmentsSheet({ task, open, onOpenChange }: TaskAssignmen
         unassignUsers.mutate(
             { id: task.id, dto: { ids: [userId] } },
             {
-                onSuccess: () => toast.success('User unassigned'),
-                onError: () => toast.error('Failed to unassign user'),
+                onSuccess: () => toast.success(t('taskAssignments.toasts.userUnassigned')),
+                onError: () => toast.error(t('taskAssignments.toasts.userUnassignFailed')),
             }
         );
     };
@@ -94,9 +96,9 @@ export function TaskAssignmentsSheet({ task, open, onOpenChange }: TaskAssignmen
             {
                 onSuccess: () => {
                     setSelectedGroupId('');
-                    toast.success('Group assigned');
+                    toast.success(t('taskAssignments.toasts.groupAssigned'));
                 },
-                onError: () => toast.error('Failed to assign group'),
+                onError: () => toast.error(t('taskAssignments.toasts.groupAssignFailed')),
             }
         );
     };
@@ -105,8 +107,8 @@ export function TaskAssignmentsSheet({ task, open, onOpenChange }: TaskAssignmen
         unassignGroups.mutate(
             { id: task.id, dto: { ids: [groupId] } },
             {
-                onSuccess: () => toast.success('Group unassigned'),
-                onError: () => toast.error('Failed to unassign group'),
+                onSuccess: () => toast.success(t('taskAssignments.toasts.groupUnassigned')),
+                onError: () => toast.error(t('taskAssignments.toasts.groupUnassignFailed')),
             }
         );
     };
@@ -118,9 +120,13 @@ export function TaskAssignmentsSheet({ task, open, onOpenChange }: TaskAssignmen
         <Sheet open={open} onOpenChange={onOpenChange}>
             <SheetContent className="w-[520px] sm:max-w-[520px] flex flex-col">
                 <SheetHeader>
-                    <SheetTitle className="text-xl">Task Assignments</SheetTitle>
+                    <SheetTitle className="text-xl">{t('taskAssignments.title')}</SheetTitle>
                     <SheetDescription>
-                        Manage who is responsible for <strong className="text-foreground">{task.name}</strong>
+                        <Trans
+                            i18nKey="taskAssignments.description"
+                            values={{ name: task.name }}
+                            components={{ strong: <strong className="text-foreground" /> }}
+                        />
                     </SheetDescription>
                 </SheetHeader>
 
@@ -130,11 +136,11 @@ export function TaskAssignmentsSheet({ task, open, onOpenChange }: TaskAssignmen
                     <TabsList className="grid w-full grid-cols-2">
                         <TabsTrigger value="users" className="gap-2">
                             <Users className="h-4 w-4" />
-                            Users ({assignedUsers.length})
+                            {t('taskAssignments.usersTab', { n: assignedUsers.length })}
                         </TabsTrigger>
                         <TabsTrigger value="groups" className="gap-2">
                             <UsersRound className="h-4 w-4" />
-                            Groups ({assignedGroups.length})
+                            {t('taskAssignments.groupsTab', { n: assignedGroups.length })}
                         </TabsTrigger>
                     </TabsList>
 
@@ -148,12 +154,12 @@ export function TaskAssignmentsSheet({ task, open, onOpenChange }: TaskAssignmen
                                 disabled={isLoading}
                             >
                                 <SelectTrigger className="flex-1">
-                                    <SelectValue placeholder="Select a user..." />
+                                    <SelectValue placeholder={t('taskAssignments.selectUser')} />
                                 </SelectTrigger>
                                 <SelectContent>
                                     {availableUsers.length === 0 ? (
                                         <SelectItem value="__none__" disabled>
-                                            No users available
+                                            {t('taskAssignments.noUsersAvailable')}
                                         </SelectItem>
                                     ) : (
                                         availableUsers.map((user) => (
@@ -169,7 +175,7 @@ export function TaskAssignmentsSheet({ task, open, onOpenChange }: TaskAssignmen
                                 disabled={!selectedUserId || selectedUserId === '__none__' || isLoading}
                             >
                                 <Plus className="h-4 w-4 mr-2" />
-                                Add
+                                {t('taskAssignments.add')}
                             </Button>
                         </div>
 
@@ -178,7 +184,7 @@ export function TaskAssignmentsSheet({ task, open, onOpenChange }: TaskAssignmen
                             {assignedUsers.length === 0 ? (
                                 <div className="flex flex-col items-center justify-center py-12 text-center">
                                     <Users className="h-10 w-10 text-muted-foreground/30 mb-3" />
-                                    <p className="text-muted-foreground text-sm">No users assigned to this task.</p>
+                                    <p className="text-muted-foreground text-sm">{t('taskAssignments.noUsersAssigned')}</p>
                                 </div>
                             ) : (
                                 assignedUsers.map((user) => (
@@ -223,12 +229,12 @@ export function TaskAssignmentsSheet({ task, open, onOpenChange }: TaskAssignmen
                                 disabled={isLoading}
                             >
                                 <SelectTrigger className="flex-1">
-                                    <SelectValue placeholder="Select a group..." />
+                                    <SelectValue placeholder={t('taskAssignments.selectGroup')} />
                                 </SelectTrigger>
                                 <SelectContent>
                                     {availableGroups.length === 0 ? (
                                         <SelectItem value="__none__" disabled>
-                                            No groups available
+                                            {t('taskAssignments.noGroupsAvailable')}
                                         </SelectItem>
                                     ) : (
                                         availableGroups.map((group) => (
@@ -244,7 +250,7 @@ export function TaskAssignmentsSheet({ task, open, onOpenChange }: TaskAssignmen
                                 disabled={!selectedGroupId || selectedGroupId === '__none__' || isLoading}
                             >
                                 <Plus className="h-4 w-4 mr-2" />
-                                Add
+                                {t('taskAssignments.add')}
                             </Button>
                         </div>
 
@@ -253,7 +259,7 @@ export function TaskAssignmentsSheet({ task, open, onOpenChange }: TaskAssignmen
                             {assignedGroups.length === 0 ? (
                                 <div className="flex flex-col items-center justify-center py-12 text-center">
                                     <UsersRound className="h-10 w-10 text-muted-foreground/30 mb-3" />
-                                    <p className="text-muted-foreground text-sm">No groups assigned to this task.</p>
+                                    <p className="text-muted-foreground text-sm">{t('taskAssignments.noGroupsAssigned')}</p>
                                 </div>
                             ) : (
                                 assignedGroups.map((group) => (
@@ -266,7 +272,7 @@ export function TaskAssignmentsSheet({ task, open, onOpenChange }: TaskAssignmen
                                                 <div>
                                                     <div className="font-medium text-sm">{group.name}</div>
                                                     <div className="text-xs text-muted-foreground">
-                                                        {group.description || 'No description'}
+                                                        {group.description || t('taskAssignments.noDescription')}
                                                     </div>
                                                 </div>
                                             </div>

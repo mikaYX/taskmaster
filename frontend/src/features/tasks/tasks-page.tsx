@@ -1,4 +1,6 @@
 import { useState, useMemo } from 'react';
+import { Trans, useTranslation } from 'react-i18next';
+import { getDateLocale } from '@/lib/date-locale';
 import { useNavigate } from 'react-router-dom';
 import { Plus, ClipboardList, ChevronUp, ChevronDown, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -53,6 +55,7 @@ import type { Task } from '@/api/types';
  * - Sheet for assignments
  */
 export function TasksPage() {
+    const { t } = useTranslation();
     const isManager = useIsAdminOrManager();
     const isGuest = useIsGuest();
 
@@ -146,15 +149,15 @@ export function TasksPage() {
             <div className="flex flex-col gap-1">
                 <div className="flex items-center justify-between">
                     <div>
-                        <h1 className="text-3xl font-bold tracking-tight">Tasks</h1>
+                        <h1 className="text-3xl font-bold tracking-tight">{t('nav.tasks')}</h1>
                         <p className="text-muted-foreground">
-                            Create and manage recurring tasks for your team.
+                            {t('tasks.description')}
                         </p>
                     </div>
                     {!isGuest && (
                         <Button size="lg" onClick={handleCreate}>
                             <Plus className="mr-2 h-4 w-4" />
-                            Add Task
+                            {t('tasks.addTask')}
                         </Button>
                     )}
                 </div>
@@ -166,8 +169,8 @@ export function TasksPage() {
                     <div className="flex items-center justify-between">
                         <span className="text-sm text-muted-foreground">
                             {isLoading
-                                ? 'Loading...'
-                                : `${activeCount} active, ${inactiveCount} inactive`
+                                ? t('common.loading')
+                                : t('taskList.counts', { active: activeCount, inactive: inactiveCount })
                             }
                         </span>
                         <div className="flex flex-wrap items-center gap-4">
@@ -176,7 +179,7 @@ export function TasksPage() {
                                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                                     <Input
                                         type="text"
-                                        placeholder="Search tasks..."
+                                        placeholder={t('taskList.searchPlaceholder')}
                                         className="pl-8"
                                         value={searchQuery}
                                         onChange={(e) => setSearchQuery(e.target.value)}
@@ -189,7 +192,7 @@ export function TasksPage() {
                                         onCheckedChange={setShowInactive}
                                     />
                                     <Label htmlFor="show-inactive" className="text-sm text-muted-foreground whitespace-nowrap">
-                                        Show inactive
+                                        {t('taskList.showInactive')}
                                     </Label>
                                 </div>
                             </div>
@@ -209,10 +212,10 @@ export function TasksPage() {
                                         disabled={filterGroupId !== undefined}
                                     >
                                         <SelectTrigger className="w-[180px]">
-                                            <SelectValue placeholder="Filter by User" />
+                                            <SelectValue placeholder={t('taskList.filterUser')} />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="all">All users</SelectItem>
+                                            <SelectItem value="all">{t('taskList.allUsers')}</SelectItem>
                                             {users?.map(user => (
                                                 <SelectItem key={user.id} value={user.id.toString()}>
                                                     {user.fullname || user.username}
@@ -234,10 +237,10 @@ export function TasksPage() {
                                         disabled={filterUserId !== undefined}
                                     >
                                         <SelectTrigger className="w-[180px]">
-                                            <SelectValue placeholder="Filter by Group" />
+                                            <SelectValue placeholder={t('taskList.filterGroup')} />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="all">All groups</SelectItem>
+                                            <SelectItem value="all">{t('taskList.allGroups')}</SelectItem>
                                             {groups?.map(group => (
                                                 <SelectItem key={group.id} value={group.id.toString()}>
                                                     {group.name}
@@ -259,7 +262,7 @@ export function TasksPage() {
                                     }}
                                     className="text-muted-foreground"
                                 >
-                                    Clear
+                                    {t('taskList.clear')}
                                 </Button>
                             )}
                         </div>
@@ -283,13 +286,13 @@ export function TasksPage() {
                         /* ========== EMPTY STATE ========== */
                         <div className="flex flex-col items-center justify-center py-16 text-center">
                             <ClipboardList className="h-12 w-12 text-muted-foreground/30 mb-4" />
-                            <h3 className="font-semibold text-lg">No tasks yet</h3>
+                            <h3 className="font-semibold text-lg">{t('taskList.emptyTitle')}</h3>
                             <p className="text-muted-foreground text-sm max-w-sm mt-1">
-                                Create your first recurring task to get started.
+                                {t('taskList.emptyBody')}
                             </p>
                             <Button className="mt-6" onClick={handleCreate}>
                                 <Plus className="mr-2 h-4 w-4" />
-                                Add Task
+                                {t('tasks.addTask')}
                             </Button>
                         </div>
                     ) : (
@@ -301,25 +304,25 @@ export function TasksPage() {
                                         className="text-xs uppercase tracking-wide text-muted-foreground font-medium py-3 px-6 cursor-pointer select-none"
                                         onClick={() => handleSort('name')}
                                     >
-                                        Task Name {renderSortIcon('name')}
+                                        {t('taskList.columns.name')} {renderSortIcon('name')}
                                     </TableHead>
                                     <TableHead
                                         className="text-xs uppercase tracking-wide text-muted-foreground font-medium py-3 px-6 cursor-pointer select-none"
                                         onClick={() => handleSort('periodicity')}
                                     >
-                                        Periodicity & Rules {renderSortIcon('periodicity')}
+                                        {t('taskList.columns.periodicity')} {renderSortIcon('periodicity')}
                                     </TableHead>
                                     <TableHead
                                         className="text-xs uppercase tracking-wide text-muted-foreground font-medium py-3 px-6 cursor-pointer select-none"
                                         onClick={() => handleSort('assignments')}
                                     >
-                                        Assignments {renderSortIcon('assignments')}
+                                        {t('taskList.columns.assignments')} {renderSortIcon('assignments')}
                                     </TableHead>
                                     <TableHead
                                         className="text-xs uppercase tracking-wide text-muted-foreground font-medium py-3 px-6 cursor-pointer select-none"
                                         onClick={() => handleSort('isActive')}
                                     >
-                                        Status {renderSortIcon('isActive')}
+                                        {t('taskList.columns.status')} {renderSortIcon('isActive')}
                                     </TableHead>
                                     <TableHead className="w-[60px]"></TableHead>
                                 </TableRow>
@@ -349,7 +352,7 @@ export function TasksPage() {
                                             <div className="flex flex-col gap-1">
                                                 <div className="flex items-center gap-2">
                                                     <Badge variant="outline" className="uppercase text-[10px] tracking-wider font-semibold">
-                                                        {task.periodicity || 'DAILY'} {/* Fallback for legacy data */}
+                                                        {t(`taskWizard.periodicities.${(task.periodicity || 'daily').toLowerCase()}.label`, { defaultValue: task.periodicity || 'DAILY' })}
                                                     </Badge>
 
                                                 </div>
@@ -358,12 +361,12 @@ export function TasksPage() {
                                                 <div className="flex flex-wrap gap-1 mt-1">
                                                     {task.skipWeekends && (
                                                         <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-50 text-blue-700">
-                                                            Skip Wknds
+                                                            {t('taskList.skipWeekends')}
                                                         </span>
                                                     )}
                                                     {task.skipHolidays && (
                                                         <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-indigo-50 text-indigo-700">
-                                                            Skip Holidays
+                                                            {t('taskList.skipHolidays')}
                                                         </span>
                                                     )}
                                                 </div>
@@ -373,26 +376,26 @@ export function TasksPage() {
                                             <div className="flex gap-1">
                                                 {(task.assignedUserIds?.length || 0) > 0 && (
                                                     <Badge variant="secondary">
-                                                        {task.assignedUserIds?.length} user(s)
+                                                        {t('taskList.userCount', { n: task.assignedUserIds?.length })}
                                                     </Badge>
                                                 )}
                                                 {(task.assignedGroupIds?.length || 0) > 0 && (
                                                     <Badge variant="outline">
-                                                        {task.assignedGroupIds?.length} group(s)
+                                                        {t('taskList.groupCount', { n: task.assignedGroupIds?.length })}
                                                     </Badge>
                                                 )}
                                                 {(task.assignedUserIds?.length || 0) === 0 && (task.assignedGroupIds?.length || 0) === 0 && (
                                                     <span className="text-xs text-muted-foreground italic">
-                                                        No assignments
+                                                        {t('taskList.noAssignments')}
                                                     </span>
                                                 )}
                                             </div>
                                         </TableCell>
                                         <TableCell className="py-4 px-6">
                                             {task.isActive ? (
-                                                <Badge variant="default">Active</Badge>
+                                                <Badge variant="default">{t('taskList.active')}</Badge>
                                             ) : (
-                                                <Badge variant="secondary">Inactive</Badge>
+                                                <Badge variant="secondary">{t('taskList.inactive')}</Badge>
                                             )}
                                             {(() => {
                                                 const activeDelegations = task.delegations?.filter(d => new Date(d.startAt) <= new Date() && new Date(d.endAt) > new Date()) || [];
@@ -402,13 +405,13 @@ export function TasksPage() {
                                                     <TooltipProvider delayDuration={100}>
                                                         <Tooltip>
                                                             <TooltipTrigger asChild>
-                                                                <Badge variant="outline" className="mt-2 text-orange-600 border-orange-200 bg-orange-50 font-medium cursor-help" aria-label={`${activeDelegations.length} délégation(s) active(s)`}>
+                                                                <Badge variant="outline" className="mt-2 text-orange-600 border-orange-200 bg-orange-50 font-medium cursor-help" aria-label={t('taskList.delegationsAria', { n: activeDelegations.length })}>
                                                                     <CalendarClock className="h-3 w-3 mr-1" />
-                                                                    {activeDelegations.length > 1 ? `Délégué (${activeDelegations.length})` : 'Délégué'}
+                                                                    {activeDelegations.length > 1 ? t('taskList.delegatedMany', { n: activeDelegations.length }) : t('taskList.delegated')}
                                                                 </Badge>
                                                             </TooltipTrigger>
                                                             <TooltipContent align="start" className="max-w-sm p-3">
-                                                                <p className="font-semibold text-sm mb-2">Délégations actives</p>
+                                                                <p className="font-semibold text-sm mb-2">{t('taskList.delegationsTitle')}</p>
                                                                 <div className="space-y-1.5">
                                                                     {activeDelegations.map(d => {
                                                                         type DelegationTarget = {
@@ -425,7 +428,7 @@ export function TasksPage() {
                                                                         };
                                                                         const dAny = d as unknown as DelegationAny;
                                                                         const rawDel = dAny.delegatedBy?.fullname || dAny.delegatedBy?.username || dAny.delegatedBy?.user?.fullname || dAny.delegatedBy?.user?.username || '';
-                                                                        const delegator = rawDel.trim() || 'Inconnu';
+                                                                        const delegator = rawDel.trim() || t('taskList.unknown');
 
                                                                         const tUsers = (dAny.targetUsers || []).map((tu) => {
                                                                             const name = tu?.fullname || tu?.username || tu?.user?.fullname || tu?.user?.username || '';
@@ -434,23 +437,28 @@ export function TasksPage() {
 
                                                                         const tGroups = (dAny.targetGroups || []).map((tg) => {
                                                                             const name = tg?.name || tg?.group?.name || '';
-                                                                            return name.trim() ? `${name.trim()} (groupe)` : null;
+                                                                            return name.trim() ? t('taskList.groupSuffix', { name: name.trim() }) : null;
                                                                         }).filter(Boolean);
 
                                                                         const targetsList = [...tUsers, ...tGroups];
-                                                                        const targets = targetsList.length > 0 ? targetsList.join(', ') : 'Aucun bénéficiaire';
+                                                                        const targets = targetsList.length > 0 ? targetsList.join(', ') : t('taskList.noRecipient');
 
                                                                         const formatOpts: Intl.DateTimeFormatOptions = {
                                                                             day: '2-digit', month: '2-digit', year: 'numeric',
                                                                             hour: '2-digit', minute: '2-digit'
                                                                         };
                                                                         // toLocaleString() yields "dd/MM/yyyy HH:mm" in fr-FR (sometimes with " à ", we replace it)
-                                                                        const start = new Date(d.startAt).toLocaleString('fr-FR', formatOpts).replace(' à ', ' ');
-                                                                        const end = new Date(d.endAt).toLocaleString('fr-FR', formatOpts).replace(' à ', ' ');
+                                                                        const dateCode = getDateLocale().code;
+                                                                        const start = new Date(d.startAt).toLocaleString(dateCode, formatOpts).replace(' à ', ' ');
+                                                                        const end = new Date(d.endAt).toLocaleString(dateCode, formatOpts).replace(' à ', ' ');
 
                                                                         return (
                                                                             <p key={d.id} className="text-xs text-muted-foreground leading-tight">
-                                                                                Délégué de <span className="font-medium text-foreground">{delegator}</span> vers <span className="font-medium text-foreground">{targets}</span> du {start} au {end}
+                                                                                <Trans
+                                                                                    i18nKey="taskList.delegationLine"
+                                                                                    values={{ delegator, targets, start, end }}
+                                                                                    components={{ b: <span className="font-medium text-foreground" /> }}
+                                                                                />
                                                                             </p>
                                                                         );
                                                                     })}

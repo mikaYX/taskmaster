@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -6,14 +7,6 @@ import { ApiError } from '@/api/http';
 import { useSetupStore } from '@/stores';
 import { Shield, Eye, EyeOff, Mail } from 'lucide-react';
 import { PASSWORD_RULES } from '@/lib/password-policy';
-
-const RULE_LABELS: Record<(typeof PASSWORD_RULES)[number]['key'], string> = {
-    length: 'at least 12 characters',
-    lowercase: 'a lowercase letter',
-    uppercase: 'an uppercase letter (anywhere in the password)',
-    digit: 'a number',
-    special: 'a special character (any character that is not a letter or a number)',
-};
 
 interface SecurityStepProps {
     onNext: () => void;
@@ -45,6 +38,7 @@ function getApiErrorMessage(error: ApiError): string | null {
  * Now uses Email as the primary identifier.
  */
 export function SecurityStep({ onNext, onBack }: SecurityStepProps) {
+    const { t } = useTranslation();
     const completeStep = useSetupStore((state) => state.completeStep);
     const initialPreferences = useSetupStore((state) => state.initialPreferences);
 
@@ -66,18 +60,20 @@ export function SecurityStep({ onNext, onBack }: SecurityStepProps) {
         setError('');
 
         if (!email || !validateEmail(email)) {
-            setError('Please enter a valid email address');
+            setError(t('setup.steps.admin.errors.invalidEmail'));
             return;
         }
 
         const missing = PASSWORD_RULES.filter((rule) => !rule.test(password));
         if (missing.length > 0) {
-            setError(`Password is missing: ${missing.map((rule) => RULE_LABELS[rule.key]).join(', ')}.`);
+            setError(t('setup.steps.admin.errors.missing', {
+                rules: missing.map((rule) => t(`setup.steps.admin.rules.${rule.key}`)).join(', '),
+            }));
             return;
         }
 
         if (password !== confirmPassword) {
-            setError('Passwords do not match');
+            setError(t('setup.steps.admin.errors.mismatch'));
             return;
         }
 
@@ -92,7 +88,7 @@ export function SecurityStep({ onNext, onBack }: SecurityStepProps) {
             });
 
             if (!result.success) {
-                setError(result.message || 'Failed to create admin');
+                setError(result.message || t('setup.steps.admin.errors.createFailed'));
                 return;
             }
 
@@ -106,21 +102,21 @@ export function SecurityStep({ onNext, onBack }: SecurityStepProps) {
                 const backendMessage = getApiErrorMessage(err);
 
                 if (err.status === 409) {
-                    setError(backendMessage || 'Setup already completed. Redirecting to login...');
+                    setError(backendMessage || t('setup.steps.admin.errors.alreadyDone'));
                     window.location.href = '/login';
                     return;
                 }
 
                 if (err.status === 403 && !backendMessage) {
-                    setError('BOOTSTRAP_SECRET is missing from the server environment. Add it to the .env file before running setup.');
+                    setError(t('setup.steps.admin.errors.bootstrapSecret'));
                     return;
                 }
 
-                setError(backendMessage || `Failed to create account (${err.status} ${err.statusText})`);
+                setError(backendMessage || t('setup.steps.admin.errors.status', { status: err.status, statusText: err.statusText }));
                 return;
             }
 
-            setError('Failed to create account due to an unexpected error.');
+            setError(t('setup.steps.admin.errors.unexpected'));
         } finally {
             setIsLoading(false);
         }
@@ -131,9 +127,9 @@ export function SecurityStep({ onNext, onBack }: SecurityStepProps) {
             <div className="flex items-center gap-3 text-primary">
                 <Shield className="h-8 w-8" />
                 <div>
-                    <h3 className="font-semibold">Administrator Account</h3>
+                    <h3 className="font-semibold">{t('setup.steps.admin.title')}</h3>
                     <p className="text-sm text-muted-foreground">
-                        Create the primary administrator identity.
+                        {t('setup.steps.admin.subtitle')}
                     </p>
                 </div>
             </div>
@@ -141,13 +137,13 @@ export function SecurityStep({ onNext, onBack }: SecurityStepProps) {
             <div className="space-y-4">
                 {/* Admin Email */}
                 <div className="space-y-2">
-                    <Label htmlFor="email">Admin Email <span className="text-destructive">*</span></Label>
+                    <Label htmlFor="email">{t('setup.steps.admin.email')} <span className="text-destructive">*</span></Label>
                     <div className="relative">
                         <Mail className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                         <Input
                             id="email"
                             type="email"
-                            placeholder="admin@example.com"
+                            placeholder={t('setup.steps.admin.emailPlaceholder')}
                             className="pl-9"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
@@ -155,20 +151,20 @@ export function SecurityStep({ onNext, onBack }: SecurityStepProps) {
                         />
                     </div>
                     <p className="text-[0.8rem] text-muted-foreground">
-                        This email will be used as the primary administrator account and login.
+                        {t('setup.steps.admin.emailHint')}
                     </p>
                 </div>
 
                 {/* Password */}
                 <div className="space-y-2">
-                    <Label htmlFor="password">Password <span className="text-destructive">*</span></Label>
+                    <Label htmlFor="password">{t('setup.steps.admin.password')} <span className="text-destructive">*</span></Label>
                     <div className="relative">
                         <Input
                             id="password"
                             type={showPassword ? 'text' : 'password'}
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            placeholder="Strong password (min 12 chars, mixed case, number, symbol)"
+                            placeholder={t('setup.steps.admin.passwordPlaceholder')}
                         />
                         <Button
                             type="button"
@@ -181,19 +177,19 @@ export function SecurityStep({ onNext, onBack }: SecurityStepProps) {
                         </Button>
                     </div>
                     <p className="text-[0.8rem] text-muted-foreground">
-                        At least 12 characters, with uppercase, lowercase, a number, and a special character (any character that is not a letter or a number). They can be in any position.
+                        {t('setup.steps.admin.passwordHint')}
                     </p>
                 </div>
 
                 {/* Confirm Password */}
                 <div className="space-y-2">
-                    <Label htmlFor="confirmPassword">Confirm Password <span className="text-destructive">*</span></Label>
+                    <Label htmlFor="confirmPassword">{t('setup.steps.admin.confirmPassword')} <span className="text-destructive">*</span></Label>
                     <Input
                         id="confirmPassword"
                         type="password"
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
-                        placeholder="Re-enter password"
+                        placeholder={t('setup.steps.admin.confirmPlaceholder')}
                     />
                 </div>
 
@@ -205,9 +201,9 @@ export function SecurityStep({ onNext, onBack }: SecurityStepProps) {
             </div>
 
             <div className="flex justify-between pt-4">
-                <Button variant="outline" onClick={onBack}>Back</Button>
+                <Button variant="outline" onClick={onBack}>{t('common.back')}</Button>
                 <Button onClick={handleSubmit} disabled={isLoading} className="min-w-[100px]">
-                    {isLoading ? 'Creating...' : 'Next'}
+                    {isLoading ? t('setup.steps.admin.creating') : t('common.next')}
                 </Button>
             </div>
         </div>

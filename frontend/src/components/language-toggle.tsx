@@ -15,14 +15,14 @@ import { LANGUAGES, setLanguage } from '@/lib/i18n';
  * Dropdown to switch between FR and EN.
  */
 export function LanguageToggle() {
-    const { i18n } = useTranslation();
+    const { t, i18n } = useTranslation();
 
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon">
                     <Languages className="h-4 w-4" />
-                    <span className="sr-only">Toggle language</span>
+                    <span className="sr-only">{t('common.toggleLanguage')}</span>
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">

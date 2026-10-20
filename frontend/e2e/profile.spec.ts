@@ -26,16 +26,16 @@ test('enregistre le nom du compte courant et affiche la MFA réelle après recha
     });
     await page.goto('/profile');
     await expect(page.getByRole('button', { name: 'Gérer la MFA' })).toBeVisible();
-    await page.getByLabel('Full Name', { exact: true }).fill('Alice Martin');
+    await page.getByLabel('Nom complet', { exact: true }).fill('Alice Martin');
     await page.getByRole('button', { name: 'Enregistrer', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'Alice Martin', exact: true })).toBeVisible();
     await page.reload();
-    await expect(page.getByLabel('Full Name', { exact: true })).toHaveValue('Alice Martin');
+    await expect(page.getByLabel('Nom complet', { exact: true })).toHaveValue('Alice Martin');
     expect(adminReads).toBe(0);
     await page.getByRole('button', { name: 'Gérer la MFA' }).click();
-    await expect(page.getByText('MFA is enabled', { exact: true })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Disable MFA', exact: true })).toHaveCount(0);
-    await expect(page.getByRole('button', { name: 'View Backup Codes', exact: true })).toHaveCount(0);
+    await expect(page.getByText("L'authentification multifacteur est activée", { exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: "Désactiver l'authentification multifacteur", exact: true })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Afficher les codes de secours', exact: true })).toHaveCount(0);
 });
 
 test('conserve la saisie lorsque l’enregistrement échoue', async ({ page }) => {
@@ -43,9 +43,9 @@ test('conserve la saisie lorsque l’enregistrement échoue', async ({ page }) =
         ? route.fulfill({ status: 500, json: { message: 'Enregistrement indisponible' } })
         : route.fulfill({ json: profile }));
     await page.goto('/profile');
-    await page.getByLabel('Full Name', { exact: true }).fill('Nom à conserver');
+    await page.getByLabel('Nom complet', { exact: true }).fill('Nom à conserver');
     await page.getByRole('button', { name: 'Enregistrer', exact: true }).click();
     await expect(page.getByText('Enregistrement indisponible', { exact: true })).toBeVisible();
-    await expect(page.getByLabel('Full Name', { exact: true })).toHaveValue('Nom à conserver');
+    await expect(page.getByLabel('Nom complet', { exact: true })).toHaveValue('Nom à conserver');
     await expect(page.getByRole('heading', { name: 'Alice', exact: true })).toBeVisible();
 });

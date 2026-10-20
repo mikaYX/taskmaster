@@ -56,16 +56,16 @@ export function PreferencesStep({ onNext, onBack, isFirstStep }: PreferencesStep
             <div className="flex items-center gap-3 text-primary">
                 <Settings className="h-8 w-8" />
                 <div>
-                    <h3 className="font-semibold">Application Preferences</h3>
+                    <h3 className="font-semibold">{t('setup.steps.preferences.title')}</h3>
                     <p className="text-sm text-muted-foreground">
-                        Configure default application settings
+                        {t('setup.steps.preferences.subtitle')}
                     </p>
                 </div>
             </div>
 
             <div className="space-y-4">
                 <div className="space-y-2">
-                    <Label>Language / Langue</Label>
+                    <Label>{t('setup.languageLabel')}</Label>
                     <Select value={language} onValueChange={handleLanguageChange}>
                         <SelectTrigger>
                             <SelectValue />
@@ -79,12 +79,12 @@ export function PreferencesStep({ onNext, onBack, isFirstStep }: PreferencesStep
                         </SelectContent>
                     </Select>
                     <p className="text-[0.8rem] text-muted-foreground">
-                        The interface language updates immediately.
+                        {t('setup.languageHint')}
                     </p>
                 </div>
 
                 <div className="space-y-2">
-                    <Label>Default Timezone</Label>
+                    <Label>{t('setup.steps.preferences.timezone')}</Label>
                     <Select value={timezone} onValueChange={setTimezone}>
                         <SelectTrigger>
                             <SelectValue />
@@ -114,12 +114,12 @@ export function PreferencesStep({ onNext, onBack, isFirstStep }: PreferencesStep
 
             <div className="flex justify-between">
                 {!isFirstStep ? (
-                    <Button variant="outline" onClick={onBack}>Back</Button>
+                    <Button variant="outline" onClick={onBack}>{t('common.back')}</Button>
                 ) : (
                     <div />
                 )}
                 <Button onClick={handleNext} disabled={isLoading}>
-                    {isLoading ? 'Saving...' : 'Next'}
+                    {isLoading ? t('common.saving') : t('common.next')}
                 </Button>
             </div>
         </div>

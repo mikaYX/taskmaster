@@ -3,6 +3,7 @@
 import * as React from "react"
 import type * as LabelPrimitive from "@radix-ui/react-label"
 import { Slot } from "@radix-ui/react-slot"
+import { useTranslation } from "react-i18next"
 import {
   Controller,
   FormProvider,
@@ -137,7 +138,10 @@ function FormDescription({ className, ...props }: React.ComponentProps<"p">) {
 
 function FormMessage({ className, ...props }: React.ComponentProps<"p">) {
   const { error, formMessageId } = useFormField()
-  const body = error ? String(error?.message ?? "") : props.children
+  const { t, i18n } = useTranslation()
+  // Schemas may carry a translation key instead of a sentence, so the message follows the language.
+  const raw = error ? String(error?.message ?? "") : props.children
+  const body = typeof raw === "string" && i18n.exists(raw) ? t(raw) : raw
 
   if (!body) {
     return null

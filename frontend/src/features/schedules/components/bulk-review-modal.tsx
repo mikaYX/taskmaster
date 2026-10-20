@@ -12,6 +12,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 
 interface ScheduleItem {
     taskId: number;
@@ -38,6 +39,7 @@ export function BulkReviewModal({
     isSubmitting,
     existingScheduleTaskIds = new Set(),
 }: BulkReviewModalProps) {
+    const { t } = useTranslation();
 
     // Validation Logic
     const hasDuplicates = useMemo(() => {
@@ -63,9 +65,9 @@ export function BulkReviewModal({
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
             <DialogContent className="max-w-2xl">
                 <DialogHeader>
-                    <DialogTitle>Review Bulk Schedule Creation</DialogTitle>
+                    <DialogTitle>{t('bulkSchedules.review.title')}</DialogTitle>
                     <DialogDescription>
-                        You are about to create {items.length} schedule(s). Please review details below.
+                        {t('bulkSchedules.review.description', { n: items.length })}
                     </DialogDescription>
                 </DialogHeader>
 
@@ -74,18 +76,18 @@ export function BulkReviewModal({
                     {isTooMany && (
                         <Alert variant="destructive">
                             <X className="h-4 w-4" />
-                            <AlertTitle>Start Limit Exceeded</AlertTitle>
+                            <AlertTitle>{t('bulkSchedules.review.limitTitle')}</AlertTitle>
                             <AlertDescription>
-                                You cannot create more than 50 schedules at once. Current: {items.length}.
+                                {t('bulkSchedules.review.limitBody', { n: items.length })}
                             </AlertDescription>
                         </Alert>
                     )}
                     {hasDuplicates && (
                         <Alert variant="destructive">
                             <X className="h-4 w-4" />
-                            <AlertTitle>Duplicate Tasks</AlertTitle>
+                            <AlertTitle>{t('bulkSchedules.review.duplicatesTitle')}</AlertTitle>
                             <AlertDescription>
-                                You have selected the same task multiple times. Please remove duplicates.
+                                {t('bulkSchedules.review.duplicatesBody')}
                             </AlertDescription>
                         </Alert>
                     )}
@@ -94,9 +96,9 @@ export function BulkReviewModal({
                     {!hasDuplicates && conflicts.length > 0 && (
                         <Alert className="border-amber-500/50 bg-amber-50 text-amber-900 dark:bg-amber-900/10 dark:text-amber-200">
                             <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-                            <AlertTitle>Potential Conflicts</AlertTitle>
+                            <AlertTitle>{t('bulkSchedules.review.conflictsTitle')}</AlertTitle>
                             <AlertDescription>
-                                {conflicts.length} task(s) already have an active schedule. This will create a second schedule for them.
+                                {t('bulkSchedules.review.conflictsBody', { n: conflicts.length })}
                             </AlertDescription>
                         </Alert>
                     )}
@@ -104,7 +106,7 @@ export function BulkReviewModal({
                     <ScrollArea className="h-[300px] rounded-md border p-4">
                         {isEmpty ? (
                             <div className="text-center text-muted-foreground py-8">
-                                No items to review.
+                                {t('bulkSchedules.review.empty')}
                             </div>
                         ) : (
                             <div className="space-y-2">
@@ -117,14 +119,14 @@ export function BulkReviewModal({
                                                     <span className="font-medium truncate">{item.taskName}</span>
                                                     {isConflict && (
                                                         <Badge variant="outline" className="text-amber-600 border-amber-500 text-[10px] h-5 px-1">
-                                                            Existing
+                                                            {t('bulkSchedules.review.existing')}
                                                         </Badge>
                                                     )}
                                                 </div>
                                                 <div className="text-xs text-muted-foreground flex gap-2 mt-0.5">
-                                                    <span>ID: {item.taskId}</span>
-                                                    {item.siteId && <span>• Site: {item.siteId}</span>}
-                                                    {item.label && <span>• Label: {item.label}</span>}
+                                                    <span>{t('bulkSchedules.review.id', { id: item.taskId })}</span>
+                                                    {item.siteId && <span>{t('bulkSchedules.review.site', { site: item.siteId })}</span>}
+                                                    {item.label && <span>{t('bulkSchedules.review.labelLine', { label: item.label })}</span>}
                                                 </div>
                                             </div>
                                         </div>
@@ -137,14 +139,14 @@ export function BulkReviewModal({
 
                 <DialogFooter className="gap-2 sm:gap-0">
                     <Button variant="outline" onClick={onClose} disabled={isSubmitting}>
-                        Back to Edit
+                        {t('bulkSchedules.review.backToEdit')}
                     </Button>
                     <Button
                         onClick={onConfirm}
                         disabled={!isValid || isSubmitting}
                         className={!isValid ? "opacity-50 cursor-not-allowed" : ""}
                     >
-                        {isSubmitting ? "Saving..." : "Confirm & Create"}
+                        {isSubmitting ? t('common.saving') : t('bulkSchedules.review.confirm')}
                     </Button>
                 </DialogFooter>
             </DialogContent>

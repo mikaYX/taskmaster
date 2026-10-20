@@ -1,8 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { jobsApi } from '@/api/jobs';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 
 export function useJobs() {
+    const { t } = useTranslation();
     const queryClient = useQueryClient();
 
     // Fetch all system jobs
@@ -18,7 +20,7 @@ export function useJobs() {
             toast.success(data.message);
         },
         onError: () => {
-            toast.error('Failed to run job');
+            toast.error(t('jobs.runFailed'));
         },
     });
 
@@ -30,7 +32,7 @@ export function useJobs() {
             toast.success(data.message);
         },
         onError: () => {
-            toast.error('Failed to toggle job');
+            toast.error(t('jobs.toggleFailed'));
         },
     });
 

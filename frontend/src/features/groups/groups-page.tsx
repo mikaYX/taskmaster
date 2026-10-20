@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Plus, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -23,6 +24,7 @@ interface GroupsListProps {
 }
 
 export function GroupsList({ embedded = false }: GroupsListProps) {
+    const { t } = useTranslation();
     const { data: groups, isLoading } = useGroups();
 
     const [isFormOpen, setIsFormOpen] = useState(false);
@@ -54,14 +56,14 @@ export function GroupsList({ embedded = false }: GroupsListProps) {
                 <div className="flex flex-col gap-1">
                     <div className="flex items-center justify-between">
                         <div>
-                            <h1 className="text-3xl font-bold tracking-tight">Groups</h1>
+                            <h1 className="text-3xl font-bold tracking-tight">{t('groups.title')}</h1>
                             <p className="text-muted-foreground">
-                                Organize users into groups for streamlined task assignment.
+                                {t('groups.description')}
                             </p>
                         </div>
                         <Button size="lg" onClick={handleCreate}>
                             <Plus className="mr-2 h-4 w-4" />
-                            Add Group
+                            {t('groups.addGroup')}
                         </Button>
                     </div>
                 </div>
@@ -70,7 +72,7 @@ export function GroupsList({ embedded = false }: GroupsListProps) {
                 <div className="flex justify-end">
                     <Button onClick={handleCreate}>
                         <Plus className="mr-2 h-4 w-4" />
-                        Add Group
+                        {t('groups.addGroup')}
                     </Button>
                 </div>
             )}
@@ -79,7 +81,7 @@ export function GroupsList({ embedded = false }: GroupsListProps) {
                 <CardHeader className="border-b bg-muted/30 py-4">
                     <div className="flex items-center justify-between">
                         <span className="text-sm text-muted-foreground">
-                            {isLoading ? 'Loading...' : `${groups?.length || 0} group(s)`}
+                            {isLoading ? t('common.loading') : t('groupMgmt.page.count', { n: groups?.length || 0 })}
                         </span>
                     </div>
                 </CardHeader>
@@ -99,13 +101,13 @@ export function GroupsList({ embedded = false }: GroupsListProps) {
                     ) : groups?.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-16 text-center">
                             <Users className="h-12 w-12 text-muted-foreground/30 mb-4" />
-                            <h3 className="font-semibold text-lg">No groups yet</h3>
+                            <h3 className="font-semibold text-lg">{t('groupMgmt.page.emptyTitle')}</h3>
                             <p className="text-muted-foreground text-sm max-w-sm mt-1">
-                                Create groups to organize users and simplify task assignments.
+                                {t('groupMgmt.page.emptyBody')}
                             </p>
                             <Button className="mt-6" onClick={handleCreate}>
                                 <Plus className="mr-2 h-4 w-4" />
-                                Add Group
+                                {t('groups.addGroup')}
                             </Button>
                         </div>
                     ) : (
@@ -113,16 +115,16 @@ export function GroupsList({ embedded = false }: GroupsListProps) {
                             <TableHeader>
                                 <TableRow className="bg-muted/50 hover:bg-muted/50">
                                     <TableHead className="text-xs uppercase tracking-wide text-muted-foreground font-medium py-3 px-6">
-                                        Name
+                                        {t('groupMgmt.page.columns.name')}
                                     </TableHead>
                                     <TableHead className="text-xs uppercase tracking-wide text-muted-foreground font-medium py-3 px-6">
-                                        Site
+                                        {t('groupMgmt.page.columns.site')}
                                     </TableHead>
                                     <TableHead className="text-xs uppercase tracking-wide text-muted-foreground font-medium py-3 px-6">
-                                        Members
+                                        {t('groupMgmt.page.columns.members')}
                                     </TableHead>
                                     <TableHead className="text-xs uppercase tracking-wide text-muted-foreground font-medium py-3 px-6">
-                                        Description
+                                        {t('groupMgmt.page.columns.description')}
                                     </TableHead>
                                     <TableHead className="w-[60px]"></TableHead>
                                 </TableRow>
@@ -162,7 +164,7 @@ export function GroupsList({ embedded = false }: GroupsListProps) {
                                             </button>
                                         </TableCell>
                                         <TableCell className="py-4 px-6 text-muted-foreground max-w-xs truncate">
-                                            {group.description || <span className="italic">No description</span>}
+                                            {group.description || <span className="italic">{t('groupMgmt.page.noDescription')}</span>}
                                         </TableCell>
                                         <TableCell className="py-4 px-6">
                                             <GroupActions

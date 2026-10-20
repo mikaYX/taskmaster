@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useSetupStatus } from '@/hooks';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
@@ -15,7 +16,15 @@ import { SummaryStep } from './steps/summary-step';
  * shadcn/ui Card, Progress, Button.
  */
 
+const STEP_KEYS = ['preferences', 'admin', 'summary'] as const;
+
 export function SetupWizard() {
+    const { t } = useTranslation();
+    const steps = SETUP_STEPS.map((step, index) => ({
+        id: step.id,
+        name: t(`setup.steps.${STEP_KEYS[index]}.name`),
+        description: t(`setup.steps.${STEP_KEYS[index]}.description`),
+    }));
     const { currentStep, nextStep, prevStep, completeSetup, adminPasswordSet } = useSetupStore();
     const { data: status, isLoading } = useSetupStatus();
 
@@ -53,18 +62,18 @@ export function SetupWizard() {
             <Card className="w-full max-w-3xl">
                 <CardHeader>
                     <div className="flex items-center justify-between mb-4">
-                        <CardTitle className="text-2xl">Setup Wizard</CardTitle>
+                        <CardTitle className="text-2xl">{t('setup.title')}</CardTitle>
                         <span className="text-sm text-muted-foreground">
-                            Step {currentStep} of {SETUP_STEPS.length}
+                            {t('setup.stepOf', { current: currentStep, total: SETUP_STEPS.length })}
                         </span>
                     </div>
                     {/* Modern Stepper */}
                     <div className="px-10 mt-2 mb-6">
-                        <WizardStepper steps={SETUP_STEPS} currentStep={currentStep} />
+                        <WizardStepper steps={steps} currentStep={currentStep} />
                     </div>
 
                     <CardDescription className="mt-4">
-                        {SETUP_STEPS[currentStep - 1]?.description}
+                        {steps[currentStep - 1]?.description}
                     </CardDescription>
                 </CardHeader>
 

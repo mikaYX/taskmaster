@@ -18,9 +18,6 @@ vi.mock('@/api/auth', () => ({
 vi.mock('@simplewebauthn/browser', () => ({
     startRegistration: vi.fn(),
 }));
-vi.mock('react-i18next', () => ({
-    useTranslation: () => ({ t: (key: string) => key }),
-}));
 
 // Provide a stable ResizeObserver for shadcn/ui Dialog
 globalThis.ResizeObserver = class {

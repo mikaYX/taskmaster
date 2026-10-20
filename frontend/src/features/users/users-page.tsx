@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Plus, Users as UsersIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -35,6 +36,7 @@ interface UsersListProps {
 }
 
 export function UsersList({ embedded = false }: UsersListProps) {
+    const { t } = useTranslation();
     const [showDeleted, setShowDeleted] = useState(false);
     const { data: users, isLoading } = useUsers(showDeleted, true);
 
@@ -65,19 +67,19 @@ export function UsersList({ embedded = false }: UsersListProps) {
                 <div className="flex flex-col gap-1">
                     <div className="flex items-center justify-between">
                         <div>
-                            <h1 className="text-3xl font-bold tracking-tight">Users</h1>
+                            <h1 className="text-3xl font-bold tracking-tight">{t('users.title')}</h1>
                             <p className="text-muted-foreground">
-                                Manage user accounts, roles, and permissions.
+                                {t('users.description')}
                             </p>
                         </div>
                         <div className="flex gap-2">
                             <Button variant="outline" size="lg" onClick={() => setIsGuestDialogOpen(true)}>
                                 <Tv className="mr-2 h-4 w-4" />
-                                Guest TV Links
+                                {t('userMgmt.page.guestLinks')}
                             </Button>
                             <Button size="lg" onClick={handleCreate}>
                                 <Plus className="mr-2 h-4 w-4" />
-                                Add User
+                                {t('users.addUser')}
                             </Button>
                         </div>
                     </div>
@@ -87,11 +89,11 @@ export function UsersList({ embedded = false }: UsersListProps) {
                 <div className="flex justify-end gap-2">
                     <Button variant="outline" onClick={() => setIsGuestDialogOpen(true)}>
                         <Tv className="mr-2 h-4 w-4" />
-                        Guest TV Links
+                        {t('userMgmt.page.guestLinks')}
                     </Button>
                     <Button onClick={handleCreate}>
                         <Plus className="mr-2 h-4 w-4" />
-                        Add User
+                        {t('users.addUser')}
                     </Button>
                 </div>
             )}
@@ -101,14 +103,14 @@ export function UsersList({ embedded = false }: UsersListProps) {
                 <CardHeader className="border-b bg-muted/30 py-4">
                     <div className="flex items-center justify-between">
                         <span className="text-sm text-muted-foreground">
-                            {isLoading ? 'Loading...' : `${users?.length || 0} user(s)`}
+                            {isLoading ? t('common.loading') : t('userMgmt.page.count', { n: users?.length || 0 })}
                         </span>
                         <label className="flex items-center gap-2 text-sm text-muted-foreground">
                             <Checkbox
                                 checked={showDeleted}
                                 onCheckedChange={(checked) => setShowDeleted(checked === true)}
                             />
-                            Show deleted accounts
+                            {t('userMgmt.page.showDeleted')}
                         </label>
                     </div>
                 </CardHeader>
@@ -130,13 +132,13 @@ export function UsersList({ embedded = false }: UsersListProps) {
                         /* ========== EMPTY STATE ========== */
                         <div className="flex flex-col items-center justify-center py-16 text-center">
                             <UsersIcon className="h-12 w-12 text-muted-foreground/30 mb-4" />
-                            <h3 className="font-semibold text-lg">No users yet</h3>
+                            <h3 className="font-semibold text-lg">{t('userMgmt.page.emptyTitle')}</h3>
                             <p className="text-muted-foreground text-sm max-w-sm mt-1">
-                                Get started by creating your first user account.
+                                {t('userMgmt.page.emptyBody')}
                             </p>
                             <Button className="mt-6" onClick={handleCreate}>
                                 <Plus className="mr-2 h-4 w-4" />
-                                Add User
+                                {t('users.addUser')}
                             </Button>
                         </div>
                     ) : (
@@ -145,16 +147,16 @@ export function UsersList({ embedded = false }: UsersListProps) {
                             <TableHeader>
                                 <TableRow className="bg-muted/50 hover:bg-muted/50">
                                     <TableHead className="text-xs uppercase tracking-wide text-muted-foreground font-medium py-3 px-6">
-                                        Full Name
+                                        {t('userMgmt.page.columns.fullName')}
                                     </TableHead>
                                     <TableHead className="text-xs uppercase tracking-wide text-muted-foreground font-medium py-3 px-6">
-                                        Email
+                                        {t('userMgmt.page.columns.email')}
                                     </TableHead>
                                     <TableHead className="text-xs uppercase tracking-wide text-muted-foreground font-medium py-3 px-6">
-                                        Role
+                                        {t('userMgmt.page.columns.role')}
                                     </TableHead>
                                     <TableHead className="text-xs uppercase tracking-wide text-muted-foreground font-medium py-3 px-6">
-                                        Status
+                                        {t('userMgmt.page.columns.status')}
                                     </TableHead>
                                     <TableHead className="w-[60px]"></TableHead>
                                 </TableRow>
@@ -187,9 +189,9 @@ export function UsersList({ embedded = false }: UsersListProps) {
                                         </TableCell>
                                         <TableCell className="py-4 px-6">
                                             {user.deletedAt ? (
-                                                <Badge variant="destructive">Deleted</Badge>
+                                                <Badge variant="destructive">{t('users.status.deleted')}</Badge>
                                             ) : (
-                                                <Badge variant="secondary">Active</Badge>
+                                                <Badge variant="secondary">{t('users.status.active')}</Badge>
                                             )}
                                         </TableCell>
                                         <TableCell className="py-4 px-6">

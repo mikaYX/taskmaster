@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { AlertTriangle, Trash2, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { Trans, useTranslation } from 'react-i18next';
 import { tasksApi } from '@/api/tasks';
 
 interface DeleteTaskDialogProps {
@@ -21,6 +22,7 @@ interface DeleteTaskDialogProps {
 }
 
 export function DeleteTaskDialog({ task, open, onOpenChange, onSuccess }: DeleteTaskDialogProps) {
+    const { t } = useTranslation();
     const [confirmName, setConfirmName] = useState('');
     const [isDeleting, setIsDeleting] = useState(false);
 
@@ -32,16 +34,16 @@ export function DeleteTaskDialog({ task, open, onOpenChange, onSuccess }: Delete
         setIsDeleting(true);
         try {
             await tasksApi.deleteTask(task.id);
-            toast.success('Task deleted successfully', {
-                description: 'You can restore it within 30 days from the archive.',
+            toast.success(t('taskDelete.deleted'), {
+                description: t('taskDelete.restoreHint'),
             });
             onOpenChange(false);
             onSuccess?.();
         } catch (error: unknown) {
             console.error('Failed to delete task:', error);
             const err = error as { response?: { data?: { message?: string } } };
-            toast.error('Failed to delete task', {
-                description: err.response?.data?.message || 'An error occurred',
+            toast.error(t('taskDelete.failed'), {
+                description: err.response?.data?.message || t('errors.generic'),
             });
         } finally {
             setIsDeleting(false);
@@ -55,32 +57,39 @@ export function DeleteTaskDialog({ task, open, onOpenChange, onSuccess }: Delete
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2 text-destructive">
                         <AlertTriangle className="h-5 w-5" />
-                        Delete Task
+                        {t('taskDelete.title')}
                     </DialogTitle>
                     <DialogDescription>
-                        This action will delete the task <strong>"{task.name}"</strong>.
-                        The task can be restored within 30 days.
+                        <Trans
+                            i18nKey="taskDelete.description"
+                            values={{ name: task.name }}
+                            components={{ strong: <strong /> }}
+                        />
                     </DialogDescription>
                 </DialogHeader>
 
                 <div className="space-y-4 py-4">
                     <div className="rounded-md bg-amber-50 p-3 text-sm text-amber-900 dark:bg-amber-950/30 dark:text-amber-400">
-                        <p className="font-medium">Warning:</p>
+                        <p className="font-medium">{t('taskDelete.warning')}</p>
                         <ul className="mt-2 list-disc list-inside space-y-1">
-                            <li>All statuses will be hidden</li>
-                            <li>Assigned users will lose access</li>
-                            <li>Active delegations will be cancelled</li>
+                            <li>{t('taskDelete.hideStatuses')}</li>
+                            <li>{t('taskDelete.loseAccess')}</li>
+                            <li>{t('taskDelete.cancelDelegations')}</li>
                         </ul>
                     </div>
 
                     <div className="space-y-2">
                         <label className="text-sm font-medium">
-                            Type <span className="font-mono text-destructive">{task.name}</span> to confirm:
+                            <Trans
+                                i18nKey="taskDelete.confirmPrompt"
+                                values={{ name: task.name }}
+                                components={{ name: <span className="font-mono text-destructive" /> }}
+                            />
                         </label>
                         <Input
                             value={confirmName}
                             onChange={(e) => setConfirmName(e.target.value)}
-                            placeholder="Enter task name"
+                            placeholder={t('taskDelete.placeholder')}
                             className="font-mono"
                         />
                     </div>
@@ -88,7 +97,7 @@ export function DeleteTaskDialog({ task, open, onOpenChange, onSuccess }: Delete
 
                 <DialogFooter>
                     <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isDeleting}>
-                        Cancel
+                        {t('common.cancel')}
                     </Button>
                     <Button
                         variant="destructive"
@@ -98,12 +107,12 @@ export function DeleteTaskDialog({ task, open, onOpenChange, onSuccess }: Delete
                         {isDeleting ? (
                             <>
                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                Deleting...
+                                {t('taskDelete.deleting')}
                             </>
                         ) : (
                             <>
                                 <Trash2 className="mr-2 h-4 w-4" />
-                                Delete Task
+                                {t('taskDelete.title')}
                             </>
                         )}
                     </Button>

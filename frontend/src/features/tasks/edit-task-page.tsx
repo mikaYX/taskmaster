@@ -4,6 +4,7 @@ import { useForm, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 import { useTask, useUpdateTask } from "@/hooks/use-tasks";
 import { createTaskSchema, type CreateTaskFormValues } from "./schemas/task-creation.schema";
 import { StepDefinition } from "./wizard/steps/step-definition";
@@ -23,6 +24,7 @@ import type { UpdateTaskDto } from "@/api/types";
 import { tasksApi } from "@/api/tasks";
 
 export function EditTaskPage() {
+    const { t } = useTranslation();
     const { id } = useParams<{ id: string }>();
     const taskId = parseInt(id || '0', 10);
     const navigate = useNavigate();
@@ -110,9 +112,9 @@ export function EditTaskPage() {
                 taskId,
                 notifications: notifications ?? [],
             });
-            toast.success('Notifications saved');
+            toast.success(t('taskEdit.toasts.notificationsSaved'));
         } catch {
-            toast.error('Failed to save notifications');
+            toast.error(t('taskEdit.toasts.notificationsFailed'));
         }
     };
     const onSubmit = async (data: CreateTaskFormValues) => {
@@ -154,10 +156,10 @@ export function EditTaskPage() {
                 payload.rrule = rrule;
             } else if (payload.recurrenceMode === 'FROM_COMPLETION') {
                 // If from completion, we must have an RRule (or valid pattern to generate it)
-                toast.error("Invalid Configuration", { description: "From Completion mode requires a valid schedule pattern." });
+                toast.error(t('taskEdit.toasts.invalidConfig'), { description: t('taskEdit.toasts.fromCompletionNoRule') });
                 return;
             } else {
-                toast.error("Invalid Configuration", { description: "Recurrent tasks strictly require a recurrence rule." });
+                toast.error(t('taskEdit.toasts.invalidConfig'), { description: t('taskEdit.toasts.recurrentNeedsRule') });
                 return;
             }
 
@@ -177,16 +179,16 @@ export function EditTaskPage() {
                     await tasksApi.uploadProcedure(taskId, data.procedureFile);
                 } catch (err) {
                     console.error("Failed to upload procedure file during edit:", err);
-                    toast.warning("Task Updated", { description: "Task was updated, but the new procedure file failed to upload." });
+                    toast.warning(t('taskEdit.toasts.updated'), { description: t('taskEdit.toasts.uploadFailed') });
                     navigate(`/task-definitions/${taskId}`);
                     return;
                 }
             }
 
-            toast.success("Task Updated");
+            toast.success(t('taskEdit.toasts.updated'));
         } catch (error) {
             console.error(error);
-            toast.error("Failed to update task");
+            toast.error(t('taskEdit.toasts.updateFailed'));
         }
     };
 
@@ -200,7 +202,7 @@ export function EditTaskPage() {
     };
 
     if (isLoading) return <div className="p-8"><Skeleton className="h-[400px]" /></div>;
-    if (!task) return <div className="p-8">Task not found</div>;
+    if (!task) return <div className="p-8">{t('taskEdit.notFound')}</div>;
 
     return (
         <div className="flex-1 space-y-4 p-8 pt-6 max-w-4xl mx-auto">
@@ -209,27 +211,27 @@ export function EditTaskPage() {
                     <Button variant="ghost" size="icon" onClick={() => navigate(`/task-definitions/${taskId}`)}>
                         <ArrowLeft className="h-4 w-4" />
                     </Button>
-                    <h2 className="text-2xl font-bold tracking-tight">Edit Task: {task.name}</h2>
+                    <h2 className="text-2xl font-bold tracking-tight">{t('taskEdit.title', { name: task.name })}</h2>
                 </div>
                 <Button onClick={(e) => { void handleSaveAndClose(e); }} disabled={updateTaskMutation.isPending || saveNotificationsMutation.isPending}>
                     <Save className="mr-2 h-4 w-4" />
-                    Save Changes
+                    {t('taskEdit.saveChanges')}
                 </Button>
             </div>
 
             <FormProvider {...methods}>
                 <Tabs defaultValue="definition" className="space-y-4">
                     <TabsList>
-                        <TabsTrigger value="definition">Definition</TabsTrigger>
-                        <TabsTrigger value="scheduling">Scheduling</TabsTrigger>
-                        <TabsTrigger value="assignment">Assignment</TabsTrigger>
-                        <TabsTrigger value="notifications">Notifications</TabsTrigger>
+                        <TabsTrigger value="definition">{t('taskWizard.steps.definition.title')}</TabsTrigger>
+                        <TabsTrigger value="scheduling">{t('taskWizard.steps.scheduling.title')}</TabsTrigger>
+                        <TabsTrigger value="assignment">{t('taskWizard.steps.assignment.title')}</TabsTrigger>
+                        <TabsTrigger value="notifications">{t('taskWizard.steps.notifications.title')}</TabsTrigger>
                     </TabsList>
 
                     <TabsContent value="definition">
                         <Card>
                             <CardHeader>
-                                <CardTitle>Basic Information</CardTitle>
+                                <CardTitle>{t('taskEdit.basicInformation')}</CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 <StepDefinition />
@@ -240,7 +242,7 @@ export function EditTaskPage() {
                     <TabsContent value="scheduling">
                         <Card>
                             <CardHeader>
-                                <CardTitle>Scheduling & Recurrence</CardTitle>
+                                <CardTitle>{t('taskEdit.schedulingRecurrence')}</CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 <StepScheduling fcEnabled={fcEnabled} />
@@ -251,7 +253,7 @@ export function EditTaskPage() {
                     <TabsContent value="assignment">
                         <Card>
                             <CardHeader>
-                                <CardTitle>Assignments</CardTitle>
+                                <CardTitle>{t('tasks.assignments')}</CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 <StepAssignment />
@@ -262,7 +264,7 @@ export function EditTaskPage() {
                     <TabsContent value="notifications">
                         <Card>
                             <CardHeader className="flex flex-row items-center justify-between">
-                                <CardTitle>Notifications</CardTitle>
+                                <CardTitle>{t('taskWizard.steps.notifications.title')}</CardTitle>
                                 <Button
                                     type="button"
                                     size="sm"
@@ -270,7 +272,7 @@ export function EditTaskPage() {
                                     disabled={saveNotificationsMutation.isPending}
                                 >
                                     <Save className="mr-2 h-4 w-4" />
-                                    Save Notifications
+                                    {t('taskEdit.saveNotifications')}
                                 </Button>
                             </CardHeader>
                             <CardContent className="space-y-4">

@@ -11,6 +11,7 @@ import {
     Tooltip as RechartsTooltip, ResponsiveContainer,
 } from 'recharts';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -63,12 +64,7 @@ export interface ComplianceThresholds {
 const DEFAULT_THRESHOLDS: ComplianceThresholds = { warningThreshold: 70, criticalThreshold: 50 };
 const THRESHOLDS_KEY = 'analytics.thresholds';
 
-const PERIODS: { value: PeriodKey; label: string }[] = [
-    { value: '1', label: "Auj." },
-    { value: '7', label: '7j' },
-    { value: '30', label: '30j' },
-    { value: '90', label: '90j' },
-];
+const PERIOD_VALUES: PeriodKey[] = ['1', '7', '30', '90'];
 
 // ─────────────────────────────────────────────────────────
 // Hooks
@@ -213,7 +209,6 @@ function CustomChartTooltip({ active, payload, label }: CustomTooltipProps) {
 const KPI_CONFIG = [
     {
         key: 'success' as const,
-        label: 'Succès',
         icon: CheckCircle2,
         iconBg: 'bg-emerald-500/15',
         iconColor: 'text-emerald-500',
@@ -222,7 +217,6 @@ const KPI_CONFIG = [
     },
     {
         key: 'failed' as const,
-        label: 'Échecs',
         icon: XCircle,
         iconBg: 'bg-red-500/15',
         iconColor: 'text-red-500',
@@ -231,7 +225,6 @@ const KPI_CONFIG = [
     },
     {
         key: 'missing' as const,
-        label: 'Manquants',
         icon: AlertTriangle,
         iconBg: 'bg-amber-500/15',
         iconColor: 'text-amber-500',
@@ -240,7 +233,6 @@ const KPI_CONFIG = [
     },
     {
         key: 'total' as const,
-        label: 'Total',
         icon: Activity,
         iconBg: 'bg-blue-500/15',
         iconColor: 'text-blue-500',
@@ -264,6 +256,7 @@ interface KpiDetailSheetProps {
 }
 
 function KpiDetailSheet({ kpiKey, onClose, overview, byTask, onSwitchTab }: KpiDetailSheetProps) {
+    const { t } = useTranslation();
     const cfg = KPI_CONFIG.find((c) => c.key === kpiKey);
     const total = overview?.total ?? 0;
 
@@ -288,7 +281,7 @@ function KpiDetailSheet({ kpiKey, onClose, overview, byTask, onSwitchTab }: KpiD
                         <div className={`rounded-full p-2 ${cfg.iconBg} shrink-0`}>
                             <Icon className={`h-5 w-5 ${cfg.iconColor}`} />
                         </div>
-                        {cfg.label}
+                        {t(`analytics.kpi.${cfg.key}`)}
                         <Badge className={cfg.badgeClass}>{value}</Badge>
                     </SheetTitle>
                 </SheetHeader>
@@ -296,11 +289,11 @@ function KpiDetailSheet({ kpiKey, onClose, overview, byTask, onSwitchTab }: KpiD
                 <ScrollArea className="flex-1 p-6">
                     {kpiKey === 'total' ? (
                         <div className="space-y-5">
-                            <p className="text-sm font-semibold text-muted-foreground">Répartition</p>
+                            <p className="text-sm font-semibold text-muted-foreground">{t('analytics.breakdown')}</p>
                             {[
-                                { label: 'Succès', value: overview?.success ?? 0, cls: '[&>[data-slot=progress-indicator]]:bg-emerald-500', text: 'text-emerald-500' },
-                                { label: 'Échecs', value: overview?.failed ?? 0, cls: '[&>[data-slot=progress-indicator]]:bg-red-500', text: 'text-red-500' },
-                                { label: 'Manquants', value: overview?.missing ?? 0, cls: '[&>[data-slot=progress-indicator]]:bg-amber-500', text: 'text-amber-500' },
+                                { label: t('analytics.kpi.success'), value: overview?.success ?? 0, cls: '[&>[data-slot=progress-indicator]]:bg-emerald-500', text: 'text-emerald-500' },
+                                { label: t('analytics.kpi.failed'), value: overview?.failed ?? 0, cls: '[&>[data-slot=progress-indicator]]:bg-red-500', text: 'text-red-500' },
+                                { label: t('analytics.kpi.missing'), value: overview?.missing ?? 0, cls: '[&>[data-slot=progress-indicator]]:bg-amber-500', text: 'text-amber-500' },
                             ].map((s) => {
                                 const pct = total > 0 ? Math.round((s.value / total) * 100) : 0;
                                 return (
@@ -314,7 +307,7 @@ function KpiDetailSheet({ kpiKey, onClose, overview, byTask, onSwitchTab }: KpiD
                                 );
                             })}
                             <Separator className="my-4" />
-                            <p className="text-sm font-semibold text-muted-foreground">Top 10 tâches</p>
+                            <p className="text-sm font-semibold text-muted-foreground">{t('analytics.top10')}</p>
                             {topTasks.map((t) => {
                                 const c = getComplianceColor(t.complianceRate);
                                 return (
@@ -330,17 +323,17 @@ function KpiDetailSheet({ kpiKey, onClose, overview, byTask, onSwitchTab }: KpiD
                         </div>
                     ) : (
                         <div className="space-y-4">
-                            <p className="text-sm font-semibold text-muted-foreground">Tâches associées</p>
+                            <p className="text-sm font-semibold text-muted-foreground">{t('analytics.relatedTasks')}</p>
                             {topTasks.length === 0 ? (
-                                <p className="text-sm text-muted-foreground py-8 text-center">Aucune donnée</p>
-                            ) : topTasks.map((t) => {
-                                const c = getComplianceColor(t.complianceRate);
+                                <p className="text-sm text-muted-foreground py-8 text-center">{t('analytics.noData')}</p>
+                            ) : topTasks.map((task) => {
+                                const c = getComplianceColor(task.complianceRate);
                                 return (
-                                    <div key={t.taskId} className="flex items-center justify-between py-2 border-b last:border-0">
-                                        <span className="text-sm truncate max-w-[160px] font-medium">{t.taskName}</span>
+                                    <div key={task.taskId} className="flex items-center justify-between py-2 border-b last:border-0">
+                                        <span className="text-sm truncate max-w-[160px] font-medium">{task.taskName}</span>
                                         <div className="flex items-center gap-3">
-                                            <Badge variant="secondary" className="text-xs tabular-nums">{t.failed} éch.</Badge>
-                                            <span className={`text-xs font-semibold tabular-nums ${c.text}`}>{t.complianceRate.toFixed(1)}%</span>
+                                            <Badge variant="secondary" className="text-xs tabular-nums">{t('analytics.failShort', { n: task.failed })}</Badge>
+                                            <span className={`text-xs font-semibold tabular-nums ${c.text}`}>{task.complianceRate.toFixed(1)}%</span>
                                         </div>
                                     </div>
                                 );
@@ -356,7 +349,7 @@ function KpiDetailSheet({ kpiKey, onClose, overview, byTask, onSwitchTab }: KpiD
                         onClick={() => { onClose(); onSwitchTab(); }}
                     >
                         <ListChecks className="h-4 w-4" />
-                        Voir toutes les tâches
+                        {t('analytics.viewAllTasks')}
                     </Button>
                 </div>
             </SheetContent>
@@ -365,6 +358,7 @@ function KpiDetailSheet({ kpiKey, onClose, overview, byTask, onSwitchTab }: KpiD
 }
 
 function OverviewTab({ period, thresholds, onSwitchTab }: { period: PeriodKey; thresholds: ComplianceThresholds; onSwitchTab: () => void }) {
+    const { t } = useTranslation();
     const [selectedKpi, setSelectedKpi] = useState<KpiKey | null>(null);
     const dateRange = useDateRange(period);
     const groupBy: 'day' | 'week' = Number(period) > 14 ? 'week' : 'day';
@@ -411,7 +405,7 @@ function OverviewTab({ period, thresholds, onSwitchTab }: { period: PeriodKey; t
                             onClick={() => setSelectedKpi(cfg.key)}
                         >
                             <CardHeader className="pb-2 flex flex-row items-start justify-between">
-                                <span className="text-sm font-medium text-muted-foreground">{cfg.label}</span>
+                                <span className="text-sm font-medium text-muted-foreground">{t(`analytics.kpi.${cfg.key}`)}</span>
                                 <div className={`rounded-full p-2 ${cfg.iconBg} shrink-0`}>
                                     <Icon className={`h-4 w-4 ${cfg.iconColor}`} />
                                 </div>
@@ -419,7 +413,7 @@ function OverviewTab({ period, thresholds, onSwitchTab }: { period: PeriodKey; t
                             <CardContent className="space-y-3">
                                 <div className="text-4xl font-bold tracking-tight">{value}</div>
                                 <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${cfg.badgeClass}`}>
-                                    {pct}% du total
+                                    {t('analytics.pctOfTotal', { pct })}
                                 </span>
                                 <Progress
                                     value={pct}
@@ -434,10 +428,10 @@ function OverviewTab({ period, thresholds, onSwitchTab }: { period: PeriodKey; t
                 <Card className="lg:col-span-2 col-span-1 sm:col-span-2 flex flex-col justify-between">
                     <CardHeader className="pb-2">
                         <CardTitle className="text-sm font-medium text-muted-foreground">
-                            Taux de conformité
+                            {t('analytics.complianceRate')}
                         </CardTitle>
                         <CardDescription className="text-xs">
-                            Succès / (Succès + Échecs + Manquants)
+                            {t('analytics.complianceFormula')}
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
@@ -451,10 +445,10 @@ function OverviewTab({ period, thresholds, onSwitchTab }: { period: PeriodKey; t
                         />
                         <div className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${complianceColors.bg} ${complianceColors.text}`}>
                             {(overview?.complianceRate ?? 0) >= thresholds.warningThreshold
-                                ? '✓ Objectif atteint'
+                                ? t('analytics.goalReached')
                                 : (overview?.complianceRate ?? 0) >= thresholds.criticalThreshold
-                                    ? '⚠ En dessous de l\'objectif'
-                                    : '✗ Critique'}
+                                    ? t('analytics.belowGoal')
+                                    : t('analytics.critical')}
                         </div>
                     </CardContent>
                 </Card>
@@ -466,9 +460,9 @@ function OverviewTab({ period, thresholds, onSwitchTab }: { period: PeriodKey; t
             ) : (
                 <Card>
                     <CardHeader>
-                        <CardTitle className="text-base">Tendance des statuts</CardTitle>
+                        <CardTitle className="text-base">{t('analytics.trendTitle')}</CardTitle>
                         <CardDescription>
-                            {groupBy === 'week' ? 'Agrégé par semaine' : 'Par jour'} — {dateRange.startDate} → {dateRange.endDate}
+                            {groupBy === 'week' ? t('analytics.byWeek') : t('analytics.byDay')} — {dateRange.startDate} → {dateRange.endDate}
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -502,15 +496,15 @@ function OverviewTab({ period, thresholds, onSwitchTab }: { period: PeriodKey; t
                                         tickLine={false}
                                     />
                                     <RechartsTooltip content={<CustomChartTooltip />} />
-                                    <Area type="monotone" dataKey="success" name="Succès" stroke="#22c55e" strokeWidth={2} fill="url(#gradSuccess)" />
-                                    <Area type="monotone" dataKey="failed" name="Échecs" stroke="#ef4444" strokeWidth={2} fill="url(#gradFailed)" />
-                                    <Area type="monotone" dataKey="missing" name="Manquants" stroke="#f59e0b" strokeWidth={2} fill="url(#gradMissing)" />
+                                    <Area type="monotone" dataKey="success" name={t('analytics.kpi.success')} stroke="#22c55e" strokeWidth={2} fill="url(#gradSuccess)" />
+                                    <Area type="monotone" dataKey="failed" name={t('analytics.kpi.failed')} stroke="#ef4444" strokeWidth={2} fill="url(#gradFailed)" />
+                                    <Area type="monotone" dataKey="missing" name={t('analytics.kpi.missing')} stroke="#f59e0b" strokeWidth={2} fill="url(#gradMissing)" />
                                 </AreaChart>
                             </ResponsiveContainer>
                         ) : (
                             <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-2">
                                 <Activity className="h-8 w-8 opacity-30" />
-                                <p className="text-sm">Aucune donnée pour cette période.</p>
+                                <p className="text-sm">{t('analytics.noDataPeriod')}</p>
                             </div>
                         )}
                     </CardContent>
@@ -525,6 +519,7 @@ function OverviewTab({ period, thresholds, onSwitchTab }: { period: PeriodKey; t
 // ─────────────────────────────────────────────────────────
 
 function ByTaskTab({ period, thresholds }: { period: PeriodKey; thresholds: ComplianceThresholds }) {
+    const { t } = useTranslation();
     const dateRange = useDateRange(period);
     const { data, isLoading } = useAnalyticsByTask({ ...dateRange, limit: 50 });
 
@@ -536,8 +531,8 @@ function ByTaskTab({ period, thresholds }: { period: PeriodKey; thresholds: Comp
     return (
         <Card>
             <CardHeader>
-                <CardTitle className="text-base">Conformité par tâche</CardTitle>
-                <CardDescription>Les pires tâches en premier — limit 50</CardDescription>
+                <CardTitle className="text-base">{t('analytics.byTask.title')}</CardTitle>
+                <CardDescription>{t('analytics.byTask.description')}</CardDescription>
             </CardHeader>
             <CardContent className="p-0">
                 {isLoading ? (
@@ -545,17 +540,17 @@ function ByTaskTab({ period, thresholds }: { period: PeriodKey; thresholds: Comp
                 ) : sorted.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-2">
                         <ListChecks className="h-8 w-8 opacity-30" />
-                        <p className="text-sm">Aucune donnée pour cette période.</p>
+                        <p className="text-sm">{t('analytics.noDataPeriod')}</p>
                     </div>
                 ) : (
                     <ScrollArea className="max-h-[500px]">
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead className="pl-6">Tâche</TableHead>
-                                    <TableHead className="text-right">Total</TableHead>
-                                    <TableHead className="text-right">Échecs</TableHead>
-                                    <TableHead className="text-right pr-6">Conformité</TableHead>
+                                    <TableHead className="pl-6">{t('analytics.byTask.task')}</TableHead>
+                                    <TableHead className="text-right">{t('analytics.kpi.total')}</TableHead>
+                                    <TableHead className="text-right">{t('analytics.kpi.failed')}</TableHead>
+                                    <TableHead className="text-right pr-6">{t('analytics.byTask.compliance')}</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -605,6 +600,7 @@ function ByTaskTab({ period, thresholds }: { period: PeriodKey; thresholds: Comp
 // ─────────────────────────────────────────────────────────
 
 function ByUserTab({ period, thresholds }: { period: PeriodKey; thresholds: ComplianceThresholds }) {
+    const { t } = useTranslation();
     const dateRange = useDateRange(period);
     const { data, isLoading } = useAnalyticsByUser(dateRange);
 
@@ -616,8 +612,8 @@ function ByUserTab({ period, thresholds }: { period: PeriodKey; thresholds: Comp
     return (
         <Card>
             <CardHeader>
-                <CardTitle className="text-base">Conformité par utilisateur</CardTitle>
-                <CardDescription>Les moins performants en premier</CardDescription>
+                <CardTitle className="text-base">{t('analytics.byUser.title')}</CardTitle>
+                <CardDescription>{t('analytics.byUser.description')}</CardDescription>
             </CardHeader>
             <CardContent className="p-0">
                 {isLoading ? (
@@ -625,18 +621,18 @@ function ByUserTab({ period, thresholds }: { period: PeriodKey; thresholds: Comp
                 ) : sorted.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-2">
                         <Users className="h-8 w-8 opacity-30" />
-                        <p className="text-sm">Aucune donnée pour cette période.</p>
+                        <p className="text-sm">{t('analytics.noDataPeriod')}</p>
                     </div>
                 ) : (
                     <ScrollArea className="max-h-[500px]">
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead className="pl-6">Utilisateur</TableHead>
-                                    <TableHead className="text-right">Total</TableHead>
-                                    <TableHead className="text-right">Succès</TableHead>
-                                    <TableHead className="text-right">Échecs</TableHead>
-                                    <TableHead className="text-right pr-6">Conformité</TableHead>
+                                    <TableHead className="pl-6">{t('analytics.byUser.user')}</TableHead>
+                                    <TableHead className="text-right">{t('analytics.kpi.total')}</TableHead>
+                                    <TableHead className="text-right">{t('analytics.kpi.success')}</TableHead>
+                                    <TableHead className="text-right">{t('analytics.kpi.failed')}</TableHead>
+                                    <TableHead className="text-right pr-6">{t('analytics.byTask.compliance')}</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -697,18 +693,19 @@ function ByUserTab({ period, thresholds }: { period: PeriodKey; thresholds: Comp
 // ─────────────────────────────────────────────────────────
 
 function ReportsTab({ period }: { period: PeriodKey }) {
+    const { t } = useTranslation();
     const dateRange = useDateRange(period);
     const periodLabel = `${dateRange.startDate} → ${dateRange.endDate}`;
     const [isExporting, setIsExporting] = useState<null | 'csv' | 'pdf'>(null);
 
     const handleExport = async (type: 'csv' | 'pdf') => {
         setIsExporting(type);
-        toast.success("Téléchargement démarré");
+        toast.success(t('analytics.reports.started'));
         try {
             if (type === 'csv') await analyticsApi.exportCsv(dateRange);
             else await analyticsApi.exportPdf(dateRange);
         } catch {
-            toast.error("Échec lors du téléchargement");
+            toast.error(t('analytics.reports.failed'));
         } finally {
             setIsExporting(null);
         }
@@ -723,9 +720,9 @@ function ReportsTab({ period }: { period: PeriodKey }) {
                         <FileSpreadsheet className="h-12 w-12 text-emerald-500" />
                     </div>
                     <div>
-                        <p className="font-semibold text-lg">Export CSV</p>
+                        <p className="font-semibold text-lg">{t('analytics.reports.csvTitle')}</p>
                         <p className="text-sm text-muted-foreground mt-1">
-                            Données brutes pour Excel ou Google Sheets
+                            {t('analytics.reports.csvDescription')}
                         </p>
                     </div>
                     <Badge variant="outline" className="text-xs">{periodLabel}</Badge>
@@ -735,7 +732,7 @@ function ReportsTab({ period }: { period: PeriodKey }) {
                         className="w-full mt-2"
                     >
                         <Download className="h-4 w-4" />
-                        {isExporting === 'csv' ? 'Exportation...' : 'Télécharger CSV'}
+                        {isExporting === 'csv' ? t('analytics.reports.exporting') : t('analytics.reports.downloadCsv')}
                     </Button>
                 </CardContent>
             </Card>
@@ -747,9 +744,9 @@ function ReportsTab({ period }: { period: PeriodKey }) {
                         <FileText className="h-12 w-12 text-red-500" />
                     </div>
                     <div>
-                        <p className="font-semibold text-lg">Export PDF</p>
+                        <p className="font-semibold text-lg">{t('analytics.reports.pdfTitle')}</p>
                         <p className="text-sm text-muted-foreground mt-1">
-                            Rapport prêt à partager avec votre direction
+                            {t('analytics.reports.pdfDescription')}
                         </p>
                     </div>
                     <Badge variant="outline" className="text-xs">{periodLabel}</Badge>
@@ -760,7 +757,7 @@ function ReportsTab({ period }: { period: PeriodKey }) {
                         className="w-full mt-2"
                     >
                         <Download className="h-4 w-4" />
-                        {isExporting === 'pdf' ? 'Exportation...' : 'Télécharger PDF'}
+                        {isExporting === 'pdf' ? t('analytics.reports.exporting') : t('analytics.reports.downloadPdf')}
                     </Button>
                 </CardContent>
             </Card>
@@ -781,6 +778,7 @@ interface SummaryDialogProps {
 }
 
 function SummaryDialog({ open, onOpenChange, overview, byTask, dateRange }: SummaryDialogProps) {
+    const { t } = useTranslation();
     const [dialogTab, setDialogTab] = useState('summary');
     const [periodA, setPeriodA] = useState<PeriodKey>('7');
     const [periodB, setPeriodB] = useState<PeriodKey>('30');
@@ -794,12 +792,12 @@ function SummaryDialog({ open, onOpenChange, overview, byTask, dateRange }: Summ
 
     const handleExport = async (type: 'csv' | 'pdf') => {
         setIsExporting(type);
-        toast.success("Téléchargement démarré");
+        toast.success(t('analytics.reports.started'));
         try {
             if (type === 'csv') await analyticsApi.exportCsv(dateRange);
             else await analyticsApi.exportPdf(dateRange);
         } catch {
-            toast.error("Échec lors du téléchargement");
+            toast.error(t('analytics.reports.failed'));
         } finally {
             setIsExporting(null);
         }
@@ -814,11 +812,18 @@ function SummaryDialog({ open, onOpenChange, overview, byTask, dateRange }: Summ
 
     const handleCopy = useCallback(() => {
         const rate = overview?.complianceRate?.toFixed(1) ?? '0.0';
-        const text = `Taskmaster — ${dateRange.startDate} → ${dateRange.endDate} | Conformité: ${rate}% | Succès: ${overview?.success ?? 0} | Échecs: ${overview?.failed ?? 0} | Manquants: ${overview?.missing ?? 0}`;
-        navigator.clipboard.writeText(text).then(() => {
-            toast.success('Résumé copié ✓');
+        const text = t('analytics.summaryDialog.copyText', {
+            start: dateRange.startDate,
+            end: dateRange.endDate,
+            rate,
+            success: overview?.success ?? 0,
+            failed: overview?.failed ?? 0,
+            missing: overview?.missing ?? 0,
         });
-    }, [overview, dateRange]);
+        navigator.clipboard.writeText(text).then(() => {
+            toast.success(t('analytics.summaryDialog.copied'));
+        });
+    }, [overview, dateRange, t]);
 
     const delta = (overviewB?.complianceRate ?? 0) - (overviewA?.complianceRate ?? 0);
     const deltaColors = delta > 0
@@ -831,23 +836,23 @@ function SummaryDialog({ open, onOpenChange, overview, byTask, dateRange }: Summ
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-2xl">
                 <DialogHeader>
-                    <DialogTitle>Synthèse analytique</DialogTitle>
-                    <DialogDescription>Vue rapide de vos KPI et comparaison de périodes.</DialogDescription>
+                    <DialogTitle>{t('analytics.summaryDialog.title')}</DialogTitle>
+                    <DialogDescription>{t('analytics.summaryDialog.description')}</DialogDescription>
                 </DialogHeader>
 
                 <Tabs value={dialogTab} onValueChange={setDialogTab}>
                     <TabsList className="h-auto gap-1">
                         <TabsTrigger value="summary" className="gap-1.5 text-xs">
                             <BarChart2 className="h-3.5 w-3.5" />
-                            Résumé
+                            {t('analytics.summaryDialog.tabs.summary')}
                         </TabsTrigger>
                         <TabsTrigger value="compare" className="gap-1.5 text-xs">
                             <ArrowUpDown className="h-3.5 w-3.5" />
-                            Comparer
+                            {t('analytics.summaryDialog.tabs.compare')}
                         </TabsTrigger>
                         <TabsTrigger value="export" className="gap-1.5 text-xs">
                             <Package className="h-3.5 w-3.5" />
-                            Exporter
+                            {t('analytics.summaryDialog.tabs.export')}
                         </TabsTrigger>
                     </TabsList>
 
@@ -857,14 +862,14 @@ function SummaryDialog({ open, onOpenChange, overview, byTask, dateRange }: Summ
                             <div className={`text-5xl font-black tracking-tight transition-colors ${complianceColors.text}`}>
                                 {overview?.complianceRate?.toFixed(1) ?? '—'}%
                             </div>
-                            <p className="text-xs text-muted-foreground mt-1">Taux de conformité</p>
+                            <p className="text-xs text-muted-foreground mt-1">{t('analytics.complianceRate')}</p>
                         </div>
 
                         <div className="grid grid-cols-3 gap-3">
                             {[
-                                { label: 'Succès', value: overview?.success ?? 0, cls: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400' },
-                                { label: 'Échecs', value: overview?.failed ?? 0, cls: 'bg-red-500/15 text-red-600 dark:text-red-400' },
-                                { label: 'Manquants', value: overview?.missing ?? 0, cls: 'bg-amber-500/15 text-amber-600 dark:text-amber-400' },
+                                { label: t('analytics.kpi.success'), value: overview?.success ?? 0, cls: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400' },
+                                { label: t('analytics.kpi.failed'), value: overview?.failed ?? 0, cls: 'bg-red-500/15 text-red-600 dark:text-red-400' },
+                                { label: t('analytics.kpi.missing'), value: overview?.missing ?? 0, cls: 'bg-amber-500/15 text-amber-600 dark:text-amber-400' },
                             ].map((item) => (
                                 <div key={item.label} className="text-center">
                                     <div className="text-2xl font-bold">{item.value}</div>
@@ -879,18 +884,18 @@ function SummaryDialog({ open, onOpenChange, overview, byTask, dateRange }: Summ
                             <>
                                 <Separator />
                                 <div>
-                                    <p className="text-sm font-semibold mb-2">Top 3 tâches problématiques</p>
+                                    <p className="text-sm font-semibold mb-2">{t('analytics.summaryDialog.top3')}</p>
                                     <div className="space-y-2">
-                                        {top3.map((t, i) => {
-                                            const c = getComplianceColor(t.complianceRate);
+                                        {top3.map((task, i) => {
+                                            const c = getComplianceColor(task.complianceRate);
                                             return (
-                                                <div key={t.taskId} className="flex items-center justify-between text-sm">
+                                                <div key={task.taskId} className="flex items-center justify-between text-sm">
                                                     <span className="flex items-center gap-2">
                                                         <span className={`text-xs font-bold ${c.text}`}>#{i + 1}</span>
-                                                        <span className="truncate max-w-[280px]">{t.taskName}</span>
+                                                        <span className="truncate max-w-[280px]">{task.taskName}</span>
                                                     </span>
                                                     <span className={`font-semibold tabular-nums ${c.text}`}>
-                                                        {t.complianceRate.toFixed(1)}%
+                                                        {task.complianceRate.toFixed(1)}%
                                                     </span>
                                                 </div>
                                             );
@@ -902,7 +907,7 @@ function SummaryDialog({ open, onOpenChange, overview, byTask, dateRange }: Summ
 
                         <Button onClick={handleCopy} variant="outline" className="w-full">
                             <Copy className="h-4 w-4" />
-                            Copier le résumé
+                            {t('analytics.summaryDialog.copy')}
                         </Button>
                     </TabsContent>
 
@@ -912,14 +917,14 @@ function SummaryDialog({ open, onOpenChange, overview, byTask, dateRange }: Summ
                             {/* Period A */}
                             <div className="space-y-3">
                                 <div className="flex items-center gap-2">
-                                    <Badge variant="outline" className="text-xs">Période A</Badge>
+                                    <Badge variant="outline" className="text-xs">{t('analytics.summaryDialog.periodA')}</Badge>
                                     <Select value={periodA} onValueChange={(v) => setPeriodA(v as PeriodKey)}>
                                         <SelectTrigger className="h-7 w-20 text-xs">
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {PERIODS.map((p) => (
-                                                <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
+                                            {PERIOD_VALUES.map((value) => (
+                                                <SelectItem key={value} value={value}>{t(`analytics.periods.${value}`)}</SelectItem>
                                             ))}
                                         </SelectContent>
                                     </Select>
@@ -935,14 +940,14 @@ function SummaryDialog({ open, onOpenChange, overview, byTask, dateRange }: Summ
                             {/* Period B */}
                             <div className="space-y-3">
                                 <div className="flex items-center gap-2">
-                                    <Badge variant="outline" className="text-xs">Période B</Badge>
+                                    <Badge variant="outline" className="text-xs">{t('analytics.summaryDialog.periodB')}</Badge>
                                     <Select value={periodB} onValueChange={(v) => setPeriodB(v as PeriodKey)}>
                                         <SelectTrigger className="h-7 w-20 text-xs">
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {PERIODS.map((p) => (
-                                                <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
+                                            {PERIOD_VALUES.map((value) => (
+                                                <SelectItem key={value} value={value}>{t(`analytics.periods.${value}`)}</SelectItem>
                                             ))}
                                         </SelectContent>
                                     </Select>
@@ -959,9 +964,9 @@ function SummaryDialog({ open, onOpenChange, overview, byTask, dateRange }: Summ
                         <Separator />
 
                         <div className="text-center">
-                            <p className="text-sm text-muted-foreground mb-2">Variation B vs A</p>
+                            <p className="text-sm text-muted-foreground mb-2">{t('analytics.summaryDialog.variation')}</p>
                             <span className={`inline-flex items-center rounded-full px-3 py-1 text-sm font-bold ${deltaColors.bg} ${deltaColors.text}`}>
-                                {delta > 0 ? `↑ +${delta.toFixed(1)}` : delta < 0 ? `↓ ${delta.toFixed(1)}` : '='} pts
+                                {delta > 0 ? `↑ +${delta.toFixed(1)}` : delta < 0 ? `↓ ${delta.toFixed(1)}` : '='} {t('analytics.summaryDialog.pts')}
                             </span>
                         </div>
                     </TabsContent>
@@ -980,12 +985,12 @@ function SummaryDialog({ open, onOpenChange, overview, byTask, dateRange }: Summ
                                     <FileSpreadsheet className="h-10 w-10 text-emerald-500" />
                                 </div>
                                 <div>
-                                    <p className="font-semibold text-base">Export CSV</p>
-                                    <p className="text-xs text-muted-foreground mt-1">Excel / Google Sheets</p>
+                                    <p className="font-semibold text-base">{t('analytics.reports.csvTitle')}</p>
+                                    <p className="text-xs text-muted-foreground mt-1">{t('analytics.summaryDialog.csvSub')}</p>
                                 </div>
                                 <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 px-3 py-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
                                     <Download className="h-3 w-3" />
-                                    {isExporting === 'csv' ? 'En cours...' : 'Télécharger'}
+                                    {isExporting === 'csv' ? t('analytics.summaryDialog.inProgress') : t('analytics.summaryDialog.download')}
                                 </span>
                             </button>
 
@@ -1000,12 +1005,12 @@ function SummaryDialog({ open, onOpenChange, overview, byTask, dateRange }: Summ
                                     <FileText className="h-10 w-10 text-red-500" />
                                 </div>
                                 <div>
-                                    <p className="font-semibold text-base">Export PDF</p>
-                                    <p className="text-xs text-muted-foreground mt-1">Rapport de conformité</p>
+                                    <p className="font-semibold text-base">{t('analytics.reports.pdfTitle')}</p>
+                                    <p className="text-xs text-muted-foreground mt-1">{t('analytics.summaryDialog.pdfSub')}</p>
                                 </div>
                                 <span className="inline-flex items-center gap-1.5 rounded-full bg-red-500/15 px-3 py-1 text-xs font-semibold text-red-600 dark:text-red-400">
                                     <Download className="h-3 w-3" />
-                                    {isExporting === 'pdf' ? 'En cours...' : 'Télécharger'}
+                                    {isExporting === 'pdf' ? t('analytics.summaryDialog.inProgress') : t('analytics.summaryDialog.download')}
                                 </span>
                             </button>
                         </div>
@@ -1028,6 +1033,7 @@ interface ThresholdDialogProps {
 }
 
 function ThresholdDialog({ open, onOpenChange, thresholds, onSave }: ThresholdDialogProps) {
+    const { t } = useTranslation();
     const [warning, setWarning] = useState(thresholds.warningThreshold);
     const [critical, setCritical] = useState(thresholds.criticalThreshold);
 
@@ -1037,7 +1043,7 @@ function ThresholdDialog({ open, onOpenChange, thresholds, onSave }: ThresholdDi
         if (!isValid) return;
         onSave({ warningThreshold: warning, criticalThreshold: critical });
         onOpenChange(false);
-        toast.success('Seuils mis à jour');
+        toast.success(t('analytics.thresholds.updated'));
     };
 
     const handleReset = () => {
@@ -1046,22 +1052,22 @@ function ThresholdDialog({ open, onOpenChange, thresholds, onSave }: ThresholdDi
     };
 
     const previewColors = [
-        { label: `≥ ${warning}%`, rate: warning, desc: 'OK' },
-        { label: `${critical}–${warning - 1}%`, rate: (warning + critical) / 2, desc: 'Attention' },
-        { label: `< ${critical}%`, rate: critical - 1, desc: 'Critique' },
+        { label: `≥ ${warning}%`, rate: warning, desc: t('analytics.thresholds.ok') },
+        { label: `${critical}–${warning - 1}%`, rate: (warning + critical) / 2, desc: t('analytics.thresholds.attention') },
+        { label: `< ${critical}%`, rate: critical - 1, desc: t('analytics.thresholds.criticalLabel') },
     ];
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-sm">
                 <DialogHeader>
-                    <DialogTitle>Seuils de conformité</DialogTitle>
-                    <DialogDescription>Personnalisez les couleurs de l'indicateur de conformité.</DialogDescription>
+                    <DialogTitle>{t('analytics.thresholds.title')}</DialogTitle>
+                    <DialogDescription>{t('analytics.thresholds.description')}</DialogDescription>
                 </DialogHeader>
 
                 <div className="space-y-4">
                     <div className="space-y-2">
-                        <Label htmlFor="threshold-warning">Seuil attention (orange)</Label>
+                        <Label htmlFor="threshold-warning">{t('analytics.thresholds.warning')}</Label>
                         <div className="flex items-center gap-2">
                             <Button variant="outline" size="icon" className="h-9 w-9 shrink-0" onClick={() => setWarning((v) => Math.max(0, v - 1))}>
                                 <Minus className="h-4 w-4" />
@@ -1082,7 +1088,7 @@ function ThresholdDialog({ open, onOpenChange, thresholds, onSave }: ThresholdDi
                     </div>
 
                     <div className="space-y-2">
-                        <Label htmlFor="threshold-critical">Seuil critique (rouge)</Label>
+                        <Label htmlFor="threshold-critical">{t('analytics.thresholds.critical')}</Label>
                         <div className="flex items-center gap-2">
                             <Button variant="outline" size="icon" className="h-9 w-9 shrink-0" onClick={() => setCritical((v) => Math.max(0, v - 1))}>
                                 <Minus className="h-4 w-4" />
@@ -1103,13 +1109,13 @@ function ThresholdDialog({ open, onOpenChange, thresholds, onSave }: ThresholdDi
                     </div>
 
                     {!isValid && (
-                        <p className="text-sm text-destructive">Le seuil attention doit être supérieur au seuil critique.</p>
+                        <p className="text-sm text-destructive">{t('analytics.thresholds.invalid')}</p>
                     )}
 
                     <Separator />
 
                     <div>
-                        <p className="text-xs text-muted-foreground mb-2">Aperçu</p>
+                        <p className="text-xs text-muted-foreground mb-2">{t('analytics.thresholds.preview')}</p>
                         <div className="flex gap-2">
                             {previewColors.map((p) => {
                                 const c = getComplianceColor(p.rate, { warningThreshold: warning, criticalThreshold: critical });
@@ -1127,8 +1133,8 @@ function ThresholdDialog({ open, onOpenChange, thresholds, onSave }: ThresholdDi
                 </div>
 
                 <DialogFooter className="gap-2">
-                    <Button variant="ghost" size="sm" onClick={handleReset}>Réinitialiser</Button>
-                    <Button size="sm" onClick={handleSave} disabled={!isValid}>Enregistrer</Button>
+                    <Button variant="ghost" size="sm" onClick={handleReset}>{t('analytics.thresholds.reset')}</Button>
+                    <Button size="sm" onClick={handleSave} disabled={!isValid}>{t('common.save')}</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
@@ -1142,6 +1148,8 @@ function ThresholdDialog({ open, onOpenChange, thresholds, onSave }: ThresholdDi
 import { cn } from '@/lib/utils';
 
 export function AnalyticsPage() {
+    const { t } = useTranslation();
+    const periodOptions = PERIOD_VALUES.map((value) => ({ value, label: t(`analytics.periods.${value}`) }));
     const [period, setPeriod] = useState<PeriodKey>('30');
     const [activeTab, setActiveTab] = useState('overview');
     const [isSummaryOpen, setIsSummaryOpen] = useState(false);
@@ -1163,9 +1171,9 @@ export function AnalyticsPage() {
             <div className={cn("flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4", isTvMode && "hidden")}>
                 <div className="flex items-center gap-4">
                     <div>
-                        <h1 className="text-2xl font-bold tracking-tight">Analytiques</h1>
+                        <h1 className="text-2xl font-bold tracking-tight">{t('analytics.title')}</h1>
                         <p className="text-muted-foreground text-sm mt-0.5">
-                            KPI, conformité et rapports opérationnels.
+                            {t('analytics.subtitle')}
                         </p>
                     </div>
                     <Button
@@ -1175,14 +1183,14 @@ export function AnalyticsPage() {
                         onClick={() => setIsTvMode(true)}
                     >
                         <Monitor className="h-4 w-4" />
-                        Mode TV
+                        {t('analytics.tvMode')}
                     </Button>
                 </div>
 
                 <div className="flex items-center gap-2">
                     {/* Pill period toggle */}
                     <div className="flex items-center gap-1 p-1 rounded-lg bg-muted border border-border">
-                        {PERIODS.map((opt) => (
+                        {periodOptions.map((opt) => (
                             <Button
                                 key={opt.value}
                                 size="sm"
@@ -1197,7 +1205,7 @@ export function AnalyticsPage() {
 
                     <Button variant="outline" size="sm" onClick={() => setIsSummaryOpen(true)} className="gap-1.5">
                         <BarChart2 className="h-4 w-4" />
-                        Synthèse
+                        {t('analytics.summary')}
                     </Button>
 
                     {!isGuest && (
@@ -1213,13 +1221,13 @@ export function AnalyticsPage() {
                     <div className="flex items-center gap-4">
                         <span className="text-sm font-bold flex items-center gap-2 text-primary">
                             <Monitor className="h-4 w-4" />
-                            MODE AFFICHAGE TV ANALYTICS {(isGuest) && " (LECTURE SEULE)"}
+                            {t('analytics.tvBanner')} {(isGuest) && t('analytics.readOnly')}
                         </span>
-                        <Badge variant="outline" className="text-xs">Période : {PERIODS.find(p => p.value === period)?.label}</Badge>
+                        <Badge variant="outline" className="text-xs">{t('analytics.periodBadge', { period: periodOptions.find(p => p.value === period)?.label })}</Badge>
                     </div>
                     {!isGuest && (
                         <Button variant="ghost" size="sm" onClick={() => setIsTvMode(false)} className="h-8 gap-2">
-                            <X className="h-4 w-4" /> Quitter
+                            <X className="h-4 w-4" /> {t('analytics.exit')}
                         </Button>
                     )}
                 </div>
@@ -1247,23 +1255,23 @@ export function AnalyticsPage() {
                 <TabsList className="h-auto gap-1">
                     <TabsTrigger value="overview" className="gap-2">
                         <LayoutDashboard className="h-4 w-4" />
-                        Vue d'ensemble
+                        {t('analytics.tabs.overview')}
                     </TabsTrigger>
                     <TabsTrigger value="by-task" className="gap-2">
                         <ListChecks className="h-4 w-4" />
-                        Par tâche
+                        {t('analytics.tabs.byTask')}
                     </TabsTrigger>
                     {isManagerOrAbove && (
                         <TabsTrigger value="by-user" className="gap-2">
                             <Users className="h-4 w-4" />
-                            Par utilisateur
+                            {t('analytics.tabs.byUser')}
                         </TabsTrigger>
                     )}
                     {/* Reports offer exports and comparisons: not for a wall screen. */}
                     {!isGuest && (
                         <TabsTrigger value="reports" className="gap-2">
                             <FileDown className="h-4 w-4" />
-                            Rapports
+                            {t('analytics.tabs.reports')}
                         </TabsTrigger>
                     )}
                 </TabsList>

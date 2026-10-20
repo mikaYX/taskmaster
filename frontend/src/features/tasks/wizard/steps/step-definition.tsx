@@ -9,24 +9,26 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { CalendarDays, CalendarRange, Clock, Repeat, Users } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 
 const PRIORITIES = [
-    { value: 'LOW', label: 'Low', color: 'text-blue-400' },
-    { value: 'MEDIUM', label: 'Medium', color: 'text-emerald-400' },
-    { value: 'HIGH', label: 'High', color: 'text-orange-400' },
-    { value: 'CRITICAL', label: 'Critical', color: 'text-rose-400' },
+    { value: 'LOW', color: 'text-blue-400' },
+    { value: 'MEDIUM', color: 'text-emerald-400' },
+    { value: 'HIGH', color: 'text-orange-400' },
+    { value: 'CRITICAL', color: 'text-rose-400' },
 ] as const;
 
 const PERIODICITIES = [
-    { id: 'daily', label: 'Daily', icon: Clock, desc: 'Every day' },
-    { id: 'weekly', label: 'Weekly', icon: Repeat, desc: 'Every week' },
-    { id: 'monthly', label: 'Monthly', icon: CalendarDays, desc: 'Every month' },
-    { id: 'yearly', label: 'Yearly', icon: CalendarRange, desc: 'Every year' },
-    { id: 'custom', label: 'Custom', icon: Users, desc: 'Advanced Rules' },
+    { id: 'daily', icon: Clock },
+    { id: 'weekly', icon: Repeat },
+    { id: 'monthly', icon: CalendarDays },
+    { id: 'yearly', icon: CalendarRange },
+    { id: 'custom', icon: Users },
 ] as const;
 
 export function StepDefinition() {
+    const { t } = useTranslation();
     const { control, watch, setValue } = useFormContext<CreateTaskFormValues>();
     const selectedPeriodicity = watch("periodicity");
 
@@ -39,10 +41,10 @@ export function StepDefinition() {
                     render={({ field }) => (
                         <FormItem className="space-y-0">
                             <div className="flex h-7 items-center mb-2">
-                                <FormLabel>Task Name</FormLabel>
+                                <FormLabel>{t('taskWizard.definition.name')}</FormLabel>
                             </div>
                             <FormControl>
-                                <Input placeholder="e.g. Server Backup" {...field} />
+                                <Input placeholder={t('taskWizard.definition.namePlaceholder')} {...field} />
                             </FormControl>
                             <FormMessage className="mt-2" />
                         </FormItem>
@@ -54,18 +56,18 @@ export function StepDefinition() {
                     render={({ field }) => (
                         <FormItem className="space-y-0">
                             <div className="flex h-7 items-center mb-2">
-                                <FormLabel>Priority</FormLabel>
+                                <FormLabel>{t('taskWizard.definition.priority')}</FormLabel>
                             </div>
                             <Select value={field.value ?? 'MEDIUM'} onValueChange={field.onChange}>
                                 <FormControl>
                                     <SelectTrigger>
-                                        <SelectValue placeholder="Priority" />
+                                        <SelectValue placeholder={t('taskWizard.definition.priority')} />
                                     </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
                                     {PRIORITIES.map((p) => (
                                         <SelectItem key={p.value} value={p.value}>
-                                            <span className={p.color}>{p.label}</span>
+                                            <span className={p.color}>{t(`taskWizard.priorities.${p.value}`)}</span>
                                         </SelectItem>
                                     ))}
                                 </SelectContent>
@@ -78,10 +80,10 @@ export function StepDefinition() {
             <div className="space-y-1">
                 <Tabs defaultValue="URL" value={watch('procedureMode')} onValueChange={(v) => setValue('procedureMode', v as 'URL' | 'UPLOAD')} className="space-y-0">
                     <div className="flex flex-wrap items-center gap-2">
-                        <FormLabel className="shrink-0 h-7 flex items-center">Procedure (Optional)</FormLabel>
+                        <FormLabel className="shrink-0 h-7 flex items-center">{t('taskWizard.definition.procedure')}</FormLabel>
                         <TabsList className="grid w-[160px] grid-cols-2 h-8 p-0.5 shrink-0">
-                            <TabsTrigger value="URL" className="text-[11px] h-full py-0">Lien Web</TabsTrigger>
-                            <TabsTrigger value="UPLOAD" className="text-[11px] h-full py-0">Fichier</TabsTrigger>
+                            <TabsTrigger value="URL" className="text-[11px] h-full py-0">{t('taskWizard.definition.procedureLink')}</TabsTrigger>
+                            <TabsTrigger value="UPLOAD" className="text-[11px] h-full py-0">{t('taskWizard.definition.procedureFile')}</TabsTrigger>
                         </TabsList>
                         <div className="flex-1 min-w-[200px] flex items-center">
                             <TabsContent value="URL" className="mt-0 flex-1 data-[state=inactive]:hidden">
@@ -91,7 +93,7 @@ export function StepDefinition() {
                                     render={({ field }) => (
                                         <FormItem className="space-y-0">
                                             <FormControl>
-                                                <Input placeholder="https://wiki..." className="h-8" {...field} value={field.value || ''} />
+                                                <Input placeholder={t('taskWizard.definition.procedureUrlPlaceholder')} className="h-8" {...field} value={field.value || ''} />
                                             </FormControl>
                                             <FormMessage className="mt-2" />
                                         </FormItem>
@@ -116,7 +118,7 @@ export function StepDefinition() {
                                                     {...fieldProps}
                                                 />
                                             </FormControl>
-                                            {value && value instanceof File && <p className="text-[11px] text-muted-foreground mt-1.5">Sélectionné: {value.name}</p>}
+                                            {value && value instanceof File && <p className="text-[11px] text-muted-foreground mt-1.5">{t('taskWizard.definition.selectedFile', { name: value.name })}</p>}
                                             <FormMessage className="mt-2" />
                                         </FormItem>
                                     )}
@@ -132,10 +134,10 @@ export function StepDefinition() {
                 name="description"
                 render={({ field }) => (
                     <FormItem>
-                        <FormLabel>Description</FormLabel>
+                        <FormLabel>{t('taskWizard.definition.description')}</FormLabel>
                         <FormControl>
                             <Textarea
-                                placeholder="Describe what needs to be done..."
+                                placeholder={t('taskWizard.definition.descriptionPlaceholder')}
                                 className="resize-none h-24"
                                 {...field}
                             />
@@ -146,7 +148,7 @@ export function StepDefinition() {
             />
 
             <div className="space-y-2">
-                <FormLabel>Periodicity</FormLabel>
+                <FormLabel>{t('taskWizard.definition.periodicity')}</FormLabel>
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                     {PERIODICITIES.map((p) => {
                         const Icon = p.icon;
@@ -162,8 +164,8 @@ export function StepDefinition() {
                             >
                                 <CardContent className="flex flex-col items-center justify-center p-4 text-center h-full">
                                     <Icon className={cn("h-6 w-6 mb-2", isSelected ? "text-primary" : "text-muted-foreground")} />
-                                    <span className={cn("font-medium text-sm", isSelected ? "text-primary" : "")}>{p.label}</span>
-                                    <span className="text-[10px] text-muted-foreground mt-1">{p.desc}</span>
+                                    <span className={cn("font-medium text-sm", isSelected ? "text-primary" : "")}>{t(`taskWizard.periodicities.${p.id}.label`)}</span>
+                                    <span className="text-[10px] text-muted-foreground mt-1">{t(`taskWizard.periodicities.${p.id}.desc`)}</span>
                                 </CardContent>
                             </Card>
                         )

@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -37,7 +38,7 @@ import { useAuthStore } from '@/stores/auth-store';
 import { useSiteStore } from '@/stores/site-store';
 
 const groupSchema = z.object({
-    name: z.string().min(3, 'Group name must be at least 3 characters'),
+    name: z.string().min(3, 'groupMgmt.validation.nameMin3'),
     description: z.string().optional(),
     siteId: z.number().optional(),
 });
@@ -51,6 +52,7 @@ interface GroupFormDialogProps {
 }
 
 export function GroupFormDialog({ open, onOpenChange, groupToEdit }: GroupFormDialogProps) {
+    const { t } = useTranslation();
     const createGroup = useCreateGroup();
     const updateGroup = useUpdateGroup();
     const { data: sites = [] } = useSites();
@@ -113,12 +115,12 @@ export function GroupFormDialog({ open, onOpenChange, groupToEdit }: GroupFormDi
             <DialogContent className="sm:max-w-[500px]">
                 <DialogHeader>
                     <DialogTitle className="text-xl">
-                        {isEdit ? 'Edit Group' : 'Create New Group'}
+                        {isEdit ? t('groups.editGroup') : t('groupMgmt.form.createTitle')}
                     </DialogTitle>
                     <DialogDescription>
                         {isEdit
-                            ? "Update the group's information below."
-                            : "Create a new group to organize users and simplify task assignments."}
+                            ? t('groupMgmt.form.editDescription')
+                            : t('groupMgmt.form.createDescription')}
                     </DialogDescription>
                 </DialogHeader>
 
@@ -131,9 +133,9 @@ export function GroupFormDialog({ open, onOpenChange, groupToEdit }: GroupFormDi
                             name="name"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Group Name</FormLabel>
+                                    <FormLabel>{t('groupMgmt.form.name')}</FormLabel>
                                     <FormControl>
-                                        <Input placeholder="Engineering Team" {...field} />
+                                        <Input placeholder={t('groupMgmt.form.namePlaceholder')} {...field} />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
@@ -146,14 +148,14 @@ export function GroupFormDialog({ open, onOpenChange, groupToEdit }: GroupFormDi
                                 name="siteId"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Site</FormLabel>
+                                        <FormLabel>{t('groupMgmt.form.site')}</FormLabel>
                                         <Select
                                             onValueChange={(val) => field.onChange(parseInt(val, 10))}
                                             value={field.value ? String(field.value) : ''}
                                         >
                                             <FormControl>
                                                 <SelectTrigger>
-                                                    <SelectValue placeholder="Select a site" />
+                                                    <SelectValue placeholder={t('groupMgmt.form.selectSite')} />
                                                 </SelectTrigger>
                                             </FormControl>
                                             <SelectContent>
@@ -180,10 +182,10 @@ export function GroupFormDialog({ open, onOpenChange, groupToEdit }: GroupFormDi
                             name="description"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Description</FormLabel>
+                                    <FormLabel>{t('groupMgmt.form.description')}</FormLabel>
                                     <FormControl>
                                         <Textarea
-                                            placeholder="Optional description of the group's purpose..."
+                                            placeholder={t('groupMgmt.form.descriptionPlaceholder')}
                                             className="resize-none min-h-[100px]"
                                             {...field}
                                         />
@@ -201,12 +203,12 @@ export function GroupFormDialog({ open, onOpenChange, groupToEdit }: GroupFormDi
                                 variant="ghost"
                                 onClick={() => onOpenChange(false)}
                             >
-                                Cancel
+                                {t('common.cancel')}
                             </Button>
                             <Button type="submit" disabled={isLoading}>
                                 {isLoading
-                                    ? 'Saving...'
-                                    : (isEdit ? 'Update Group' : 'Create Group')
+                                    ? t('common.saving')
+                                    : (isEdit ? t('groupMgmt.form.update') : t('groupMgmt.form.create'))
                                 }
                             </Button>
                         </DialogFooter>

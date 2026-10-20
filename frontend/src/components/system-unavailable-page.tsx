@@ -1,5 +1,6 @@
 
 import { Info, RefreshCcw, ServerCrash } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -10,6 +11,7 @@ interface SystemUnavailablePageProps {
 }
 
 export function SystemUnavailablePage({ onRetry, isRetrying = false }: SystemUnavailablePageProps) {
+    const { t } = useTranslation();
     return (
         <div className="min-h-screen w-full flex items-center justify-center bg-background p-4">
             <Card className="w-full max-w-md shadow-lg border-muted">
@@ -18,28 +20,28 @@ export function SystemUnavailablePage({ onRetry, isRetrying = false }: SystemUna
                         <ServerCrash className="w-8 h-8 text-muted-foreground" />
                     </div>
                     <CardTitle className="text-2xl font-bold tracking-tight">
-                        Système Indisponible
+                        {t('systemUnavailable.title')}
                     </CardTitle>
                     <CardDescription className="text-base">
-                        La connexion avec le serveur a échoué.
+                        {t('systemUnavailable.description')}
                     </CardDescription>
                 </CardHeader>
 
                 <CardContent className="text-center space-y-4">
                     <div className="bg-blue-50/50 border border-blue-100 rounded-lg p-4 text-blue-900/80 dark:bg-blue-950/20 dark:border-blue-900/30 dark:text-blue-200/80 space-y-3 text-sm">
-                        <p>Cela peut être dû à une maintenance en cours ou à un problème de réseau.</p>
-                        <p>Veuillez vérifier votre connexion internet.</p>
+                        <p>{t('systemUnavailable.maintenance')}</p>
+                        <p>{t('systemUnavailable.checkConnection')}</p>
 
                         <TooltipProvider>
                             <Tooltip>
                                 <TooltipTrigger asChild>
                                     <div className="flex items-center justify-center gap-1.5 cursor-help transition-colors hover:text-blue-700 dark:hover:text-blue-300 mx-auto w-fit">
-                                        <p>Le serveur est peut-être encore en cours de lancement.</p>
+                                        <p>{t('systemUnavailable.starting')}</p>
                                         <Info className="w-4 h-4 text-blue-500" />
                                     </div>
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                    <p>Le premier démarrage peut prendre jusqu'à 1 minute.</p>
+                                    <p>{t('systemUnavailable.firstStart')}</p>
                                 </TooltipContent>
                             </Tooltip>
                         </TooltipProvider>
@@ -55,12 +57,12 @@ export function SystemUnavailablePage({ onRetry, isRetrying = false }: SystemUna
                         {isRetrying ? (
                             <>
                                 <RefreshCcw className="mr-2 h-4 w-4 animate-spin" />
-                                Connexion...
+                                {t('systemUnavailable.connecting')}
                             </>
                         ) : (
                             <>
                                 <RefreshCcw className="mr-2 h-4 w-4" />
-                                Réessayer
+                                {t('systemUnavailable.retry')}
                             </>
                         )}
                     </Button>

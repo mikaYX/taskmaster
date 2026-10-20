@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { format } from "date-fns";
+import { useTranslation } from "react-i18next";
 import { useForm, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createTaskSchema } from "../schemas/task-creation.schema";
@@ -19,15 +20,14 @@ import { useSettings } from "@/features/settings/hooks/use-settings";
 import { tasksApi } from "@/api/tasks";
 import { notificationsApi } from "@/api/notifications";
 
-const STEPS = [
-    { title: "Definition", description: "Choose periodicity and basic details" },
-    { title: "Scheduling", description: "Configure schedule rules and dates" },
-    { title: "Assignment", description: "Assign to users or groups" },
-    { title: "Notifications", description: "Configure alerts for this task" },
-    { title: "Review & Create", description: "Verify settings and preview duties" },
-];
+const STEP_KEYS = ['definition', 'scheduling', 'assignment', 'notifications', 'review'] as const;
 
 export default function WizardPage() {
+    const { t } = useTranslation();
+    const steps = STEP_KEYS.map((key) => ({
+        title: t(`taskWizard.steps.${key}.title`),
+        description: t(`taskWizard.steps.${key}.description`),
+    }));
     const [currentStep, setCurrentStep] = useState(0);
     const navigate = useNavigate();
     const createTaskMutation = useCreateTask();
@@ -143,10 +143,10 @@ export default function WizardPage() {
             if (rrule) {
                 payload.rrule = rrule;
             } else if (payload.recurrenceMode === 'FROM_COMPLETION') {
-                toast.error("Invalid Configuration", { description: "From Completion mode requires a valid schedule pattern (RRule could not be generated)." });
+                toast.error(t('taskWizard.toasts.invalidConfig'), { description: t('taskWizard.toasts.fromCompletionNoRule') });
                 return;
             } else {
-                toast.error("Invalid Configuration", { description: "Recurrent tasks strictly require a recurrence rule." });
+                toast.error(t('taskWizard.toasts.invalidConfig'), { description: t('taskWizard.toasts.recurrentNeedsRule') });
                 return;
             }
 
@@ -164,7 +164,7 @@ export default function WizardPage() {
                     await notificationsApi.saveTaskNotifications(createdTask.id, { notifications: data.notifications });
                 } catch (err) {
                     console.error("Failed to save notifications", err);
-                    toast.warning("Task Created", { description: "Task was created, but notifications failed to save." });
+                    toast.warning(t('taskWizard.toasts.created'), { description: t('taskWizard.toasts.notificationsFailed') });
                 }
             }
 
@@ -173,17 +173,17 @@ export default function WizardPage() {
                     await tasksApi.uploadProcedure(createdTask.id, data.procedureFile as File);
                 } catch (err) {
                     console.error("Failed to upload file, task was created but procedure is missing.", err);
-                    toast.warning("Task Created", { description: "Task was created, but the procedure file failed to upload. You can retry editing." });
+                    toast.warning(t('taskWizard.toasts.created'), { description: t('taskWizard.toasts.uploadFailed') });
                     navigate('/task-definitions');
                     return;
                 }
             }
 
-            toast.success("Task Created", { description: "The task has been successfully scheduled." });
+            toast.success(t('taskWizard.toasts.created'), { description: t('taskWizard.toasts.createdDescription') });
             navigate('/task-definitions');
         } catch (error) {
             console.error(error);
-            toast.error("Error", { description: "Failed to create task" });
+            toast.error(t('taskWizard.toasts.error'), { description: t('taskWizard.toasts.createFailed') });
         }
     };
 
@@ -192,12 +192,12 @@ export default function WizardPage() {
             <FormProvider {...methods}>
                 <WizardLayout
                     currentStep={currentStep}
-                    steps={STEPS}
+                    steps={steps}
                     onNext={handleNext}
                     onBack={handleBack}
                     canNext={true}
                     isSubmitting={createTaskMutation.isPending}
-                    nextLabel={currentStep === 4 ? "Create Task" : "Next"}
+                    nextLabel={currentStep === 4 ? t('taskWizard.createButton') : t('common.next')}
                 >
                     <div className="min-h-[300px]">
                         {currentStep === 0 && <StepDefinition />}

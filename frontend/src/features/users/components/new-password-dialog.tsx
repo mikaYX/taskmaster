@@ -10,6 +10,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Copy } from 'lucide-react';
 import { toast } from 'sonner';
+import { Trans, useTranslation } from 'react-i18next';
 import type { CredentialsEmailStatus } from '@/api/types';
 
 interface NewPasswordDialogProps {
@@ -22,11 +23,12 @@ interface NewPasswordDialogProps {
     emailStatus?: CredentialsEmailStatus;
 }
 
-const EMAIL_STATUS_MESSAGES: Record<CredentialsEmailStatus, { text: string; ok: boolean }> = {
-    SENT: { text: 'The credentials were also sent to the user by email.', ok: true },
-    FAILED: { text: 'The email could not be sent. Give the temporary password to the user directly.', ok: false },
-    NOT_ACTIVE: { text: 'Email sending is not active, so nothing was sent. Give the temporary password to the user directly.', ok: false },
-    NO_ADDRESS: { text: 'This account has no email address, so nothing was sent. Give the temporary password to the user directly.', ok: false },
+/** Only SENT is a plain confirmation; the others tell the admin to hand the password over. */
+const EMAIL_STATUS_OK: Record<CredentialsEmailStatus, boolean> = {
+    SENT: true,
+    FAILED: false,
+    NOT_ACTIVE: false,
+    NO_ADDRESS: false,
 };
 
 export function NewPasswordDialog({
@@ -34,14 +36,17 @@ export function NewPasswordDialog({
     onOpenChange,
     password,
     username,
-    title = "New Password Generated",
+    title,
     emailStatus,
 }: NewPasswordDialogProps) {
-    const emailMessage = emailStatus ? EMAIL_STATUS_MESSAGES[emailStatus] : null;
+    const { t } = useTranslation();
+    const emailMessage = emailStatus
+        ? { text: t(`userMgmt.newPassword.emailStatus.${emailStatus}`), ok: EMAIL_STATUS_OK[emailStatus] }
+        : null;
 
     const handleCopy = async () => {
         await navigator.clipboard.writeText(password);
-        toast.success("Password copied to clipboard");
+        toast.success(t('userMgmt.newPassword.copied'));
     };
 
     const handleClose = () => {
@@ -52,9 +57,13 @@ export function NewPasswordDialog({
         <AlertDialog open={open} onOpenChange={onOpenChange}>
             <AlertDialogContent>
                 <AlertDialogHeader>
-                    <AlertDialogTitle>{title}</AlertDialogTitle>
+                    <AlertDialogTitle>{title ?? t('userMgmt.newPassword.title')}</AlertDialogTitle>
                     <AlertDialogDescription>
-                        A new password has been generated for <strong>{username}</strong>.
+                        <Trans
+                            i18nKey="userMgmt.newPassword.generatedFor"
+                            values={{ username }}
+                            components={{ strong: <strong /> }}
+                        />
                         <br /><br />
                         <span className="block p-4 bg-muted rounded-md font-mono text-center text-lg select-all border border-input">
                             {password}
@@ -69,7 +78,7 @@ export function NewPasswordDialog({
                             </span>
                         )}
                         <span className="text-destructive font-medium block">
-                            ⚠️ Important: Copy this password now. It will not be shown again.
+                            {t('userMgmt.newPassword.important')}
                         </span>
                     </AlertDialogDescription>
                 </AlertDialogHeader>
@@ -81,10 +90,10 @@ export function NewPasswordDialog({
                         className="w-full sm:w-auto"
                     >
                         <Copy className="mr-2 h-4 w-4" />
-                        Copy to Clipboard
+                        {t('userMgmt.newPassword.copy')}
                     </Button>
                     <AlertDialogAction onClick={handleClose} className="w-full sm:w-auto">
-                        I have copied it
+                        {t('userMgmt.newPassword.done')}
                     </AlertDialogAction>
                 </AlertDialogFooter>
             </AlertDialogContent>

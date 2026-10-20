@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -31,6 +32,7 @@ interface BulkScheduleCreatorProps {
 }
 
 export function BulkScheduleCreator({ existingSchedules = [], trigger }: BulkScheduleCreatorProps) {
+    const { t } = useTranslation();
     const [isOpen, setIsOpen] = useState(false);
     const [isReviewOpen, setIsReviewOpen] = useState(false);
     const [draftItems, setDraftItems] = useState<ScheduleItem[]>([]);
@@ -73,7 +75,7 @@ export function BulkScheduleCreator({ existingSchedules = [], trigger }: BulkSch
 
         // Check local duplicate
         if (draftItems.some(i => i.taskId === newItem.taskId)) {
-            toast.error("This task is already in your draft list.");
+            toast.error(t('bulkSchedules.toasts.duplicate'));
             return;
         }
 
@@ -105,7 +107,7 @@ export function BulkScheduleCreator({ existingSchedules = [], trigger }: BulkSch
             return schedulesApi.createBulk(payload);
         },
         onSuccess: (data) => {
-            toast.success(`Successfully created ${data.createdCount} schedules.`);
+            toast.success(t('bulkSchedules.toasts.created', { n: data.createdCount }));
             queryClient.invalidateQueries({ queryKey: ['schedules-list'] });
 
             // Close all
@@ -114,7 +116,7 @@ export function BulkScheduleCreator({ existingSchedules = [], trigger }: BulkSch
             setDraftItems([]);
         },
         onError: (err) => {
-            toast.error("Failed to create schedules.");
+            toast.error(t('bulkSchedules.toasts.failed'));
             console.error(err);
         }
     });
@@ -134,26 +136,26 @@ export function BulkScheduleCreator({ existingSchedules = [], trigger }: BulkSch
         <>
             <Dialog open={isOpen} onOpenChange={openChange}>
                 <DialogTrigger asChild>
-                    {trigger || <Button>Manage Schedules</Button>}
+                    {trigger || <Button>{t('bulkSchedules.manage')}</Button>}
                 </DialogTrigger>
                 <DialogContent className="max-w-3xl h-[80vh] flex flex-col">
                     <DialogHeader>
-                        <DialogTitle>Manage Schedules (Bulk)</DialogTitle>
+                        <DialogTitle>{t('bulkSchedules.title')}</DialogTitle>
                         <DialogDescription>
-                            Create schedules for multiple tasks at once.
+                            {t('bulkSchedules.description')}
                         </DialogDescription>
                     </DialogHeader>
 
                     <div className="flex-1 flex flex-col gap-6 min-h-0">
                         {/* Composer Area */}
                         <div className="p-4 border rounded-lg bg-muted/30 space-y-4">
-                            <h4 className="text-sm font-medium">Add to List</h4>
+                            <h4 className="text-sm font-medium">{t('bulkSchedules.addToList')}</h4>
                             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
                                 <div className="md:col-span-2 space-y-1.5">
-                                    <Label>Task</Label>
+                                    <Label>{t('bulkSchedules.task')}</Label>
                                     <Select value={selectedTaskId} onValueChange={setSelectedTaskId}>
                                         <SelectTrigger>
-                                            <SelectValue placeholder="Select a task..." />
+                                            <SelectValue placeholder={t('bulkSchedules.selectTask')} />
                                         </SelectTrigger>
                                         <SelectContent>
                                             {(tasks || []).map(t => (
@@ -165,19 +167,19 @@ export function BulkScheduleCreator({ existingSchedules = [], trigger }: BulkSch
                                     </Select>
                                 </div>
                                 <div className="space-y-1.5">
-                                    <Label>Site ID (Opt)</Label>
+                                    <Label>{t('bulkSchedules.siteId')}</Label>
                                     <Input
                                         value={siteId}
                                         onChange={e => setSiteId(e.target.value)}
-                                        placeholder="e.g. PAR-01"
+                                        placeholder={t('bulkSchedules.sitePlaceholder')}
                                     />
                                 </div>
                                 <div className="space-y-1.5">
-                                    <Label>Label (Opt)</Label>
+                                    <Label>{t('bulkSchedules.label')}</Label>
                                     <Input
                                         value={scheduleLabel}
                                         onChange={e => setScheduleLabel(e.target.value)}
-                                        placeholder="e.g. Morning Shift"
+                                        placeholder={t('bulkSchedules.labelPlaceholder')}
                                     />
                                 </div>
                             </div>
@@ -188,24 +190,24 @@ export function BulkScheduleCreator({ existingSchedules = [], trigger }: BulkSch
                                 variant="secondary"
                             >
                                 <Plus className="w-4 h-4 mr-2" />
-                                Add to Draft
+                                {t('bulkSchedules.addToDraft')}
                             </Button>
                         </div>
 
                         {/* List Area */}
                         <div className="flex-1 border rounded-lg overflow-hidden flex flex-col">
                             <div className="bg-muted p-2 text-xs font-medium text-muted-foreground flex justify-between items-center">
-                                <span>Draft Items ({draftItems.length})</span>
+                                <span>{t('bulkSchedules.draftItems', { n: draftItems.length })}</span>
                                 {draftItems.length > 50 && (
                                     <span className="text-destructive flex items-center gap-1">
-                                        <AlertCircle className="w-3 h-3" /> Limit Exceeded (Max 50)
+                                        <AlertCircle className="w-3 h-3" /> {t('bulkSchedules.limitExceeded')}
                                     </span>
                                 )}
                             </div>
                             <div className="flex-1 overflow-y-auto p-2 space-y-2">
                                 {draftItems.length === 0 && (
                                     <div className="h-full flex items-center justify-center text-muted-foreground text-sm">
-                                        No items added yet.
+                                        {t('bulkSchedules.noItems')}
                                     </div>
                                 )}
                                 {draftItems.map((item, idx) => (
@@ -234,12 +236,12 @@ export function BulkScheduleCreator({ existingSchedules = [], trigger }: BulkSch
                     </div>
 
                     <div className="flex justify-end gap-2 pt-4 border-t mt-auto">
-                        <Button variant="outline" onClick={() => setIsOpen(false)}>Cancel</Button>
+                        <Button variant="outline" onClick={() => setIsOpen(false)}>{t('common.cancel')}</Button>
                         <Button
                             onClick={() => setIsReviewOpen(true)}
                             disabled={draftItems.length === 0 || draftItems.length > 50}
                         >
-                            Review & Save
+                            {t('bulkSchedules.reviewAndSave')}
                         </Button>
                     </div>
                 </DialogContent>

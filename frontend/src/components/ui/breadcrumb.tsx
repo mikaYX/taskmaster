@@ -1,3 +1,4 @@
+import i18n from '@/lib/i18n';
 import * as React from 'react';
 import { ChevronRight, MoreHorizontal } from 'lucide-react';
 import { Slot } from '@radix-ui/react-slot';
@@ -98,7 +99,7 @@ const BreadcrumbEllipsis = ({
         {...props}
     >
         <MoreHorizontal className="h-4 w-4" />
-        <span className="sr-only">More</span>
+        <span className="sr-only">{i18n.t('common.more')}</span>
     </span>
 );
 BreadcrumbEllipsis.displayName = 'BreadcrumbElipssis';

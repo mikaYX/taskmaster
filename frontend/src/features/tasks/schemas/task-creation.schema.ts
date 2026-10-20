@@ -11,21 +11,21 @@ const notificationsSchema = z.object({
     notifyOnReminder: z.boolean(),
     emailUserIds: z.array(z.number()).optional(),
     emailGroupIds: z.array(z.number()).optional(),
-    emailCustom: z.array(z.string().email("Invalid email")).optional(),
+    emailCustom: z.array(z.string().email("taskWizard.validation.invalidEmail")).optional(),
 });
 
 const baseSchema = z.object({
-    name: z.string().min(3, "Name must be at least 3 characters").max(50, "Name must be less than 50 characters"),
+    name: z.string().min(3, "taskWizard.validation.nameMin").max(50, "taskWizard.validation.nameMax"),
     executionChecklist: z.array(z.object({
         id: z.string().regex(/^[a-zA-Z0-9_-]{1,64}$/),
         label: z.string().trim().min(1).max(255),
         kind: z.enum(['CHECK', 'TEXT', 'NUMBER', 'PHOTO']),
         required: z.boolean(),
     })).max(50).optional(),
-    description: z.string().min(5, "Description must be at least 5 characters"),
+    description: z.string().min(5, "taskWizard.validation.descriptionMin"),
     priority: priorityEnum.default('MEDIUM'),
     procedureMode: z.enum(['URL', 'UPLOAD']).default('URL'),
-    procedureUrl: z.string().url("Must be a valid URL").optional().or(z.literal('')),
+    procedureUrl: z.string().url("taskWizard.validation.invalidUrl").optional().or(z.literal('')),
     procedureFile: z.custom<File>((val) => val instanceof File || val === undefined, "Expected a File").optional(),
     // Periodicity is handled by discriminated union below
     timezone: z.string().optional().refine((val) => {
@@ -36,7 +36,7 @@ const baseSchema = z.object({
         } catch {
             return false;
         }
-    }, { message: "Invalid Timezone" }),
+    }, { message: "taskWizard.validation.invalidTimezone" }),
     dueOffset: z.number().min(0).optional(),
 
     interval: z.number().min(1).default(1),
@@ -78,13 +78,13 @@ const v2SchedulingRefinement = (data: V2SchedulingData, ctx: z.RefinementCtx) =>
         if (!data.windowStartTime) {
             ctx.addIssue({
                 code: z.ZodIssueCode.custom,
-                message: "Start time is required when overriding global defaults",
+                message: "taskWizard.validation.startTimeRequired",
                 path: ["windowStartTime"],
             });
         } else if (!/^([01][0-9]|2[0-3]):[0-5][0-9]$/.test(data.windowStartTime)) {
             ctx.addIssue({
                 code: z.ZodIssueCode.custom,
-                message: "Invalid time format (HH:mm)",
+                message: "taskWizard.validation.invalidTimeFormat",
                 path: ["windowStartTime"],
             });
         }
@@ -92,13 +92,13 @@ const v2SchedulingRefinement = (data: V2SchedulingData, ctx: z.RefinementCtx) =>
         if (!data.windowEndTime) {
             ctx.addIssue({
                 code: z.ZodIssueCode.custom,
-                message: "End time is required when overriding global defaults",
+                message: "taskWizard.validation.endTimeRequired",
                 path: ["windowEndTime"],
             });
         } else if (!/^([01][0-9]|2[0-3]):[0-5][0-9]$/.test(data.windowEndTime)) {
             ctx.addIssue({
                 code: z.ZodIssueCode.custom,
-                message: "Invalid time format (HH:mm)",
+                message: "taskWizard.validation.invalidTimeFormat",
                 path: ["windowEndTime"],
             });
         }
@@ -135,22 +135,22 @@ export const createTaskSchema = z.discriminatedUnion('periodicity', [
     }).superRefine(v2SchedulingRefinement).superRefine((data, ctx) => {
         if (data.customRuleType === 'every_x_days') {
             if (!data.interval || data.interval < 1) {
-                ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Interval must be >= 1", path: ["interval"] });
+                ctx.addIssue({ code: z.ZodIssueCode.custom, message: "taskWizard.validation.intervalMin", path: ["interval"] });
             }
         } else if (data.customRuleType === 'selected_weekdays') {
             if (!data.byWeekday || data.byWeekday.length === 0) {
-                ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Select at least one weekday", path: ["byWeekday"] });
+                ctx.addIssue({ code: z.ZodIssueCode.custom, message: "taskWizard.validation.selectWeekday", path: ["byWeekday"] });
             }
         } else if (data.customRuleType === 'weeks_of_month') {
             if (data.bySetPos === undefined || data.bySetPos === 0) {
-                ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Select a week position (e.g., First, Last)", path: ["bySetPos"] });
+                ctx.addIssue({ code: z.ZodIssueCode.custom, message: "taskWizard.validation.selectWeekPosition", path: ["bySetPos"] });
             }
             if (!data.byWeekday || data.byWeekday.length === 0) {
-                ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Select at least one weekday", path: ["byWeekday"] });
+                ctx.addIssue({ code: z.ZodIssueCode.custom, message: "taskWizard.validation.selectWeekday", path: ["byWeekday"] });
             }
         } else if (data.customRuleType === 'days_of_year') {
             if (!data.byYearDay || data.byYearDay.length === 0 || data.byYearDay.some(d => d < 1 || d > 366)) {
-                ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Provide at least one valid day of year (1-366)", path: ["byYearDay"] });
+                ctx.addIssue({ code: z.ZodIssueCode.custom, message: "taskWizard.validation.selectYearDay", path: ["byYearDay"] });
             }
         }
     }),
