@@ -6,6 +6,7 @@ import { join } from 'path';
 import { existsSync } from 'fs';
 import express, { Request, Response, NextFunction } from 'express';
 import helmet from 'helmet';
+import { buildHelmetOptions } from './config/security-headers';
 import cookieParser from 'cookie-parser';
 import { Logger } from 'nestjs-pino';
 import { AppModule } from './app.module';
@@ -85,9 +86,12 @@ async function bootstrap(): Promise<void> {
 
   // Security headers (Helmet)
   app.use(
-    helmet({
-      contentSecurityPolicy: nodeEnv === 'production' ? undefined : false, // Disable CSP in dev
-    }),
+    helmet(
+      buildHelmetOptions(nodeEnv, [
+        configService.get<string>('BACKEND_URL'),
+        configService.get<string>('FRONTEND_URL'),
+      ]),
+    ),
   );
 
   // Global validation pipe
