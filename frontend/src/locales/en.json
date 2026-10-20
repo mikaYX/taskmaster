@@ -1765,7 +1765,15 @@
             "viewAll": "View all",
             "newPrivate": "New private task...",
             "none": "No tasks in progress 🎉",
-            "collective": "Collective"
+            "collective": "Collective",
+            "subtitle_one": "{{count}} task in progress",
+            "subtitle_other": "{{count}} tasks in progress",
+            "sections": {
+                "overdue": "Overdue",
+                "today": "Today",
+                "upcoming": "Upcoming",
+                "noDate": "No due date"
+            }
         },
         "badge": "{{overdue}} overdue, {{today}} due today",
         "quickAddHint": "Tip: type @tomorrow, @monday, @+3d, @14:30 or !urgent in the title to set the date, time and priority.",

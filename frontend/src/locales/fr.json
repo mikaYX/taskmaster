@@ -1765,7 +1765,15 @@
             "viewAll": "Voir tout",
             "newPrivate": "Nouvelle tâche privée...",
             "none": "Aucune tâche en cours 🎉",
-            "collective": "Collectif"
+            "collective": "Collectif",
+            "subtitle_one": "{{count}} tâche en cours",
+            "subtitle_other": "{{count}} tâches en cours",
+            "sections": {
+                "overdue": "En retard",
+                "today": "Aujourd'hui",
+                "upcoming": "À venir",
+                "noDate": "Sans échéance"
+            }
         },
         "badge": "{{overdue}} en retard, {{today}} pour aujourd'hui",
         "quickAddHint": "Astuce : tapez @demain, @lundi, @+3j, @14h30 ou !urgente dans le titre pour fixer la date, l'heure et la priorité.",
