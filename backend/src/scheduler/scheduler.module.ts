@@ -13,6 +13,7 @@ import {
   MissingTasksNotificationJob,
   ReminderNotificationJob,
   TodoReminderJob,
+  TodoMaintenanceJob,
 } from './jobs';
 import { JobLockService } from './job-lock.service';
 import { SettingsModule } from '../settings';
@@ -22,6 +23,7 @@ import { TasksModule } from '../tasks/tasks.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { EmailModule } from '../email/email.module';
 import { DelegationsModule } from '../modules/delegations/delegations.module';
+import { TodosModule } from '../todos/todos.module';
 
 /**
  * Scheduler Module.
@@ -38,6 +40,7 @@ import { DelegationsModule } from '../modules/delegations/delegations.module';
     NotificationsModule,
     EmailModule,
     DelegationsModule,
+    TodosModule,
   ],
   controllers: [JobsController],
   providers: [
@@ -54,6 +57,7 @@ import { DelegationsModule } from '../modules/delegations/delegations.module';
     MissingTasksNotificationJob,
     ReminderNotificationJob,
     TodoReminderJob,
+    TodoMaintenanceJob,
   ],
   exports: [SchedulerService],
 })

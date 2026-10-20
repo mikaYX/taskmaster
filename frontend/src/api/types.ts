@@ -577,12 +577,84 @@ export interface Todo {
   priority: TodoPriority;
   recurrence: TodoRecurrence;
   description: string | null;
+  /** Time of day of the due date (HH:mm, application timezone); null = 09:00. */
+  dueTime: string | null;
+  /** Minutes before the due moment to remind; null = the default (one day). */
+  remindBeforeMinutes: number | null;
+  /** Manual order inside a priority. */
+  position: number;
   /** Set on a subtask: the id of its parent (one level only). */
   parentId: number | null;
-  completedBy: { id: number; username: string; fullname: string | null } | null;
+  completedBy: TodoPerson | null;
+  /** Who is in charge (collective todos). */
+  assigneeId: number | null;
+  assignee: TodoPerson | null;
+  _count?: { comments: number; attachments: number };
   groupId: number | null;
   userId: number;
   createdAt: string;
+}
+
+export interface TodoPerson {
+  id: number;
+  username: string;
+  fullname: string | null;
+}
+
+export interface TodoComment {
+  id: number;
+  todoId: number;
+  userId: number;
+  body: string;
+  createdAt: string;
+  user: TodoPerson;
+}
+
+export interface TodoAttachment {
+  id: string;
+  filename: string;
+  mimeType: string;
+  size: number;
+  createdAt: string;
+  uploader: TodoPerson;
+}
+
+/** What needs attention now, for the badges and the opening reminder. */
+export interface TodoSummary {
+  overdue: number;
+  dueToday: number;
+  open: number;
+  mine: number;
+}
+
+export interface TodoPreferences {
+  email: boolean;
+  push: boolean;
+  collective: boolean;
+  /** The server can send browser pop-ups. */
+  pushAvailable: boolean;
+  /** Devices of this person already subscribed. */
+  pushDevices: number;
+}
+
+export interface TodoHistoryPage {
+  items: Todo[];
+  nextCursor: number | null;
+}
+
+export interface InboxItem {
+  id: number;
+  type: string;
+  title: string;
+  body: string | null;
+  url: string | null;
+  readAt: string | null;
+  createdAt: string;
+}
+
+export interface InboxList {
+  unread: number;
+  items: InboxItem[];
 }
 
 export interface CreateTodoDto {
@@ -592,7 +664,10 @@ export interface CreateTodoDto {
   priority?: TodoPriority;
   recurrence?: TodoRecurrence;
   description?: string;
+  dueTime?: string;
+  remindBeforeMinutes?: number;
   groupId?: number;
+  assigneeId?: number;
   /** Creates a subtask; scope and group come from the parent. */
   parentId?: number;
 }
@@ -605,6 +680,12 @@ export interface UpdateTodoDto {
   recurrence?: TodoRecurrence;
   /** null clears the notes. */
   description?: string | null;
+  /** null removes the time of day. */
+  dueTime?: string | null;
+  /** null goes back to the default lead time. */
+  remindBeforeMinutes?: number | null;
+  /** null removes the assignment. */
+  assigneeId?: number | null;
   /** null detaches the todo from its group. */
   groupId?: number | null;
 }

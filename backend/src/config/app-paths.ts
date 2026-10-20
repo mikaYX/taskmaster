@@ -163,3 +163,9 @@ export function getEvidenceStorageDir(create = true): string {
   const dir = join(getDataDir(), 'storage', 'evidence');
   return create ? ensureDir(dir) : dir;
 }
+
+/** Files attached to todos (images and PDFs, named by their id). */
+export function getTodoAttachmentsDir(create = true): string {
+  const dir = join(getDataDir(), 'storage', 'todo-attachments');
+  return create ? ensureDir(dir) : dir;
+}

@@ -3,6 +3,11 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import type { Todo } from '@/api/todos';
 import { TodoItem } from './todo-item';
+import i18n from '@/lib/i18n';
+
+beforeAll(async () => {
+    await i18n.changeLanguage('fr');
+});
 
 const todo: Todo = {
     id: 1,
@@ -14,6 +19,11 @@ const todo: Todo = {
     priority: 'NORMAL',
     recurrence: 'NONE',
     description: null,
+    dueTime: null,
+    remindBeforeMinutes: null,
+    position: 0,
+    assigneeId: null,
+    assignee: null,
     parentId: null,
     completedBy: null,
     groupId: null,
@@ -40,6 +50,78 @@ function setup(props: Partial<Parameters<typeof TodoItem>[0]> = {}) {
     render(<TodoItem todo={todo} canManage {...actions} {...props} />);
     return { ...actions, user: userEvent.setup() };
 }
+
+const collective: Todo = { ...todo, scope: 'COLLECTIVE' };
+const person = { id: 9, username: 'marie', fullname: 'Marie Durand' };
+
+describe('TodoItem collective', () => {
+    it('lets anyone take an unassigned todo', async () => {
+        const onTake = vi.fn();
+        const { user } = setup({ todo: collective, canManage: false, currentUserId: 9, onTake, onRelease: vi.fn() });
+
+        await user.click(screen.getByRole('button', { name: 'Je prends' }));
+
+        expect(onTake).toHaveBeenCalledWith(collective);
+    });
+
+    it('shows who is in charge and lets that person give it back', async () => {
+        const onRelease = vi.fn();
+        const taken = { ...collective, assigneeId: 9, assignee: person };
+        const { user } = setup({ todo: taken, canManage: false, currentUserId: 9, onTake: vi.fn(), onRelease });
+
+        expect(screen.getByText('Vous')).toBeTruthy();
+        expect(screen.queryByRole('button', { name: 'Je prends' })).toBeNull();
+        await user.click(screen.getByRole('button', { name: 'Libérer' }));
+
+        expect(onRelease).toHaveBeenCalledWith(taken);
+    });
+
+    it("names someone else's assignee and hides the release button from other members", () => {
+        const taken = { ...collective, assigneeId: 9, assignee: person };
+        setup({ todo: taken, canManage: false, currentUserId: 3, onTake: vi.fn(), onRelease: vi.fn() });
+
+        expect(screen.getByText('Marie Durand')).toBeTruthy();
+        expect(screen.queryByRole('button', { name: 'Libérer' })).toBeNull();
+    });
+
+    it('opens the comments and files, with their count', async () => {
+        const onOpenDetails = vi.fn();
+        const busy = { ...todo, _count: { comments: 2, attachments: 1 } };
+        const { user } = setup({ todo: busy, onOpenDetails });
+
+        expect(screen.getByText('3')).toBeTruthy();
+        await user.click(screen.getByRole('button', { name: 'Commentaires et fichiers' }));
+
+        expect(onOpenDetails).toHaveBeenCalledWith(busy);
+    });
+
+    it('shows the time of day next to the due date', () => {
+        const due = new Date();
+        due.setUTCHours(0, 0, 0, 0);
+        setup({ todo: { ...todo, dueDate: due.toISOString(), dueTime: '14:30' } });
+
+        expect(screen.getByText("Aujourd'hui 14:30")).toBeTruthy();
+    });
+
+    it('reorders with Alt + arrow keys from the handle', async () => {
+        const onMove = vi.fn();
+        const drag = {
+            dragging: false,
+            over: false,
+            onDragStart: vi.fn(),
+            onDragEnd: vi.fn(),
+            onDragOver: vi.fn(),
+            onDrop: vi.fn(),
+            onMove,
+        };
+        const { user } = setup({ drag });
+
+        screen.getByRole('button', { name: /Déplacer/ }).focus();
+        await user.keyboard('{Alt>}{ArrowDown}{/Alt}');
+
+        expect(onMove).toHaveBeenCalledWith(1);
+    });
+});
 
 describe('TodoItem', () => {
     it('shows subtask progress and reveals the subtasks on demand', async () => {

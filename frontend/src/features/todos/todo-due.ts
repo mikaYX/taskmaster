@@ -1,3 +1,6 @@
+import i18n from '@/lib/i18n';
+import { getDateLocale } from '@/lib/date-locale';
+
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** Due dates are stored as UTC midnight of the chosen day, so compare calendar days in UTC. */
@@ -12,15 +15,24 @@ export interface DueInfo {
     overdue: boolean;
 }
 
-/** "Aujourd'hui", "Demain", "En retard de 2 j" or a short date for anything further away. */
-export function describeDue(dueDate: string, now: Date = new Date()): DueInfo {
+/**
+ * "Today", "Tomorrow", "Late by 2 d" or a short date for anything further away, in the
+ * app language, followed by the time of day when the todo has one.
+ */
+export function describeDue(dueDate: string, now: Date = new Date(), dueTime?: string | null): DueInfo {
     const days = daysUntilDue(dueDate, now);
-    if (days < 0) return { label: `En retard de ${-days} j`, overdue: true };
-    if (days === 0) return { label: "Aujourd'hui", overdue: false };
-    if (days === 1) return { label: 'Demain', overdue: false };
-    if (days < 7) return { label: `Dans ${days} j`, overdue: false };
+    const at = dueTime ? ` ${dueTime}` : '';
+    if (days < 0) return { label: i18n.t('todos.due.lateByDays', { n: -days }), overdue: true };
+    if (days === 0) return { label: `${i18n.t('todos.due.today')}${at}`, overdue: false };
+    if (days === 1) return { label: `${i18n.t('todos.due.tomorrow')}${at}`, overdue: false };
+    if (days < 7) return { label: `${i18n.t('todos.due.inDays', { n: days })}${at}`, overdue: false };
     return {
-        label: new Date(dueDate).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', timeZone: 'UTC' }),
+        label:
+            new Date(dueDate).toLocaleDateString(getDateLocale().code, {
+                day: 'numeric',
+                month: 'short',
+                timeZone: 'UTC',
+            }) + at,
         overdue: false,
     };
 }

@@ -211,9 +211,11 @@ describe('TodosService subtasks, recurrence and cleanup', () => {
     createMany: jest.fn(),
     deleteMany: jest.fn(),
   };
+  const attachmentModel = { findMany: jest.fn().mockResolvedValue([]) };
   const service = new TodosService({
     client: {
       todo: todoModel,
+      todoAttachment: attachmentModel,
       group: { findFirst: jest.fn() },
       userGroupMembership: { findFirst: jest.fn() },
       $transaction: (cb: (tx: unknown) => unknown) => cb({ todo: todoModel }),
@@ -228,11 +230,14 @@ describe('TodosService subtasks, recurrence and cleanup', () => {
     groupId: null,
     parentId: null,
     recurrence: 'NONE',
+    spawnedNextAt: null,
+    assigneeId: null,
     isCompleted: false,
   };
 
   beforeEach(() => {
     jest.resetAllMocks();
+    attachmentModel.findMany.mockResolvedValue([]);
     todoModel.update.mockResolvedValue({ groupId: null });
     todoModel.create.mockResolvedValue({ id: 99 });
     todoModel.findMany.mockResolvedValue([]);
@@ -349,17 +354,24 @@ describe('TodosService subtasks, recurrence and cleanup', () => {
     expect(todoModel.deleteMany).not.toHaveBeenCalled();
   });
 
-  it("clears only the user's own completed private todos", async () => {
+  it("clears only the user's own completed private todos, keeping those with work left", async () => {
+    todoModel.findMany.mockResolvedValue([{ id: 4 }, { id: 5 }]);
+
     await service.clearCompleted('PRIVATE', 7, 'USER', 1, []);
 
-    expect(todoModel.deleteMany).toHaveBeenCalledWith({
+    expect(todoModel.findMany).toHaveBeenCalledWith({
       where: {
         siteId: 1,
         scope: 'PRIVATE',
         isCompleted: true,
         parentId: null,
+        subtasks: { none: { isCompleted: false } },
         userId: 7,
       },
+      select: { id: true },
+    });
+    expect(todoModel.deleteMany).toHaveBeenCalledWith({
+      where: { id: { in: [4, 5] } },
     });
   });
 });

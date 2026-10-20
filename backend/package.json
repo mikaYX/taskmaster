@@ -26,6 +26,7 @@
     "db:seed-demo": "ts-node --project tsconfig.json -r tsconfig-paths/register prisma/seed-demo-for-docs.ts",
     "postinstall": "node scripts/prisma-generate.js",
     "test:execution:postgres": "npx jest --config ./test/jest-execution-postgres.json --runInBand",
+    "test:todos:postgres": "npx jest --config ./test/jest-todos-postgres.json --runInBand",
     "test:upgrade:postgres": "npx jest --config ./test/jest-upgrade-postgres.json --runInBand"
   },
   "dependencies": {

@@ -1,4 +1,5 @@
 import type { Todo, TodoPriority, TodoRecurrence, UpdateTodoDto } from '@/api/todos';
+import { remindToSelect, selectToRemind } from './todo-schedule';
 
 export interface TodoEditForm {
     title: string;
@@ -6,6 +7,12 @@ export interface TodoEditForm {
     priority: TodoPriority;
     recurrence: TodoRecurrence;
     description: string;
+    /** HH:mm, '' = no time of day. */
+    dueTime: string;
+    /** 'default' or minutes before the due moment, as a string. */
+    remind: string;
+    /** '' = nobody. */
+    assigneeId: string;
     /** '' means the whole site (no group). */
     groupId: string;
 }
@@ -19,6 +26,9 @@ export const formFromTodo = (todo: Todo): TodoEditForm => ({
     priority: todo.priority,
     recurrence: todo.recurrence,
     description: todo.description ?? '',
+    dueTime: todo.dueTime ?? '',
+    remind: remindToSelect(todo.remindBeforeMinutes),
+    assigneeId: todo.assigneeId?.toString() ?? '',
     groupId: todo.groupId?.toString() ?? '',
 });
 
@@ -36,6 +46,11 @@ export function buildTodoUpdate(todo: Todo, form: TodoEditForm): UpdateTodoDto {
     if (form.recurrence !== todo.recurrence) dto.recurrence = form.recurrence;
     const description = form.description.trim();
     if (description !== (todo.description ?? '')) dto.description = description || null;
+    if (form.dueTime !== (todo.dueTime ?? '')) dto.dueTime = form.dueTime || null;
+    if (form.remind !== remindToSelect(todo.remindBeforeMinutes)) dto.remindBeforeMinutes = selectToRemind(form.remind);
+    if (form.assigneeId !== (todo.assigneeId?.toString() ?? '')) {
+        dto.assigneeId = form.assigneeId === '' ? null : Number(form.assigneeId);
+    }
     if (form.groupId !== (todo.groupId?.toString() ?? '')) {
         dto.groupId = form.groupId === '' ? null : Number(form.groupId);
     }

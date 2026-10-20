@@ -49,6 +49,15 @@ model User {
   sites                     UserSiteAssignment[]
   todos                     Todo[]                     @relation("TodoOwner")
   completedTodos            Todo[]                     @relation("TodoCompletedBy")
+  assignedTodos             Todo[]                     @relation("TodoAssignee")
+  todoComments              TodoComment[]
+  todoAttachments           TodoAttachment[]
+  notifications             UserNotification[]
+  pushSubscriptions         PushSubscription[]
+  /// Todo reminders: which channels the user wants, and whether collective todos count.
+  todoReminderEmail         Boolean                    @default(true) @map("todo_reminder_email")
+  todoReminderPush          Boolean                    @default(true) @map("todo_reminder_push")
+  todoReminderCollective    Boolean                    @default(true) @map("todo_reminder_collective")
   taskEvidence              TaskEvidence[]
   correctiveAssignments     CorrectiveAction[] @relation("CorrectiveAssignee")
   correctiveReports         CorrectiveAction[] @relation("CorrectiveCreator")
@@ -483,6 +492,15 @@ model Todo {
   parentId    Int?      @map("parent_id")
   completedById Int?    @map("completed_by_id")
   reminderSentAt DateTime? @map("reminder_sent_at")
+  /// Optional time of day (HH:mm, app timezone). Without it the due moment is 09:00.
+  dueTime     String?   @map("due_time") @db.VarChar(5)
+  /// Minutes before the due moment to remind; null = the default (one day).
+  remindBeforeMinutes Int? @map("remind_before_minutes")
+  /// Manual order inside a priority (lower first).
+  position    Int       @default(0)
+  /// Set once the next occurrence of a recurring todo exists, so it is created only once.
+  spawnedNextAt DateTime? @map("spawned_next_at")
+  assigneeId  Int?      @map("assignee_id")
   userId      Int       @map("user_id")
   groupId     Int?      @map("group_id")
   siteId      Int       @default(1) @map("site_id")
@@ -490,6 +508,9 @@ model Todo {
   updatedAt   DateTime  @updatedAt @map("updated_at")
   user        User      @relation("TodoOwner", fields: [userId], references: [id], onDelete: Cascade)
   completedBy User?     @relation("TodoCompletedBy", fields: [completedById], references: [id], onDelete: SetNull)
+  assignee    User?     @relation("TodoAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  comments    TodoComment[]
+  attachments TodoAttachment[]
   group       Group?    @relation(fields: [groupId], references: [id], onDelete: SetNull)
   site        Site      @relation(fields: [siteId], references: [id], onDelete: Cascade)
   parent      Todo?     @relation("TodoSubtasks", fields: [parentId], references: [id], onDelete: Cascade)
@@ -500,7 +521,67 @@ model Todo {
   @@index([groupId])
   @@index([siteId, scope, isCompleted])
   @@index([parentId])
+  @@index([assigneeId])
   @@map("todos")
+}
+
+model TodoComment {
+  id        Int      @id @default(autoincrement())
+  todoId    Int      @map("todo_id")
+  userId    Int      @map("user_id")
+  body      String   @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+  todo      Todo     @relation(fields: [todoId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([todoId])
+  @@map("todo_comments")
+}
+
+model TodoAttachment {
+  id         String   @id @default(uuid()) @db.Uuid
+  todoId     Int      @map("todo_id")
+  uploaderId Int      @map("uploader_id")
+  filename   String   @db.VarChar(255)
+  mimeType   String   @map("mime_type") @db.VarChar(100)
+  size       Int
+  createdAt  DateTime @default(now()) @map("created_at")
+  todo       Todo     @relation(fields: [todoId], references: [id], onDelete: Cascade)
+  uploader   User     @relation(fields: [uploaderId], references: [id], onDelete: Cascade)
+
+  @@index([todoId])
+  @@map("todo_attachments")
+}
+
+/// In-app notification center (the bell).
+model UserNotification {
+  id        Int       @id @default(autoincrement())
+  userId    Int       @map("user_id")
+  type      String    @db.VarChar(40)
+  title     String    @db.VarChar(255)
+  body      String?   @db.Text
+  url       String?   @db.VarChar(255)
+  readAt    DateTime? @map("read_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt, createdAt])
+  @@map("user_notifications")
+}
+
+/// Browser Web Push subscriptions, kept across restarts.
+model PushSubscription {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  userAgent String?  @map("user_agent") @db.VarChar(255)
+  createdAt DateTime @default(now()) @map("created_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("push_subscriptions")
 }
 
 enum TodoScope {

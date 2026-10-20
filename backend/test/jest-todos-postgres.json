@@ -1,0 +1,10 @@
+{
+  "rootDir": ".",
+  "testEnvironment": "node",
+  "testRegex": "todos.postgres-spec.ts$",
+  "transform": { "^.+\\.(t|j)s$": "ts-jest" },
+  "moduleFileExtensions": ["js", "json", "ts"],
+  "moduleNameMapper": {
+    "^otplib$": "<rootDir>/../src/__mocks__/otplib.ts"
+  }
+}

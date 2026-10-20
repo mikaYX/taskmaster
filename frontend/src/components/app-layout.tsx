@@ -4,6 +4,7 @@ import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/app-sidebar';
 import { AppHeader } from '@/components/app-header';
 import { TodoFab } from '@/components/todos/todo-fab';
+import { TodoOpenReminder } from '@/components/todos/todo-open-reminder';
 import { PasskeyOnboardingModal } from '@/features/auth/components/passkey-onboarding-modal';
 import { ChangePasswordDialog } from '@/features/profile/components/change-password-dialog';
 import { useAuthStore } from '@/stores';
@@ -61,7 +62,7 @@ export function AppLayout({ titleKey = 'nav.taskBoard', subtitleKey }: AppLayout
         <SidebarProvider defaultOpen={!isTvMode} className="h-full overflow-hidden">
             {showChrome && <AppSidebar />}
             <SidebarInset className="overflow-hidden">
-                {showChrome && <AppHeader titleKey={titleKey} subtitleKey={subtitleKey} />}
+                {showChrome && <AppHeader titleKey={titleKey} subtitleKey={subtitleKey} showNotifications={showTodos} />}
                 <main className="flex-1 overflow-hidden min-h-0">
                     <ScrollArea className="h-full w-full">
                         <div className={cn(isTvMode ? "p-0" : "p-4")}>
@@ -72,6 +73,7 @@ export function AppLayout({ titleKey = 'nav.taskBoard', subtitleKey }: AppLayout
             </SidebarInset>
 
             {showTodos && <TodoFab />}
+            {showTodos && showChrome && <TodoOpenReminder />}
 
             <ChangePasswordDialog
                 forced

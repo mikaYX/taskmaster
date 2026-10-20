@@ -1,4 +1,9 @@
 import { describeDue } from './todo-due';
+import i18n from '@/lib/i18n';
+
+beforeAll(async () => {
+    await i18n.changeLanguage('fr');
+});
 
 const now = new Date('2026-10-19T15:00:00Z');
 
@@ -24,5 +29,15 @@ describe('describeDue', () => {
         const { label, overdue } = describeDue('2026-11-02T00:00:00.000Z', now);
         expect(overdue).toBe(false);
         expect(label).toMatch(/2/);
+    });
+
+    it('follows the app language', async () => {
+        await i18n.changeLanguage('en');
+        try {
+            expect(describeDue('2026-10-19T00:00:00.000Z', now).label).toBe('Today');
+            expect(describeDue('2026-10-17T00:00:00.000Z', now).label).toBe('Late by 2 d');
+        } finally {
+            await i18n.changeLanguage('fr');
+        }
     });
 });

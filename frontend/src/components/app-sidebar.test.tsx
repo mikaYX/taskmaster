@@ -17,6 +17,7 @@ vi.mock('@/hooks/use-auth', () => ({ useLogout: () => ({ mutate: vi.fn() }) }));
 vi.mock('@/hooks/use-users', () => ({
     useOwnProfile: () => ({ data: { fullname: 'Alice Martin', username: 'alice', avatarUrl: null } }),
 }));
+vi.mock('@/features/todos/todo-attention-badge', () => ({ TodoAttentionBadge: () => null }));
 vi.mock('@/hooks/use-public-branding', () => ({
     usePublicBranding: () => ({
         getSetting: () => undefined,

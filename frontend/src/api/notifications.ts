@@ -79,5 +79,5 @@ export const pushApi = {
 
     /** Supprime l'abonnement push du navigateur courant. */
     unsubscribe: (endpoint: string) =>
-        http.delete<{ success: boolean }>('/push/unsubscribe', { data: { endpoint } }),
+        http.delete<{ success: boolean }>('/push/unsubscribe', { endpoint }),
 };

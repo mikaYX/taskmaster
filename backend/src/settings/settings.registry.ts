@@ -689,6 +689,18 @@ export const SETTINGS_REGISTRY = {
     default: true,
     description: 'Enable simple Todolist addon',
   },
+  'push.vapid.publicKey': {
+    schema: z.string(),
+    sensitive: false,
+    default: '',
+    description: 'Web Push (VAPID) public key, generated on first start',
+  },
+  'push.vapid.privateKey': {
+    schema: z.string(),
+    sensitive: true,
+    default: '',
+    description: 'Web Push (VAPID) private key, generated on first start (encrypted)',
+  },
   'addons.todolist.reminders.enabled': {
     schema: z.preprocess(
       (v) => (v === 'true' ? true : v === 'false' ? false : v),

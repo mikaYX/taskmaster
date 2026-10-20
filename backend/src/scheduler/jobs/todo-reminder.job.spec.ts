@@ -1,79 +1,220 @@
 import { TodoReminderJob } from './todo-reminder.job';
+import { TodoMaintenanceJob } from './todo-maintenance.job';
+
+const person = (id: number, patch: Record<string, unknown> = {}) => ({
+  id,
+  email: `user${id}@example.com`,
+  deletedAt: null,
+  todoReminderEmail: true,
+  todoReminderPush: true,
+  todoReminderCollective: true,
+  ...patch,
+});
 
 describe('TodoReminderJob', () => {
   const todoModel = { findMany: jest.fn(), updateMany: jest.fn() };
   const settings = { getRawValue: jest.fn() };
   const email = { send: jest.fn() };
+  const inbox = { notify: jest.fn() };
   const job = new TodoReminderJob(
     { client: { todo: todoModel } } as never,
     settings as never,
     email as never,
+    inbox as never,
   );
 
-  const owner = { email: 'a@example.com', deletedAt: null };
-  const colleague = { email: 'b@example.com', deletedAt: null };
-  const gone = { email: 'c@example.com', deletedAt: new Date() };
-  const due = new Date('2026-10-20');
-
-  const privateTodo = {
+  // 07:00 UTC is 09:00 in Paris: the default due moment of a todo due on the 20th.
+  const dueMorning = new Date('2026-10-20T00:00:00Z');
+  const dayBefore = new Date('2026-10-19T07:00:00Z');
+  const base = {
     id: 1,
     title: 'Call <supplier>',
-    dueDate: due,
+    dueDate: dueMorning,
+    dueTime: null,
+    remindBeforeMinutes: null,
     scope: 'PRIVATE',
     groupId: null,
-    user: owner,
+    user: person(1),
+    assignee: null,
     group: null,
   };
-  const collectiveTodo = {
-    id: 2,
-    title: 'Inspect line',
-    dueDate: due,
-    scope: 'COLLECTIVE',
-    groupId: 4,
-    user: owner,
-    group: {
-      members: [{ user: owner }, { user: colleague }, { user: gone }],
-    },
-  };
+  const settingsOn = (overrides: Record<string, unknown> = {}) =>
+    settings.getRawValue.mockImplementation((key: string) =>
+      Promise.resolve(
+        {
+          'addons.todolist.enabled': true,
+          'addons.todolist.reminders.enabled': true,
+          'email.enabled': true,
+          'scheduler.timezone': 'Europe/Paris',
+          ...overrides,
+        }[key],
+      ),
+    );
 
   beforeEach(() => {
     jest.resetAllMocks();
-    settings.getRawValue.mockResolvedValue(true);
+    process.env.FRONTEND_URL = 'https://taskmaster.example.com/';
+    settingsOn();
     email.send.mockResolvedValue(true);
-    todoModel.findMany.mockResolvedValue([privateTodo, collectiveTodo]);
+    inbox.notify.mockResolvedValue(undefined);
+    todoModel.findMany.mockResolvedValue([base]);
+  });
+  afterEach(() => {
+    delete process.env.FRONTEND_URL;
   });
 
-  it('sends one digest per person, skipping removed users', async () => {
-    await job.execute();
+  it('puts the reminder in the bell, pops it up and emails it, then marks the todo', async () => {
+    await job.execute(dayBefore);
 
-    const recipients = email.send.mock.calls.map(([m]) => m.to).sort();
-    expect(recipients).toEqual(['a@example.com', 'b@example.com']);
-    const toOwner = email.send.mock.calls.find(
-      ([m]) => m.to === 'a@example.com',
-    )[0];
-    expect(toOwner.subject).toContain('2 tâches');
-    expect(toOwner.html).toContain('Call &lt;supplier&gt;');
+    expect(inbox.notify).toHaveBeenCalledWith(
+      1,
+      {
+        type: 'todo.reminder',
+        title: 'Une tâche arrive à échéance',
+        body: 'Call <supplier>',
+        url: '/todos',
+      },
+      { push: true },
+    );
+    const mail = email.send.mock.calls[0][0];
+    expect(mail.to).toBe('user1@example.com');
+    expect(mail.html).toContain('Call &lt;supplier&gt;');
+    expect(mail.html).toContain('20/10/2026 09:00');
+    expect(mail.html).toContain('href="https://taskmaster.example.com/todos"');
+    expect(mail.text).toContain('https://taskmaster.example.com/todos');
     expect(todoModel.updateMany).toHaveBeenCalledWith({
-      where: { id: { in: expect.arrayContaining([1, 2]) } },
-      data: { reminderSentAt: expect.any(Date) },
+      where: { id: { in: [1] } },
+      data: { reminderSentAt: dayBefore },
     });
   });
 
-  it('leaves todos unmarked when the email failed, so they are retried', async () => {
-    email.send.mockResolvedValue(false);
+  it('waits for the lead time the todo asked for', async () => {
+    todoModel.findMany.mockResolvedValue([
+      { ...base, dueTime: '14:30', remindBeforeMinutes: 60 },
+    ]);
 
-    await job.execute();
-
+    // 14:30 Paris is 12:30 UTC; the reminder is due from 11:30 UTC.
+    await job.execute(new Date('2026-10-20T11:29:00Z'));
+    expect(inbox.notify).not.toHaveBeenCalled();
     expect(todoModel.updateMany).not.toHaveBeenCalled();
+
+    await job.execute(new Date('2026-10-20T11:30:00Z'));
+    expect(inbox.notify).toHaveBeenCalledTimes(1);
   });
 
-  it('does nothing when reminders are off', async () => {
-    settings.getRawValue.mockImplementation((key: string) =>
-      Promise.resolve(key !== 'addons.todolist.reminders.enabled'),
-    );
+  it('respects each person’s channels', async () => {
+    todoModel.findMany.mockResolvedValue([
+      {
+        ...base,
+        user: person(1, { todoReminderEmail: false, todoReminderPush: false }),
+      },
+    ]);
 
-    await job.execute();
+    await job.execute(dayBefore);
+
+    expect(inbox.notify).toHaveBeenCalledWith(1, expect.anything(), {
+      push: false,
+    });
+    expect(email.send).not.toHaveBeenCalled();
+  });
+
+  it('sends the bell and the pop-up even when email is off for the whole server', async () => {
+    settingsOn({ 'email.enabled': false });
+
+    await job.execute(dayBefore);
+
+    expect(inbox.notify).toHaveBeenCalledTimes(1);
+    expect(email.send).not.toHaveBeenCalled();
+    expect(todoModel.updateMany).toHaveBeenCalled();
+  });
+
+  it('reminds only the person in charge of a collective todo', async () => {
+    todoModel.findMany.mockResolvedValue([
+      {
+        ...base,
+        scope: 'COLLECTIVE',
+        groupId: 4,
+        assignee: person(5),
+        group: { members: [{ user: person(6) }, { user: person(7) }] },
+      },
+    ]);
+
+    await job.execute(dayBefore);
+
+    expect(inbox.notify.mock.calls.map(([id]) => id)).toEqual([5]);
+    expect(email.send.mock.calls.map(([m]) => m.to)).toEqual([
+      'user5@example.com',
+    ]);
+  });
+
+  it('reminds the group, minus those who opted out of collective reminders and removed users', async () => {
+    todoModel.findMany.mockResolvedValue([
+      {
+        ...base,
+        scope: 'COLLECTIVE',
+        groupId: 4,
+        group: {
+          members: [
+            { user: person(6) },
+            { user: person(7, { todoReminderCollective: false }) },
+            { user: person(8, { deletedAt: new Date() }) },
+          ],
+        },
+      },
+    ]);
+
+    await job.execute(dayBefore);
+
+    expect(inbox.notify.mock.calls.map(([id]) => id)).toEqual([6]);
+  });
+
+  it('writes one digest per person for several todos', async () => {
+    todoModel.findMany.mockResolvedValue([
+      base,
+      { ...base, id: 2, title: 'Second' },
+    ]);
+
+    await job.execute(dayBefore);
+
+    expect(inbox.notify).toHaveBeenCalledTimes(1);
+    expect(inbox.notify.mock.calls[0][1].title).toBe(
+      '2 tâches arrivent à échéance',
+    );
+    expect(inbox.notify.mock.calls[0][1].body).toBe('Call <supplier> • Second');
+    expect(email.send).toHaveBeenCalledTimes(1);
+    expect(todoModel.updateMany.mock.calls[0][0].where).toEqual({
+      id: { in: [1, 2] },
+    });
+  });
+
+  it('does not stop on a failed email', async () => {
+    email.send.mockResolvedValue(false);
+
+    await job.execute(dayBefore);
+
+    expect(todoModel.updateMany).toHaveBeenCalled();
+  });
+
+  it('does nothing when reminders or the todolist are off', async () => {
+    settingsOn({ 'addons.todolist.reminders.enabled': false });
+    await job.execute(dayBefore);
+    settingsOn({ 'addons.todolist.enabled': false });
+    await job.execute(dayBefore);
 
     expect(todoModel.findMany).not.toHaveBeenCalled();
+  });
+});
+
+describe('TodoMaintenanceJob', () => {
+  it('rolls late recurring todos over and clears old notifications', async () => {
+    const todos = { rollOverdueRecurring: jest.fn().mockResolvedValue(2) };
+    const inbox = { purgeOld: jest.fn().mockResolvedValue(5) };
+    const job = new TodoMaintenanceJob(todos as never, inbox as never);
+    const now = new Date('2026-10-20T00:10:00Z');
+
+    await job.execute(now);
+
+    expect(todos.rollOverdueRecurring).toHaveBeenCalledWith(now);
+    expect(inbox.purgeOld).toHaveBeenCalledWith(now);
   });
 });

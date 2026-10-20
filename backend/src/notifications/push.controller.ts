@@ -36,9 +36,9 @@ export class PushController {
   /** Enregistre l'abonnement push du navigateur courant. */
   @Post('subscribe')
   @HttpCode(HttpStatus.CREATED)
-  subscribe(@Req() req: Request, @Body() dto: SubscribeDto) {
+  async subscribe(@Req() req: Request, @Body() dto: SubscribeDto) {
     const user = req.user as { id: number };
-    this.pushService.subscribe({
+    await this.pushService.subscribe({
       endpoint: dto.endpoint,
       keys: dto.keys,
       userId: user.id,
@@ -50,8 +50,9 @@ export class PushController {
   /** Supprime l'abonnement push du navigateur courant. */
   @Delete('unsubscribe')
   @HttpCode(HttpStatus.OK)
-  unsubscribe(@Body() dto: UnsubscribeDto) {
-    this.pushService.unsubscribe(dto.endpoint);
+  async unsubscribe(@Req() req: Request, @Body() dto: UnsubscribeDto) {
+    const user = req.user as { id: number };
+    await this.pushService.unsubscribe(dto.endpoint, user.id);
     return { success: true };
   }
 }

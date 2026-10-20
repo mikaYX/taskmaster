@@ -29,6 +29,7 @@ import {
 } from '@/components/ui/sidebar';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { resolveAvatarSrc } from '@/lib/avatar';
+import { TodoAttentionBadge } from '@/features/todos/todo-attention-badge';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -135,6 +136,9 @@ export function AppSidebar() {
                                             <Link to={item.url}>
                                                 <item.icon className="h-4 w-4" />
                                                 <span>{t(item.titleKey)}</span>
+                                                {item.url === '/todos' && (
+                                                    <TodoAttentionBadge className="ml-auto group-data-[collapsible=icon]:hidden" />
+                                                )}
                                             </Link>
                                         </SidebarMenuButton>
                                     </SidebarMenuItem>

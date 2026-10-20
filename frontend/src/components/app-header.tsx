@@ -4,13 +4,16 @@ import { ThemeToggle } from '@/components/theme-toggle';
 import { LanguageToggle } from '@/components/language-toggle';
 import { Separator } from '@/components/ui/separator';
 import { SiteSelector } from '@/components/site-selector';
+import { NotificationBell } from '@/components/notification-bell';
 
 interface AppHeaderProps {
     titleKey?: string;
     subtitleKey?: string;
+    /** The notification center only has something to show with the todo list on. */
+    showNotifications?: boolean;
 }
 
-export function AppHeader({ titleKey = 'nav.taskBoard', subtitleKey }: AppHeaderProps) {
+export function AppHeader({ titleKey = 'nav.taskBoard', subtitleKey, showNotifications = false }: AppHeaderProps) {
     const { t } = useTranslation();
 
     return (
@@ -29,6 +32,7 @@ export function AppHeader({ titleKey = 'nav.taskBoard', subtitleKey }: AppHeader
 
             <div className="flex items-center gap-2">
                 <SiteSelector />
+                {showNotifications && <NotificationBell />}
                 <LanguageToggle />
                 <ThemeToggle />
             </div>
