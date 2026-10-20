@@ -2622,7 +2622,8 @@
     },
     "push": {
         "permissionDenied": "Autorisation refusée par l'utilisateur.",
-        "notConfigured": "Les notifications push ne sont pas configurées sur le serveur."
+        "notConfigured": "Les notifications push ne sont pas configurées sur le serveur.",
+        "serviceWorkerFailed": "Le navigateur n'a pas pu démarrer le service de notifications ({{reason}}). Avec un certificat auto-signé, installez le certificat comme approuvé sur cet ordinateur, puis rechargez la page."
     },
     "inbox": {
         "title": "Notifications",

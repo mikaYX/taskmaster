@@ -70,11 +70,17 @@ export function usePushNotifications(): UsePushNotificationsReturn {
       })
       .catch((err) => {
         console.error('[Push] SW registration failed:', err);
+        setError(i18n.t('push.serviceWorkerFailed', { reason: err instanceof Error ? err.message : String(err) }));
       });
   }, [isSupported]);
 
   const subscribe = useCallback(async () => {
-    if (!isSupported || !registration) return;
+    if (!isSupported) return;
+    if (!registration) {
+      // The worker could not be registered (typically an untrusted HTTPS certificate): say so.
+      setError((current) => current ?? i18n.t('push.serviceWorkerFailed', { reason: '-' }));
+      return;
+    }
     setIsLoading(true);
     setError(null);
 

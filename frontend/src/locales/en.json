@@ -2622,7 +2622,8 @@
     },
     "push": {
         "permissionDenied": "Permission denied by the user.",
-        "notConfigured": "Push is not configured on the server."
+        "notConfigured": "Push is not configured on the server.",
+        "serviceWorkerFailed": "The browser could not start the notification service ({{reason}}). With a self-signed certificate, install the certificate as trusted on this computer, then reload the page."
     },
     "inbox": {
         "title": "Notifications",
