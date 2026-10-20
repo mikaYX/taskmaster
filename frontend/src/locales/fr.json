@@ -1179,7 +1179,7 @@
     },
     "groups": {
         "title": "Groupes",
-        "description": "Organiser les utilisateurs en groupes pour simplifier l'assignation de tâches.",
+        "description": "Organiser les utilisateurs en groupes pour simplifier l'affectation des tâches.",
         "addGroup": "Ajouter Groupe",
         "editGroup": "Modifier Groupe",
         "members": "Membres",
@@ -1188,7 +1188,7 @@
             "createTitle": "Créer un groupe",
             "editTitle": "Modifier le groupe",
             "deleteTitle": "Supprimer le groupe",
-            "deleteDescription": "Êtes-vous sûr de vouloir supprimer ce groupe ? Toutes les assignations seront supprimées."
+            "deleteDescription": "Êtes-vous sûr de vouloir supprimer ce groupe ? Toutes les affectations seront supprimées."
         }
     },
     "jobs": {
@@ -1227,7 +1227,7 @@
         "description": "Créer et gérer les tâches récurrentes pour votre équipe.",
         "addTask": "Ajouter Tâche",
         "editTask": "Modifier Tâche",
-        "assignments": "Assignations",
+        "assignments": "Affectations",
         "assignmentsDescription": "Assigner cette tâche à des utilisateurs ou des groupes.",
         "delegations": "Délégations",
         "delegationsDescription": "Permettre aux utilisateurs de déléguer cette tâche.",
