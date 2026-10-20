@@ -114,7 +114,7 @@ suite('legacy upgrade and real encrypted PostgreSQL restore', () => {
         )
       ).rowCount,
     ).toBe(1);
-    expect(await rows('users')).toEqual(legacy.users);
+    expect(await rows('users', "- 'guest_view'")).toEqual(legacy.users);
     expect(await rows('tasks', "- 'execution_checklist'")).toEqual(
       legacy.tasks,
     );
