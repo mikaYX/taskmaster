@@ -13,8 +13,7 @@ const day = (offset: number) => {
     return d.toISOString();
 };
 const base: Todo = {
-    id: 1, title: 'x', isCompleted: false, completedAt: null, dueDate: null, scope: 'PRIVATE', priority: 'NORMAL',
-    recurrence: 'NONE', description: null, dueTime: null, remindBeforeMinutes: null, position: 0, parentId: null,
+    id: 1, title: 'x', isCompleted: false, completedAt: null, dueDate: null, scope: 'PRIVATE', priority: 'NORMAL',  description: null, dueTime: null, remindBeforeMinutes: null, position: 0, parentId: null,
     completedBy: null, assigneeId: null, assignee: null, groupId: null, userId: 1, createdAt: day(0),
 };
 const todos: Todo[] = [

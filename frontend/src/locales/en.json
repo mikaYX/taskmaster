@@ -1711,12 +1711,6 @@
             "URGENT": "Urgent"
         },
         "priorityAria": "{{priority}} priority",
-        "recurrences": {
-            "NONE": "None",
-            "DAILY": "Every day",
-            "WEEKLY": "Every week",
-            "MONTHLY": "Every month"
-        },
         "due": {
             "today": "Today",
             "tomorrow": "Tomorrow",
@@ -1727,7 +1721,6 @@
             "complete": "Complete “{{title}}”",
             "renameHint": "Double-click to rename",
             "titleLabel": "Task title",
-            "recurring": "Recurring task",
             "completedBy": "by {{name}}",
             "showSubtasks": "Show subtasks",
             "hideSubtasks": "Hide subtasks",
@@ -1744,14 +1737,12 @@
         },
         "dialog": {
             "title": "Edit task",
-            "description": "Change the title, notes, due date, priority, repeat or group.",
+            "description": "Change the title, notes, due date, priority, assignee or group.",
             "titleField": "Title",
             "notes": "Notes",
             "dueDate": "Due date",
             "clear": "Clear",
             "priority": "Priority",
-            "repeat": "Repeat",
-            "repeatHint": "A new task is created for the next due date when this one is ticked.",
             "group": "Group",
             "dueTime": "Time",
             "remind": "Remind me",

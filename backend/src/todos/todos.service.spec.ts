@@ -201,7 +201,7 @@ describe('TodosService.remove', () => {
   });
 });
 
-describe('TodosService subtasks, recurrence and cleanup', () => {
+describe('TodosService subtasks and cleanup', () => {
   const todoModel = {
     findUnique: jest.fn(),
     update: jest.fn(),
@@ -301,50 +301,13 @@ describe('TodosService subtasks, recurrence and cleanup', () => {
     expect(todoModel.update.mock.calls[0][0].data.reminderSentAt).toBeNull();
   });
 
-  it('spawns the next occurrence, with unticked subtasks, when a recurring todo is ticked', async () => {
-    todoModel.findUnique.mockResolvedValue({
-      ...parent,
-      title: 'Weekly check',
-      description: null,
-      priority: 'HIGH',
-      dueDate: new Date('2099-01-05'),
-      recurrence: 'WEEKLY',
-    });
-    todoModel.findMany.mockResolvedValue([
-      {
-        title: 'Sub',
-        description: null,
-        priority: 'NORMAL',
-        scope: 'PRIVATE',
-        userId: 7,
-        siteId: 1,
-      },
-    ]);
+  it('ticking a todo never creates another one (no recurrence in the todolist)', async () => {
+    todoModel.findUnique.mockResolvedValue({ ...parent, recurrence: 'WEEKLY' });
 
     await service.update(10, { isCompleted: true }, 7, 'USER', 1);
 
-    expect(todoModel.create.mock.calls[0][0].data).toMatchObject({
-      title: 'Weekly check',
-      priority: 'HIGH',
-      recurrence: 'WEEKLY',
-      dueDate: new Date('2099-01-12'),
-    });
-    expect(todoModel.createMany.mock.calls[0][0].data[0]).toMatchObject({
-      title: 'Sub',
-      parentId: 99,
-    });
-  });
-
-  it('does not spawn anything when a recurring todo is unticked', async () => {
-    todoModel.findUnique.mockResolvedValue({
-      ...parent,
-      isCompleted: true,
-      recurrence: 'DAILY',
-    });
-
-    await service.update(10, { isCompleted: false }, 7, 'USER', 1);
-
     expect(todoModel.create).not.toHaveBeenCalled();
+    expect(todoModel.createMany).not.toHaveBeenCalled();
   });
 
   it('only lets managers clear completed collective todos', async () => {

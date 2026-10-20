@@ -23,7 +23,6 @@ import { TasksModule } from '../tasks/tasks.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { EmailModule } from '../email/email.module';
 import { DelegationsModule } from '../modules/delegations/delegations.module';
-import { TodosModule } from '../todos/todos.module';
 
 /**
  * Scheduler Module.
@@ -40,7 +39,6 @@ import { TodosModule } from '../todos/todos.module';
     NotificationsModule,
     EmailModule,
     DelegationsModule,
-    TodosModule,
   ],
   controllers: [JobsController],
   providers: [

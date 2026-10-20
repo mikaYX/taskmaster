@@ -348,53 +348,17 @@ postgresTests('todolist against isolated PostgreSQL', () => {
     });
   });
 
-  it('brings a late recurring todo back once, and not again when it is ticked late', async () => {
+  it('never creates a copy when a todo is ticked', async () => {
     const todo = await service.create(
-      {
-        title: 'weekly check',
-        dueDate: '2026-01-05',
-        dueTime: '08:00',
-        recurrence: 'WEEKLY',
-      } as never,
+      { title: 'one-off check', dueDate: '2026-01-05' },
       owner,
       siteId,
     );
-    await service.create(
-      { title: 'step one', parentId: todo.id } as never,
-      owner,
-      siteId,
-    );
-    const now = new Date('2026-01-20T10:00:00Z');
+    await service.update(todo.id, { isCompleted: true }, owner, 'USER', siteId);
 
-    const rolled = await service.rollOverdueRecurring(now);
-    expect(rolled).toBeGreaterThanOrEqual(1);
-    expect(await service.rollOverdueRecurring(now)).toBe(0); // the marker holds
-
-    const copies = await client.todo.findMany({
-      where: { userId: owner, title: 'weekly check', parentId: null },
-      orderBy: { id: 'asc' },
-    });
-    expect(copies).toHaveLength(2);
-    expect(copies[0].spawnedNextAt).not.toBeNull();
-    expect(copies[1].dueDate?.toISOString().slice(0, 10)).toBe('2026-01-26');
-    expect(copies[1].dueTime).toBe('08:00');
-    const copiedSubtasks = await client.todo.count({
-      where: { parentId: copies[1].id },
-    });
-    expect(copiedSubtasks).toBe(1);
-
-    await service.update(
-      copies[0].id,
-      { isCompleted: true },
-      owner,
-      'USER',
-      siteId,
-    );
     expect(
-      await client.todo.count({
-        where: { userId: owner, title: 'weekly check', parentId: null },
-      }),
-    ).toBe(2);
+      await client.todo.count({ where: { userId: owner, title: 'one-off check' } }),
+    ).toBe(1);
   });
 
   it('numbers comments and attachments on the todo and cascades on delete', async () => {
@@ -487,7 +451,7 @@ postgresTests('todolist against isolated PostgreSQL', () => {
   });
 
   it('runs the daily maintenance', async () => {
-    const job = new TodoMaintenanceJob(service, inbox);
+    const job = new TodoMaintenanceJob(inbox);
     await expect(
       job.execute(new Date('2026-01-21T00:10:00Z')),
     ).resolves.toBeUndefined();
@@ -519,17 +483,20 @@ postgresTests('todolist against isolated PostgreSQL', () => {
     expect(await push.countForUser(member)).toBe(0);
   });
 
-  it('saves the reminder preferences of a person', async () => {
+  it('saves the reminder preferences of a person, email being opt-in', async () => {
     expect(await service.getPreferences(owner)).toEqual({
-      email: true,
+      email: false,
       push: true,
       collective: true,
     });
     expect(
       await service.updatePreferences(owner, {
+        email: true,
         push: false,
         collective: false,
       }),
     ).toEqual({ email: true, push: false, collective: false });
+    // Only that person: the other account keeps email off.
+    expect((await service.getPreferences(member)).email).toBe(false);
   });
 });

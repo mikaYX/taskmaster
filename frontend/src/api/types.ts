@@ -565,7 +565,6 @@ export interface CreateApiKeyResponse {
 
 export type TodoScope = 'PRIVATE' | 'COLLECTIVE';
 export type TodoPriority = 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT';
-export type TodoRecurrence = 'NONE' | 'DAILY' | 'WEEKLY' | 'MONTHLY';
 
 export interface Todo {
   id: number;
@@ -575,7 +574,6 @@ export interface Todo {
   dueDate: string | null;
   scope: TodoScope;
   priority: TodoPriority;
-  recurrence: TodoRecurrence;
   description: string | null;
   /** Time of day of the due date (HH:mm, application timezone); null = 09:00. */
   dueTime: string | null;
@@ -662,7 +660,6 @@ export interface CreateTodoDto {
   dueDate?: string;
   scope?: TodoScope;
   priority?: TodoPriority;
-  recurrence?: TodoRecurrence;
   description?: string;
   dueTime?: string;
   remindBeforeMinutes?: number;
@@ -677,7 +674,6 @@ export interface UpdateTodoDto {
   dueDate?: string | null;
   isCompleted?: boolean;
   priority?: TodoPriority;
-  recurrence?: TodoRecurrence;
   /** null clears the notes. */
   description?: string | null;
   /** null removes the time of day. */

@@ -17,7 +17,6 @@ const todo: Todo = {
     dueDate: null,
     scope: 'PRIVATE',
     priority: 'NORMAL',
-    recurrence: 'NONE',
     description: null,
     dueTime: null,
     remindBeforeMinutes: null,

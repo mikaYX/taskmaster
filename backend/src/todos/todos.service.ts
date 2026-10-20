@@ -14,8 +14,7 @@ import { getTodoAttachmentsDir } from '../config/app-paths';
 import { UserNotificationsService } from '../notifications/user-notifications.service';
 import { CreateTodoDto } from './dto/create-todo.dto';
 import { UpdateTodoDto } from './dto/update-todo.dto';
-import { Prisma, Todo, TodoRecurrence, TodoScope } from '@prisma/client';
-import { nextDueDate } from './todo-recurrence';
+import { Prisma, Todo, TodoScope } from '@prisma/client';
 
 const USER_BRIEF = { select: { id: true, username: true, fullname: true } };
 
@@ -362,7 +361,6 @@ export class TodosService {
         remindBeforeMinutes: dto.remindBeforeMinutes ?? null,
         scope: dto.scope,
         priority: dto.priority,
-        recurrence: dto.recurrence,
         groupId: dto.groupId,
         assigneeId: dto.assigneeId ?? null,
         userId,
@@ -449,13 +447,6 @@ export class TodosService {
       );
     }
 
-    if (
-      todo.parentId !== null &&
-      dto.recurrence !== undefined &&
-      dto.recurrence !== TodoRecurrence.NONE
-    ) {
-      throw new BadRequestException('A subtask cannot repeat');
-    }
     if (todo.parentId !== null && dto.groupId !== undefined) {
       throw new BadRequestException(
         'A subtask follows the group of its parent',
@@ -473,7 +464,6 @@ export class TodosService {
     const updateData: Prisma.TodoUncheckedUpdateInput = {
       title: dto.title,
       priority: dto.priority,
-      recurrence: dto.recurrence,
       description:
         dto.description !== undefined ? dto.description || null : undefined,
       groupId: dto.groupId,
@@ -508,16 +498,8 @@ export class TodosService {
       }
     }
 
-    // The next occurrence may already exist (the daily job creates it once a todo is late).
-    const spawnsNext =
-      justCompleted &&
-      todo.parentId === null &&
-      todo.recurrence !== TodoRecurrence.NONE &&
-      todo.spawnedNextAt === null;
-    if (spawnsNext) updateData.spawnedNextAt = new Date();
-
     const saved =
-      !spawnsNext && dto.groupId === undefined
+      dto.groupId === undefined
         ? await this.prisma.client.todo.update({
             where: { id },
             data: updateData,
@@ -535,9 +517,6 @@ export class TodosService {
                 where: { parentId: id },
                 data: { groupId: dto.groupId },
               });
-            }
-            if (spawnsNext) {
-              await this.spawnNextOccurrence(tx, todo, updated.groupId);
             }
             return updated;
           });
@@ -584,83 +563,6 @@ export class TodosService {
         `Could not notify about todo ${after.id}: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
-  }
-
-  /** Recreates a recurring todo (and its subtasks, unticked) for its next date. */
-  private async spawnNextOccurrence(
-    tx: Prisma.TransactionClient,
-    todo: Todo,
-    groupId: number | null,
-    now: Date = new Date(),
-  ) {
-    const next = await tx.todo.create({
-      data: {
-        title: todo.title,
-        description: todo.description,
-        dueDate: nextDueDate(todo.dueDate, todo.recurrence, now),
-        dueTime: todo.dueTime,
-        remindBeforeMinutes: todo.remindBeforeMinutes,
-        scope: todo.scope,
-        priority: todo.priority,
-        recurrence: todo.recurrence,
-        position: todo.position,
-        groupId,
-        assigneeId: todo.assigneeId,
-        userId: todo.userId,
-        siteId: todo.siteId,
-      },
-    });
-    const subtasks = await tx.todo.findMany({
-      where: { parentId: todo.id },
-      orderBy: { id: 'asc' },
-    });
-    if (subtasks.length > 0) {
-      await tx.todo.createMany({
-        data: subtasks.map((s) => ({
-          title: s.title,
-          description: s.description,
-          priority: s.priority,
-          scope: s.scope,
-          groupId,
-          parentId: next.id,
-          userId: s.userId,
-          siteId: s.siteId,
-        })),
-      });
-    }
-  }
-
-  /**
-   * A recurring todo that nobody ticked still has to come back: once its date has gone
-   * by, the next occurrence is created (once), whatever happens to the late one.
-   * Called every day by the scheduler.
-   */
-  async rollOverdueRecurring(now: Date = new Date()): Promise<number> {
-    const late = await this.prisma.client.todo.findMany({
-      where: {
-        recurrence: { not: TodoRecurrence.NONE },
-        isCompleted: false,
-        parentId: null,
-        spawnedNextAt: null,
-        dueDate: { lt: startOfUtcDay(now) },
-      },
-      take: 500,
-    });
-    let created = 0;
-    for (const todo of late) {
-      await this.prisma.client.$transaction(async (tx) => {
-        // The marker is claimed first so two runs can never both create the next one.
-        const claimed = await tx.todo.updateMany({
-          where: { id: todo.id, spawnedNextAt: null },
-          data: { spawnedNextAt: now },
-        });
-        if (claimed.count === 1) {
-          await this.spawnNextOccurrence(tx, todo, todo.groupId, now);
-          created++;
-        }
-      });
-    }
-    return created;
   }
 
   /**

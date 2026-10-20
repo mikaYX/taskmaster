@@ -58,11 +58,24 @@ describe('todo DTO validation', () => {
         remindBeforeMinutes: 60,
         scope: 'COLLECTIVE',
         priority: 'HIGH',
-        recurrence: 'WEEKLY',
         groupId: 4,
         assigneeId: 3,
       }),
     ).toEqual([]);
+  });
+
+  it('refuses a recurrence: the todolist does not repeat', async () => {
+    // Same options as the application's ValidationPipe.
+    const strict = async (cls: new () => object, payload: object) =>
+      (
+        await validate(plainToInstance(cls, payload), {
+          whitelist: true,
+          forbidNonWhitelisted: true,
+        })
+      ).map((e) => e.property);
+
+    expect(await strict(CreateTodoDto, { title: 'x', recurrence: 'WEEKLY' })).toEqual(['recurrence']);
+    expect(await strict(UpdateTodoDto, { recurrence: 'DAILY' })).toEqual(['recurrence']);
   });
 
   it.each(['9:30', '24:00', '12:60', 'noon', '12:5'])(

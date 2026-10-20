@@ -1711,12 +1711,6 @@
             "URGENT": "Urgente"
         },
         "priorityAria": "Priorité {{priority}}",
-        "recurrences": {
-            "NONE": "Aucune",
-            "DAILY": "Chaque jour",
-            "WEEKLY": "Chaque semaine",
-            "MONTHLY": "Chaque mois"
-        },
         "due": {
             "today": "Aujourd'hui",
             "tomorrow": "Demain",
@@ -1727,7 +1721,6 @@
             "complete": "Terminer « {{title}} »",
             "renameHint": "Double-clic pour renommer",
             "titleLabel": "Titre de la tâche",
-            "recurring": "Tâche récurrente",
             "completedBy": "par {{name}}",
             "showSubtasks": "Afficher les sous-tâches",
             "hideSubtasks": "Masquer les sous-tâches",
@@ -1744,14 +1737,12 @@
         },
         "dialog": {
             "title": "Modifier la tâche",
-            "description": "Changez le titre, les notes, l'échéance, la priorité, la répétition ou le groupe.",
+            "description": "Modifiez le titre, les notes, l'échéance, la priorité, la personne assignée ou le groupe.",
             "titleField": "Titre",
             "notes": "Notes",
             "dueDate": "Échéance",
             "clear": "Effacer",
             "priority": "Priorité",
-            "repeat": "Répétition",
-            "repeatHint": "Une nouvelle tâche est créée à la prochaine échéance quand celle-ci est cochée.",
             "group": "Groupe",
             "dueTime": "Heure",
             "remind": "Me rappeler",

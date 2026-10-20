@@ -1,11 +1,10 @@
-import type { Todo, TodoPriority, TodoRecurrence, UpdateTodoDto } from '@/api/todos';
+import type { Todo, TodoPriority, UpdateTodoDto } from '@/api/todos';
 import { remindToSelect, selectToRemind } from './todo-schedule';
 
 export interface TodoEditForm {
     title: string;
     dueDate: string;
     priority: TodoPriority;
-    recurrence: TodoRecurrence;
     description: string;
     /** HH:mm, '' = no time of day. */
     dueTime: string;
@@ -24,7 +23,6 @@ export const formFromTodo = (todo: Todo): TodoEditForm => ({
     title: todo.title,
     dueDate: toDateInput(todo.dueDate),
     priority: todo.priority,
-    recurrence: todo.recurrence,
     description: todo.description ?? '',
     dueTime: todo.dueTime ?? '',
     remind: remindToSelect(todo.remindBeforeMinutes),
@@ -43,7 +41,6 @@ export function buildTodoUpdate(todo: Todo, form: TodoEditForm): UpdateTodoDto {
     if (title !== todo.title) dto.title = title;
     if (form.dueDate !== toDateInput(todo.dueDate)) dto.dueDate = form.dueDate || null;
     if (form.priority !== todo.priority) dto.priority = form.priority;
-    if (form.recurrence !== todo.recurrence) dto.recurrence = form.recurrence;
     const description = form.description.trim();
     if (description !== (todo.description ?? '')) dto.description = description || null;
     if (form.dueTime !== (todo.dueTime ?? '')) dto.dueTime = form.dueTime || null;

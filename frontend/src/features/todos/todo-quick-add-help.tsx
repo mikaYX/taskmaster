@@ -23,16 +23,16 @@ export function TodoQuickAddHelp({ align = 'end' }: { align?: 'start' | 'center'
                     type="button"
                     variant="ghost"
                     size="icon"
-                    className="h-7 w-7 shrink-0 rounded-full text-muted-foreground hover:text-primary"
+                    className="h-8 w-8 shrink-0 rounded-full bg-amber-400/20 text-amber-600 ring-1 ring-amber-400/50 hover:bg-amber-400/30 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300"
                     aria-label={t('todos.quickHelp.button')}
                     title={t('todos.quickHelp.button')}
                 >
-                    <Info className="h-4 w-4" />
+                    <Info className="size-5" strokeWidth={2.25} />
                 </Button>
             </PopoverTrigger>
             <PopoverContent align={align} className="w-80 space-y-3 p-4">
                 <div className="flex items-center gap-2">
-                    <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                    <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-400/20 text-amber-600 dark:text-amber-400">
                         <Sparkles className="h-4 w-4" />
                     </span>
                     <h3 className="text-sm font-semibold">{t('todos.quickHelp.title')}</h3>

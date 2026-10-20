@@ -16,11 +16,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Notification center (bell in the header): reminders, assignments, completions and comments on collective tasks, with unread count and "mark all as read"; read notifications are purged after 30 days, any after 90.
   - Browser pop-ups: Web Push subscriptions are now stored in the database (they were lost at each restart) and the VAPID keys are generated on first use and kept in the settings (`VAPID_PUBLIC_KEY`/`VAPID_PRIVATE_KEY` in the `.env` still win). Browsers only allow pop-ups over HTTPS (or localhost): serve the application in HTTPS (`TLS_CERT_FILE`/`TLS_KEY_FILE`) to use them.
   - Badges with the number of late or due-today tasks on the floating button and the sidebar, and a one-time reminder when the application is opened.
-  - Quick add: type `Call the supplier @tomorrow @14:30 !urgent` (French words work too: `@demain @14h30 !urgente`, `@+3j`, `@lundi`); a "more options" panel on the form sets repetition, notes, time, lead time and assignee at creation.
-  - Recurring tasks are rolled forward every night even when nobody ticked them (job `todo-maintenance`), without ever creating two copies.
+  - Quick add: type `Call the supplier @tomorrow @14:30 !urgent` (French words work too: `@demain @14h30 !urgente`, `@+3j`, `@lundi`); a "more options" panel on the form sets notes, time, lead time and assignee at creation; an info button next to the field explains these words with examples.
   - History of completed tasks (search, paging) beyond the 24 hours shown on the list.
   - Comments and attachments (images PNG/JPEG/WebP and PDF, 5 MB, 10 per task) on each task, stored in `<data>/storage/todo-attachments`.
   - Manual order inside a priority by drag and drop or Alt + arrow keys; the lists refresh by themselves every 30 seconds; the floating button gets the same undo-on-delete and priority dots as the page; "Delete all" now keeps a ticked parent that still has unticked subtasks; the reminder mail links to the list.
+
+### Removed
+- Todo list: recurrence (added in 1.1.10). The todo list stays a simple list; repeating work belongs to the tasks of the main application. Ticking a todo never creates another one any more and the API refuses `recurrence`. Existing todos keep their stored value, which is simply ignored (no destructive migration).
 
 ### Fixed
 - Push notifications: unsubscribing from the browser sent a body the server did not accept, and subscriptions of another person could be removed by endpoint.

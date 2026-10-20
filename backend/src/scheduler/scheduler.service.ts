@@ -86,7 +86,7 @@ export class SchedulerService implements OnApplicationBootstrap {
       'todo-reminders':
         'Todolist due-date reminders (hourly digest: bell, pop-up, email)',
       'todo-maintenance':
-        'Todolist upkeep: next occurrence of late recurring todos, old notifications',
+        'Todolist upkeep: removes old notifications of the bell',
       'auto-export': 'Scheduled data export',
       'auto-backup': 'Scheduled system backup',
     };

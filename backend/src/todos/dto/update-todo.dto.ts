@@ -11,7 +11,7 @@ import {
   Min,
   MinLength,
 } from 'class-validator';
-import { TodoPriority, TodoRecurrence } from '@prisma/client';
+import { TodoPriority } from '@prisma/client';
 import { MAX_REMIND_BEFORE_MINUTES } from '../todo-reminder-time';
 import { DUE_TIME_PATTERN } from './create-todo.dto';
 
@@ -50,10 +50,6 @@ export class UpdateTodoDto {
   @IsOptional()
   @IsEnum(TodoPriority)
   priority?: TodoPriority;
-
-  @IsOptional()
-  @IsEnum(TodoRecurrence)
-  recurrence?: TodoRecurrence;
 
   /** null detaches the todo from its group (whole site). */
   @IsOptional()

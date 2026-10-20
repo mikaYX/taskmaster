@@ -18,7 +18,6 @@ const todo: Todo = {
     dueDate: '2026-11-02T00:00:00.000Z',
     scope: 'PRIVATE',
     priority: 'NORMAL',
-    recurrence: 'NONE',
     description: null,
     dueTime: null,
     remindBeforeMinutes: null,
@@ -92,7 +91,7 @@ describe('TodoEditDialog', () => {
 });
 
 describe('buildTodoUpdate', () => {
-    const base = { title: todo.title, dueDate: '2026-11-02', priority: 'NORMAL' as const, recurrence: 'NONE' as const, description: '', groupId: '', dueTime: '', remind: 'default', assigneeId: '' };
+    const base = { title: todo.title, dueDate: '2026-11-02', priority: 'NORMAL' as const, description: '', groupId: '', dueTime: '', remind: 'default', assigneeId: '' };
 
     it('is empty when the form matches the todo', () => {
         expect(buildTodoUpdate(todo, base)).toEqual({});

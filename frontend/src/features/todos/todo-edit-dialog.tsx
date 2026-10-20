@@ -13,9 +13,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import type { Todo, TodoPriority, TodoRecurrence, UpdateTodoDto } from '@/api/todos';
+import type { Todo, TodoPriority, UpdateTodoDto } from '@/api/todos';
 import { buildTodoUpdate, formFromTodo } from './todo-update';
-import { PRIORITY_VALUES, RECURRENCE_VALUES } from './todo-priority';
+import { PRIORITY_VALUES } from './todo-priority';
 import { REMIND_OPTIONS, remindToSelect } from './todo-schedule';
 
 interface TodoEditDialogProps {
@@ -159,32 +159,6 @@ function TodoEditForm({
                             </SelectContent>
                         </Select>
                     </div>
-
-                    {todo.parentId === null && (
-                        <div className="space-y-2">
-                            <Label htmlFor="todo-edit-recurrence">{t('todos.dialog.repeat')}</Label>
-                            <Select
-                                value={form.recurrence}
-                                onValueChange={(value) => set({ recurrence: value as TodoRecurrence })}
-                            >
-                                <SelectTrigger id="todo-edit-recurrence">
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {RECURRENCE_VALUES.map((value) => (
-                                        <SelectItem key={value} value={value}>
-                                            {t(`todos.recurrences.${value}`)}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                            {form.recurrence !== 'NONE' && (
-                                <p className="text-xs text-muted-foreground">
-                                    {t('todos.dialog.repeatHint')}
-                                </p>
-                            )}
-                        </div>
-                    )}
 
                     {groups && todo.parentId === null && (
                         <div className="space-y-2">

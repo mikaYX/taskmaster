@@ -1,9 +1,7 @@
-import type { TodoPriority, TodoRecurrence } from '@/api/todos';
+import type { TodoPriority } from '@/api/todos';
 
-/** Labels live in the locale files: `todos.priorities.<value>` and `todos.recurrences.<value>`. */
+/** Labels live in the locale files: `todos.priorities.<value>`. */
 export const PRIORITY_VALUES: TodoPriority[] = ['LOW', 'NORMAL', 'HIGH', 'URGENT'];
-
-export const RECURRENCE_VALUES: TodoRecurrence[] = ['NONE', 'DAILY', 'WEEKLY', 'MONTHLY'];
 
 /** Dot color per priority; NORMAL shows nothing to keep the list quiet. */
 export const PRIORITY_DOT: Record<TodoPriority, string | null> = {

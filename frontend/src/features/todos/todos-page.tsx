@@ -37,9 +37,9 @@ import {
     User,
     Users,
 } from 'lucide-react';
-import type { Todo, TodoPriority, TodoRecurrence } from '@/api/todos';
+import type { Todo, TodoPriority } from '@/api/todos';
 import { getErrorMessage } from '@/api/http';
-import { PRIORITY_DOT, PRIORITY_VALUES, RECURRENCE_VALUES } from './todo-priority';
+import { PRIORITY_DOT, PRIORITY_VALUES } from './todo-priority';
 import { daysUntilDue } from './todo-due';
 import { REMIND_OPTIONS, remindToSelect, selectToRemind } from './todo-schedule';
 import { parseQuickAdd } from './todo-quick-add';
@@ -78,7 +78,6 @@ function TodosPageContent() {
     const [newDueDate, setNewDueDate] = useState('');
     const [newPriority, setNewPriority] = useState<TodoPriority>('NORMAL');
     const [showOptions, setShowOptions] = useState(false);
-    const [newRecurrence, setNewRecurrence] = useState<TodoRecurrence>('NONE');
     const [newNotes, setNewNotes] = useState('');
     const [newDueTime, setNewDueTime] = useState('');
     const [newRemind, setNewRemind] = useState('default');
@@ -131,7 +130,6 @@ function TodosPageContent() {
         setNewTitle('');
         setNewDueDate('');
         setNewPriority('NORMAL');
-        setNewRecurrence('NONE');
         setNewNotes('');
         setNewDueTime('');
         setNewRemind('default');
@@ -155,7 +153,6 @@ function TodosPageContent() {
                 dueDate,
                 dueTime,
                 priority: quick.priority ?? newPriority,
-                recurrence: newRecurrence !== 'NONE' ? newRecurrence : undefined,
                 description: newNotes.trim() || undefined,
                 remindBeforeMinutes: dueDate && remind !== null ? remind : undefined,
                 assigneeId: activeTab === 'COLLECTIVE' && newAssignee !== 'none' ? Number(newAssignee) : undefined,
@@ -347,21 +344,6 @@ function TodosPageContent() {
 
             {showOptions && (
                 <div className="grid gap-3 border-t p-3 sm:grid-cols-2">
-                    <div className="space-y-1.5">
-                        <Label htmlFor="todo-new-recurrence" className="text-xs">{t('todos.dialog.repeat')}</Label>
-                        <Select value={newRecurrence} onValueChange={(v) => setNewRecurrence(v as TodoRecurrence)}>
-                            <SelectTrigger id="todo-new-recurrence" className="w-full">
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {RECURRENCE_VALUES.map((value) => (
-                                    <SelectItem key={value} value={value}>
-                                        {t(`todos.recurrences.${value}`)}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
                     <div className="space-y-1.5">
                         <Label htmlFor="todo-new-time" className="text-xs">{t('todos.dialog.dueTime')}</Label>
                         <Input

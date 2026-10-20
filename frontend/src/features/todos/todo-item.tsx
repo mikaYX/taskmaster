@@ -12,7 +12,6 @@ import {
     ListPlus,
     MessageSquare,
     Pencil,
-    Repeat,
     Trash2,
     User,
     UserMinus,
@@ -193,7 +192,7 @@ export function TodoItem({ todo, subtasks = [], canManage, currentUserId = null,
                             </p>
                         )}
 
-                        {(due || assigneeName || todo.recurrence !== 'NONE' || subtasks.length > 0 || (todo.isCompleted && completer)) && (
+                        {(due || assigneeName || subtasks.length > 0 || (todo.isCompleted && completer)) && (
                             <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                                 {due && (
                                     <Badge
@@ -212,9 +211,6 @@ export function TodoItem({ todo, subtasks = [], canManage, currentUserId = null,
                                         <User className="h-3 w-3" aria-hidden="true" />
                                         {mine ? t('todos.item.assignedToYou') : assigneeName}
                                     </Badge>
-                                )}
-                                {todo.recurrence !== 'NONE' && (
-                                    <Repeat className="h-3 w-3 text-muted-foreground" aria-label={t('todos.item.recurring')} />
                                 )}
                                 {subtasks.length > 0 && (
                                     <Badge variant="outline" className="h-5 px-1.5 py-0 text-[11px] font-normal tabular-nums">

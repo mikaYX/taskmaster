@@ -206,15 +206,13 @@ describe('TodoReminderJob', () => {
 });
 
 describe('TodoMaintenanceJob', () => {
-  it('rolls late recurring todos over and clears old notifications', async () => {
-    const todos = { rollOverdueRecurring: jest.fn().mockResolvedValue(2) };
+  it('clears old notifications', async () => {
     const inbox = { purgeOld: jest.fn().mockResolvedValue(5) };
-    const job = new TodoMaintenanceJob(todos as never, inbox as never);
+    const job = new TodoMaintenanceJob(inbox as never);
     const now = new Date('2026-10-20T00:10:00Z');
 
     await job.execute(now);
 
-    expect(todos.rollOverdueRecurring).toHaveBeenCalledWith(now);
     expect(inbox.purgeOld).toHaveBeenCalledWith(now);
   });
 });
