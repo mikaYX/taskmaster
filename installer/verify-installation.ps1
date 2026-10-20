@@ -14,6 +14,28 @@ param(
     [string] $PublicUrl,
     [string] $ReportPath
 )
+
+# The service answers in HTTPS when TLS_CERT_FILE is set (usually a self-signed
+# certificate), so the local probe tries HTTP first and then HTTPS ignoring the certificate.
+function Invoke-LocalProbe {
+    param([string]$Path, [int]$Port, [int]$TimeoutSec = 5)
+    try {
+        return Invoke-WebRequest -Uri "http://127.0.0.1:$Port$Path" -UseBasicParsing -TimeoutSec $TimeoutSec
+    } catch {
+        $previous = [System.Net.ServicePointManager]::ServerCertificateValidationCallback
+        try {
+            [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
+            if (-not ("TaskmasterTrustAll" -as [type])) {
+                Add-Type -TypeDefinition "public class TaskmasterTrustAll { public static bool Accept(object s, System.Security.Cryptography.X509Certificates.X509Certificate c, System.Security.Cryptography.X509Certificates.X509Chain h, System.Net.Security.SslPolicyErrors e) { return true; } }"
+            }
+            [System.Net.ServicePointManager]::ServerCertificateValidationCallback = [System.Net.Security.RemoteCertificateValidationCallback][TaskmasterTrustAll].GetMethod("Accept").CreateDelegate([System.Net.Security.RemoteCertificateValidationCallback])
+            return Invoke-WebRequest -Uri "https://127.0.0.1:$Port$Path" -UseBasicParsing -TimeoutSec $TimeoutSec
+        } finally {
+            [System.Net.ServicePointManager]::ServerCertificateValidationCallback = $previous
+        }
+    }
+}
+
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'common\Taskmaster.Common.ps1')
 Assert-WindowsX64
@@ -36,7 +58,7 @@ $checks['pg_dump.exe disponible'] = [bool]$pgBin -and (Test-Path (Join-Path $pgB
 $checks['pg_restore.exe disponible'] = [bool]$pgBin -and (Test-Path (Join-Path $pgBin 'pg_restore.exe') -PathType Leaf)
 foreach ($path in @('/api/health', '/')) {
     try {
-        $response = Invoke-WebRequest -Uri "http://127.0.0.1:$Port$path" -UseBasicParsing -TimeoutSec 15
+        $response = Invoke-LocalProbe -Path $path -Port $Port -TimeoutSec 15
         $checks["HTTP local $path"] = $response.StatusCode -eq 200
     } catch { $checks["HTTP local $path"] = $false }
 }

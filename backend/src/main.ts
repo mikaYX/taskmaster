@@ -7,6 +7,7 @@ import { existsSync } from 'fs';
 import express, { Request, Response, NextFunction } from 'express';
 import helmet from 'helmet';
 import { buildHelmetOptions } from './config/security-headers';
+import { loadTlsOptions } from './config/tls-options';
 import cookieParser from 'cookie-parser';
 import { Logger } from 'nestjs-pino';
 import { AppModule } from './app.module';
@@ -49,6 +50,7 @@ async function bootstrap(): Promise<void> {
 
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     bufferLogs: true, // Met en buffer les logs jusqu'à ce que Pino soit prêt
+    httpsOptions: loadTlsOptions(process.env),
   });
 
   // Allows OnModuleDestroy/beforeApplicationShutdown hooks to run on
@@ -136,7 +138,7 @@ async function bootstrap(): Promise<void> {
 
   const logger = app.get(Logger);
   logger.log(`Application running on port ${port} [${nodeEnv}]`, 'Bootstrap');
-  logger.log(`API available at http://localhost:${port}/api`, 'Bootstrap');
+  logger.log(`API available at ${process.env.TLS_CERT_FILE ? 'https' : 'http'}://localhost:${port}/api`, 'Bootstrap');
 }
 
 bootstrap();

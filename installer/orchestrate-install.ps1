@@ -60,6 +60,28 @@ param(
     [int] $RedisDbPort = 6379
 )
 
+# The service answers in HTTPS when TLS_CERT_FILE is set (usually a self-signed
+# certificate), so the local probe tries HTTP first and then HTTPS ignoring the certificate.
+function Invoke-LocalProbe {
+    param([string]$Path, [int]$Port, [int]$TimeoutSec = 5)
+    try {
+        return Invoke-WebRequest -Uri "http://127.0.0.1:$Port$Path" -UseBasicParsing -TimeoutSec $TimeoutSec
+    } catch {
+        $previous = [System.Net.ServicePointManager]::ServerCertificateValidationCallback
+        try {
+            [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
+            if (-not ("TaskmasterTrustAll" -as [type])) {
+                Add-Type -TypeDefinition "public class TaskmasterTrustAll { public static bool Accept(object s, System.Security.Cryptography.X509Certificates.X509Certificate c, System.Security.Cryptography.X509Certificates.X509Chain h, System.Net.Security.SslPolicyErrors e) { return true; } }"
+            }
+            [System.Net.ServicePointManager]::ServerCertificateValidationCallback = [System.Net.Security.RemoteCertificateValidationCallback][TaskmasterTrustAll].GetMethod("Accept").CreateDelegate([System.Net.Security.RemoteCertificateValidationCallback])
+            return Invoke-WebRequest -Uri "https://127.0.0.1:$Port$Path" -UseBasicParsing -TimeoutSec $TimeoutSec
+        } finally {
+            [System.Net.ServicePointManager]::ServerCertificateValidationCallback = $previous
+        }
+    }
+}
+
+
 $ErrorActionPreference = 'Stop'
 
 # Logging starts BEFORE anything else (including the common module import)
@@ -381,12 +403,12 @@ try {
     $rootOk = $false
     for ($i = 0; $i -lt 40 -and (-not $healthOk); $i++) {
         try {
-            $resp = Invoke-WebRequest -Uri "http://127.0.0.1:$Port/api/health" -UseBasicParsing -TimeoutSec 5
+            $resp = Invoke-LocalProbe -Path '/api/health' -Port $Port
             $healthOk = $resp.StatusCode -eq 200
         } catch { Start-Sleep -Seconds 3 }
     }
     try {
-        $resp = Invoke-WebRequest -Uri "http://127.0.0.1:$Port/" -UseBasicParsing -TimeoutSec 5
+        $resp = Invoke-LocalProbe -Path '/' -Port $Port
         $rootOk = $resp.StatusCode -eq 200
     } catch { $rootOk = $false }
 
