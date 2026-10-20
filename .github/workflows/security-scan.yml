@@ -1,0 +1,81 @@
+name: Security scan
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  # Weekly run so CVEs published after a merge are caught without a new commit.
+  schedule:
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: security-scan-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  dependencies:
+    name: Dependency scan (Trivy)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+
+      # Regenerates .trivyignore from security/trivy-exceptions.json (expired entries are left out).
+      # Expiry itself is reported by security-weekly.yml, so it does not fail this job.
+      - name: Build .trivyignore from security exceptions
+        run: node scripts/validate-trivy-exceptions.js || true
+
+      - name: Scan lockfile dependencies
+        # Pinned by commit: trivy-action tags were hijacked in March 2026.
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          trivyignores: .trivyignore
+          exit-code: '1'
+
+  image:
+    name: Docker image build & scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      # Builds the release Dockerfile without pushing, so a broken image is caught before tagging.
+      - name: Build image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: Dockerfile
+          push: false
+          load: true
+          tags: taskmaster:ci
+          build-args: |
+            APP_VERSION=ci
+            VCS_REF=${{ github.sha }}
+          platforms: linux/amd64
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build .trivyignore from security exceptions
+        run: node scripts/validate-trivy-exceptions.js || true
+
+      - name: Scan image
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: image
+          image-ref: taskmaster:ci
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          trivyignores: .trivyignore
+          exit-code: '1'

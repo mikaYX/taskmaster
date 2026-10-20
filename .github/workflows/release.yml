@@ -1,25 +1,33 @@
 name: Release
 
+# One pipeline per tag: quality checks → Docker image → GitHub release.
+# Nothing is published if the checks fail, and the GitHub release only
+# appears once its image is on Docker Hub.
+
 'on':
   push:
     tags:
       - 'v[0-9]+.[0-9]+.[0-9]+'
       - '[0-9]+.[0-9]+.[0-9]+'
+      # Pre-releases (e.g. v1.2.0-beta.1) are published without moving `latest`.
       - 'v[0-9]+.[0-9]+.[0-9]+-*'
       - '[0-9]+.[0-9]+.[0-9]+-*'
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  release:
-    name: Create GitHub Release
+  changelog:
+    name: Read changelog
     runs-on: ubuntu-latest
-
+    outputs:
+      version: ${{ steps.changelog.outputs.version }}
+      prerelease: ${{ steps.changelog.outputs.prerelease }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
 
+      # Fails before the long checks run if the tag has no changelog section.
       - name: Extract changelog for this version
         id: changelog
         shell: bash
@@ -31,8 +39,8 @@ jobs:
             index($0, "## [" version "]") == 1 { flag = 1; next }
             /^## \[/ { flag = 0 }
             flag
-          ' CHANGELOG.md > /tmp/release_body.md
-          if [ ! -s /tmp/release_body.md ]; then
+          ' CHANGELOG.md > release_body.md
+          if [ ! -s release_body.md ]; then
             echo "::error title=Changelog missing::No '## [${VERSION}]' section found in CHANGELOG.md."
             exit 1
           fi
@@ -44,11 +52,104 @@ jobs:
             echo "prerelease=false" >> "$GITHUB_OUTPUT"
           fi
 
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-body
+          path: release_body.md
+          retention-days: 1
+
+  quality:
+    name: Quality checks
+    needs: changelog
+    uses: ./.github/workflows/quality.yml
+
+  docker:
+    name: Build & push to Docker Hub
+    needs: [changelog, quality]
+    runs-on: ubuntu-latest
+    env:
+      DOCKERHUB_USERNAME: ${{ vars.DOCKERHUB_USERNAME || secrets.DOCKERHUB_USERNAME }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Validate Docker Hub configuration
+        shell: bash
+        env:
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          missing=()
+
+          if [ -z "${DOCKERHUB_USERNAME}" ]; then
+            missing+=("DOCKERHUB_USERNAME (repository variable or legacy secret)")
+          fi
+
+          if [ -z "${DOCKERHUB_TOKEN}" ]; then
+            missing+=("DOCKERHUB_TOKEN (repository secret)")
+          fi
+
+          if [ "${#missing[@]}" -gt 0 ]; then
+            printf '::error title=Docker Hub configuration missing::Configure %s before publishing a release image.\n' "$(IFS=', '; echo "${missing[*]}")"
+            exit 1
+          fi
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v4
+        with:
+          username: ${{ env.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Extract metadata (tags & labels)
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ env.DOCKERHUB_USERNAME }}/taskmaster
+          # `latest` is only added for stable versions; pre-releases get `beta` instead.
+          flavor: |
+            latest=auto
+          tags: |
+            type=semver,pattern={{version}}
+            type=raw,value=beta,enable=${{ needs.changelog.outputs.prerelease == 'true' }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            APP_VERSION=${{ needs.changelog.outputs.version }}
+            VCS_REF=${{ github.sha }}
+          platforms: linux/amd64
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  release:
+    name: Create GitHub Release
+    needs: [changelog, docker]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-body
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v3
         with:
-          name: "Taskmaster ${{ steps.changelog.outputs.version }}"
-          body_path: /tmp/release_body.md
+          name: "Taskmaster ${{ needs.changelog.outputs.version }}"
+          body_path: release_body.md
           draft: false
-          prerelease: ${{ steps.changelog.outputs.prerelease == 'true' }}
-          make_latest: ${{ steps.changelog.outputs.prerelease == 'true' && 'false' || 'true' }}
+          prerelease: ${{ needs.changelog.outputs.prerelease == 'true' }}
+          make_latest: ${{ needs.changelog.outputs.prerelease == 'true' && 'false' || 'true' }}

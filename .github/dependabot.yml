@@ -1,0 +1,35 @@
+version: 2
+
+updates:
+  # Root lockfile covers both workspaces (backend, frontend).
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: chore(deps)
+    groups:
+      # Minor and patch bumps land in one PR; majors stay separate for review.
+      npm-minor-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    commit-message:
+      prefix: chore(docker)
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    commit-message:
+      prefix: ci(deps)
+    groups:
+      github-actions:
+        patterns: ['*']

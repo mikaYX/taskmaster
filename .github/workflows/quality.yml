@@ -5,6 +5,8 @@ on:
   push:
     branches: [main, master]
   workflow_dispatch:
+  # Called by release.yml so nothing is published from a tag that fails these checks.
+  workflow_call:
 
 env:
   # Placeholder for Prisma generation; the isolated PostgreSQL job overrides it.
