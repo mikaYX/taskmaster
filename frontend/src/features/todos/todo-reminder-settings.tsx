@@ -106,6 +106,11 @@ export function TodoReminderSettings() {
                                         {push.isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                         {push.isSubscribed ? t('todos.reminders.disableDevice') : t('todos.reminders.enableDevice')}
                                     </Button>
+                                    {push.isLoading && !push.isSubscribed && (
+                                        <p role="status" className="text-xs font-medium text-primary">
+                                            {t('todos.reminders.waitingPermission')}
+                                        </p>
+                                    )}
                                     {push.error && <p className="text-xs text-destructive">{push.error}</p>}
                                 </>
                             )}

@@ -1840,7 +1840,8 @@
             "pushServerOff": "Les notifications pop-up ne sont pas disponibles sur ce serveur.",
             "pushUnsupported": "Ce navigateur ne gère pas les notifications pop-up (HTTPS requis).",
             "pushDenied": "Les notifications sont bloquées dans ce navigateur : autorisez-les dans les réglages du site.",
-            "saveFailed": "Vos préférences n'ont pas pu être enregistrées"
+            "saveFailed": "Vos préférences n'ont pas pu être enregistrées",
+            "waitingPermission": "En attente de votre réponse : le navigateur demande l'autorisation avec une petite icône de cloche ou de cadenas à droite de la barre d'adresse. Cliquez dessus et choisissez « Autoriser »."
         }
     },
     "taskList": {
