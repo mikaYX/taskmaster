@@ -423,7 +423,9 @@
             "validation": {
                 "nameRequired": "Name is required"
             },
-            "empty": "No channel yet: add one to alert people when a task fails or is missed."
+            "empty": "No channel yet: add one to alert people when a task fails or is missed.",
+            "testAria": "Send a test",
+            "deleteAria": "Delete the channel"
         },
         "usersManager": "User Management",
         "usersTab": "Users",
@@ -740,7 +742,16 @@
         "testEmailTitle": "Test Email",
         "testEmailDescription": "Send a test email to verify the configuration.",
         "recipient": "Recipient",
-        "sendTest": "Send Test"
+        "sendTest": "Send Test",
+        "statusOn": "Enabled",
+        "statusOff": "Disabled",
+        "providerDescription": "How the application sends its emails",
+        "providerHints": {
+            "smtp": "Your own mail server or Microsoft 365, Gmail…",
+            "mailgun": "Mailgun API (key and domain)",
+            "mailjet": "Mailjet API (key and secret)",
+            "sendgrid": "SendGrid API (key)"
+        }
     },
     "email": {
         "enableEmail": "Enable Email",
@@ -1292,7 +1303,8 @@
         "editTitle": "Edit Site",
         "formDescription": "Configure site details",
         "descriptionLabel": "Description",
-        "descriptionPlaceholder": "Optional description..."
+        "descriptionPlaceholder": "Optional description...",
+        "defaultBadge": "Default"
     },
     "network": {
         "offline": "You are offline. Some features may be unavailable.",

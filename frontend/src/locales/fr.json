@@ -423,7 +423,9 @@
             "validation": {
                 "nameRequired": "Le nom est requis"
             },
-            "empty": "Aucun canal pour le moment : ajoutez-en un pour prévenir quand une tâche échoue ou est manquée."
+            "empty": "Aucun canal pour le moment : ajoutez-en un pour prévenir quand une tâche échoue ou est manquée.",
+            "testAria": "Envoyer un test",
+            "deleteAria": "Supprimer le canal"
         },
         "usersManager": "Gestion des Utilisateurs",
         "usersTab": "Utilisateurs",
@@ -740,7 +742,16 @@
         "testEmailTitle": "Email de test",
         "testEmailDescription": "Envoyez un email de test pour vérifier la configuration.",
         "recipient": "Destinataire",
-        "sendTest": "Envoyer le test"
+        "sendTest": "Envoyer le test",
+        "statusOn": "Activé",
+        "statusOff": "Désactivé",
+        "providerDescription": "Comment l'application envoie ses emails",
+        "providerHints": {
+            "smtp": "Votre serveur de messagerie, Microsoft 365, Gmail…",
+            "mailgun": "API Mailgun (clé et domaine)",
+            "mailjet": "API Mailjet (clé et secret)",
+            "sendgrid": "API SendGrid (clé)"
+        }
     },
     "email": {
         "enableEmail": "Activer Email",
@@ -1292,7 +1303,8 @@
         "editTitle": "Modifier le site",
         "formDescription": "Configurer les détails du site",
         "descriptionLabel": "Description",
-        "descriptionPlaceholder": "Description facultative..."
+        "descriptionPlaceholder": "Description facultative...",
+        "defaultBadge": "Par défaut"
     },
     "network": {
         "offline": "Vous êtes hors ligne. Certaines fonctionnalités peuvent être indisponibles.",

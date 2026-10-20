@@ -10,7 +10,8 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Loader2, Mail, Power, Server, KeyRound } from 'lucide-react';
+import { Loader2, Mail, Power, Server, KeyRound, Send, Check, Save } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import {
     Dialog,
     DialogContent,
@@ -22,7 +23,6 @@ import {
 import {
     Form,
     FormControl,
-    FormDescription,
     FormField,
     FormItem,
     FormLabel,
@@ -143,97 +143,116 @@ export function EmailSettingsPage() {
 
     if (isLoading) return <div className="flex justify-center h-64 items-center"><Loader2 className="animate-spin" /></div>;
 
-    return (
-        <div className="space-y-6 max-w-6xl">
+    const providers = [
+        { id: 'smtp', name: 'SMTP', icon: Server },
+        { id: 'mailgun', name: 'Mailgun', icon: Send },
+        { id: 'mailjet', name: 'Mailjet', icon: Send },
+        { id: 'sendgrid', name: 'SendGrid', icon: Send },
+    ] as const;
 
+    const field = (name: Parameters<typeof form.control.register>[0], labelKey: string, type: 'text' | 'password' | 'number' = 'text', wide = false) => (
+        <FormField control={form.control} name={name} render={({ field: f }) => (
+            <FormItem className={wide ? 'sm:col-span-2' : undefined}>
+                <FormLabel>{t(labelKey)}</FormLabel>
+                <FormControl>
+                    {type === 'number'
+                        ? <Input type="number" {...f} value={f.value as number} onChange={e => f.onChange(parseInt(e.target.value))} />
+                        : <Input type={type} autoComplete={type === 'password' ? 'new-password' : 'off'} {...f} value={(f.value as string) ?? ''} />}
+                </FormControl>
+                <FormMessage />
+            </FormItem>
+        )} />
+    );
+
+    const configFooter = (
+        <>
+            <Button type="button" variant="outline" className="mr-auto gap-2" onClick={() => setIsTestDialogOpen(true)}>
+                <Mail className="h-4 w-4" /> {t('email.testSMTP')}
+            </Button>
+            <Button type="submit" disabled={isUpdating} className="gap-2">
+                {isUpdating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                {t('common.save')}
+            </Button>
+        </>
+    );
+
+    const configTitle: Record<string, string> = {
+        smtp: 'emailSettings.smtpConfiguration',
+        mailgun: 'emailSettings.mailgunConfiguration',
+        mailjet: 'emailSettings.mailjetConfiguration',
+        sendgrid: 'emailSettings.sendgridConfiguration',
+    };
+
+    return (
+        <div className="space-y-6">
             <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                     {/* Enable Email */}
-                    <SettingsSection title={t('emailSettings.globalConfiguration')} icon={Power}>
-                        <FormField
-                            control={form.control}
-                            name="enabled"
-                            render={({ field }) => (
-                                <FormItem className="flex flex-row items-center gap-3">
-                                    <FormControl>
-                                        <Switch checked={field.value} onCheckedChange={field.onChange} />
-                                    </FormControl>
-                                    <div className="space-y-0.5">
-                                        <FormLabel className="text-base">{t('email.globalToggle')}</FormLabel>
-                                        <FormDescription>{t('emailSettings.globalToggleDescription')}</FormDescription>
-                                    </div>
-                                </FormItem>
-                            )}
-                        />
-                    </SettingsSection>
+                    <SettingsSection
+                        title={t('email.globalToggle')}
+                        description={t('emailSettings.globalToggleDescription')}
+                        icon={Power}
+                        action={
+                            <FormField
+                                control={form.control}
+                                name="enabled"
+                                render={({ field }) => (
+                                    <FormItem className="flex flex-row items-center gap-3 space-y-0">
+                                        <span className={cn(
+                                            'rounded-full px-2.5 py-0.5 text-xs font-medium',
+                                            field.value ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400' : 'bg-muted text-muted-foreground',
+                                        )}>
+                                            {field.value ? t('emailSettings.statusOn') : t('emailSettings.statusOff')}
+                                        </span>
+                                        <FormControl>
+                                            <Switch checked={field.value} onCheckedChange={field.onChange} aria-label={t('email.globalToggle')} />
+                                        </FormControl>
+                                    </FormItem>
+                                )}
+                            />
+                        }
+                        footer={!emailEnabled && (
+                            <Button type="submit" disabled={isUpdating} className="gap-2">
+                                {isUpdating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                                {t('common.save')}
+                            </Button>
+                        )}
+                    />
 
                     {emailEnabled && (
                         <>
                             {/* Provider */}
-                            <SettingsSection title={t('email.provider')} icon={Server}>
+                            <SettingsSection title={t('email.provider')} description={t('emailSettings.providerDescription')} icon={Server}>
                                 <FormField
                                     control={form.control}
                                     name="provider"
                                     render={({ field }) => (
-                                        <FormItem className="space-y-3">
+                                        <FormItem>
                                             <FormControl>
-                                                <RadioGroup
-                                                    onValueChange={field.onChange}
-                                                    value={field.value}
-                                                    className="grid gap-3"
-                                                >
-                                                    <FormItem>
-                                                        <FormControl>
-                                                            <div>
-                                                                <RadioGroupItem value="smtp" id="provider-smtp" className="peer sr-only" />
-                                                                <Label
-                                                                    htmlFor="provider-smtp"
-                                                                    className="flex items-center justify-between rounded-lg border-2 border-muted bg-transparent p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
-                                                                >
-                                                                    <span className="font-medium">SMTP</span>
-                                                                </Label>
-                                                            </div>
-                                                        </FormControl>
-                                                    </FormItem>
-                                                    <FormItem>
-                                                        <FormControl>
-                                                            <div>
-                                                                <RadioGroupItem value="mailgun" id="provider-mailgun" className="peer sr-only" />
-                                                                <Label
-                                                                    htmlFor="provider-mailgun"
-                                                                    className="flex items-center justify-between rounded-lg border-2 border-muted bg-transparent p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
-                                                                >
-                                                                    <span className="font-medium">Mailgun</span>
-                                                                </Label>
-                                                            </div>
-                                                        </FormControl>
-                                                    </FormItem>
-                                                    <FormItem>
-                                                        <FormControl>
-                                                            <div>
-                                                                <RadioGroupItem value="mailjet" id="provider-mailjet" className="peer sr-only" />
-                                                                <Label
-                                                                    htmlFor="provider-mailjet"
-                                                                    className="flex items-center justify-between rounded-lg border-2 border-muted bg-transparent p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
-                                                                >
-                                                                    <span className="font-medium">Mailjet</span>
-                                                                </Label>
-                                                            </div>
-                                                        </FormControl>
-                                                    </FormItem>
-                                                    <FormItem>
-                                                        <FormControl>
-                                                            <div>
-                                                                <RadioGroupItem value="sendgrid" id="provider-sendgrid" className="peer sr-only" />
-                                                                <Label
-                                                                    htmlFor="provider-sendgrid"
-                                                                    className="flex items-center justify-between rounded-lg border-2 border-muted bg-transparent p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer"
-                                                                >
-                                                                    <span className="font-medium">SendGrid</span>
-                                                                </Label>
-                                                            </div>
-                                                        </FormControl>
-                                                    </FormItem>
+                                                <RadioGroup onValueChange={field.onChange} value={field.value} className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                                                    {providers.map(({ id, name, icon: Icon }) => (
+                                                        <div key={id}>
+                                                            <RadioGroupItem value={id} id={`provider-${id}`} className="peer sr-only" />
+                                                            <Label
+                                                                htmlFor={`provider-${id}`}
+                                                                className="relative flex h-full cursor-pointer flex-col gap-2 rounded-xl border-2 border-muted p-4 transition-all hover:border-primary/40 hover:bg-accent/40 peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5"
+                                                            >
+                                                                <span className={cn(
+                                                                    'flex h-9 w-9 items-center justify-center rounded-lg',
+                                                                    field.value === id ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground',
+                                                                )}>
+                                                                    <Icon className="h-4 w-4" />
+                                                                </span>
+                                                                <span className="font-semibold">{name}</span>
+                                                                <span className="text-xs font-normal text-muted-foreground">{t(`emailSettings.providerHints.${id}`)}</span>
+                                                                {field.value === id && (
+                                                                    <span className="absolute right-3 top-3 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                                                                        <Check className="h-3 w-3" />
+                                                                    </span>
+                                                                )}
+                                                            </Label>
+                                                        </div>
+                                                    ))}
                                                 </RadioGroup>
                                             </FormControl>
                                             <FormMessage />
@@ -242,123 +261,61 @@ export function EmailSettingsPage() {
                                 />
                             </SettingsSection>
 
-                            {/* SMTP Config */}
-                            {emailProvider === 'smtp' && (
-                                        <SettingsSection title={t('emailSettings.smtpConfiguration')} icon={KeyRound}>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <FormField control={form.control} name="smtp.host" render={({ field }) => (
-                                                    <FormItem><FormLabel>{t('email.smtpHost')}</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-                                        )} />
-                                        <FormField control={form.control} name="smtp.port" render={({ field }) => (
-                                                    <FormItem><FormLabel>{t('email.smtpPort')}</FormLabel><FormControl><Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value))} /></FormControl><FormMessage /></FormItem>
-                                        )} />
-                                        <FormField control={form.control} name="smtp.user" render={({ field }) => (
-                                                    <FormItem><FormLabel>{t('email.smtpUser')}</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-                                        )} />
-                                        <FormField control={form.control} name="smtp.pass" render={({ field }) => (
-                                                    <FormItem><FormLabel>{t('email.smtpPassword')}</FormLabel><FormControl><Input type="password" {...field} /></FormControl><FormMessage /></FormItem>
-                                        )} />
-                                        <FormField control={form.control} name="smtp.from" render={({ field }) => (
-                                                    <FormItem><FormLabel>{t('email.fromAddress')}</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-                                        )} />
-                                    </div>
-                                    <Button type="button" variant="outline" size="sm" className="mt-4" onClick={() => setIsTestDialogOpen(true)}>
-                                                <Mail className="mr-2 h-4 w-4" /> {t('email.testSMTP')}
-                                    </Button>
-                                </SettingsSection>
-                            )}
-
-                            {/* Mailgun Config */}
-                            {emailProvider === 'mailgun' && (
-                                        <SettingsSection title={t('emailSettings.mailgunConfiguration')} icon={KeyRound}>
-                                    <div className="grid gap-4">
-                                        <FormField control={form.control} name="mailgun.apiKey" render={({ field }) => (
-                                                    <FormItem><FormLabel>{t('email.apiKey')}</FormLabel><FormControl><Input type="password" {...field} /></FormControl><FormMessage /></FormItem>
-                                        )} />
-                                        <FormField control={form.control} name="mailgun.domain" render={({ field }) => (
-                                                    <FormItem><FormLabel>{t('email.domain')}</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-                                        )} />
-                                        <FormField control={form.control} name="mailgun.from" render={({ field }) => (
-                                                    <FormItem><FormLabel>{t('email.fromAddress')}</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-                                        )} />
-                                    </div>
-                                    <Button type="button" variant="outline" size="sm" className="mt-4" onClick={() => setIsTestDialogOpen(true)}>
-                                                <Mail className="mr-2 h-4 w-4" /> {t('email.testSMTP')}
-                                    </Button>
-                                </SettingsSection>
-                            )}
-
-                            {/* Mailjet Config */}
-                            {emailProvider === 'mailjet' && (
-                                        <SettingsSection title={t('emailSettings.mailjetConfiguration')} icon={KeyRound}>
-                                    <div className="grid gap-4">
-                                        <FormField control={form.control} name="mailjet.apiKey" render={({ field }) => (
-                                                    <FormItem><FormLabel>{t('email.apiKey')}</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-                                        )} />
-                                        <FormField control={form.control} name="mailjet.secretKey" render={({ field }) => (
-                                                    <FormItem><FormLabel>{t('email.secretKey')}</FormLabel><FormControl><Input type="password" {...field} /></FormControl><FormMessage /></FormItem>
-                                        )} />
-                                        <FormField control={form.control} name="mailjet.from" render={({ field }) => (
-                                                    <FormItem><FormLabel>{t('email.fromAddress')}</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-                                        )} />
-                                    </div>
-                                    <Button type="button" variant="outline" size="sm" className="mt-4" onClick={() => setIsTestDialogOpen(true)}>
-                                                <Mail className="mr-2 h-4 w-4" /> {t('email.testSMTP')}
-                                    </Button>
-                                </SettingsSection>
-                            )}
-
-                            {/* SendGrid Config */}
-                            {emailProvider === 'sendgrid' && (
-                                        <SettingsSection title={t('emailSettings.sendgridConfiguration')} icon={KeyRound}>
-                                    <div className="grid gap-4">
-                                        <FormField control={form.control} name="sendgrid.apiKey" render={({ field }) => (
-                                                    <FormItem><FormLabel>{t('email.apiKey')}</FormLabel><FormControl><Input type="password" {...field} /></FormControl><FormMessage /></FormItem>
-                                        )} />
-                                        <FormField control={form.control} name="sendgrid.from" render={({ field }) => (
-                                                    <FormItem><FormLabel>{t('email.fromAddress')}</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-                                        )} />
-                                    </div>
-                                    <Button type="button" variant="outline" size="sm" className="mt-4" onClick={() => setIsTestDialogOpen(true)}>
-                                                <Mail className="mr-2 h-4 w-4" /> {t('email.testSMTP')}
-                                    </Button>
-                                </SettingsSection>
-                            )}
+                            {/* Provider configuration */}
+                            <SettingsSection title={t(configTitle[emailProvider] ?? configTitle.smtp)} icon={KeyRound} footer={configFooter}>
+                                <div className="grid gap-4 sm:grid-cols-2">
+                                    {emailProvider === 'smtp' && <>
+                                        {field('smtp.host', 'email.smtpHost')}
+                                        {field('smtp.port', 'email.smtpPort', 'number')}
+                                        {field('smtp.user', 'email.smtpUser')}
+                                        {field('smtp.pass', 'email.smtpPassword', 'password')}
+                                        {field('smtp.from', 'email.fromAddress', 'text', true)}
+                                    </>}
+                                    {emailProvider === 'mailgun' && <>
+                                        {field('mailgun.apiKey', 'email.apiKey', 'password')}
+                                        {field('mailgun.domain', 'email.domain')}
+                                        {field('mailgun.from', 'email.fromAddress', 'text', true)}
+                                    </>}
+                                    {emailProvider === 'mailjet' && <>
+                                        {field('mailjet.apiKey', 'email.apiKey')}
+                                        {field('mailjet.secretKey', 'email.secretKey', 'password')}
+                                        {field('mailjet.from', 'email.fromAddress', 'text', true)}
+                                    </>}
+                                    {emailProvider === 'sendgrid' && <>
+                                        {field('sendgrid.apiKey', 'email.apiKey', 'password', true)}
+                                        {field('sendgrid.from', 'email.fromAddress', 'text', true)}
+                                    </>}
+                                </div>
+                            </SettingsSection>
                         </>
                     )}
-
-                    <div className="flex justify-end">
-                        <Button type="submit" disabled={isUpdating}>
-                            {isUpdating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            {t('common.save')}
-                        </Button>
-                    </div>
                 </form>
             </Form>
 
             <Dialog open={isTestDialogOpen} onOpenChange={setIsTestDialogOpen}>
-                <DialogContent>
+                <DialogContent className="sm:max-w-md">
                     <DialogHeader>
+                        <div className="mb-2 flex h-11 w-11 items-center justify-center rounded-xl bg-rose-500/10 text-rose-700 dark:text-rose-400">
+                            <Send className="h-5 w-5" />
+                        </div>
                         <DialogTitle>{t('emailSettings.testEmailTitle')}</DialogTitle>
                         <DialogDescription>{t('emailSettings.testEmailDescription')}</DialogDescription>
                     </DialogHeader>
-                    <div className="grid gap-4 py-4">
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="test-email" className="text-right">{t('emailSettings.recipient')}</Label>
-                            <Input
-                                id="test-email"
-                                value={testEmailTo}
-                                onChange={(e) => setTestEmailTo(e.target.value)}
-                                className="col-span-3"
-                            />
-                        </div>
+                    <div className="space-y-2 py-2">
+                        <Label htmlFor="test-email">{t('emailSettings.recipient')}</Label>
+                        <Input
+                            id="test-email"
+                            type="email"
+                            value={testEmailTo}
+                            onChange={(e) => setTestEmailTo(e.target.value)}
+                        />
                     </div>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setIsTestDialogOpen(false)}>
                             {t('common.cancel')}
                         </Button>
-                        <Button onClick={handleTestConnection} disabled={isTestingEmail}>
-                            {isTestingEmail && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        <Button onClick={handleTestConnection} disabled={isTestingEmail} className="gap-2">
+                            {isTestingEmail ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                             {t('emailSettings.sendTest')}
                         </Button>
                     </DialogFooter>

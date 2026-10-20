@@ -7,8 +7,19 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Trash2, Edit, Play, Plus, Loader2, Bell, BellOff } from "lucide-react";
+import { Trash2, Edit, Play, Plus, Loader2, Bell, BellOff, Mail, MessageSquare, Send, Webhook, type LucideIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+const CHANNEL_ICON: Record<string, LucideIcon> = { email: Mail, slack: MessageSquare, teams: MessageSquare, discord: MessageSquare, telegram: Send, webhook: Webhook, push: Bell };
+const CHANNEL_TONE: Record<string, string> = {
+    email: "bg-rose-500/10 text-rose-700 dark:text-rose-400",
+    slack: "bg-violet-500/10 text-violet-700 dark:text-violet-400",
+    teams: "bg-indigo-500/10 text-indigo-700 dark:text-indigo-400",
+    discord: "bg-blue-500/10 text-blue-700 dark:text-blue-400",
+    telegram: "bg-sky-500/10 text-sky-700 dark:text-sky-400",
+    webhook: "bg-slate-500/10 text-slate-700 dark:text-slate-300",
+    push: "bg-amber-500/10 text-amber-700 dark:text-amber-400",
+};
 import { SettingsSection } from "../components/settings-section";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -160,10 +171,17 @@ export function NotificationsSettingsPage() {
             )}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {channels?.map((channel) => (
-                    <Card key={channel.id}>
-                        <CardHeader className="flex flex-row items-center justify-between pb-2">
-                            <CardTitle className="text-md">{channel.name}</CardTitle>
+                    <div key={channel.id} className={cn('flex flex-col gap-4 rounded-xl border bg-card p-4 transition-shadow hover:shadow-md', !channel.enabled && 'opacity-70')}>
+                        <div className="flex items-start gap-3">
+                            <span className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-xl', CHANNEL_TONE[channel.type.toLowerCase()] ?? CHANNEL_TONE.webhook)}>
+                                {(() => { const Icon = CHANNEL_ICON[channel.type.toLowerCase()] ?? Webhook; return <Icon className="h-5 w-5" />; })()}
+                            </span>
+                            <div className="min-w-0 flex-1">
+                                <p className="truncate font-semibold">{channel.name}</p>
+                                <p className="text-xs text-muted-foreground">{getChannelTypeLabel(channel.type)}</p>
+                            </div>
                             <Switch
+                                aria-label={channel.name}
                                 checked={channel.enabled}
                                 onCheckedChange={async (val) => {
                                     try {
@@ -174,24 +192,25 @@ export function NotificationsSettingsPage() {
                                     }
                                 }}
                             />
-                        </CardHeader>
-                        <CardContent>
-                            <CardDescription className="mb-4">
-                                {getChannelTypeLabel(channel.type)}
-                            </CardDescription>
-                            <div className="flex justify-end gap-2">
-                                <Button variant="outline" size="icon" onClick={() => { setChannelToTest(channel); setIsTestDialogOpen(true); }}>
+                        </div>
+                        <div className="flex items-center justify-between gap-2 border-t pt-3">
+                            <span className={cn('inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium', channel.enabled ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400' : 'bg-muted text-muted-foreground')}>
+                                <span className={cn('h-1.5 w-1.5 rounded-full', channel.enabled ? 'bg-emerald-500' : 'bg-muted-foreground/60')} />
+                                {channel.enabled ? t('emailSettings.statusOn') : t('emailSettings.statusOff')}
+                            </span>
+                            <div className="flex gap-1">
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" aria-label={t('settings.notifications.testAria')} title={t('settings.notifications.testAria')} onClick={() => { setChannelToTest(channel); setIsTestDialogOpen(true); }}>
                                     <Play className="h-4 w-4" />
                                 </Button>
-                                <Button variant="outline" size="icon" onClick={() => openEditDialog(channel)}>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" aria-label={t('settings.notifications.editChannel')} title={t('settings.notifications.editChannel')} onClick={() => openEditDialog(channel)}>
                                     <Edit className="h-4 w-4" />
                                 </Button>
-                                <Button variant="destructive" size="icon" onClick={() => { setChannelToDelete(channel.id); setIsDeleteDialogOpen(true); }}>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:bg-destructive/10 hover:text-destructive" aria-label={t('settings.notifications.deleteAria')} title={t('settings.notifications.deleteAria')} onClick={() => { setChannelToDelete(channel.id); setIsDeleteDialogOpen(true); }}>
                                     <Trash2 className="h-4 w-4" />
                                 </Button>
                             </div>
-                        </CardContent>
-                    </Card>
+                        </div>
+                    </div>
                 ))}
             </div>
             </SettingsSection>

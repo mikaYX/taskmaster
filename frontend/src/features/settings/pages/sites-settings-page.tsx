@@ -7,21 +7,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card';
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/components/ui/table';
-import {
     Dialog,
     DialogContent,
     DialogDescription,
@@ -41,8 +26,9 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { Badge } from '@/components/ui/badge';
-import { Plus, Pencil, Trash2, Building2, Users, ListTodo, Layers } from 'lucide-react';
+import { Plus, Pencil, Trash2, Building2, Users, ListTodo, Layers, MapPin } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+import { SettingsSection } from '../components/settings-section';
 import { toast } from 'sonner';
 
 export function SitesSettingsPage() {
@@ -87,139 +73,133 @@ export function SitesSettingsPage() {
     });
 
     return (
-        <Card>
-            <CardHeader>
-                <div className="flex items-center justify-between">
-                    <div>
-                        <CardTitle className="flex items-center gap-2">
-                            <Building2 className="h-5 w-5" />
-                            {t('sites.title')}
-                        </CardTitle>
-                        <CardDescription>
-                            {t('sites.description')}
-                        </CardDescription>
-                    </div>
-                    <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-                        <DialogTrigger asChild>
-                            <Button>
-                                <Plus className="mr-2 h-4 w-4" />
-                                {t('sites.create')}
-                            </Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                            <SiteForm
-                                title={t('sites.createTitle')}
-                                onSubmit={(dto) => createMutation.mutate(dto)}
-                                isLoading={createMutation.isPending}
-                            />
-                        </DialogContent>
-                    </Dialog>
+        <SettingsSection
+            title={t('sites.title')}
+            description={t('sites.description')}
+            icon={Building2}
+            action={
+                <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+                    <DialogTrigger asChild>
+                        <Button className="gap-2">
+                            <Plus className="h-4 w-4" />
+                            {t('sites.create')}
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                        <SiteForm
+                            title={t('sites.createTitle')}
+                            onSubmit={(dto) => createMutation.mutate(dto)}
+                            isLoading={createMutation.isPending}
+                        />
+                    </DialogContent>
+                </Dialog>
+            }
+        >
+            {isLoading ? (
+                <div className="grid gap-3 sm:grid-cols-2">
+                    <Skeleton className="h-32 rounded-xl" />
+                    <Skeleton className="h-32 rounded-xl" />
                 </div>
-            </CardHeader>
-            <CardContent>
-                {isLoading ? (
-                    <div className="text-center py-8 text-muted-foreground">
-                        {t('common.loading')}
+            ) : sites.length === 0 ? (
+                <div className="flex flex-col items-center justify-center rounded-xl border border-dashed px-6 py-10 text-center">
+                    <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-muted">
+                        <MapPin className="h-6 w-6 text-muted-foreground" />
                     </div>
-                ) : sites.length === 0 ? (
-                    <div className="text-center py-8 text-muted-foreground">
-                        {t('sites.empty')}
-                    </div>
-                ) : (
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>{t('sites.name')}</TableHead>
-                                <TableHead>{t('sites.code')}</TableHead>
-                                <TableHead className="text-center">
-                                    <Users className="h-4 w-4 inline mr-1" />
-                                    {t('sites.users')}
-                                </TableHead>
-                                <TableHead className="text-center">
-                                    <ListTodo className="h-4 w-4 inline mr-1" />
-                                    {t('sites.tasks')}
-                                </TableHead>
-                                <TableHead className="text-center">
-                                    <Layers className="h-4 w-4 inline mr-1" />
-                                    {t('sites.groups')}
-                                </TableHead>
-                                <TableHead className="text-right">{t('common.actions')}</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {sites.map((site) => (
-                                <TableRow key={site.id}>
-                                    <TableCell className="font-medium">
-                                        {site.name}
-                                        {site.code === 'DEFAULT' && (
-                                            <Badge variant="secondary" className="ml-2">
-                                                Default
-                                            </Badge>
-                                        )}
-                                    </TableCell>
-                                    <TableCell>
-                                        <code className="text-xs bg-muted px-1.5 py-0.5 rounded">
-                                            {site.code}
-                                        </code>
-                                    </TableCell>
-                                    <TableCell className="text-center">
-                                        {site._count?.users ?? 0}
-                                    </TableCell>
-                                    <TableCell className="text-center">
-                                        {site._count?.tasks ?? 0}
-                                    </TableCell>
-                                    <TableCell className="text-center">
-                                        {site._count?.groups ?? 0}
-                                    </TableCell>
-                                    <TableCell className="text-right">
-                                        <div className="flex justify-end gap-2">
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                onClick={() => setEditSite(site)}
-                                            >
-                                                <Pencil className="h-4 w-4" />
-                                            </Button>
-                                            {site.code !== 'DEFAULT' && (
-                                                <AlertDialog>
-                                                    <AlertDialogTrigger asChild>
-                                                        <Button variant="ghost" size="icon">
-                                                            <Trash2 className="h-4 w-4 text-destructive" />
-                                                        </Button>
-                                                    </AlertDialogTrigger>
-                                                    <AlertDialogContent>
-                                                        <AlertDialogHeader>
-                                                            <AlertDialogTitle>
-                                                                {t('sites.deleteConfirm')}
-                                                            </AlertDialogTitle>
-                                                            <AlertDialogDescription>
-                                                                {t(
-                                                                    'sites.deleteWarning',
-                                                                    'This will deactivate the site. Data will be preserved.',
-                                                                )}
-                                                            </AlertDialogDescription>
-                                                        </AlertDialogHeader>
-                                                        <AlertDialogFooter>
-                                                            <AlertDialogCancel>
-                                                                {t('common.cancel')}
-                                                            </AlertDialogCancel>
-                                                            <AlertDialogAction
-                                                                onClick={() => deleteMutation.mutate(site.id)}
-                                                            >
-                                                                {t('common.delete')}
-                                                            </AlertDialogAction>
-                                                        </AlertDialogFooter>
-                                                    </AlertDialogContent>
-                                                </AlertDialog>
+                    <p className="text-sm text-muted-foreground">{t('sites.empty')}</p>
+                </div>
+            ) : (
+                <ul className="grid gap-3 sm:grid-cols-2">
+                    {sites.map((site) => {
+                        const isDefault = site.code === 'DEFAULT';
+                        const stats = [
+                            { icon: Users, value: site._count?.users ?? 0, label: t('sites.users') },
+                            { icon: ListTodo, value: site._count?.tasks ?? 0, label: t('sites.tasks') },
+                            { icon: Layers, value: site._count?.groups ?? 0, label: t('sites.groups') },
+                        ];
+                        return (
+                            <li key={site.id} className="group flex flex-col gap-4 rounded-xl border bg-card p-4 transition-shadow hover:shadow-md">
+                                <div className="flex items-start gap-3">
+                                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-teal-500/10 text-teal-700 dark:text-teal-400">
+                                        <MapPin className="h-5 w-5" />
+                                    </span>
+                                    <div className="min-w-0 flex-1">
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            <p className="truncate font-semibold">{site.name}</p>
+                                            {isDefault && (
+                                                <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">{t('sites.defaultBadge')}</span>
                                             )}
                                         </div>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                )}
-            </CardContent>
+                                        <code className="text-xs text-muted-foreground">{site.code}</code>
+                                    </div>
+                                    <div className="flex gap-1">
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-8 w-8 text-muted-foreground hover:text-primary"
+                                            aria-label={t('sites.editTitle')}
+                                            title={t('sites.editTitle')}
+                                            onClick={() => setEditSite(site)}
+                                        >
+                                            <Pencil className="h-4 w-4" />
+                                        </Button>
+                                        {!isDefault && (
+                                            <AlertDialog>
+                                                <AlertDialogTrigger asChild>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-8 w-8 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                                                        aria-label={t('sites.deleteConfirm')}
+                                                        title={t('sites.deleteConfirm')}
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </Button>
+                                                </AlertDialogTrigger>
+                                                <AlertDialogContent>
+                                                    <AlertDialogHeader>
+                                                        <AlertDialogTitle>
+                                                            {t('sites.deleteConfirm')}
+                                                        </AlertDialogTitle>
+                                                        <AlertDialogDescription>
+                                                            {t(
+                                                                'sites.deleteWarning',
+                                                                'This will deactivate the site. Data will be preserved.',
+                                                            )}
+                                                        </AlertDialogDescription>
+                                                    </AlertDialogHeader>
+                                                    <AlertDialogFooter>
+                                                        <AlertDialogCancel>
+                                                            {t('common.cancel')}
+                                                        </AlertDialogCancel>
+                                                        <AlertDialogAction
+                                                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                                            onClick={() => deleteMutation.mutate(site.id)}
+                                                        >
+                                                            {t('common.delete')}
+                                                        </AlertDialogAction>
+                                                    </AlertDialogFooter>
+                                                </AlertDialogContent>
+                                            </AlertDialog>
+                                        )}
+                                    </div>
+                                </div>
+                                {site.description && <p className="line-clamp-2 text-sm text-muted-foreground">{site.description}</p>}
+                                <div className="grid grid-cols-3 gap-2 border-t pt-3">
+                                    {stats.map(({ icon: Icon, value, label }) => (
+                                        <div key={label} className="rounded-lg bg-muted/40 px-3 py-2">
+                                            <p className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                                                <Icon className="h-3 w-3" />
+                                                {label}
+                                            </p>
+                                            <p className="text-lg font-semibold tabular-nums">{value}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </li>
+                        );
+                    })}
+                </ul>
+            )}
 
             {editSite && (
                 <Dialog open onOpenChange={() => setEditSite(null)}>
@@ -235,7 +215,7 @@ export function SitesSettingsPage() {
                     </DialogContent>
                 </Dialog>
             )}
-        </Card>
+        </SettingsSection>
     );
 }
 
