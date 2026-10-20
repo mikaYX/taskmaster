@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils';
 import { daysUntilDue, describeDue } from '@/features/todos/todo-due';
 import { PRIORITY_DOT } from '@/features/todos/todo-priority';
 import { parseQuickAdd } from '@/features/todos/todo-quick-add';
+import { TodoQuickAddHelp } from '@/features/todos/todo-quick-add-help';
 import { TodoAttentionBadge } from '@/features/todos/todo-attention-badge';
 import { useUndoableDelete } from '@/features/todos/use-undoable-delete';
 
@@ -124,6 +125,7 @@ export function TodoFab() {
                                 className="h-10 border-0 bg-transparent px-1 shadow-none focus-visible:ring-0 dark:bg-transparent"
                                 onChange={(e) => setNewTitle(e.target.value)}
                             />
+                            <TodoQuickAddHelp />
                         </div>
                         <div className="flex items-center gap-2 border-t bg-muted/30 px-2 py-1.5">
                             <div className="relative">
@@ -147,7 +149,6 @@ export function TodoFab() {
                             </Button>
                         </div>
                     </div>
-                    <p className="mt-1.5 px-1 text-[11px] text-muted-foreground">{t('todos.quickAddShort')}</p>
                 </form>
 
                 <div className="flex-1 overflow-y-auto p-4">

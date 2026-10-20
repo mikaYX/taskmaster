@@ -1676,8 +1676,6 @@
     },
     "todos": {
         "subtitle": "Your personal and collective tasks",
-        "tabPrivate": "Private ({{n}})",
-        "tabCollective": "Collective ({{n}})",
         "newTaskPlaceholder": "New task... (n)",
         "newTask": "New task",
         "dueDate": "Due date",
@@ -1776,7 +1774,6 @@
             }
         },
         "badge": "{{overdue}} overdue, {{today}} due today",
-        "quickAddHint": "Tip: type @tomorrow, @monday, @+3d, @14:30 or !urgent in the title to set the date, time and priority.",
         "options": {
             "toggle": "More options"
         },
@@ -1851,7 +1848,6 @@
             "saveFailed": "Your preferences could not be saved",
             "waitingPermission": "Waiting for your answer: the browser asks for permission with a small bell or padlock icon at the right of the address bar. Click it and choose \"Allow\"."
         },
-        "quickAddShort": "Tip: @tomorrow @14:30 !urgent",
         "tabs": {
             "private": "Private",
             "collective": "Collective"
@@ -1861,6 +1857,21 @@
             "today": "Due today",
             "open": "Open",
             "mine": "Assigned to me"
+        },
+        "quickHelp": {
+            "button": "How to fill in the date, time and priority while typing",
+            "title": "Add faster",
+            "intro": "Type these words in the title: the date, the time and the priority are filled in for you, and the words are removed from the title.",
+            "exampleTitle": "Call the supplier",
+            "exampleResult": "“Call the supplier”, due tomorrow at 14:30, urgent priority",
+            "rows": {
+                "day": "A day",
+                "relative": "In 3 days, in 2 weeks",
+                "date": "A precise date",
+                "time": "A time",
+                "priority": "A priority"
+            },
+            "footer": "English words work too: @tomorrow, @monday, @+3d, !high. A word that is not understood simply stays in the title."
         }
     },
     "taskList": {

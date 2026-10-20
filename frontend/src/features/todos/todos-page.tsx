@@ -43,6 +43,7 @@ import { PRIORITY_DOT, PRIORITY_VALUES, RECURRENCE_VALUES } from './todo-priorit
 import { daysUntilDue } from './todo-due';
 import { REMIND_OPTIONS, remindToSelect, selectToRemind } from './todo-schedule';
 import { parseQuickAdd } from './todo-quick-add';
+import { TodoQuickAddHelp } from './todo-quick-add-help';
 import { usePublicBranding } from '@/hooks/use-public-branding';
 import { Navigate } from 'react-router-dom';
 import { TodoEditDialog } from './todo-edit-dialog';
@@ -299,6 +300,7 @@ function TodosPageContent() {
                     className="h-12 border-0 bg-transparent px-1 text-base shadow-none focus-visible:ring-0 dark:bg-transparent"
                     onChange={(e) => setNewTitle(e.target.value)}
                 />
+                <TodoQuickAddHelp />
             </div>
             <div className="flex flex-wrap items-center gap-2 border-t bg-muted/30 px-3 py-2">
                 <div className="relative">
@@ -337,8 +339,7 @@ function TodosPageContent() {
                     <SlidersHorizontal className="h-3.5 w-3.5" />
                     {t('todos.options.toggle')}
                 </Button>
-                <span className="ml-auto hidden text-[11px] text-muted-foreground lg:inline">{t('todos.quickAddShort')}</span>
-                <Button type="submit" size="sm" className="ml-auto h-8 gap-1.5 lg:ml-0" disabled={createTodo.isPending || !newTitle.trim()}>
+                <Button type="submit" size="sm" className="ml-auto h-8 gap-1.5" disabled={createTodo.isPending || !newTitle.trim()}>
                     {createTodo.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
                     {t('todos.add')}
                 </Button>
@@ -414,7 +415,6 @@ function TodosPageContent() {
                             onChange={(e) => setNewNotes(e.target.value)}
                         />
                     </div>
-                    <p className="text-[11px] text-muted-foreground sm:col-span-2">{t('todos.quickAddHint')}</p>
                 </div>
             )}
         </form>

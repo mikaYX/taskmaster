@@ -1676,8 +1676,6 @@
     },
     "todos": {
         "subtitle": "Vos tâches personnelles et collectives",
-        "tabPrivate": "Privé ({{n}})",
-        "tabCollective": "Collectif ({{n}})",
         "newTaskPlaceholder": "Nouvelle tâche... (n)",
         "newTask": "Nouvelle tâche",
         "dueDate": "Échéance",
@@ -1776,7 +1774,6 @@
             }
         },
         "badge": "{{overdue}} en retard, {{today}} pour aujourd'hui",
-        "quickAddHint": "Astuce : tapez @demain, @lundi, @+3j, @14h30 ou !urgente dans le titre pour fixer la date, l'heure et la priorité.",
         "options": {
             "toggle": "Plus d'options"
         },
@@ -1851,7 +1848,6 @@
             "saveFailed": "Vos préférences n'ont pas pu être enregistrées",
             "waitingPermission": "En attente de votre réponse : le navigateur demande l'autorisation avec une petite icône de cloche ou de cadenas à droite de la barre d'adresse. Cliquez dessus et choisissez « Autoriser »."
         },
-        "quickAddShort": "Astuce : @demain @14h30 !urgente",
         "tabs": {
             "private": "Privées",
             "collective": "Collectives"
@@ -1861,6 +1857,21 @@
             "today": "Pour aujourd'hui",
             "open": "En cours",
             "mine": "Qui me sont assignées"
+        },
+        "quickHelp": {
+            "button": "Comment remplir la date, l'heure et la priorité en tapant",
+            "title": "Ajoutez plus vite",
+            "intro": "Tapez ces mots dans le titre : la date, l'heure et la priorité sont remplies pour vous, et les mots sont retirés du titre.",
+            "exampleTitle": "Appeler le fournisseur",
+            "exampleResult": "« Appeler le fournisseur », pour demain à 14h30, priorité urgente",
+            "rows": {
+                "day": "Un jour",
+                "relative": "Dans 3 jours, dans 2 semaines",
+                "date": "Une date précise",
+                "time": "Une heure",
+                "priority": "Une priorité"
+            },
+            "footer": "Les mots anglais marchent aussi : @tomorrow, @monday, @+3d, !high. Un mot non reconnu reste simplement dans le titre."
         }
     },
     "taskList": {
