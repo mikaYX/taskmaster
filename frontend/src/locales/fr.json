@@ -729,7 +729,12 @@
         "apiTokensUnaffected": "N'affecte pas les jetons d'API",
         "secureActions": "Actions sécurisées",
         "secureActionsDescription": "Exiger une réauthentification pour les actions sensibles (ex. changement de mot de passe, mise à jour des paramètres de sécurité)",
-        "invalidateAllSessionsSoon": "Invalider toutes les sessions actives (bientôt disponible)"
+        "invalidateAllSessionsSoon": "Invalider toutes les sessions actives (bientôt disponible)",
+        "providerStatus": {
+            "on": "Configuré",
+            "incomplete": "Incomplet",
+            "off": "Désactivé"
+        }
     },
     "emailSettings": {
         "globalConfiguration": "Configuration globale",

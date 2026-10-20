@@ -9,7 +9,7 @@ import { authSettingsSchema } from '../schemas/settings-schemas';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
-import { Loader2, Key, Minus, Plus, Shield, Smartphone, Clock, Info, CheckCircle2, User, Laptop, Mail, Settings, Lock, ShieldCheck, UserCog, AlertTriangle } from 'lucide-react';
+import { Loader2, Key, Minus, Plus, Shield, Smartphone, Clock, Info, CheckCircle2, User, Laptop, Mail, Settings, Lock, ShieldCheck, UserCog, AlertTriangle, Building2, Globe, KeySquare, Network } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
@@ -27,7 +27,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
@@ -105,6 +105,17 @@ function TestResultAlert({ type, testResults }: { type: string; testResults: Aut
             <AlertDescription>{result.message}</AlertDescription>
         </Alert>
     );
+}
+
+/** "Configured", "Incomplete" or "Disabled" on a provider tile. */
+function ProviderStatus({ enabled, valid }: { enabled: boolean; valid: boolean }) {
+    const { t } = useTranslation();
+    const [tone, key] = !enabled
+        ? ['bg-muted text-muted-foreground', 'off']
+        : valid
+            ? ['bg-emerald-500/10 text-emerald-700 dark:text-emerald-400', 'on']
+            : ['bg-amber-500/10 text-amber-700 dark:text-amber-400', 'incomplete'];
+    return <span className={cn('rounded-full px-2 py-0.5 text-[10px] font-medium', tone)}>{t(`authPage.providerStatus.${key}`)}</span>;
 }
 
 export function AuthSettingsPage() {
@@ -634,55 +645,59 @@ export function AuthSettingsPage() {
 
                             <TooltipProvider>
                                 <Tabs value={providerTab} onValueChange={setProviderTab} className="w-full">
-                                    <TabsList className="w-full justify-start border-b rounded-none p-0 h-auto bg-transparent">
-                                        <Tooltip>
-                                            <TooltipTrigger asChild>
-                                                <TabsTrigger value="azure" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none shadow-none pb-2 bg-transparent text-muted-foreground data-[state=active]:text-foreground">
-                                                    Azure AD
-                                                    {/* Status Dot */}
-                                                    {authValues.azureAd?.enabled && (
-                                                        <div className={cn("ml-2 h-2 w-2 rounded-full", azureValidation.isValid ? "bg-green-500" : "bg-amber-500")} />
-                                                    )}
-                                                </TabsTrigger>
-                                            </TooltipTrigger>
-                                            <TooltipContent>{t('authPage.tooltips.azure')}</TooltipContent>
-                                        </Tooltip>
-
-                                        <Tooltip>
-                                            <TooltipTrigger asChild>
-                                                <TabsTrigger value="google" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none shadow-none pb-2 bg-transparent text-muted-foreground data-[state=active]:text-foreground">
-                                                    Google Workspace
-                                                    {authValues.google?.enabled && (
-                                                        <div className={cn("ml-2 h-2 w-2 rounded-full", googleValidation.isValid ? "bg-green-500" : "bg-amber-500")} />
-                                                    )}
-                                                </TabsTrigger>
-                                            </TooltipTrigger>
-                                            <TooltipContent>{t('authPage.tooltips.google')}</TooltipContent>
-                                        </Tooltip>
-
-                                        <Tooltip>
-                                            <TooltipTrigger asChild>
-                                                <TabsTrigger value="oidc" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none shadow-none pb-2 bg-transparent text-muted-foreground data-[state=active]:text-foreground">
-                                                    OIDC / SAML
-                                                    {authValues.generic?.enabled && (
-                                                        <div className={cn("ml-2 h-2 w-2 rounded-full", oidcValidation.isValid ? "bg-green-500" : "bg-amber-500")} />
-                                                    )}
-                                                </TabsTrigger>
-                                            </TooltipTrigger>
-                                            <TooltipContent>{t('authPage.tooltips.oidc')}</TooltipContent>
-                                        </Tooltip>
-
-                                        <Tooltip>
-                                            <TooltipTrigger asChild>
-                                                <TabsTrigger value="ldap" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none shadow-none pb-2 bg-transparent text-muted-foreground data-[state=active]:text-foreground">
-                                                    LDAP
-                                                    {authValues.ldap?.enabled && (
-                                                        <div className={cn("ml-2 h-2 w-2 rounded-full", ldapValidation.isValid ? "bg-green-500" : "bg-amber-500")} />
-                                                    )}
-                                                </TabsTrigger>
-                                            </TooltipTrigger>
-                                            <TooltipContent>{t('authPage.tooltips.ldap')}</TooltipContent>
-                                        </Tooltip>
+                                    <TabsList className="grid h-auto w-full grid-cols-2 gap-2 bg-transparent p-0 group-data-[orientation=horizontal]/tabs:h-auto lg:grid-cols-4">
+                                        <TabsTrigger
+                                            value="azure"
+                                            title={t('authPage.tooltips.azure')}
+                                            className="group h-auto flex-col items-start gap-2 rounded-xl border bg-card p-3 text-left shadow-none transition-all hover:border-primary/40 data-[state=inactive]:border-border dark:data-[state=inactive]:border-border data-[state=active]:border-primary dark:data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-none"
+                                        >
+                                            <span className="flex w-full items-center justify-between gap-2">
+                                                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-sky-500/10 text-sky-700 dark:text-sky-400">
+                                                    <Building2 className="h-4 w-4" />
+                                                </span>
+                                                <ProviderStatus enabled={!!authValues.azureAd?.enabled} valid={azureValidation.isValid} />
+                                            </span>
+                                            <span className="text-sm font-semibold text-foreground">Azure AD</span>
+                                        </TabsTrigger>
+                                        <TabsTrigger
+                                            value="google"
+                                            title={t('authPage.tooltips.google')}
+                                            className="group h-auto flex-col items-start gap-2 rounded-xl border bg-card p-3 text-left shadow-none transition-all hover:border-primary/40 data-[state=inactive]:border-border dark:data-[state=inactive]:border-border data-[state=active]:border-primary dark:data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-none"
+                                        >
+                                            <span className="flex w-full items-center justify-between gap-2">
+                                                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-rose-500/10 text-rose-700 dark:text-rose-400">
+                                                    <Globe className="h-4 w-4" />
+                                                </span>
+                                                <ProviderStatus enabled={!!authValues.google?.enabled} valid={googleValidation.isValid} />
+                                            </span>
+                                            <span className="text-sm font-semibold text-foreground">Google Workspace</span>
+                                        </TabsTrigger>
+                                        <TabsTrigger
+                                            value="oidc"
+                                            title={t('authPage.tooltips.oidc')}
+                                            className="group h-auto flex-col items-start gap-2 rounded-xl border bg-card p-3 text-left shadow-none transition-all hover:border-primary/40 data-[state=inactive]:border-border dark:data-[state=inactive]:border-border data-[state=active]:border-primary dark:data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-none"
+                                        >
+                                            <span className="flex w-full items-center justify-between gap-2">
+                                                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-500/10 text-violet-700 dark:text-violet-400">
+                                                    <KeySquare className="h-4 w-4" />
+                                                </span>
+                                                <ProviderStatus enabled={!!authValues.generic?.enabled} valid={oidcValidation.isValid} />
+                                            </span>
+                                            <span className="text-sm font-semibold text-foreground">OIDC / SAML</span>
+                                        </TabsTrigger>
+                                        <TabsTrigger
+                                            value="ldap"
+                                            title={t('authPage.tooltips.ldap')}
+                                            className="group h-auto flex-col items-start gap-2 rounded-xl border bg-card p-3 text-left shadow-none transition-all hover:border-primary/40 data-[state=inactive]:border-border dark:data-[state=inactive]:border-border data-[state=active]:border-primary dark:data-[state=active]:border-primary data-[state=active]:bg-primary/5 data-[state=active]:shadow-none"
+                                        >
+                                            <span className="flex w-full items-center justify-between gap-2">
+                                                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500/10 text-amber-700 dark:text-amber-400">
+                                                    <Network className="h-4 w-4" />
+                                                </span>
+                                                <ProviderStatus enabled={!!authValues.ldap?.enabled} valid={ldapValidation.isValid} />
+                                            </span>
+                                            <span className="text-sm font-semibold text-foreground">LDAP</span>
+                                        </TabsTrigger>
                                     </TabsList>
 
                                     {/* Azure AD */}
@@ -1183,7 +1198,7 @@ export function AuthSettingsPage() {
                             </Card>
 
                             <div className="space-y-4">
-                                <h3 className="text-lg font-semibold">{t('authPage.allowedMethods')}</h3>
+                                <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t('authPage.allowedMethods')}</h3>
                                 <div className="grid md:grid-cols-2 gap-4">
                                     <Card className={cn(
                                         "relative cursor-pointer transition-all border-2",

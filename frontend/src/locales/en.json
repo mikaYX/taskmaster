@@ -729,7 +729,12 @@
         "apiTokensUnaffected": "Does not affect API tokens",
         "secureActions": "Secure Actions",
         "secureActionsDescription": "Require re-authentication for sensitive actions (e.g. changing password, updating security settings)",
-        "invalidateAllSessionsSoon": "Invalidate all active sessions (Coming Soon)"
+        "invalidateAllSessionsSoon": "Invalidate all active sessions (Coming Soon)",
+        "providerStatus": {
+            "on": "Configured",
+            "incomplete": "Incomplete",
+            "off": "Disabled"
+        }
     },
     "emailSettings": {
         "globalConfiguration": "Global Configuration",
