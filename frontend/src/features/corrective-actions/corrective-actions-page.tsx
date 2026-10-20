@@ -66,7 +66,8 @@ function ActionsWorkspace() {
         <Button
             type="button"
             variant={pressed ? 'default' : 'outline'}
-            aria-pressed={pressed}
+            role="checkbox"
+            aria-checked={pressed}
             className="gap-2"
             onClick={onClick}
         >
@@ -151,7 +152,7 @@ function ActionsWorkspace() {
             <p className="text-sm text-muted-foreground">{t('execution.noActions')}</p>
         </div>}
 
-        {actions.data && actions.data.total > 0 && <nav aria-label={t('execution.pagination')} className="flex items-center justify-between gap-3">
+        {actions.data && <nav aria-label={t('execution.pagination')} className="flex items-center justify-between gap-3">
             <Button variant="outline" size="sm" className="gap-1" disabled={page === 1 || actions.isFetching} onClick={() => setPage(value => value - 1)}>
                 <ChevronLeft className="h-4 w-4" />
                 {t('common.previous')}

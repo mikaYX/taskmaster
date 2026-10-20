@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
-import { Check, X, ExternalLink, Users, Building2, FileText, AlertTriangle, Loader2 } from 'lucide-react';
+import { Check, X, ExternalLink, Users, Building2, FileText, AlertTriangle, Loader2, ClipboardList } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import type { BoardItem, TaskStatusValue } from '@/api/types';
 import { useAuthStore } from '@/stores/auth-store';
@@ -234,8 +234,10 @@ export function TaskRow({ item, onStatusChange, onAdminAction, readonly, isUpdat
                             ) : null}
                         </div>
 
+                        {/* Validate / fail, or the report: one slot of fixed width so the dates stay aligned on every row. */}
+                        <div className="flex w-[68px] shrink-0 items-center justify-center gap-0.5">
                         {!readonly && isRunning && (
-                            <div className="flex items-center gap-0.5">
+                            <>
                                 <Button
                                     variant="ghost"
                                     size="icon"
@@ -256,20 +258,37 @@ export function TaskRow({ item, onStatusChange, onAdminAction, readonly, isUpdat
                                 >
                                     <X className="h-4 w-4" />
                                 </Button>
-                            </div>
+                            </>
                         )}
 
-                        {isTerminal && !!item.executionRecord?.length && <Button variant="outline" size="sm" onClick={() => setExecutionStatus('REPORT')}>{t('execution.report')}</Button>}
-
-                        {!readonly && isAdmin && isTerminal && (
+                        {isTerminal && !!item.executionRecord?.length && (
                             <Button
                                 variant="ghost"
-                                size="sm"
-                                className="h-8 text-xs text-muted-foreground/50 opacity-0 group-hover:opacity-100 transition-opacity hover:text-foreground"
-                                onClick={() => onAdminAction?.(item)}
+                                size="icon"
+                                className="h-8 w-8 rounded-lg text-muted-foreground hover:bg-primary/10 hover:text-primary"
+                                aria-label={t('execution.report')}
+                                title={t('execution.report')}
+                                onClick={() => setExecutionStatus('REPORT')}
                             >
-                                {t('common.edit')}
+                                <ClipboardList className="h-4 w-4" />
                             </Button>
+                        )}
+                        </div>
+
+                        {/* Reserved for every admin row, read-only or not, so all rows keep the same width. */}
+                        {isAdmin && (
+                            <div className="flex w-16 shrink-0 justify-center">
+                                {!readonly && isTerminal && (
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-8 text-xs text-muted-foreground/50 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity hover:text-foreground"
+                                        onClick={() => onAdminAction?.(item)}
+                                    >
+                                        {t('common.edit')}
+                                    </Button>
+                                )}
+                            </div>
                         )}
                     </div>
                 </div>
