@@ -32,12 +32,12 @@ export function NotificationBell() {
     return (
         <Popover open={open} onOpenChange={setOpen}>
             <PopoverTrigger asChild>
-                <Button variant="ghost" size="icon" className="relative" aria-label={t('inbox.open', { count: unread })}>
-                    <Bell className="h-4 w-4" />
+                <Button variant="outline" size="icon" className="relative h-10 w-10 rounded-full bg-card shadow-sm data-[state=open]:bg-accent" aria-label={t('inbox.open', { count: unread })}>
+                    <Bell className="h-[18px] w-[18px]" />
                     {unread > 0 && (
                         <span
                             data-testid="inbox-unread"
-                            className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-semibold leading-none text-white"
+                            className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-semibold leading-none text-white ring-2 ring-background"
                         >
                             {unread > 99 ? '99+' : unread}
                         </span>

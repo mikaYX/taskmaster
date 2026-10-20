@@ -1,43 +1,64 @@
 import { useTranslation } from 'react-i18next';
-import { Moon, Sun } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { Monitor, Moon, Sun } from 'lucide-react';
 import { useTheme } from '@/components/theme-provider';
+import { cn } from '@/lib/utils';
+
+const THEMES = [
+    { value: 'light', icon: Sun },
+    { value: 'dark', icon: Moon },
+    { value: 'system', icon: Monitor },
+] as const;
 
 /**
- * Theme Toggle Button.
- * 
- * shadcn/ui DropdownMenu with sun/moon icon.
+ * Theme switch: light, dark and system side by side, the chosen one raised.
+ * On phones, where there is no room for three buttons, one round button cycles through them.
  */
-export function ThemeToggle() {
+export function ThemeToggle({ className }: { className?: string }) {
     const { t } = useTranslation();
-    const { setTheme } = useTheme();
+    const { theme, setTheme } = useTheme();
+    const index = Math.max(0, THEMES.findIndex((item) => item.value === theme));
+    const Current = THEMES[index].icon;
+    const next = THEMES[(index + 1) % THEMES.length];
 
     return (
-        <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon">
-                    <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-                    <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-                    <span className="sr-only">{t('theme.toggle')}</span>
-                </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => setTheme('light')}>
-                    {t('theme.light')}
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setTheme('dark')}>
-                    {t('theme.dark')}
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setTheme('system')}>
-                    {t('theme.system')}
-                </DropdownMenuItem>
-            </DropdownMenuContent>
-        </DropdownMenu>
+        <>
+            <button
+                type="button"
+                onClick={() => setTheme(next.value)}
+                aria-label={t('theme.toggle')}
+                title={t(`theme.${THEMES[index].value}`)}
+                className="flex h-10 w-10 items-center justify-center rounded-full border bg-card text-primary shadow-sm transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:hidden"
+            >
+                <Current className="h-[18px] w-[18px]" />
+            </button>
+            <div
+                role="radiogroup"
+                aria-label={t('theme.toggle')}
+                className={cn('hidden h-10 items-center gap-0.5 rounded-full border bg-muted/60 p-1 shadow-sm md:flex', className)}
+            >
+                {THEMES.map(({ value, icon: Icon }) => {
+                    const active = theme === value;
+                    return (
+                        <button
+                            key={value}
+                            type="button"
+                            role="radio"
+                            aria-checked={active}
+                            aria-label={t(`theme.${value}`)}
+                            title={t(`theme.${value}`)}
+                            onClick={() => setTheme(value)}
+                            className={cn(
+                                'flex h-8 w-8 items-center justify-center rounded-full transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                                active
+                                    ? 'bg-background text-primary shadow-sm'
+                                    : 'text-muted-foreground hover:bg-background/60 hover:text-foreground',
+                            )}
+                        >
+                            <Icon className="h-4 w-4" />
+                        </button>
+                    );
+                })}
+            </div>
+        </>
     );
 }

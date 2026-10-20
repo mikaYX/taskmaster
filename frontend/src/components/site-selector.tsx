@@ -25,15 +25,16 @@ export function SiteSelector() {
 
     return (
         <Select
-            value={currentSiteId?.toString() ?? ''}
+            // For a super administrator no site chosen means all of them.
+            value={currentSiteId?.toString() ?? (isSuperAdmin ? 'all' : '')}
             onValueChange={(val) => {
                 setCurrentSiteId(val === 'all' ? null : parseInt(val, 10));
                 // Force un rechargement de toutes les requêtes actives pour rafraîchir les données
                 queryClient.invalidateQueries();
             }}
         >
-            <SelectTrigger className="w-[180px] h-9" id="site-selector">
-                <Building2 className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+            <SelectTrigger className="h-10 w-auto gap-2 rounded-full bg-card px-3.5 text-sm font-medium shadow-sm sm:w-[200px] max-sm:[&>[data-slot=select-value]]:!hidden max-sm:[&>svg:last-child]:!hidden [&>[data-slot=select-value]]:flex-1 [&>[data-slot=select-value]]:justify-start" id="site-selector" aria-label={t('sites.selectSite')}>
+                <Building2 className="h-4 w-4 shrink-0 text-primary" />
                 <SelectValue placeholder={t('sites.selectSite')} />
             </SelectTrigger>
             <SelectContent>
