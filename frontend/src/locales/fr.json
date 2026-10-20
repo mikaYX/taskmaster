@@ -47,7 +47,9 @@
         "toggleSidebar": "Afficher ou masquer le menu latéral",
         "unknownError": "Erreur inconnue",
         "sidebar": "Menu latéral",
-        "mobileSidebar": "Affiche le menu latéral mobile."
+        "mobileSidebar": "Affiche le menu latéral mobile.",
+        "later": "Plus tard",
+        "logout": "Se déconnecter"
     },
     "auth": {
         "signIn": "Se connecter",
@@ -63,7 +65,20 @@
         "invalidMfa": "Code MFA invalide.",
         "passkeyFailed": "Échec de la connexion par clé d'accès.",
         "passkeyOriginError": "Passkey indisponible sur {{origin}} avec le domaine configuré {{rpID}}. Vérifiez HTTPS et FRONTEND_URL dans la configuration du serveur, puis redémarrez le service.",
-        "passkeyConfigError": "La configuration passkey ne correspond pas à l’adresse publique. Vérifiez FRONTEND_URL et RP_ID (domaine sans protocole ni port), puis redémarrez le service."
+        "passkeyConfigError": "La configuration passkey ne correspond pas à l’adresse publique. Vérifiez FRONTEND_URL et RP_ID (domaine sans protocole ni port), puis redémarrez le service.",
+        "passkeyAddedSuccessfully": "Passkey ajoutée",
+        "passkeyRegistrationCancelled": "Création de la passkey annulée",
+        "passkeyAddFailed": "La passkey n'a pas pu être ajoutée",
+        "passkeyNameRequired": "Donnez un nom à cette passkey",
+        "setupPasskeyTitle": "Configurer une passkey",
+        "passkeyRequiredDesc": "Votre organisation exige une passkey pour accéder à l'application. Elle offre une sécurité renforcée, sans mot de passe.",
+        "passkeyOptionalDesc": "Renforcez la sécurité de votre compte et connectez-vous plus vite avec une passkey. Vous pouvez utiliser la biométrie de votre appareil (empreinte, visage) ou une clé de sécurité.",
+        "passkeyBenefits": "Les passkeys remplacent les mots de passe de façon plus sûre et plus simple.",
+        "configureNow": "Configurer maintenant",
+        "passkeyName": "Nom de l'appareil",
+        "passkeyNamePlaceholder": "Mon téléphone, PC du bureau...",
+        "passkeyNameHelp": "Choisissez un nom pour reconnaître cet appareil plus tard.",
+        "createPasskey": "Créer la passkey"
     },
     "settingsValidation": {
         "countryRequired": "Le code pays est requis",
@@ -2311,7 +2326,8 @@
             "email": "Email",
             "emailHint": "Votre adresse email ne peut pas être modifiée.",
             "role": "Rôle",
-            "roleHint": "Votre rôle est géré par votre administrateur."
+            "roleHint": "Votre rôle est géré par votre administrateur.",
+            "readOnlyHint": "Votre email et votre rôle sont gérés par votre administrateur."
         },
         "security": {
             "title": "Sécurité",
@@ -2330,6 +2346,14 @@
             "managePasskeys": "Gérer les passkeys",
             "addPasskey": "Ajouter une passkey",
             "passkeysContact": "Contactez votre administrateur pour activer les passkeys."
+        },
+        "securityLevel": "Protection du compte",
+        "protections": "{{count}} protections sur {{total}}",
+        "status": {
+            "on": "Activé",
+            "off": "Non configuré",
+            "required": "Obligatoire",
+            "unavailable": "Indisponible"
         }
     },
     "mfaSetup": {

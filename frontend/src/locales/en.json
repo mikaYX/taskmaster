@@ -47,7 +47,9 @@
         "toggleSidebar": "Toggle Sidebar",
         "unknownError": "Unknown error",
         "sidebar": "Sidebar",
-        "mobileSidebar": "Displays the mobile sidebar."
+        "mobileSidebar": "Displays the mobile sidebar.",
+        "later": "Later",
+        "logout": "Log out"
     },
     "auth": {
         "signIn": "Sign in",
@@ -63,7 +65,20 @@
         "invalidMfa": "Invalid MFA code.",
         "passkeyFailed": "Passkey login failed.",
         "passkeyOriginError": "Passkey unavailable on {{origin}} with configured domain {{rpID}}. Check HTTPS and FRONTEND_URL in the server configuration, then restart the service.",
-        "passkeyConfigError": "Passkey configuration does not match the public address. Check FRONTEND_URL and RP_ID (domain without protocol or port), then restart the service."
+        "passkeyConfigError": "Passkey configuration does not match the public address. Check FRONTEND_URL and RP_ID (domain without protocol or port), then restart the service.",
+        "passkeyAddedSuccessfully": "Passkey added successfully",
+        "passkeyRegistrationCancelled": "Passkey registration cancelled",
+        "passkeyAddFailed": "Failed to add passkey",
+        "passkeyNameRequired": "Please enter a name for this passkey",
+        "setupPasskeyTitle": "Setup a Passkey",
+        "passkeyRequiredDesc": "Your organization requires you to set up a passkey to access the application. This provides stronger, passwordless security.",
+        "passkeyOptionalDesc": "Enhance your account security and sign in faster by setting up a passkey. You can use your device biometrics (fingerprint, face) or a security key.",
+        "passkeyBenefits": "Passkeys are a safer and easier replacement for passwords.",
+        "configureNow": "Configure Now",
+        "passkeyName": "Device Name",
+        "passkeyNamePlaceholder": "My Phone, Work Laptop...",
+        "passkeyNameHelp": "Choose a name to help you identify this device later.",
+        "createPasskey": "Create Passkey"
     },
     "settingsValidation": {
         "countryRequired": "Country code is required",
@@ -2311,7 +2326,8 @@
             "email": "Email",
             "emailHint": "Your email address cannot be changed.",
             "role": "Role",
-            "roleHint": "Your role is managed by your administrator."
+            "roleHint": "Your role is managed by your administrator.",
+            "readOnlyHint": "Your email and role are managed by your administrator."
         },
         "security": {
             "title": "Security",
@@ -2330,6 +2346,14 @@
             "managePasskeys": "Manage Passkeys",
             "addPasskey": "Add Passkey",
             "passkeysContact": "Contact your administrator to enable passkeys."
+        },
+        "securityLevel": "Account protection",
+        "protections": "{{count}} of {{total}} protections",
+        "status": {
+            "on": "Enabled",
+            "off": "Not set up",
+            "required": "Required",
+            "unavailable": "Unavailable"
         }
     },
     "mfaSetup": {
