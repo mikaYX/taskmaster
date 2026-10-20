@@ -1,4 +1,6 @@
 import { useTranslation } from 'react-i18next';
+import { useLocation } from 'react-router-dom';
+import { titleKeyForPath } from '@/lib/route-titles';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { LanguageToggle } from '@/components/language-toggle';
@@ -13,8 +15,9 @@ interface AppHeaderProps {
     showNotifications?: boolean;
 }
 
-export function AppHeader({ titleKey = 'nav.taskBoard', subtitleKey, showNotifications = false }: AppHeaderProps) {
+export function AppHeader({ titleKey, subtitleKey, showNotifications = false }: AppHeaderProps) {
     const { t } = useTranslation();
+    const { pathname } = useLocation();
 
     return (
         <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4">
@@ -23,7 +26,7 @@ export function AppHeader({ titleKey = 'nav.taskBoard', subtitleKey, showNotific
 
             <div className="flex-1">
                 <h1 className="text-lg font-semibold flex items-center">
-                    {t(titleKey)}
+                    {t(titleKey ?? titleKeyForPath(pathname))}
                 </h1>
                 {subtitleKey && (
                     <p className="text-sm text-muted-foreground">{t(subtitleKey)}</p>

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Trash, CalendarOff, Users, Clock } from 'lucide-react';
+import { Plus, Trash, CalendarOff, CalendarClock, Users, Clock, Loader2, X } from 'lucide-react';
 import {
     Sheet,
     SheetContent,
@@ -8,7 +8,6 @@ import {
     SheetTitle,
 } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
 import {
     Select,
     SelectContent,
@@ -16,7 +15,6 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
@@ -135,41 +133,81 @@ export function TaskDelegationsSheet({ task, open, onOpenChange }: TaskDelegatio
         );
     };
 
+    const now = new Date();
+    const statusOf = (startIso: string, endIso: string) => {
+        const start = new Date(startIso);
+        const end = new Date(endIso);
+        if (end <= now) return 'ended' as const;
+        if (start <= now) return 'active' as const;
+        return 'planned' as const;
+    };
+    const STATUS_TONE = {
+        active: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400',
+        planned: 'bg-sky-500/10 text-sky-700 dark:text-sky-400',
+        ended: 'bg-muted text-muted-foreground',
+    };
+    const formatDateTime = (iso: string) =>
+        new Date(iso).toLocaleString(dateCode, { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+
+    const chip = (key: string, label: string, onRemove: () => void, tone: string) => (
+        <span key={key} className={`inline-flex items-center gap-1 rounded-full py-0.5 pl-2.5 pr-1 text-xs font-medium ${tone}`}>
+            {label}
+            <button
+                type="button"
+                aria-label={t('taskDelegations.removeTarget', { name: label })}
+                className="flex h-4 w-4 items-center justify-center rounded-full hover:bg-black/10 dark:hover:bg-white/10"
+                onClick={onRemove}
+            >
+                <X className="h-3 w-3" />
+            </button>
+        </span>
+    );
+
+    const canCreate = !createDelegation.isPending && !!startAt && !!endAt && (selectedUserIds.length > 0 || selectedGroupIds.length > 0);
+
     return (
         <Sheet open={open} onOpenChange={onOpenChange}>
-            <SheetContent className="w-[520px] sm:max-w-[520px] flex flex-col overflow-y-auto">
-                <SheetHeader>
-                    <SheetTitle className="text-xl flex items-center gap-2">
-                        <CalendarOff className="h-5 w-5" /> {t('taskDelegations.title')}
-                    </SheetTitle>
-                    <SheetDescription>
-                        <Trans
-                            i18nKey="taskDelegations.description"
-                            values={{ name: task.name }}
-                            components={{ strong: <strong className="text-foreground" /> }}
-                        />
-                    </SheetDescription>
+            <SheetContent className="flex w-full flex-col gap-0 p-0 sm:max-w-[520px]">
+                <SheetHeader className="space-y-0 border-b p-6 text-left">
+                    <div className="flex items-start gap-3 pr-8">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-orange-500/10 text-orange-700 dark:text-orange-400">
+                            <CalendarClock className="h-5 w-5" />
+                        </div>
+                        <div className="min-w-0">
+                            <SheetTitle className="text-lg">{t('taskDelegations.title')}</SheetTitle>
+                            <SheetDescription>
+                                <Trans
+                                    i18nKey="taskDelegations.description"
+                                    values={{ name: task.name }}
+                                    components={{ strong: <strong className="text-foreground" /> }}
+                                />
+                            </SheetDescription>
+                        </div>
+                    </div>
                 </SheetHeader>
 
-                <Separator className="my-4" />
-
-                <div className="space-y-6">
+                <div className="flex-1 space-y-6 overflow-y-auto p-6">
                     {/* NEW DELEGATION FORM */}
-                    <div className="space-y-4">
-                        <h3 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">{t('taskDelegations.newDelegation')}</h3>
+                    <section className="space-y-4 rounded-xl border bg-card p-4 shadow-sm">
+                        <h3 className="flex items-center gap-2 text-sm font-semibold">
+                            <Plus className="h-4 w-4 text-primary" />
+                            {t('taskDelegations.newDelegation')}
+                        </h3>
 
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label>{t('taskDelegations.startTime')}</Label>
+                        <div className="grid gap-3 sm:grid-cols-2">
+                            <div className="space-y-1.5">
+                                <Label htmlFor="delegation-start" className="text-xs">{t('taskDelegations.startTime')}</Label>
                                 <Input
+                                    id="delegation-start"
                                     type="datetime-local"
                                     value={startAt}
                                     onChange={(e) => setStartAt(e.target.value)}
                                 />
                             </div>
-                            <div className="space-y-2">
-                                <Label>{t('taskDelegations.endTime')}</Label>
+                            <div className="space-y-1.5">
+                                <Label htmlFor="delegation-end" className="text-xs">{t('taskDelegations.endTime')}</Label>
                                 <Input
+                                    id="delegation-end"
                                     type="datetime-local"
                                     value={endAt}
                                     onChange={(e) => setEndAt(e.target.value)}
@@ -177,9 +215,10 @@ export function TaskDelegationsSheet({ task, open, onOpenChange }: TaskDelegatio
                             </div>
                         </div>
 
-                        <div className="space-y-2">
-                            <Label>{t('taskDelegations.reason')}</Label>
+                        <div className="space-y-1.5">
+                            <Label htmlFor="delegation-reason" className="text-xs">{t('taskDelegations.reason')}</Label>
                             <Input
+                                id="delegation-reason"
                                 placeholder={t('taskDelegations.reasonPlaceholder')}
                                 value={reason}
                                 onChange={(e) => setReason(e.target.value)}
@@ -187,11 +226,11 @@ export function TaskDelegationsSheet({ task, open, onOpenChange }: TaskDelegatio
                         </div>
 
                         {/* TARGET SELECTION */}
-                        <div className="space-y-3 pt-2 border-t">
-                            <Label>{t('taskDelegations.delegateToUsers')}</Label>
+                        <div className="space-y-2 rounded-lg bg-muted/30 p-3">
+                            <Label className="text-xs">{t('taskDelegations.delegateToUsers')}</Label>
                             <div className="flex gap-2">
                                 <Select value={tempUserId} onValueChange={setTempUserId}>
-                                    <SelectTrigger className="flex-1">
+                                    <SelectTrigger className="flex-1 bg-background" aria-label={t('taskDelegations.delegateToUsers')}>
                                         <SelectValue placeholder={t('taskDelegations.selectUser')} />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -202,30 +241,25 @@ export function TaskDelegationsSheet({ task, open, onOpenChange }: TaskDelegatio
                                         ))}
                                     </SelectContent>
                                 </Select>
-                                <Button variant="outline" onClick={handleAddUser} disabled={!tempUserId}>
+                                <Button variant="outline" size="icon" aria-label={t('taskDelegations.addTarget')} onClick={handleAddUser} disabled={!tempUserId}>
                                     <Plus className="h-4 w-4" />
                                 </Button>
                             </div>
                             {selectedUserIds.length > 0 && (
-                                <div className="flex flex-wrap gap-2">
+                                <div className="flex flex-wrap gap-1.5">
                                     {selectedUserIds.map(id => {
                                         const u = allUsers?.find(user => user.id === id);
-                                        return (
-                                            <div key={id} className="flex items-center gap-1 bg-secondary text-secondary-foreground text-xs px-2 py-1 rounded-md">
-                                                {u?.fullname || u?.username || id}
-                                                <Trash className="h-3 w-3 cursor-pointer ml-1 hover:text-destructive" onClick={() => handleRemoveSelectedUser(id)} />
-                                            </div>
-                                        );
+                                        return chip(`u${id}`, u?.fullname || u?.username || String(id), () => handleRemoveSelectedUser(id), 'bg-primary/10 text-primary');
                                     })}
                                 </div>
                             )}
                         </div>
 
-                        <div className="space-y-3 pt-2 border-t">
-                            <Label>{t('taskDelegations.delegateToGroups')}</Label>
+                        <div className="space-y-2 rounded-lg bg-muted/30 p-3">
+                            <Label className="text-xs">{t('taskDelegations.delegateToGroups')}</Label>
                             <div className="flex gap-2">
                                 <Select value={tempGroupId} onValueChange={setTempGroupId}>
-                                    <SelectTrigger className="flex-1">
+                                    <SelectTrigger className="flex-1 bg-background" aria-label={t('taskDelegations.delegateToGroups')}>
                                         <SelectValue placeholder={t('taskDelegations.selectGroup')} />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -236,92 +270,96 @@ export function TaskDelegationsSheet({ task, open, onOpenChange }: TaskDelegatio
                                         ))}
                                     </SelectContent>
                                 </Select>
-                                <Button variant="outline" onClick={handleAddGroup} disabled={!tempGroupId}>
+                                <Button variant="outline" size="icon" aria-label={t('taskDelegations.addTarget')} onClick={handleAddGroup} disabled={!tempGroupId}>
                                     <Plus className="h-4 w-4" />
                                 </Button>
                             </div>
                             {selectedGroupIds.length > 0 && (
-                                <div className="flex flex-wrap gap-2">
+                                <div className="flex flex-wrap gap-1.5">
                                     {selectedGroupIds.map(id => {
                                         const g = allGroups?.find(group => group.id === id);
-                                        return (
-                                            <div key={id} className="flex items-center gap-1 bg-secondary text-secondary-foreground text-xs px-2 py-1 rounded-md">
-                                                {g?.name || id}
-                                                <Trash className="h-3 w-3 cursor-pointer ml-1 hover:text-destructive" onClick={() => handleRemoveSelectedGroup(id)} />
-                                            </div>
-                                        );
+                                        return chip(`g${id}`, g?.name || String(id), () => handleRemoveSelectedGroup(id), 'bg-orange-500/10 text-orange-700 dark:text-orange-400');
                                     })}
                                 </div>
                             )}
                         </div>
 
-                        <Button
-                            className="w-full mt-2"
-                            onClick={handleCreateDelegation}
-                            disabled={createDelegation.isPending || (!startAt || !endAt) || (selectedUserIds.length === 0 && selectedGroupIds.length === 0)}
-                        >
+                        <Button className="w-full gap-2" onClick={handleCreateDelegation} disabled={!canCreate}>
+                            {createDelegation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <CalendarClock className="h-4 w-4" />}
                             {createDelegation.isPending ? t('taskDelegations.creating') : t('taskDelegations.create')}
                         </Button>
-                    </div>
-
-                    <Separator />
+                    </section>
 
                     {/* EXISTING DELEGATIONS */}
-                    <div className="space-y-4">
-                        <h3 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">{t('taskDelegations.activeAndPlanned')}</h3>
+                    <section className="space-y-3">
+                        <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t('taskDelegations.activeAndPlanned')}</h3>
 
                         {delegationsLoading ? (
-                            <div className="text-sm text-muted-foreground">{t('taskDelegations.loading')}</div>
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                                {t('taskDelegations.loading')}
+                            </div>
                         ) : delegations?.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center py-6 text-center border rounded-lg bg-muted/20">
-                                <CalendarOff className="h-8 w-8 text-muted-foreground/30 mb-2" />
-                                <p className="text-muted-foreground text-sm">{t('taskDelegations.none')}</p>
+                            <div className="flex flex-col items-center justify-center rounded-xl border border-dashed px-6 py-10 text-center">
+                                <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-muted">
+                                    <CalendarOff className="h-6 w-6 text-muted-foreground" />
+                                </div>
+                                <p className="text-sm text-muted-foreground">{t('taskDelegations.none')}</p>
                             </div>
                         ) : (
-                            <div className="space-y-3">
-                                {delegations?.map(del => (
-                                    <Card key={del.id} className="shadow-sm">
-                                        <CardContent className="p-4 flex flex-col gap-2 relative">
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="absolute top-2 right-2 h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                                                onClick={() => handleDeleteDelegation(del.id)}
-                                                disabled={deleteDelegation.isPending}
-                                            >
-                                                <Trash className="h-3 w-3" />
-                                            </Button>
-
-                                            <div className="flex items-center gap-2 text-sm font-medium">
-                                                <Clock className="h-4 w-4 text-blue-500" />
-                                                {new Date(del.startAt).toLocaleDateString(dateCode)} - {new Date(del.endAt).toLocaleDateString(dateCode)}
+                            <ul className="space-y-2">
+                                {delegations?.map(del => {
+                                    const status = statusOf(del.startAt, del.endAt);
+                                    return (
+                                        <li key={del.id} className="group rounded-xl border bg-card p-4 transition-colors hover:border-primary/25">
+                                            <div className="flex items-start justify-between gap-3">
+                                                <div className="min-w-0 space-y-1">
+                                                    <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium ${STATUS_TONE[status]}`}>
+                                                        {t(`taskDelegations.status.${status}`)}
+                                                    </span>
+                                                    <p className="flex items-center gap-1.5 text-sm font-medium">
+                                                        <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                                                        {formatDateTime(del.startAt)} → {formatDateTime(del.endAt)}
+                                                    </p>
+                                                </div>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    aria-label={t('taskDelegations.removeDelegation')}
+                                                    title={t('taskDelegations.removeDelegation')}
+                                                    className="h-8 w-8 shrink-0 text-muted-foreground transition-opacity hover:bg-destructive/10 hover:text-destructive focus-visible:opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
+                                                    onClick={() => handleDeleteDelegation(del.id)}
+                                                    disabled={deleteDelegation.isPending}
+                                                >
+                                                    <Trash className="h-4 w-4" />
+                                                </Button>
                                             </div>
 
                                             {del.reason && (
-                                                <p className="text-xs text-muted-foreground mt-1">
+                                                <p className="mt-2 text-xs text-muted-foreground">
                                                     {t('taskDelegations.reasonLine', { reason: del.reason })}
                                                 </p>
                                             )}
 
-                                            <div className="flex items-center gap-1 flex-wrap mt-2">
-                                                <Users className="h-3 w-3 text-muted-foreground mr-1" />
+                                            <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                                                <Users className="mr-0.5 h-3.5 w-3.5 text-muted-foreground" />
                                                 {del.targetUsers?.map(tu => (
-                                                    <span key={tu.userId} className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded">
+                                                    <span key={tu.userId} className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">
                                                         {tu.user.fullname || tu.user.username}
                                                     </span>
                                                 ))}
                                                 {del.targetGroups?.map(tg => (
-                                                    <span key={tg.groupId} className="text-[10px] bg-orange-500/10 text-orange-700 px-1.5 py-0.5 rounded">
+                                                    <span key={tg.groupId} className="rounded-full bg-orange-500/10 px-2 py-0.5 text-[11px] font-medium text-orange-700 dark:text-orange-400">
                                                         {tg.group.name}
                                                     </span>
                                                 ))}
                                             </div>
-                                        </CardContent>
-                                    </Card>
-                                ))}
-                            </div>
+                                        </li>
+                                    );
+                                })}
+                            </ul>
                         )}
-                    </div>
+                    </section>
                 </div>
             </SheetContent>
         </Sheet>

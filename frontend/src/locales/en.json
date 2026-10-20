@@ -1920,7 +1920,8 @@
             "unassigned": "Without assignment",
             "delegated": "Active delegations",
             "inactive": "Inactive"
-        }
+        },
+        "archiveLink": "Archives"
     },
     "taskDelete": {
         "title": "Delete Task",
@@ -1944,12 +1945,6 @@
         "backToTasks": "Back to Tasks",
         "noDescription": "No description provided",
         "runNow": "Run Now",
-        "tabs": {
-            "overview": "Overview",
-            "logs": "Logs",
-            "configuration": "Configuration"
-        },
-        "notImplemented": "Not implemented yet",
         "start": "Start: {{date}}",
         "noWeekends": "No Wknds",
         "noHolidays": "No Holidays",
@@ -1965,18 +1960,18 @@
             "missing": "Missing",
             "reminder": "Reminder"
         },
-        "configTitle": "Task Configuration",
-        "configDescription": "Details about the task definition.",
         "createdAt": "Created At",
-        "updatedAt": "Updated At"
+        "updatedAt": "Updated At",
+        "manage": "Manage",
+        "delegationsActive_one": "{{count}} active delegation",
+        "delegationsActive_other": "{{count}} active delegations",
+        "noDelegation": "No active delegation"
     },
     "taskEdit": {
         "title": "Edit Task: {{name}}",
         "saveChanges": "Save Changes",
         "saveNotifications": "Save Notifications",
         "notFound": "Task not found",
-        "basicInformation": "Basic Information",
-        "schedulingRecurrence": "Scheduling & Recurrence",
         "toasts": {
             "notificationsSaved": "Notifications saved",
             "notificationsFailed": "Failed to save notifications",
@@ -1986,6 +1981,14 @@
             "updated": "Task Updated",
             "uploadFailed": "Task was updated, but the new procedure file failed to upload.",
             "updateFailed": "Failed to update task"
+        },
+        "backToTask": "Back to the task",
+        "subtitle": "Change the definition, the schedule, the assignments or the notifications.",
+        "sections": {
+            "definition": "Name, procedure, description and periodicity",
+            "scheduling": "Recurrence rules, dates and time window",
+            "assignment": "Who has to do the task",
+            "notifications": "Alerts sent by this task"
         }
     },
     "taskArchive": {
@@ -2023,7 +2026,8 @@
             "groupAssignFailed": "Failed to assign group",
             "groupUnassigned": "Group unassigned",
             "groupUnassignFailed": "Failed to unassign group"
-        }
+        },
+        "remove": "Remove"
     },
     "taskDelegations": {
         "title": "Task Delegations",
@@ -2050,6 +2054,14 @@
             "createFailed": "Failed to create delegation",
             "removed": "Delegation removed",
             "removeFailed": "Failed to remove delegation"
+        },
+        "removeTarget": "Remove {{name}}",
+        "addTarget": "Add",
+        "removeDelegation": "Remove the delegation",
+        "status": {
+            "active": "In progress",
+            "planned": "Planned",
+            "ended": "Ended"
         }
     },
     "userMgmt": {

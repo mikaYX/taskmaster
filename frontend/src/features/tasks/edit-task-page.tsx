@@ -13,13 +13,12 @@ import { StepAssignment } from "./wizard/steps/step-assignment";
 import { StepNotifications } from "./wizard/steps/step-notifications";
 import { useTaskNotifications, useSaveTaskNotifications } from "@/hooks/use-notifications";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { parseRRuleToForm } from "./utils/rrule-parser";
 import { generateRRuleFromForm } from "./utils/rrule-utils";
 import { useSettings } from "@/features/settings/hooks/use-settings";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Save, ArrowLeft } from "lucide-react";
+import { Save, ArrowLeft, Bell, CalendarClock, FileText, Loader2, Pencil, Users } from "lucide-react";
 import type { UpdateTaskDto } from "@/api/types";
 import { tasksApi } from "@/api/tasks";
 
@@ -201,85 +200,110 @@ export function EditTaskPage() {
         navigate(`/task-definitions/${taskId}`);
     };
 
-    if (isLoading) return <div className="p-8"><Skeleton className="h-[400px]" /></div>;
-    if (!task) return <div className="p-8">{t('taskEdit.notFound')}</div>;
+    if (isLoading) {
+        return (
+            <div className="mx-auto w-full max-w-6xl space-y-6 py-6">
+                <Skeleton className="h-12 w-80 rounded-xl" />
+                <Skeleton className="h-[420px] w-full rounded-xl" />
+            </div>
+        );
+    }
+    if (!task) return <div className="mx-auto max-w-md py-20 text-center text-lg font-semibold">{t('taskEdit.notFound')}</div>;
+
+    const saving = updateTaskMutation.isPending || saveNotificationsMutation.isPending;
+    const sections = [
+        { value: 'definition', icon: FileText, title: t('taskWizard.steps.definition.title'), description: t('taskEdit.sections.definition') },
+        { value: 'scheduling', icon: CalendarClock, title: t('taskWizard.steps.scheduling.title'), description: t('taskEdit.sections.scheduling') },
+        { value: 'assignment', icon: Users, title: t('taskWizard.steps.assignment.title'), description: t('taskEdit.sections.assignment') },
+        { value: 'notifications', icon: Bell, title: t('taskWizard.steps.notifications.title'), description: t('taskEdit.sections.notifications') },
+    ];
 
     return (
-        <div className="flex-1 space-y-4 p-8 pt-6 max-w-4xl mx-auto">
-            <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center space-x-4">
-                    <Button variant="ghost" size="icon" onClick={() => navigate(`/task-definitions/${taskId}`)}>
-                        <ArrowLeft className="h-4 w-4" />
-                    </Button>
-                    <h2 className="text-2xl font-bold tracking-tight">{t('taskEdit.title', { name: task.name })}</h2>
+        <div className="mx-auto w-full max-w-6xl space-y-6 pb-24 pt-4 sm:pt-6">
+            <Button variant="ghost" size="sm" className="-ml-2 gap-2 text-muted-foreground" onClick={() => navigate(`/task-definitions/${taskId}`)}>
+                <ArrowLeft className="h-4 w-4" />
+                {t('taskEdit.backToTask')}
+            </Button>
+
+            <div className="flex flex-wrap items-center justify-between gap-4">
+                <div className="flex min-w-0 items-center gap-4">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                        <Pencil className="h-6 w-6" />
+                    </div>
+                    <div className="min-w-0">
+                        <h1 className="break-words text-2xl font-bold tracking-tight">{t('taskEdit.title', { name: task.name })}</h1>
+                        <p className="text-sm text-muted-foreground">{t('taskEdit.subtitle')}</p>
+                    </div>
                 </div>
-                <Button onClick={(e) => { void handleSaveAndClose(e); }} disabled={updateTaskMutation.isPending || saveNotificationsMutation.isPending}>
-                    <Save className="mr-2 h-4 w-4" />
+                <Button className="gap-2 shadow-sm" onClick={(e) => { void handleSaveAndClose(e); }} disabled={saving}>
+                    {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                     {t('taskEdit.saveChanges')}
                 </Button>
             </div>
 
             <FormProvider {...methods}>
-                <Tabs defaultValue="definition" className="space-y-4">
-                    <TabsList>
-                        <TabsTrigger value="definition">{t('taskWizard.steps.definition.title')}</TabsTrigger>
-                        <TabsTrigger value="scheduling">{t('taskWizard.steps.scheduling.title')}</TabsTrigger>
-                        <TabsTrigger value="assignment">{t('taskWizard.steps.assignment.title')}</TabsTrigger>
-                        <TabsTrigger value="notifications">{t('taskWizard.steps.notifications.title')}</TabsTrigger>
+                <Tabs defaultValue="definition" orientation="vertical" className="flex-col gap-6 md:flex-row">
+                    <TabsList className="h-auto w-full shrink-0 flex-row flex-wrap justify-start gap-1 rounded-xl border bg-card p-2 shadow-sm md:sticky md:top-4 md:w-64 md:flex-col md:items-stretch md:self-start">
+                        {sections.map(({ value, icon: Icon, title, description }) => (
+                            <TabsTrigger
+                                key={value}
+                                value={value}
+                                className="group h-auto flex-none justify-start gap-3 rounded-lg px-3 py-2.5 text-left data-[state=active]:bg-primary/5 data-[state=active]:shadow-none md:w-full"
+                            >
+                                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground transition-colors group-data-[state=active]:bg-primary group-data-[state=active]:text-primary-foreground">
+                                    <Icon className="h-4 w-4" />
+                                </span>
+                                <span className="min-w-0">
+                                    <span className="block text-sm font-medium">{title}</span>
+                                    <span className="hidden whitespace-normal text-[11px] font-normal text-muted-foreground md:block">{description}</span>
+                                </span>
+                            </TabsTrigger>
+                        ))}
                     </TabsList>
 
-                    <TabsContent value="definition">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>{t('taskEdit.basicInformation')}</CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                <StepDefinition />
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
-
-                    <TabsContent value="scheduling">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>{t('taskEdit.schedulingRecurrence')}</CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                <StepScheduling fcEnabled={fcEnabled} />
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
-
-                    <TabsContent value="assignment">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>{t('tasks.assignments')}</CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                <StepAssignment />
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
-
-                    <TabsContent value="notifications">
-                        <Card>
-                            <CardHeader className="flex flex-row items-center justify-between">
-                                <CardTitle>{t('taskWizard.steps.notifications.title')}</CardTitle>
-                                <Button
-                                    type="button"
-                                    size="sm"
-                                    onClick={() => { void saveNotifications(); }}
-                                    disabled={saveNotificationsMutation.isPending}
-                                >
-                                    <Save className="mr-2 h-4 w-4" />
-                                    {t('taskEdit.saveNotifications')}
-                                </Button>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                <StepNotifications />
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
+                    {sections.map(({ value, icon: Icon, title, description }) => (
+                        <TabsContent key={value} value={value} className="mt-0 min-w-0 flex-1">
+                            <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
+                                <div className="flex flex-wrap items-center gap-3 border-b px-6 py-5">
+                                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                                        <Icon className="h-5 w-5" />
+                                    </span>
+                                    <div className="min-w-0 flex-1">
+                                        <h2 className="text-lg font-semibold leading-tight">{title}</h2>
+                                        <p className="text-sm text-muted-foreground">{description}</p>
+                                    </div>
+                                    {value === 'notifications' && (
+                                        <Button
+                                            type="button"
+                                            size="sm"
+                                            variant="outline"
+                                            className="gap-2"
+                                            onClick={() => { void saveNotifications(); }}
+                                            disabled={saveNotificationsMutation.isPending}
+                                        >
+                                            <Save className="h-4 w-4" />
+                                            {t('taskEdit.saveNotifications')}
+                                        </Button>
+                                    )}
+                                </div>
+                                <div className="space-y-4 px-6 py-6">
+                                    {value === 'definition' && <StepDefinition />}
+                                    {value === 'scheduling' && <StepScheduling fcEnabled={fcEnabled} />}
+                                    {value === 'assignment' && <StepAssignment />}
+                                    {value === 'notifications' && <StepNotifications />}
+                                </div>
+                                <div className="flex items-center justify-end gap-2 border-t bg-muted/30 px-6 py-4">
+                                    <Button variant="outline" onClick={() => navigate(`/task-definitions/${taskId}`)}>
+                                        {t('common.cancel')}
+                                    </Button>
+                                    <Button className="gap-2" onClick={(e) => { void handleSaveAndClose(e); }} disabled={saving}>
+                                        {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                                        {t('taskEdit.saveChanges')}
+                                    </Button>
+                                </div>
+                            </div>
+                        </TabsContent>
+                    ))}
                 </Tabs>
             </FormProvider>
         </div>

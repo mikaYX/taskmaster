@@ -8,7 +8,6 @@ import {
     SheetTitle,
 } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
 import {
     Select,
     SelectContent,
@@ -16,7 +15,6 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 import type { Task } from '@/api/types';
@@ -116,24 +114,86 @@ export function TaskAssignmentsSheet({ task, open, onOpenChange }: TaskAssignmen
     const isLoading = assignUsers.isPending || unassignUsers.isPending ||
         assignGroups.isPending || unassignGroups.isPending;
 
+    const renderAdd = (
+        value: string,
+        onChange: (v: string) => void,
+        placeholder: string,
+        emptyLabel: string,
+        options: { id: number; label: string }[],
+        onAdd: () => void,
+    ) => (
+        <div className="flex gap-2 rounded-xl border bg-muted/30 p-2">
+            <Select value={value} onValueChange={onChange} disabled={isLoading}>
+                <SelectTrigger className="flex-1 bg-background">
+                    <SelectValue placeholder={placeholder} />
+                </SelectTrigger>
+                <SelectContent>
+                    {options.length === 0 ? (
+                        <SelectItem value="__none__" disabled>
+                            {emptyLabel}
+                        </SelectItem>
+                    ) : (
+                        options.map((option) => (
+                            <SelectItem key={option.id} value={option.id.toString()}>
+                                {option.label}
+                            </SelectItem>
+                        ))
+                    )}
+                </SelectContent>
+            </Select>
+            <Button onClick={onAdd} disabled={!value || value === '__none__' || isLoading} className="gap-1.5">
+                <Plus className="h-4 w-4" />
+                {t('taskAssignments.add')}
+            </Button>
+        </div>
+    );
+
+    const renderEmpty = (Icon: typeof Users, text: string) => (
+        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed px-6 py-12 text-center">
+            <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-muted">
+                <Icon className="h-6 w-6 text-muted-foreground" />
+            </div>
+            <p className="text-sm text-muted-foreground">{text}</p>
+        </div>
+    );
+
+    const removeButton = (label: string, onClick: () => void) => (
+        <Button
+            variant="ghost"
+            size="icon"
+            aria-label={label}
+            title={label}
+            className="h-8 w-8 shrink-0 text-muted-foreground transition-opacity hover:bg-destructive/10 hover:text-destructive focus-visible:opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
+            onClick={onClick}
+            disabled={isLoading}
+        >
+            <Trash className="h-4 w-4" />
+        </Button>
+    );
+
     return (
         <Sheet open={open} onOpenChange={onOpenChange}>
-            <SheetContent className="w-[520px] sm:max-w-[520px] flex flex-col">
-                <SheetHeader>
-                    <SheetTitle className="text-xl">{t('taskAssignments.title')}</SheetTitle>
-                    <SheetDescription>
-                        <Trans
-                            i18nKey="taskAssignments.description"
-                            values={{ name: task.name }}
-                            components={{ strong: <strong className="text-foreground" /> }}
-                        />
-                    </SheetDescription>
+            <SheetContent className="flex w-full flex-col gap-0 p-0 sm:max-w-[520px]">
+                <SheetHeader className="space-y-0 border-b p-6 text-left">
+                    <div className="flex items-start gap-3 pr-8">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-500/10 text-violet-700 dark:text-violet-400">
+                            <Users className="h-5 w-5" />
+                        </div>
+                        <div className="min-w-0">
+                            <SheetTitle className="text-lg">{t('taskAssignments.title')}</SheetTitle>
+                            <SheetDescription>
+                                <Trans
+                                    i18nKey="taskAssignments.description"
+                                    values={{ name: task.name }}
+                                    components={{ strong: <strong className="text-foreground" /> }}
+                                />
+                            </SheetDescription>
+                        </div>
+                    </div>
                 </SheetHeader>
 
-                <Separator className="my-4" />
-
-                <Tabs defaultValue="users" className="flex-1 flex flex-col">
-                    <TabsList className="grid w-full grid-cols-2">
+                <Tabs defaultValue="users" className="flex min-h-0 flex-1 flex-col gap-0 p-6">
+                    <TabsList className="grid h-10 w-full grid-cols-2">
                         <TabsTrigger value="users" className="gap-2">
                             <Users className="h-4 w-4" />
                             {t('taskAssignments.usersTab', { n: assignedUsers.length })}
@@ -145,150 +205,72 @@ export function TaskAssignmentsSheet({ task, open, onOpenChange }: TaskAssignmen
                     </TabsList>
 
                     {/* ========== USERS TAB ========== */}
-                    <TabsContent value="users" className="flex-1 flex flex-col mt-4 space-y-4">
-                        {/* Add User */}
-                        <div className="flex gap-2">
-                            <Select
-                                value={selectedUserId}
-                                onValueChange={setSelectedUserId}
-                                disabled={isLoading}
-                            >
-                                <SelectTrigger className="flex-1">
-                                    <SelectValue placeholder={t('taskAssignments.selectUser')} />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {availableUsers.length === 0 ? (
-                                        <SelectItem value="__none__" disabled>
-                                            {t('taskAssignments.noUsersAvailable')}
-                                        </SelectItem>
-                                    ) : (
-                                        availableUsers.map((user) => (
-                                            <SelectItem key={user.id} value={user.id.toString()}>
-                                                {user.fullname || user.username}
-                                            </SelectItem>
-                                        ))
-                                    )}
-                                </SelectContent>
-                            </Select>
-                            <Button
-                                onClick={handleAddUser}
-                                disabled={!selectedUserId || selectedUserId === '__none__' || isLoading}
-                            >
-                                <Plus className="h-4 w-4 mr-2" />
-                                {t('taskAssignments.add')}
-                            </Button>
-                        </div>
+                    <TabsContent value="users" className="mt-4 flex min-h-0 flex-1 flex-col gap-4">
+                        {renderAdd(
+                            selectedUserId,
+                            setSelectedUserId,
+                            t('taskAssignments.selectUser'),
+                            t('taskAssignments.noUsersAvailable'),
+                            availableUsers.map((u) => ({ id: u.id, label: u.fullname || u.username })),
+                            handleAddUser,
+                        )}
 
-                        {/* Assigned Users List */}
-                        <div className="flex-1 overflow-y-auto space-y-2">
-                            {assignedUsers.length === 0 ? (
-                                <div className="flex flex-col items-center justify-center py-12 text-center">
-                                    <Users className="h-10 w-10 text-muted-foreground/30 mb-3" />
-                                    <p className="text-muted-foreground text-sm">{t('taskAssignments.noUsersAssigned')}</p>
-                                </div>
-                            ) : (
-                                assignedUsers.map((user) => (
-                                    <Card key={user.id} className="shadow-none">
-                                        <CardContent className="flex items-center justify-between p-3">
-                                            <div className="flex items-center gap-3">
-                                                <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center text-primary text-sm font-medium">
-                                                    {(user.fullname || user.username || '?').substring(0, 2).toUpperCase()}
-                                                </div>
-                                                <div>
-                                                    <div className="font-medium text-sm">
-                                                        {user.fullname || user.username}
-                                                    </div>
-                                                    <div className="text-xs text-muted-foreground">
-                                                        {user.email || user.username}
-                                                    </div>
-                                                </div>
+                        <div className="min-h-0 flex-1 space-y-2 overflow-y-auto">
+                            {assignedUsers.length === 0
+                                ? renderEmpty(Users, t('taskAssignments.noUsersAssigned'))
+                                : assignedUsers.map((user) => (
+                                    <div
+                                        key={user.id}
+                                        className="group flex items-center justify-between gap-3 rounded-xl border bg-card p-3 transition-colors hover:border-primary/25 hover:bg-accent/30"
+                                    >
+                                        <div className="flex min-w-0 items-center gap-3">
+                                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary/20 to-primary/5 text-sm font-semibold text-primary">
+                                                {(user.fullname || user.username || '?').substring(0, 2).toUpperCase()}
                                             </div>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                                                onClick={() => handleRemoveUser(user.id)}
-                                                disabled={isLoading}
-                                            >
-                                                <Trash className="h-4 w-4" />
-                                            </Button>
-                                        </CardContent>
-                                    </Card>
-                                ))
-                            )}
+                                            <div className="min-w-0">
+                                                <div className="truncate text-sm font-medium">{user.fullname || user.username}</div>
+                                                <div className="truncate text-xs text-muted-foreground">{user.email || user.username}</div>
+                                            </div>
+                                        </div>
+                                        {removeButton(t('taskAssignments.remove'), () => handleRemoveUser(user.id))}
+                                    </div>
+                                ))}
                         </div>
                     </TabsContent>
 
                     {/* ========== GROUPS TAB ========== */}
-                    <TabsContent value="groups" className="flex-1 flex flex-col mt-4 space-y-4">
-                        {/* Add Group */}
-                        <div className="flex gap-2">
-                            <Select
-                                value={selectedGroupId}
-                                onValueChange={setSelectedGroupId}
-                                disabled={isLoading}
-                            >
-                                <SelectTrigger className="flex-1">
-                                    <SelectValue placeholder={t('taskAssignments.selectGroup')} />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {availableGroups.length === 0 ? (
-                                        <SelectItem value="__none__" disabled>
-                                            {t('taskAssignments.noGroupsAvailable')}
-                                        </SelectItem>
-                                    ) : (
-                                        availableGroups.map((group) => (
-                                            <SelectItem key={group.id} value={group.id.toString()}>
-                                                {group.name}
-                                            </SelectItem>
-                                        ))
-                                    )}
-                                </SelectContent>
-                            </Select>
-                            <Button
-                                onClick={handleAddGroup}
-                                disabled={!selectedGroupId || selectedGroupId === '__none__' || isLoading}
-                            >
-                                <Plus className="h-4 w-4 mr-2" />
-                                {t('taskAssignments.add')}
-                            </Button>
-                        </div>
+                    <TabsContent value="groups" className="mt-4 flex min-h-0 flex-1 flex-col gap-4">
+                        {renderAdd(
+                            selectedGroupId,
+                            setSelectedGroupId,
+                            t('taskAssignments.selectGroup'),
+                            t('taskAssignments.noGroupsAvailable'),
+                            availableGroups.map((g) => ({ id: g.id, label: g.name })),
+                            handleAddGroup,
+                        )}
 
-                        {/* Assigned Groups List */}
-                        <div className="flex-1 overflow-y-auto space-y-2">
-                            {assignedGroups.length === 0 ? (
-                                <div className="flex flex-col items-center justify-center py-12 text-center">
-                                    <UsersRound className="h-10 w-10 text-muted-foreground/30 mb-3" />
-                                    <p className="text-muted-foreground text-sm">{t('taskAssignments.noGroupsAssigned')}</p>
-                                </div>
-                            ) : (
-                                assignedGroups.map((group) => (
-                                    <Card key={group.id} className="shadow-none">
-                                        <CardContent className="flex items-center justify-between p-3">
-                                            <div className="flex items-center gap-3">
-                                                <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
-                                                    <UsersRound className="h-4 w-4" />
-                                                </div>
-                                                <div>
-                                                    <div className="font-medium text-sm">{group.name}</div>
-                                                    <div className="text-xs text-muted-foreground">
-                                                        {group.description || t('taskAssignments.noDescription')}
-                                                    </div>
+                        <div className="min-h-0 flex-1 space-y-2 overflow-y-auto">
+                            {assignedGroups.length === 0
+                                ? renderEmpty(UsersRound, t('taskAssignments.noGroupsAssigned'))
+                                : assignedGroups.map((group) => (
+                                    <div
+                                        key={group.id}
+                                        className="group flex items-center justify-between gap-3 rounded-xl border bg-card p-3 transition-colors hover:border-primary/25 hover:bg-accent/30"
+                                    >
+                                        <div className="flex min-w-0 items-center gap-3">
+                                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-violet-500/10 text-violet-700 dark:text-violet-400">
+                                                <UsersRound className="h-4 w-4" />
+                                            </div>
+                                            <div className="min-w-0">
+                                                <div className="truncate text-sm font-medium">{group.name}</div>
+                                                <div className="truncate text-xs text-muted-foreground">
+                                                    {group.description || t('taskAssignments.noDescription')}
                                                 </div>
                                             </div>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                                                onClick={() => handleRemoveGroup(group.id)}
-                                                disabled={isLoading}
-                                            >
-                                                <Trash className="h-4 w-4" />
-                                            </Button>
-                                        </CardContent>
-                                    </Card>
-                                ))
-                            )}
+                                        </div>
+                                        {removeButton(t('taskAssignments.remove'), () => handleRemoveGroup(group.id))}
+                                    </div>
+                                ))}
                         </div>
                     </TabsContent>
                 </Tabs>

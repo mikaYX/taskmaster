@@ -4,6 +4,7 @@ import { getDateLocale } from '@/lib/date-locale';
 import { useNavigate } from 'react-router-dom';
 import {
     Plus,
+    Archive,
     ClipboardList,
     ChevronUp,
     ChevronDown,
@@ -56,14 +57,7 @@ import { TaskAssignmentsSheet } from './components/task-assignments-sheet';
 import { TaskDelegationsSheet } from './components/task-delegations-sheet';
 import type { Task } from '@/api/types';
 
-/** Soft colour per periodicity, shared by the row icon and the periodicity pill. */
-const PERIODICITY_TONE: Record<string, string> = {
-    daily: 'bg-sky-500/10 text-sky-700 dark:text-sky-400',
-    weekly: 'bg-violet-500/10 text-violet-700 dark:text-violet-400',
-    monthly: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400',
-    yearly: 'bg-amber-500/10 text-amber-700 dark:text-amber-400',
-    custom: 'bg-primary/10 text-primary',
-};
+import { PERIODICITY_TONE } from './task-style';
 
 
 
@@ -285,10 +279,16 @@ export function TasksPage() {
                     </div>
                 </div>
                 {!isGuest && (
-                    <Button onClick={handleCreate} className="gap-2 shadow-sm">
-                        <Plus className="h-4 w-4" />
-                        {t('tasks.addTask')}
-                    </Button>
+                    <div className="flex gap-2">
+                        <Button variant="outline" className="gap-2" onClick={() => navigate('/task-definitions/archive')}>
+                            <Archive className="h-4 w-4" />
+                            {t('taskList.archiveLink')}
+                        </Button>
+                        <Button onClick={handleCreate} className="gap-2 shadow-sm">
+                            <Plus className="h-4 w-4" />
+                            {t('tasks.addTask')}
+                        </Button>
+                    </div>
                 )}
             </div>
 

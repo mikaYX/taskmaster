@@ -78,46 +78,46 @@ export function TaskActions({
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="h-8 w-8 p-0">
+          <Button variant="ghost" className="h-8 w-8 rounded-lg p-0 text-muted-foreground hover:text-foreground data-[state=open]:bg-accent data-[state=open]:text-foreground">
             <span className="sr-only">{t("taskList.actions.openMenu")}</span>
             <MoreHorizontal className="h-4 w-4" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-48">
-          <DropdownMenuLabel>{t("common.actions")}</DropdownMenuLabel>
-          <DropdownMenuItem onClick={() => onEdit(task)}>
-            <Pencil className="mr-2 h-4 w-4" />
+        <DropdownMenuContent align="end" className="w-60 rounded-xl p-1.5">
+          <DropdownMenuLabel className="truncate px-2 text-xs font-normal text-muted-foreground">{task.name}</DropdownMenuLabel>
+          <DropdownMenuItem className="gap-2.5 rounded-lg py-2" onClick={() => onEdit(task)}>
+            <Pencil className="h-4 w-4 text-primary" />
             {t("tasks.editTask")}
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => onManageAssignments(task)}>
-            <Users className="mr-2 h-4 w-4" />
+          <DropdownMenuItem className="gap-2.5 rounded-lg py-2" onClick={() => onManageAssignments(task)}>
+            <Users className="h-4 w-4 text-violet-600 dark:text-violet-400" />
             {t("taskList.actions.manageAssignments")}
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => onManageDelegations(task)}>
-            <CalendarClock className="mr-2 h-4 w-4" />
+          <DropdownMenuItem className="gap-2.5 rounded-lg py-2" onClick={() => onManageDelegations(task)}>
+            <CalendarClock className="h-4 w-4 text-orange-600 dark:text-orange-400" />
             {t("taskList.actions.manageDelegations")}
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           {task.isActive ? (
             <DropdownMenuItem
               onClick={() => setShowDeactivateAlert(true)}
-              className="text-destructive"
+              className="gap-2.5 rounded-lg py-2 text-amber-700 focus:text-amber-700 dark:text-amber-400 dark:focus:text-amber-400"
             >
-              <PowerOff className="mr-2 h-4 w-4" />
+              <PowerOff className="h-4 w-4 text-current" />
               {t("taskList.actions.deactivate")}
             </DropdownMenuItem>
           ) : (
-            <DropdownMenuItem onClick={handleReactivate}>
-              <Power className="mr-2 h-4 w-4" />
+            <DropdownMenuItem className="gap-2.5 rounded-lg py-2" onClick={handleReactivate}>
+              <Power className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
               {t("taskList.actions.reactivate")}
             </DropdownMenuItem>
           )}
           <DropdownMenuSeparator />
           <DropdownMenuItem
             onClick={() => setShowDeleteDialog(true)}
-            className="text-destructive focus:text-destructive"
+            className="gap-2.5 rounded-lg py-2 text-destructive focus:bg-destructive/10 focus:text-destructive"
           >
-            <Trash2 className="mr-2 h-4 w-4" />
+            <Trash2 className="h-4 w-4 text-current" />
             {t("taskList.actions.deleteTask")}
           </DropdownMenuItem>
         </DropdownMenuContent>

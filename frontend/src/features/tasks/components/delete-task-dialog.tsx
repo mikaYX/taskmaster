@@ -54,9 +54,11 @@ export function DeleteTaskDialog({ task, open, onOpenChange, onSuccess }: Delete
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                    <DialogTitle className="flex items-center gap-2 text-destructive">
-                        <AlertTriangle className="h-5 w-5" />
+                <DialogHeader className="items-center text-center sm:items-center sm:text-center">
+                    <div className="mb-2 flex h-14 w-14 items-center justify-center rounded-full bg-destructive/10 ring-8 ring-destructive/5">
+                        <Trash2 className="h-6 w-6 text-destructive" />
+                    </div>
+                    <DialogTitle className="text-lg">
                         {t('taskDelete.title')}
                     </DialogTitle>
                     <DialogDescription>
@@ -68,18 +70,21 @@ export function DeleteTaskDialog({ task, open, onOpenChange, onSuccess }: Delete
                     </DialogDescription>
                 </DialogHeader>
 
-                <div className="space-y-4 py-4">
-                    <div className="rounded-md bg-amber-50 p-3 text-sm text-amber-900 dark:bg-amber-950/30 dark:text-amber-400">
-                        <p className="font-medium">{t('taskDelete.warning')}</p>
-                        <ul className="mt-2 list-disc list-inside space-y-1">
-                            <li>{t('taskDelete.hideStatuses')}</li>
-                            <li>{t('taskDelete.loseAccess')}</li>
-                            <li>{t('taskDelete.cancelDelegations')}</li>
+                <div className="space-y-4 py-2">
+                    <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-900 dark:text-amber-300">
+                        <p className="flex items-center gap-2 font-medium">
+                            <AlertTriangle className="h-4 w-4" />
+                            {t('taskDelete.warning')}
+                        </p>
+                        <ul className="mt-2 space-y-1.5 pl-6 text-[13px]">
+                            <li className="list-disc">{t('taskDelete.hideStatuses')}</li>
+                            <li className="list-disc">{t('taskDelete.loseAccess')}</li>
+                            <li className="list-disc">{t('taskDelete.cancelDelegations')}</li>
                         </ul>
                     </div>
 
                     <div className="space-y-2">
-                        <label className="text-sm font-medium">
+                        <label htmlFor="delete-task-confirm" className="text-sm font-medium">
                             <Trans
                                 i18nKey="taskDelete.confirmPrompt"
                                 values={{ name: task.name }}
@@ -87,6 +92,8 @@ export function DeleteTaskDialog({ task, open, onOpenChange, onSuccess }: Delete
                             />
                         </label>
                         <Input
+                            id="delete-task-confirm"
+                            autoComplete="off"
                             value={confirmName}
                             onChange={(e) => setConfirmName(e.target.value)}
                             placeholder={t('taskDelete.placeholder')}
@@ -95,12 +102,13 @@ export function DeleteTaskDialog({ task, open, onOpenChange, onSuccess }: Delete
                     </div>
                 </div>
 
-                <DialogFooter>
-                    <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isDeleting}>
+                <DialogFooter className="gap-2 sm:gap-2">
+                    <Button variant="outline" className="sm:flex-1" onClick={() => onOpenChange(false)} disabled={isDeleting}>
                         {t('common.cancel')}
                     </Button>
                     <Button
                         variant="destructive"
+                        className="sm:flex-1"
                         onClick={handleDelete}
                         disabled={!isConfirmed || isDeleting}
                     >

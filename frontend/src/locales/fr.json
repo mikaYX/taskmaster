@@ -1920,7 +1920,8 @@
             "unassigned": "Sans affectation",
             "delegated": "Délégations en cours",
             "inactive": "Inactives"
-        }
+        },
+        "archiveLink": "Archives"
     },
     "taskDelete": {
         "title": "Supprimer la tâche",
@@ -1944,12 +1945,6 @@
         "backToTasks": "Retour aux tâches",
         "noDescription": "Aucune description fournie",
         "runNow": "Exécuter maintenant",
-        "tabs": {
-            "overview": "Vue d'ensemble",
-            "logs": "Journaux",
-            "configuration": "Configuration"
-        },
-        "notImplemented": "Pas encore disponible",
         "start": "Début : {{date}}",
         "noWeekends": "Sans week-ends",
         "noHolidays": "Sans jours fériés",
@@ -1965,18 +1960,18 @@
             "missing": "Manquée",
             "reminder": "Rappel"
         },
-        "configTitle": "Configuration de la tâche",
-        "configDescription": "Détails de la définition de la tâche.",
         "createdAt": "Créée le",
-        "updatedAt": "Modifiée le"
+        "updatedAt": "Modifiée le",
+        "manage": "Gérer",
+        "delegationsActive_one": "{{count}} délégation en cours",
+        "delegationsActive_other": "{{count}} délégations en cours",
+        "noDelegation": "Aucune délégation en cours"
     },
     "taskEdit": {
         "title": "Modifier la tâche : {{name}}",
         "saveChanges": "Enregistrer les modifications",
         "saveNotifications": "Enregistrer les notifications",
         "notFound": "Tâche introuvable",
-        "basicInformation": "Informations de base",
-        "schedulingRecurrence": "Planification et récurrence",
         "toasts": {
             "notificationsSaved": "Notifications enregistrées",
             "notificationsFailed": "Échec de l'enregistrement des notifications",
@@ -1986,6 +1981,14 @@
             "updated": "Tâche mise à jour",
             "uploadFailed": "La tâche a été mise à jour, mais le nouveau fichier de procédure n'a pas pu être envoyé.",
             "updateFailed": "Échec de la mise à jour de la tâche"
+        },
+        "backToTask": "Retour à la tâche",
+        "subtitle": "Modifiez la définition, la planification, les affectations ou les notifications.",
+        "sections": {
+            "definition": "Nom, procédure, description et périodicité",
+            "scheduling": "Règles de récurrence, dates et plage horaire",
+            "assignment": "Qui doit réaliser la tâche",
+            "notifications": "Alertes envoyées par cette tâche"
         }
     },
     "taskArchive": {
@@ -2023,7 +2026,8 @@
             "groupAssignFailed": "Échec de l'affectation du groupe",
             "groupUnassigned": "Groupe retiré",
             "groupUnassignFailed": "Échec du retrait du groupe"
-        }
+        },
+        "remove": "Retirer"
     },
     "taskDelegations": {
         "title": "Délégations de la tâche",
@@ -2050,6 +2054,14 @@
             "createFailed": "Échec de la création de la délégation",
             "removed": "Délégation supprimée",
             "removeFailed": "Échec de la suppression de la délégation"
+        },
+        "removeTarget": "Retirer {{name}}",
+        "addTarget": "Ajouter",
+        "removeDelegation": "Supprimer la délégation",
+        "status": {
+            "active": "En cours",
+            "planned": "Planifiée",
+            "ended": "Terminée"
         }
     },
     "userMgmt": {

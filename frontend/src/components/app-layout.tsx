@@ -24,7 +24,7 @@ interface AppLayoutProps {
  * Main layout with sidebar + header.
  * Based on Figma reference.
  */
-export function AppLayout({ titleKey = 'nav.taskBoard', subtitleKey }: AppLayoutProps) {
+export function AppLayout({ titleKey, subtitleKey }: AppLayoutProps) {
     const { isAuthenticated, passkeysEnabled, passkeyPolicy, hasPasskey, role, mustChangePassword } = useAuthStore();
     const { isTvMode, setIsTvMode } = useUIStore();
     const [isDismissed, setIsDismissed] = useState(() => !!sessionStorage.getItem('passkey_setup_dismissed'));
