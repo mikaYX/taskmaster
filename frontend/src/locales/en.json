@@ -240,7 +240,8 @@
         "periodicity_monthly": "Monthly",
         "periodicity_yearly": "Yearly",
         "periodicity_once": "Once",
-        "failOptionalDescription": "Please explain why the task failed (optional)"
+        "failOptionalDescription": "Please explain why the task failed (optional)",
+        "progress": "Progress"
     },
     "dashboard": {
         "welcome": "Welcome",

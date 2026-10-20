@@ -128,7 +128,7 @@ export function TaskRow({ item, onStatusChange, onAdminAction, readonly, isUpdat
     return (
         <>
             <div aria-busy={isUpdating} data-testid={`task-row-${item.taskId}-${item.instanceDate}`} className={`flex flex-col border-b border-border/50 last:border-b-0 hover:bg-muted/30 transition-colors group ${isExpired ? 'opacity-40' : ''}`}>
-                <div className={`flex items-center gap-4 px-5 ${compact ? 'py-1.5' : 'py-3'}`}>
+                <div className={`flex items-center gap-2 px-3 sm:gap-4 sm:px-5 ${compact ? 'py-1.5' : 'py-3'}`}>
 
                     {/* Colonne badges (type + statut), même largeur pour tous */}
                     <div
@@ -170,6 +170,10 @@ export function TaskRow({ item, onStatusChange, onAdminAction, readonly, isUpdat
                     {/* Titre + description + assignés */}
                     <div className="flex-1 min-w-0">
                         <p title={compact ? item.description : undefined} className="font-medium text-[13px] text-foreground truncate">{item.taskName}</p>
+                        {/* On phones the date column is hidden: the date goes under the title. */}
+                        <p className="mt-0.5 font-mono text-[11px] tabular-nums text-muted-foreground sm:hidden">
+                            {formatDateTimeRange(item.periodStart, item.periodEnd, locale)}
+                        </p>
                         {!compact && item.description && (
                             <p className="text-[11px] text-muted-foreground/70 line-clamp-1 mt-0.5">{item.description}</p>
                         )}
@@ -191,7 +195,7 @@ export function TaskRow({ item, onStatusChange, onAdminAction, readonly, isUpdat
 
                     {/* Date et heure — largeur fixe, tout aligné à gauche (évite le décalage) */}
                     <div
-                        className="shrink-0 flex flex-col items-start font-mono text-[11px] tabular-nums text-muted-foreground"
+                        className="hidden shrink-0 flex-col items-start font-mono text-[11px] tabular-nums text-muted-foreground sm:flex"
                         style={{ width: 220 }}
                     >
                         <span className="whitespace-nowrap">
@@ -212,7 +216,7 @@ export function TaskRow({ item, onStatusChange, onAdminAction, readonly, isUpdat
 
                     {/* ACTIONS — emplacement procédure en largeur fixe pour ne pas décaler les dates */}
                     <div className="shrink-0 flex items-center gap-1">
-                        <div className="w-10 shrink-0 flex items-center justify-center">
+                        <div className={`${item.procedureUrl ? 'flex' : 'hidden sm:flex'} w-8 shrink-0 items-center justify-center sm:w-10`}>
                             {item.procedureUrl ? (
                                 <Button
                                     variant="ghost"
@@ -277,7 +281,7 @@ export function TaskRow({ item, onStatusChange, onAdminAction, readonly, isUpdat
 
                         {/* Reserved for every admin row, read-only or not, so all rows keep the same width. */}
                         {isAdmin && (
-                            <div className="flex w-16 shrink-0 justify-center">
+                            <div className="hidden w-16 shrink-0 justify-center sm:flex">
                                 {!readonly && isTerminal && (
                                     <Button
                                         variant="ghost"

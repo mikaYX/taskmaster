@@ -240,7 +240,8 @@
         "periodicity_monthly": "Mensuel",
         "periodicity_yearly": "Annuel",
         "periodicity_once": "Unique",
-        "failOptionalDescription": "Veuillez indiquer pourquoi la tâche a échoué (optionnel)"
+        "failOptionalDescription": "Veuillez indiquer pourquoi la tâche a échoué (optionnel)",
+        "progress": "Progression"
     },
     "dashboard": {
         "welcome": "Bienvenue",

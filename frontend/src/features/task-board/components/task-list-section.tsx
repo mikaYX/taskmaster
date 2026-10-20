@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, CheckCircle2 } from 'lucide-react';
 import type { BoardItem, TaskStatusValue } from '@/api/types';
 import { TaskRow } from './task-row';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -32,10 +32,10 @@ export function TaskListSection({ title, items, emptyMessage, onStatusChange, on
 
     return (
         <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
-            <div className="rounded-xl border border-border overflow-hidden bg-card">
+            <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
                 <CollapsibleTrigger asChild>
                     <button
-                        className="flex items-center justify-between w-full px-5 py-3 bg-emerald-500/[0.07] border-l-[3px] border-l-emerald-500 hover:bg-emerald-500/[0.12] transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                        className="flex w-full items-center justify-between px-5 py-3 transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring data-[state=open]:border-b"
                         aria-expanded={isExpanded}
                         aria-controls={contentId}
                     >
@@ -46,8 +46,11 @@ export function TaskListSection({ title, items, emptyMessage, onStatusChange, on
                                     !isExpanded && "-rotate-90"
                                 )}
                             />
-                            <h3 className="text-[13px] font-semibold text-foreground">{title}</h3>
-                            <span className="text-[11px] text-muted-foreground bg-muted/80 px-2 py-0.5 rounded-full font-medium">
+                            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">
+                                <CheckCircle2 className="h-4 w-4" />
+                            </span>
+                            <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+                            <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium tabular-nums text-muted-foreground">
                                 {items.length}
                             </span>
                         </div>
