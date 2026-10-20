@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0-beta.1] - 2026-10-20
+
+Beta of 1.2.0, for testing only: it is published as a pre-release and under the `beta` Docker tag, never as `latest`. **Additive database migrations** (`todolist_v2`, `todo_reminder_email_opt_in`) run automatically on start; existing rows keep working.
+
 ### Added
 
 - The server can answer in HTTPS itself: set `TLS_CERT_FILE` and `TLS_KEY_FILE` in the `.env` file (a self-signed pair is enough, the browser then shows a certificate warning). Without them nothing changes. The installer health checks and `verify-installation.ps1` try HTTP then HTTPS (certificate ignored) on the local address.
