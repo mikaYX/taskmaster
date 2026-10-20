@@ -6,7 +6,9 @@ import {
     useUpdateTodo,
     useClearCompletedTodos,
     useReorderTodos,
+    useTodoSummary,
 } from '@/hooks/use-todos';
+import { cn } from '@/lib/utils';
 import { useGroups } from '@/hooks/use-groups';
 import { useUsers } from '@/hooks/use-users';
 import { useAuthStore } from '@/stores';
@@ -18,10 +20,26 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Plus, ChevronDown, History, ListTodo, Loader2, SlidersHorizontal, User } from 'lucide-react';
+import {
+    AlertTriangle,
+    CalendarClock,
+    CalendarDays,
+    CheckCircle2,
+    ChevronDown,
+    CircleDot,
+    History,
+    ListTodo,
+    Loader2,
+    Lock,
+    Plus,
+    Search,
+    SlidersHorizontal,
+    User,
+    Users,
+} from 'lucide-react';
 import type { Todo, TodoPriority, TodoRecurrence } from '@/api/todos';
 import { getErrorMessage } from '@/api/http';
-import { PRIORITY_VALUES, RECURRENCE_VALUES } from './todo-priority';
+import { PRIORITY_DOT, PRIORITY_VALUES, RECURRENCE_VALUES } from './todo-priority';
 import { daysUntilDue } from './todo-due';
 import { REMIND_OPTIONS, remindToSelect, selectToRemind } from './todo-schedule';
 import { parseQuickAdd } from './todo-quick-add';
@@ -90,6 +108,7 @@ function TodosPageContent() {
     const updateTodo = useUpdateTodo();
     const clearCompleted = useClearCompletedTodos();
     const reorderTodos = useReorderTodos();
+    const { data: summary } = useTodoSummary();
     const { pendingIds, requestDelete } = useUndoableDelete();
     const [todoToEdit, setTodoToEdit] = useState<Todo | null>(null);
 
@@ -265,238 +284,306 @@ function TodosPageContent() {
         />
     );
 
-    const renderTabContent = () => (
-        <>
-            {canManage && (
-                <form onSubmit={handleAddTodo} className="space-y-3">
-                    <div className="flex flex-col sm:flex-row gap-3 items-end">
-                        <div className="flex-1 w-full">
-                            <Input
-                                ref={newTitleRef}
-                                placeholder={t('todos.newTaskPlaceholder')}
-                                aria-label={t('todos.newTask')}
-                                title={t('todos.quickAddHint')}
-                                value={newTitle}
-                                onChange={(e) => setNewTitle(e.target.value)}
-                            />
-                        </div>
-                        <div className="w-full sm:w-48">
-                            <Input
-                                type="date"
-                                aria-label={t('todos.dueDate')}
-                                value={newDueDate}
-                                onChange={(e) => setNewDueDate(e.target.value)}
-                            />
-                        </div>
-                        <div className="w-full sm:w-36">
-                            <Select value={newPriority} onValueChange={(v) => setNewPriority(v as TodoPriority)}>
-                                <SelectTrigger aria-label={t('todos.priority')}>
+    const renderComposer = () => (
+        <form
+            onSubmit={handleAddTodo}
+            className="rounded-xl border bg-card shadow-sm transition-shadow focus-within:border-primary/40 focus-within:shadow-md"
+        >
+            <div className="flex items-center gap-2 px-3">
+                <Plus className="h-5 w-5 shrink-0 text-muted-foreground" aria-hidden="true" />
+                <Input
+                    ref={newTitleRef}
+                    placeholder={t('todos.newTaskPlaceholder')}
+                    aria-label={t('todos.newTask')}
+                    value={newTitle}
+                    className="h-12 border-0 bg-transparent px-1 text-base shadow-none focus-visible:ring-0 dark:bg-transparent"
+                    onChange={(e) => setNewTitle(e.target.value)}
+                />
+            </div>
+            <div className="flex flex-wrap items-center gap-2 border-t bg-muted/30 px-3 py-2">
+                <div className="relative">
+                    <CalendarDays className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                        type="date"
+                        aria-label={t('todos.dueDate')}
+                        value={newDueDate}
+                        className="h-8 w-[10.5rem] bg-background pl-8 text-xs"
+                        onChange={(e) => setNewDueDate(e.target.value)}
+                    />
+                </div>
+                <Select value={newPriority} onValueChange={(v) => setNewPriority(v as TodoPriority)}>
+                    <SelectTrigger size="sm" aria-label={t('todos.priority')} className="h-8 w-[8.5rem] bg-background text-xs">
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {PRIORITY_VALUES.map((value) => (
+                            <SelectItem key={value} value={value}>
+                                <span className="flex items-center gap-2">
+                                    <span className={cn('h-2 w-2 rounded-full', PRIORITY_DOT[value] ?? 'bg-muted-foreground/40')} />
+                                    {t(`todos.priorities.${value}`)}
+                                </span>
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+                <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    aria-expanded={showOptions}
+                    className={cn('h-8 gap-1.5 text-xs text-muted-foreground', showOptions && 'bg-accent text-foreground')}
+                    onClick={() => setShowOptions((v) => !v)}
+                >
+                    <SlidersHorizontal className="h-3.5 w-3.5" />
+                    {t('todos.options.toggle')}
+                </Button>
+                <span className="ml-auto hidden text-[11px] text-muted-foreground lg:inline">{t('todos.quickAddShort')}</span>
+                <Button type="submit" size="sm" className="ml-auto h-8 gap-1.5 lg:ml-0" disabled={createTodo.isPending || !newTitle.trim()}>
+                    {createTodo.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+                    {t('todos.add')}
+                </Button>
+            </div>
+
+            {showOptions && (
+                <div className="grid gap-3 border-t p-3 sm:grid-cols-2">
+                    <div className="space-y-1.5">
+                        <Label htmlFor="todo-new-recurrence" className="text-xs">{t('todos.dialog.repeat')}</Label>
+                        <Select value={newRecurrence} onValueChange={(v) => setNewRecurrence(v as TodoRecurrence)}>
+                            <SelectTrigger id="todo-new-recurrence" className="w-full">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {RECURRENCE_VALUES.map((value) => (
+                                    <SelectItem key={value} value={value}>
+                                        {t(`todos.recurrences.${value}`)}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div className="space-y-1.5">
+                        <Label htmlFor="todo-new-time" className="text-xs">{t('todos.dialog.dueTime')}</Label>
+                        <Input
+                            id="todo-new-time"
+                            type="time"
+                            value={newDueTime}
+                            disabled={!newDueDate}
+                            onChange={(e) => setNewDueTime(e.target.value)}
+                        />
+                    </div>
+                    <div className="space-y-1.5">
+                        <Label htmlFor="todo-new-remind" className="text-xs">{t('todos.dialog.remind')}</Label>
+                        <Select value={newRemind} onValueChange={setNewRemind} disabled={!newDueDate}>
+                            <SelectTrigger id="todo-new-remind" className="w-full">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {REMIND_OPTIONS.map((option) => (
+                                    <SelectItem key={option.key} value={remindToSelect(option.value)}>
+                                        {t(`todos.remind.${option.key}`)}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    {activeTab === 'COLLECTIVE' && (
+                        <div className="space-y-1.5">
+                            <Label htmlFor="todo-new-assignee" className="text-xs">{t('todos.dialog.assignee')}</Label>
+                            <Select value={newAssignee} onValueChange={setNewAssignee}>
+                                <SelectTrigger id="todo-new-assignee" className="w-full">
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {PRIORITY_VALUES.map((value) => (
-                                        <SelectItem key={value} value={value}>
-                                            {t(`todos.priorities.${value}`)}
+                                    <SelectItem value="none">{t('todos.dialog.nobody')}</SelectItem>
+                                    {users?.map((u) => (
+                                        <SelectItem key={u.id} value={u.id.toString()}>
+                                            {u.fullname || u.username}
                                         </SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
                         </div>
-                        <Button
-                            type="button"
-                            variant="outline"
-                            size="icon"
-                            aria-label={t('todos.options.toggle')}
-                            title={t('todos.options.toggle')}
-                            aria-expanded={showOptions}
-                            className="hidden sm:inline-flex shrink-0"
-                            onClick={() => setShowOptions((v) => !v)}
-                        >
-                            <SlidersHorizontal className="h-4 w-4" />
-                        </Button>
-                        <Button type="submit" className="w-full sm:w-auto gap-2" disabled={createTodo.isPending || !newTitle.trim()}>
-                            <Plus className="h-4 w-4" />
-                            {t('todos.add')}
-                        </Button>
-                    </div>
-                    <Button
-                        type="button"
-                        variant="link"
-                        size="sm"
-                        className="h-auto p-0 text-xs sm:hidden"
-                        onClick={() => setShowOptions((v) => !v)}
-                    >
-                        {t('todos.options.toggle')}
-                    </Button>
-
-                    {showOptions && (
-                        <div className="grid gap-3 rounded-lg border bg-muted/20 p-3 sm:grid-cols-2">
-                            <div className="space-y-1.5">
-                                <Label htmlFor="todo-new-recurrence">{t('todos.dialog.repeat')}</Label>
-                                <Select value={newRecurrence} onValueChange={(v) => setNewRecurrence(v as TodoRecurrence)}>
-                                    <SelectTrigger id="todo-new-recurrence">
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {RECURRENCE_VALUES.map((value) => (
-                                            <SelectItem key={value} value={value}>
-                                                {t(`todos.recurrences.${value}`)}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div className="space-y-1.5">
-                                <Label htmlFor="todo-new-time">{t('todos.dialog.dueTime')}</Label>
-                                <Input
-                                    id="todo-new-time"
-                                    type="time"
-                                    value={newDueTime}
-                                    disabled={!newDueDate}
-                                    onChange={(e) => setNewDueTime(e.target.value)}
-                                />
-                            </div>
-                            <div className="space-y-1.5">
-                                <Label htmlFor="todo-new-remind">{t('todos.dialog.remind')}</Label>
-                                <Select value={newRemind} onValueChange={setNewRemind} disabled={!newDueDate}>
-                                    <SelectTrigger id="todo-new-remind">
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {REMIND_OPTIONS.map((option) => (
-                                            <SelectItem key={option.key} value={remindToSelect(option.value)}>
-                                                {t(`todos.remind.${option.key}`)}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            {activeTab === 'COLLECTIVE' && (
-                                <div className="space-y-1.5">
-                                    <Label htmlFor="todo-new-assignee">{t('todos.dialog.assignee')}</Label>
-                                    <Select value={newAssignee} onValueChange={setNewAssignee}>
-                                        <SelectTrigger id="todo-new-assignee">
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="none">{t('todos.dialog.nobody')}</SelectItem>
-                                            {users?.map((u) => (
-                                                <SelectItem key={u.id} value={u.id.toString()}>
-                                                    {u.fullname || u.username}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            )}
-                            <div className="space-y-1.5 sm:col-span-2">
-                                <Label htmlFor="todo-new-notes">{t('todos.dialog.notes')}</Label>
-                                <Textarea
-                                    id="todo-new-notes"
-                                    rows={2}
-                                    maxLength={2000}
-                                    value={newNotes}
-                                    onChange={(e) => setNewNotes(e.target.value)}
-                                />
-                            </div>
-                        </div>
                     )}
-                </form>
+                    <div className="space-y-1.5 sm:col-span-2">
+                        <Label htmlFor="todo-new-notes" className="text-xs">{t('todos.dialog.notes')}</Label>
+                        <Textarea
+                            id="todo-new-notes"
+                            rows={2}
+                            maxLength={2000}
+                            value={newNotes}
+                            onChange={(e) => setNewNotes(e.target.value)}
+                        />
+                    </div>
+                    <p className="text-[11px] text-muted-foreground sm:col-span-2">{t('todos.quickAddHint')}</p>
+                </div>
             )}
+        </form>
+    );
 
-            <div className="flex flex-col sm:flex-row gap-3">
+    const renderFilters = () => (
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <div className="relative flex-1">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                     type="search"
                     aria-label={t('todos.searchLabel')}
                     placeholder={t('todos.search')}
                     value={search}
+                    className="pl-9"
                     onChange={(e) => setSearch(e.target.value)}
-                    className="flex-1"
                 />
-                <div className="w-full sm:w-48">
-                    <Select value={dueFilter} onValueChange={(v) => setDueFilter(v as DueFilter)}>
-                        <SelectTrigger aria-label={t('todos.dueFilterLabel')}>
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">{t('todos.filters.all')}</SelectItem>
-                            <SelectItem value="overdue">{t('todos.filters.overdue')}</SelectItem>
-                            <SelectItem value="today">{t('todos.filters.today')}</SelectItem>
-                            <SelectItem value="week">{t('todos.filters.week')}</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
-                {activeTab === 'COLLECTIVE' && (
-                    <Button
-                        type="button"
-                        variant={mineOnly ? 'default' : 'outline'}
-                        aria-pressed={mineOnly}
-                        className="gap-2"
-                        onClick={() => setMineOnly((v) => !v)}
-                    >
-                        <User className="h-4 w-4" />
-                        {t('todos.filters.mine')}
-                    </Button>
-                )}
             </div>
-
-            {isLoading ? (
-                <div className="space-y-3">
-                    <Skeleton className="h-14 w-full" />
-                    <Skeleton className="h-14 w-full" />
-                    <Skeleton className="h-14 w-full" />
-                </div>
-            ) : (
-                <div className="space-y-6">
-                    {visible.active.length === 0 && visible.completed.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center p-8 text-center border rounded-lg border-dashed">
-                            <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-                                <ListTodo className="h-6 w-6 text-primary" />
-                            </div>
-                            <h3 className="text-lg font-medium">{t('todos.emptyTitle')}</h3>
-                            <p className="text-sm text-muted-foreground mt-1">
-                                {canManage ? t('todos.emptyCanAdd') : t('todos.emptyReadOnly')}
-                            </p>
-                        </div>
-                    ) : (
-                        <div className="space-y-3">{visible.active.map(renderItem)}</div>
-                    )}
-
-                    {visible.completed.length > 0 && (
-                        <Collapsible className="mt-8 border rounded-lg p-4 bg-muted/20">
-                            <div className="flex items-center justify-between gap-2">
-                                <CollapsibleTrigger className="flex items-center flex-1 justify-between text-sm font-medium hover:text-primary transition-colors">
-                                    <span className="text-muted-foreground">
-                                        {t('todos.completedSection', { n: visible.completed.length })}
-                                    </span>
-                                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                                </CollapsibleTrigger>
-                                {canManage && (
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="text-muted-foreground hover:text-destructive"
-                                        disabled={clearCompleted.isPending}
-                                        onClick={handleClearCompleted}
-                                    >
-                                        {t('todos.clearCompleted')}
-                                    </Button>
-                                )}
-                            </div>
-                            <CollapsibleContent className="space-y-3 mt-4">{visible.completed.map(renderItem)}</CollapsibleContent>
-                        </Collapsible>
-                    )}
-                </div>
+            <Select value={dueFilter} onValueChange={(v) => setDueFilter(v as DueFilter)}>
+                <SelectTrigger aria-label={t('todos.dueFilterLabel')} className="w-full sm:w-44">
+                    <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="all">{t('todos.filters.all')}</SelectItem>
+                    <SelectItem value="overdue">{t('todos.filters.overdue')}</SelectItem>
+                    <SelectItem value="today">{t('todos.filters.today')}</SelectItem>
+                    <SelectItem value="week">{t('todos.filters.week')}</SelectItem>
+                </SelectContent>
+            </Select>
+            {activeTab === 'COLLECTIVE' && isManager && (
+                <Select value={selectedGroupId} onValueChange={setSelectedGroupId}>
+                    <SelectTrigger aria-label={t('todos.selectGroup')} className="w-full sm:w-44">
+                        <SelectValue placeholder={t('todos.selectGroup')} />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">{t('todos.wholeSite')}</SelectItem>
+                        {groups?.map((g: { id: number; name: string }) => (
+                            <SelectItem key={g.id} value={g.id.toString()}>
+                                {g.name}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
             )}
-        </>
+            {activeTab === 'COLLECTIVE' && (
+                <Button
+                    type="button"
+                    variant={mineOnly ? 'default' : 'outline'}
+                    aria-pressed={mineOnly}
+                    className="gap-2"
+                    onClick={() => setMineOnly((v) => !v)}
+                >
+                    <User className="h-4 w-4" />
+                    {t('todos.filters.mine')}
+                </Button>
+            )}
+        </div>
     );
 
+    const renderList = () =>
+        isLoading ? (
+            <div className="space-y-2">
+                <Skeleton className="h-16 w-full rounded-xl" />
+                <Skeleton className="h-16 w-full rounded-xl" />
+                <Skeleton className="h-16 w-full rounded-xl" />
+            </div>
+        ) : (
+            <div className="space-y-6">
+                {visible.active.length === 0 && visible.completed.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center rounded-xl border border-dashed bg-muted/20 px-6 py-14 text-center">
+                        <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10">
+                            <ListTodo className="h-7 w-7 text-primary" />
+                        </div>
+                        <h3 className="text-base font-semibold">{t('todos.emptyTitle')}</h3>
+                        <p className="mt-1 max-w-sm text-sm text-muted-foreground">
+                            {canManage ? t('todos.emptyCanAdd') : t('todos.emptyReadOnly')}
+                        </p>
+                    </div>
+                ) : (
+                    <div className="space-y-2">{visible.active.map(renderItem)}</div>
+                )}
+
+                {visible.completed.length > 0 && (
+                    <Collapsible className="rounded-xl border bg-muted/20">
+                        <div className="flex items-center justify-between gap-2 px-4 py-2.5">
+                            <CollapsibleTrigger className="group/completed flex flex-1 items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
+                                <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                                {t('todos.completedSection', { n: visible.completed.length })}
+                                <ChevronDown className="h-4 w-4 transition-transform group-data-[state=open]/completed:rotate-180" />
+                            </CollapsibleTrigger>
+                            {canManage && (
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-8 text-xs text-muted-foreground hover:text-destructive"
+                                    disabled={clearCompleted.isPending}
+                                    onClick={handleClearCompleted}
+                                >
+                                    {t('todos.clearCompleted')}
+                                </Button>
+                            )}
+                        </div>
+                        <CollapsibleContent className="space-y-2 px-3 pb-3">{visible.completed.map(renderItem)}</CollapsibleContent>
+                    </Collapsible>
+                )}
+            </div>
+        );
+
+    const renderTabContent = () => (
+        <div className="space-y-4">
+            {canManage && renderComposer()}
+            {renderFilters()}
+            {renderList()}
+        </div>
+    );
+
+    const statCards: { key: string; icon: typeof AlertTriangle; value: number; tone: string; active: boolean; onClick: () => void }[] = [
+        {
+            key: 'overdue',
+            icon: AlertTriangle,
+            value: summary?.overdue ?? 0,
+            tone: 'text-red-600 bg-red-500/10 dark:text-red-400',
+            active: dueFilter === 'overdue',
+            onClick: () => setDueFilter((f) => (f === 'overdue' ? 'all' : 'overdue')),
+        },
+        {
+            key: 'today',
+            icon: CalendarClock,
+            value: summary?.dueToday ?? 0,
+            tone: 'text-amber-600 bg-amber-500/10 dark:text-amber-400',
+            active: dueFilter === 'today',
+            onClick: () => setDueFilter((f) => (f === 'today' ? 'all' : 'today')),
+        },
+        {
+            key: 'open',
+            icon: CircleDot,
+            value: summary?.open ?? 0,
+            tone: 'text-primary bg-primary/10',
+            active: false,
+            onClick: () => {
+                setDueFilter('all');
+                setMineOnly(false);
+                setSearch('');
+            },
+        },
+        {
+            key: 'mine',
+            icon: User,
+            value: summary?.mine ?? 0,
+            tone: 'text-violet-600 bg-violet-500/10 dark:text-violet-400',
+            active: mineOnly,
+            onClick: () => {
+                setActiveTab('COLLECTIVE');
+                setMineOnly((v) => !v);
+            },
+        },
+    ];
+
     return (
-        <div className="container max-w-4xl py-6 space-y-8">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                    <h1 className="text-3xl font-bold tracking-tight">{t('nav.todoList')}</h1>
-                    <p className="text-muted-foreground">{t('todos.subtitle')}</p>
+        <div className="mx-auto w-full max-w-4xl space-y-6 py-4 sm:py-6">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                        <ListTodo className="h-6 w-6" />
+                    </div>
+                    <div>
+                        <h1 className="text-2xl font-bold tracking-tight">{t('nav.todoList')}</h1>
+                        <p className="text-sm text-muted-foreground">{t('todos.subtitle')}</p>
+                    </div>
                 </div>
                 <div className="flex gap-2">
                     <Button variant="outline" size="sm" className="gap-2" onClick={() => setHistoryOpen(true)}>
@@ -507,36 +594,49 @@ function TodosPageContent() {
                 </div>
             </div>
 
-            <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as TodoScope)}>
-                <TabsList className="mb-6">
-                    <TabsTrigger value="PRIVATE">{t('todos.tabPrivate', { n: openCount(privateTodos) })}</TabsTrigger>
-                    <TabsTrigger value="COLLECTIVE">{t('todos.tabCollective', { n: openCount(collectiveTodos) })}</TabsTrigger>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {statCards.map(({ key, icon: Icon, value, tone, active, onClick }) => (
+                    <button
+                        key={key}
+                        type="button"
+                        aria-pressed={active}
+                        onClick={onClick}
+                        className={cn(
+                            'flex items-center gap-3 rounded-xl border bg-card p-3 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                            active && 'border-primary ring-1 ring-primary',
+                        )}
+                    >
+                        <span className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-lg', tone)}>
+                            <Icon className="h-4 w-4" />
+                        </span>
+                        <span className="min-w-0">
+                            <span className="block text-xl font-semibold leading-none tabular-nums">{value}</span>
+                            <span className="mt-1 block truncate text-xs text-muted-foreground">{t(`todos.stats.${key}`)}</span>
+                        </span>
+                    </button>
+                ))}
+            </div>
+
+            <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as TodoScope)} className="gap-4">
+                <TabsList className="h-10 w-full sm:w-auto">
+                    <TabsTrigger value="PRIVATE" className="gap-2 px-4">
+                        <Lock className="h-3.5 w-3.5" />
+                        {t('todos.tabs.private')}
+                        <span className="rounded-full bg-muted-foreground/15 px-1.5 text-[11px] font-semibold tabular-nums">
+                            {openCount(privateTodos)}
+                        </span>
+                    </TabsTrigger>
+                    <TabsTrigger value="COLLECTIVE" className="gap-2 px-4">
+                        <Users className="h-3.5 w-3.5" />
+                        {t('todos.tabs.collective')}
+                        <span className="rounded-full bg-muted-foreground/15 px-1.5 text-[11px] font-semibold tabular-nums">
+                            {openCount(collectiveTodos)}
+                        </span>
+                    </TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="PRIVATE" className="space-y-6">
-                    {renderTabContent()}
-                </TabsContent>
-
-                <TabsContent value="COLLECTIVE" className="space-y-6">
-                    {isManager && (
-                        <div className="w-full sm:w-64">
-                            <Select value={selectedGroupId} onValueChange={setSelectedGroupId}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder={t('todos.selectGroup')} />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">{t('todos.wholeSite')}</SelectItem>
-                                    {groups?.map((g: { id: number; name: string }) => (
-                                        <SelectItem key={g.id} value={g.id.toString()}>
-                                            {g.name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    )}
-                    {renderTabContent()}
-                </TabsContent>
+                <TabsContent value="PRIVATE">{renderTabContent()}</TabsContent>
+                <TabsContent value="COLLECTIVE">{renderTabContent()}</TabsContent>
             </Tabs>
 
             <TodoEditDialog

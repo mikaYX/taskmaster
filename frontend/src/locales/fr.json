@@ -1842,6 +1842,17 @@
             "pushDenied": "Les notifications sont bloquées dans ce navigateur : autorisez-les dans les réglages du site.",
             "saveFailed": "Vos préférences n'ont pas pu être enregistrées",
             "waitingPermission": "En attente de votre réponse : le navigateur demande l'autorisation avec une petite icône de cloche ou de cadenas à droite de la barre d'adresse. Cliquez dessus et choisissez « Autoriser »."
+        },
+        "quickAddShort": "Astuce : @demain @14h30 !urgente",
+        "tabs": {
+            "private": "Privées",
+            "collective": "Collectives"
+        },
+        "stats": {
+            "overdue": "En retard",
+            "today": "Pour aujourd'hui",
+            "open": "En cours",
+            "mine": "Qui me sont assignées"
         }
     },
     "taskList": {

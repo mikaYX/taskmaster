@@ -4,7 +4,20 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ChevronRight, GripVertical, HandHelping, ListPlus, MessageSquare, Pencil, Repeat, Trash2, User, UserMinus } from 'lucide-react';
+import {
+    CalendarDays,
+    ChevronRight,
+    GripVertical,
+    HandHelping,
+    ListPlus,
+    MessageSquare,
+    Pencil,
+    Repeat,
+    Trash2,
+    User,
+    UserMinus,
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
 import type { Todo } from '@/api/todos';
 import { describeDue } from './todo-due';
 import { PRIORITY_DOT } from './todo-priority';
@@ -87,16 +100,29 @@ export function TodoItem({ todo, subtasks = [], canManage, currentUserId = null,
     return (
         <div
             data-todo-row
-            className={`${isSubtask ? '' : 'rounded-lg border bg-card text-card-foreground shadow-sm'} ${
-                drag?.dragging ? 'opacity-40' : ''
-            } ${drag?.over ? 'ring-2 ring-primary' : ''}`}
+            className={cn(
+                !isSubtask &&
+                    'relative overflow-hidden rounded-xl border bg-card text-card-foreground shadow-xs transition-all hover:border-primary/25 hover:shadow-md',
+                !isSubtask && todo.isCompleted && 'bg-muted/30 shadow-none',
+                drag?.dragging && 'opacity-40',
+                drag?.over && 'ring-2 ring-primary',
+            )}
             onDragOver={drag?.onDragOver}
             onDrop={drag?.onDrop}
         >
+            {!isSubtask && PRIORITY_DOT[todo.priority] && !todo.isCompleted && (
+                <span
+                    role="img"
+                    aria-label={priorityText}
+                    title={priorityText}
+                    className={cn('absolute inset-y-0 left-0 w-1', PRIORITY_DOT[todo.priority])}
+                />
+            )}
             <div
-                className={`group flex items-center justify-between gap-3 p-3 transition-colors hover:bg-accent/50 ${
-                    isSubtask ? 'rounded-md py-2' : 'rounded-lg'
-                }`}
+                className={cn(
+                    'group flex items-center justify-between gap-3 transition-colors',
+                    isSubtask ? 'rounded-md px-2 py-1.5 hover:bg-accent/50' : 'px-4 py-3',
+                )}
             >
                 <div className="flex items-center gap-3 flex-1 min-w-0">
                     {drag && (
@@ -119,6 +145,7 @@ export function TodoItem({ todo, subtasks = [], canManage, currentUserId = null,
                         </button>
                     )}
                     <Checkbox
+                        className={cn('rounded-full', isSubtask ? 'h-4 w-4' : 'h-5 w-5')}
                         checked={todo.isCompleted}
                         aria-label={t('todos.item.complete', { title: todo.title })}
                         onCheckedChange={(checked) => actions.onToggle(todo, checked === true)}
@@ -140,13 +167,15 @@ export function TodoItem({ todo, subtasks = [], canManage, currentUserId = null,
                             />
                         ) : (
                             <span
-                                className={`text-sm font-medium truncate ${
-                                    todo.isCompleted ? 'line-through text-muted-foreground' : ''
-                                }`}
+                                className={cn(
+                                    'block truncate font-medium',
+                                    isSubtask ? 'text-sm' : 'text-[15px] leading-snug',
+                                    todo.isCompleted && 'text-muted-foreground line-through',
+                                )}
                                 title={canManage ? t('todos.item.renameHint') : undefined}
                                 onDoubleClick={startRename}
                             >
-                                {PRIORITY_DOT[todo.priority] && (
+                                {isSubtask && PRIORITY_DOT[todo.priority] && (
                                     <span
                                         role="img"
                                         aria-label={priorityText}
@@ -165,21 +194,22 @@ export function TodoItem({ todo, subtasks = [], canManage, currentUserId = null,
                         )}
 
                         {(due || assigneeName || todo.recurrence !== 'NONE' || subtasks.length > 0 || (todo.isCompleted && completer)) && (
-                            <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                            <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                                 {due && (
                                     <Badge
                                         variant={due.overdue && !todo.isCompleted ? 'destructive' : 'secondary'}
-                                        className="text-[10px] px-1.5 py-0 h-4"
+                                        className="h-5 gap-1 px-1.5 py-0 text-[11px] font-normal"
                                     >
+                                        <CalendarDays className="h-3 w-3" aria-hidden="true" />
                                         {due.label}
                                     </Badge>
                                 )}
                                 {assigneeName && (
                                     <Badge
                                         variant={mine ? 'default' : 'outline'}
-                                        className="gap-1 text-[10px] px-1.5 py-0 h-4"
+                                        className="h-5 gap-1 px-1.5 py-0 text-[11px] font-normal"
                                     >
-                                        <User className="h-2.5 w-2.5" aria-hidden="true" />
+                                        <User className="h-3 w-3" aria-hidden="true" />
                                         {mine ? t('todos.item.assignedToYou') : assigneeName}
                                     </Badge>
                                 )}
@@ -187,12 +217,12 @@ export function TodoItem({ todo, subtasks = [], canManage, currentUserId = null,
                                     <Repeat className="h-3 w-3 text-muted-foreground" aria-label={t('todos.item.recurring')} />
                                 )}
                                 {subtasks.length > 0 && (
-                                    <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4">
+                                    <Badge variant="outline" className="h-5 px-1.5 py-0 text-[11px] font-normal tabular-nums">
                                         {done}/{subtasks.length}
                                     </Badge>
                                 )}
                                 {todo.isCompleted && completer && (
-                                    <span className="text-[10px] text-muted-foreground">{t('todos.item.completedBy', { name: completer })}</span>
+                                    <span className="text-[11px] text-muted-foreground">{t('todos.item.completedBy', { name: completer })}</span>
                                 )}
                             </div>
                         )}
@@ -278,7 +308,7 @@ export function TodoItem({ todo, subtasks = [], canManage, currentUserId = null,
             </div>
 
             {showSubtasks && (
-                <div className="border-t bg-muted/20 px-3 py-2 pl-10 space-y-1">
+                <div className="space-y-0.5 border-t bg-muted/20 px-3 py-2 pl-12">
                     {subtasks.map((subtask) => (
                         <TodoItem key={subtask.id} todo={subtask} canManage={canManage} currentUserId={currentUserId} {...actions} />
                     ))}

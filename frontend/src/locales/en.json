@@ -1842,6 +1842,17 @@
             "pushDenied": "Notifications are blocked in this browser: allow them in the site settings.",
             "saveFailed": "Your preferences could not be saved",
             "waitingPermission": "Waiting for your answer: the browser asks for permission with a small bell or padlock icon at the right of the address bar. Click it and choose \"Allow\"."
+        },
+        "quickAddShort": "Tip: @tomorrow @14:30 !urgent",
+        "tabs": {
+            "private": "Private",
+            "collective": "Collective"
+        },
+        "stats": {
+            "overdue": "Overdue",
+            "today": "Due today",
+            "open": "Open",
+            "mine": "Assigned to me"
         }
     },
     "taskList": {
