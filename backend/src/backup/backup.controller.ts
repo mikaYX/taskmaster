@@ -18,7 +18,7 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { createReadStream } from 'fs';
-import { extname } from 'path';
+import { basename, extname } from 'path';
 import { getBackupTempUploadsDir } from '../config/app-paths';
 import { JwtAuthGuard, Roles, RolesGuard } from '../auth';
 import { IdempotencyInterceptor } from '../common/interceptors/idempotency.interceptor';
@@ -57,6 +57,7 @@ export class BackupController {
   async status() {
     return {
       storagePath: await this.backupService.getStoragePath(),
+      exportPath: await this.exportService.resolveExportDir(),
       encryptionKeyPresent: this.backupService.isEncryptionKeyPresent(),
       encryptionKeyIsDefault: this.backupService.isEncryptionKeyDefault(),
       serverTime: new Date().toISOString(),
@@ -172,10 +173,19 @@ export class BackupController {
     };
   }
 
+  /**
+   * Business-data export, written to the export folder (Settings > Export).
+   * Generated on the spot: the screen needs the file name to offer the download,
+   * which a queued job could not give it.
+   */
   @Post('export')
-  @HttpCode(HttpStatus.ACCEPTED)
+  @HttpCode(HttpStatus.OK)
   async exportData(@Body() body: { format: 'json' | 'csv' }) {
-    return this.backupService.exportData(body.format, false);
+    const path = await this.exportService.generateExport({
+      format: body.format === 'json' ? 'json' : 'csv',
+      encrypt: false,
+    });
+    return { filename: basename(path), path };
   }
 
   @Get('status/:jobId')
@@ -231,7 +241,7 @@ export class BackupController {
 
     if (filename.startsWith('export_')) {
       try {
-        filepath = this.exportService.getExportPath(filename);
+        filepath = await this.exportService.getExportPath(filename);
       } catch {
         throw new BadRequestException('File not found');
       }

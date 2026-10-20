@@ -19,7 +19,7 @@ export const backupApi = {
      * Get backup module status (encryption, time).
      */
     getStatus: () =>
-        http.get<{ storagePath: string; encryptionKeyPresent: boolean; encryptionKeyIsDefault: boolean; serverTime: string; timezone: string }>('/backup/status'),
+        http.get<{ storagePath: string; exportPath: string; encryptionKeyPresent: boolean; encryptionKeyIsDefault: boolean; serverTime: string; timezone: string }>('/backup/status'),
 
     /**
      * Get download URL for a backup.

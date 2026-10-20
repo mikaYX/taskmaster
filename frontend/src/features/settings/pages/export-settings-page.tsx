@@ -10,6 +10,7 @@ import { RecipientSelector } from '../components/recipient-selector';
 import { CronPreview } from '../components/cron-preview';
 import { exportApi } from '@/api/export';
 import { schedulerApi } from '@/api/scheduler';
+import { backupApi } from '@/api/backup';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -68,6 +69,12 @@ type RangeMode = 'rolling' | 'fixed';
 export function ExportSettingsPage() {
     const { t } = useTranslation();
     const { settings, getSetting, updateSetting, isLoading, isUpdating, emailConfigStatus } = useSettings();
+    // Full folder on the server, as the backend resolves it (a relative path is relative to the data folder).
+    const { data: backupStatus } = useQuery({
+        queryKey: ['backup-status', getSetting('export.path')],
+        queryFn: () => backupApi.getStatus(),
+    });
+    const effectiveExportPath = backupStatus?.exportPath;
     const [isTesting, setIsTesting] = useState(false);
     const [isRunningNow, setIsRunningNow] = useState(false);
     const [isCleaning, setIsCleaning] = useState(false);
@@ -738,6 +745,12 @@ export function ExportSettingsPage() {
                                     <FormDescription>
                                         {t('exportSettings.exportDirectoryHint')}
                                     </FormDescription>
+                                    {effectiveExportPath && (
+                                        <p className="text-sm" data-testid="effective-export-path">
+                                            <span className="text-muted-foreground">{t('exportSettings.effectivePath')} </span>
+                                            <code className="rounded bg-muted px-2 py-1 font-mono text-xs break-all">{effectiveExportPath}</code>
+                                        </p>
+                                    )}
                                 </FormItem>
                             )} />
                         </div>

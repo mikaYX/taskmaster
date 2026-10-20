@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { PrismaService } from '../prisma/prisma.service';
 import { EncryptionService } from './encryption.service';
+import { SettingsService } from '../settings';
 import { ExportService } from './export.service';
 
 describe('CSV Injection Protection (M3)', () => {
@@ -24,6 +25,7 @@ describe('CSV Injection Protection (M3)', () => {
           provide: EncryptionService,
           useValue: {},
         },
+        { provide: SettingsService, useValue: { getRawValue: jest.fn() } },
       ],
     }).compile();
 

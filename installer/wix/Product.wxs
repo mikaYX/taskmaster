@@ -128,12 +128,22 @@
          new one. Both can still be changed: the install folder in the wizard, the
          data folder with TASKMASTERDATAROOT=... on the command line.
          Type="directory" only yields a value when the folder still exists, so a
-         location deleted by hand falls back to the default. Installs made before
-         the value was written (1.1.9 and older) have nothing to find: pick the
-         folder once in the wizard. -->
+         location deleted by hand falls back to the default.
+
+         Installs made before the value was written (1.1.9 and older) are found
+         through Windows Installer's own component registration instead: the
+         installed copy of orchestrate-install.ps1 (a component whose GUID has
+         never changed) sits directly in the install folder, so its directory is
+         that folder. This only fills TASKMASTERROOT when the registry value gave
+         nothing and nothing was passed on the command line. -->
     <Property Id="TASKMASTERROOT">
       <RegistrySearch Id="TaskmasterRootSearch" Root="HKLM" Key="SOFTWARE\Taskmaster" Name="InstallDir" Type="directory" />
     </Property>
+    <Property Id="PREVIOUS_TASKMASTER_ROOT">
+      <ComponentSearch Id="PreviousInstallFolderSearch" Guid="6a1f9d3e-6b7a-4b7c-9a0e-1a2b3c4d5e93" Type="directory" />
+    </Property>
+    <SetProperty Id="TASKMASTERROOT" Value="[PREVIOUS_TASKMASTER_ROOT]" After="AppSearch" Sequence="both"
+                 Condition="NOT TASKMASTERROOT AND PREVIOUS_TASKMASTER_ROOT" />
     <Property Id="TASKMASTERDATAROOT">
       <RegistrySearch Id="TaskmasterDataRootSearch" Root="HKLM" Key="SOFTWARE\Taskmaster" Name="DataDir" Type="directory" />
     </Property>

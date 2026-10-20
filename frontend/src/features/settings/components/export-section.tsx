@@ -16,7 +16,7 @@ export function ExportSection() {
         setIsGenerating(true);
         try {
             const res = await backupApi.exportData(format);
-            toast.success(t('exportSection.generated', { filename: res.filename }));
+            toast.success(t('exportSection.generated', { filename: res.filename }), { description: res.path });
             // Trigger download
             // Trigger download using anchor to avoid popup blockers
             const url = backupApi.getDownloadUrl(res.filename);

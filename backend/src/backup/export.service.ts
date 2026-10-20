@@ -1,7 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { join } from 'path';
-import { getBackupExportsDir } from '../config/app-paths';
+import { getDataDir, resolveDataPath } from '../config/app-paths';
+import { SettingsService } from '../settings';
 import {
   createWriteStream,
   mkdirSync,
@@ -22,15 +23,35 @@ export interface ExportOptions {
 @Injectable()
 export class ExportService {
   private readonly logger = new Logger(ExportService.name);
-  private readonly EXPORT_DIR = getBackupExportsDir();
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly encryptionService: EncryptionService,
-  ) {
-    if (!existsSync(this.EXPORT_DIR)) {
-      mkdirSync(this.EXPORT_DIR, { recursive: true });
-    }
+    private readonly settings: SettingsService,
+  ) {}
+
+  /**
+   * Absolute folder the exports are written to: the `export.path` setting
+   * (default `./exports`, resolved against the data root, so
+   * `<data>exports`). It used to be ignored: exports always landed in
+   * `<data>ackupsexports`, mixed in with the database backups.
+   */
+  async resolveExportDir(): Promise<string> {
+    const raw = (
+      (await this.settings.getRawValue<string>('export.path')) || ''
+    ).trim();
+    return resolveDataPath(raw || './exports');
+  }
+
+  /** Where exports were written before `export.path` was honoured. */
+  private legacyExportDir(): string {
+    return join(getDataDir(), 'backups', 'exports');
+  }
+
+  private async exportDirs(): Promise<string[]> {
+    return Array.from(
+      new Set([await this.resolveExportDir(), this.legacyExportDir()]),
+    );
   }
 
   /**
@@ -41,7 +62,9 @@ export class ExportService {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     const extension = options.format === 'json' ? 'json' : 'zip'; // CSVs zipped
     const filename = `export_${timestamp}_business.${extension}${options.encrypt ? '.enc' : ''}`;
-    const filepath = join(this.EXPORT_DIR, filename);
+    const exportDir = await this.resolveExportDir();
+    mkdirSync(exportDir, { recursive: true });
+    const filepath = join(exportDir, filename);
 
     this.logger.log(`Generating business export: ${filename}`);
 
@@ -133,7 +156,7 @@ export class ExportService {
     return [header, ...rows].join('\n');
   }
 
-  getExportPath(filename: string): string {
+  async getExportPath(filename: string): Promise<string> {
     if (
       filename.includes('..') ||
       filename.includes('/') ||
@@ -141,11 +164,12 @@ export class ExportService {
     ) {
       throw new Error('Invalid filename');
     }
-    const filepath = join(this.EXPORT_DIR, filename);
-    if (!existsSync(filepath)) {
-      throw new Error('Export file not found');
+    // Files written before the export folder became configurable stay reachable.
+    for (const dir of await this.exportDirs()) {
+      const filepath = join(dir, filename);
+      if (existsSync(filepath)) return filepath;
     }
-    return filepath;
+    throw new Error('Export file not found');
   }
 
   private async fetchBusinessData() {
@@ -183,8 +207,6 @@ export class ExportService {
   }
 
   async cleanupExpired(maxAgeDays = 7): Promise<number> {
-    if (!existsSync(this.EXPORT_DIR)) return 0;
-
     if (!Number.isFinite(maxAgeDays) || maxAgeDays <= 0) {
       // 0 or negative means retention disabled ("keep forever")
       return 0;
@@ -194,17 +216,24 @@ export class ExportService {
     const maxAgeMs = maxAgeDays * 24 * 60 * 60 * 1000;
     let deleted = 0;
 
-    for (const file of readdirSync(this.EXPORT_DIR)) {
-      const filepath = join(this.EXPORT_DIR, file);
-      try {
-        const stat = statSync(filepath);
-        if (stat.isFile() && now - stat.mtimeMs > maxAgeMs) {
-          unlinkSync(filepath);
-          deleted++;
-          this.logger.log(`Deleted expired export: ${file}`);
+    for (const dir of await this.exportDirs()) {
+      if (!existsSync(dir)) continue;
+      // Only our own files: an administrator may point the export folder at a
+      // shared folder that holds other things.
+      for (const file of readdirSync(dir).filter((f) =>
+        f.startsWith('export_'),
+      )) {
+        const filepath = join(dir, file);
+        try {
+          const stat = statSync(filepath);
+          if (stat.isFile() && now - stat.mtimeMs > maxAgeMs) {
+            unlinkSync(filepath);
+            deleted++;
+            this.logger.log(`Deleted expired export: ${file}`);
+          }
+        } catch (e: any) {
+          this.logger.error(`Failed to cleanup ${file}: ${e.message}`);
         }
-      } catch (e: any) {
-        this.logger.error(`Failed to cleanup ${file}: ${e.message}`);
       }
     }
 
