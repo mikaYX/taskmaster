@@ -566,7 +566,7 @@ function TodosPageContent() {
     ];
 
     return (
-        <div className="mx-auto w-full max-w-4xl space-y-6 py-4 sm:py-6">
+        <div className="mx-auto w-full max-w-4xl space-y-6 pb-24 pt-4 sm:pt-6">
             <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
                     <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">

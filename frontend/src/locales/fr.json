@@ -1672,7 +1672,9 @@
             "monthlyDue": "Les tâches mensuelles ne peuvent pas être dues avant le {{date}}",
             "yearlyDue": "Les tâches annuelles ne peuvent pas être dues avant le {{date}}",
             "customDue": "La date d'échéance ne peut pas être dans le passé (min : {{date}})"
-        }
+        },
+        "backToList": "Retour aux tâches",
+        "stepOf": "Étape {{current}} sur {{total}}"
     },
     "todos": {
         "subtitle": "Vos tâches personnelles et collectives",
@@ -1911,6 +1913,13 @@
             "deactivateFailed": "Échec de la désactivation de la tâche",
             "reactivated": "Tâche réactivée",
             "reactivateFailed": "Échec de la réactivation de la tâche"
+        },
+        "noMatch": "Aucune tâche ne correspond à ces filtres.",
+        "stats": {
+            "active": "Tâches actives",
+            "unassigned": "Sans affectation",
+            "delegated": "Délégations en cours",
+            "inactive": "Inactives"
         }
     },
     "taskDelete": {

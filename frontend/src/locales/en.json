@@ -1672,7 +1672,9 @@
             "monthlyDue": "Monthly tasks cannot be due before {{date}}",
             "yearlyDue": "Yearly tasks cannot be due before {{date}}",
             "customDue": "Due date cannot be in the past (min: {{date}})"
-        }
+        },
+        "backToList": "Back to tasks",
+        "stepOf": "Step {{current}} of {{total}}"
     },
     "todos": {
         "subtitle": "Your personal and collective tasks",
@@ -1911,6 +1913,13 @@
             "deactivateFailed": "Failed to deactivate task",
             "reactivated": "Task reactivated",
             "reactivateFailed": "Failed to reactivate task"
+        },
+        "noMatch": "No task matches these filters.",
+        "stats": {
+            "active": "Active tasks",
+            "unassigned": "Without assignment",
+            "delegated": "Active delegations",
+            "inactive": "Inactive"
         }
     },
     "taskDelete": {

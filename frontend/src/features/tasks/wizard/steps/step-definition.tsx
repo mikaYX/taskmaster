@@ -8,7 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { CalendarDays, CalendarRange, Clock, Repeat, Users } from "lucide-react";
+import { CalendarDays, CalendarRange, Check, Clock, Repeat, Users } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 
@@ -156,14 +156,30 @@ export function StepDefinition() {
                         return (
                             <Card
                                 key={p.id}
+                                role="radio"
+                                aria-checked={isSelected}
+                                tabIndex={0}
                                 className={cn(
-                                    "cursor-pointer transition-all hover:bg-accent hover:text-accent-foreground",
-                                    isSelected ? "border-primary bg-primary/5 shadow-md" : "border-muted"
+                                    "relative cursor-pointer gap-0 py-0 outline-none transition-all hover:-translate-y-0.5 hover:shadow-md focus-visible:ring-2 focus-visible:ring-ring",
+                                    isSelected ? "border-primary bg-primary/5 ring-2 ring-primary/20" : "hover:border-primary/30"
                                 )}
                                 onClick={() => setValue("periodicity", p.id as CreateTaskFormValues['periodicity'], { shouldValidate: true })}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' || e.key === ' ') {
+                                        e.preventDefault();
+                                        setValue("periodicity", p.id as CreateTaskFormValues['periodicity'], { shouldValidate: true });
+                                    }
+                                }}
                             >
+                                {isSelected && (
+                                    <span className="absolute right-2 top-2 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                                        <Check className="h-3 w-3" />
+                                    </span>
+                                )}
                                 <CardContent className="flex flex-col items-center justify-center p-4 text-center h-full">
-                                    <Icon className={cn("h-6 w-6 mb-2", isSelected ? "text-primary" : "text-muted-foreground")} />
+                                    <span className={cn("mb-2 flex h-10 w-10 items-center justify-center rounded-xl", isSelected ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground")}>
+                                        <Icon className="h-5 w-5" />
+                                    </span>
                                     <span className={cn("font-medium text-sm", isSelected ? "text-primary" : "")}>{t(`taskWizard.periodicities.${p.id}.label`)}</span>
                                     <span className="text-[10px] text-muted-foreground mt-1">{t(`taskWizard.periodicities.${p.id}.desc`)}</span>
                                 </CardContent>

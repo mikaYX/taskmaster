@@ -41,7 +41,7 @@ export function StepAssignment() {
                     <TabsTrigger value="groups">{t('taskWizard.assignment.groupsTab', { n: groupIds.length })}</TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="users" className="border rounded-md p-4 min-h-[200px]">
+                <TabsContent value="users" className="min-h-[200px] rounded-xl border bg-muted/10 p-4">
                     <FormField
                         control={control}
                         name="userIds"
@@ -71,7 +71,7 @@ export function StepAssignment() {
                                                     return (
                                                         <FormItem
                                                             key={user.id}
-                                                            className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-2 mb-2"
+                                                            className="mb-2 flex flex-row items-start space-x-3 space-y-0 rounded-lg border p-2.5 transition-colors hover:bg-accent/40 has-[[data-state=checked]]:border-primary/40 has-[[data-state=checked]]:bg-primary/5"
                                                         >
                                                             <FormControl>
                                                                 <Checkbox
@@ -102,7 +102,7 @@ export function StepAssignment() {
                     />
                 </TabsContent>
 
-                <TabsContent value="groups" className="border rounded-md p-4 min-h-[200px]">
+                <TabsContent value="groups" className="min-h-[200px] rounded-xl border bg-muted/10 p-4">
                     <FormField
                         control={control}
                         name="groupIds"
@@ -132,7 +132,7 @@ export function StepAssignment() {
                                                     return (
                                                         <FormItem
                                                             key={group.id}
-                                                            className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-2 mb-2"
+                                                            className="mb-2 flex flex-row items-start space-x-3 space-y-0 rounded-lg border p-2.5 transition-colors hover:bg-accent/40 has-[[data-state=checked]]:border-primary/40 has-[[data-state=checked]]:bg-primary/5"
                                                         >
                                                             <FormControl>
                                                                 <Checkbox

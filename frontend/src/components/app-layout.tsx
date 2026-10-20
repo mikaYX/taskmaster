@@ -64,7 +64,8 @@ export function AppLayout({ titleKey = 'nav.taskBoard', subtitleKey }: AppLayout
             <SidebarInset className="overflow-hidden">
                 {showChrome && <AppHeader titleKey={titleKey} subtitleKey={subtitleKey} showNotifications={showTodos} />}
                 <main className="flex-1 overflow-hidden min-h-0">
-                    <ScrollArea className="h-full w-full">
+                    {/* Radix lays its content out as a table, which lets wide content stretch the page past the screen. */}
+                    <ScrollArea className="h-full w-full [&_[data-slot=scroll-area-viewport]>div]:!block">
                         <div className={cn(isTvMode ? "p-0" : "p-4")}>
                             <Outlet />
                         </div>

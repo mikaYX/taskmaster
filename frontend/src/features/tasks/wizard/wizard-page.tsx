@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { createTaskSchema } from "../schemas/task-creation.schema";
 import type { CreateTaskFormValues } from "../schemas/task-creation.schema";
 import type { CreateTaskDto } from "@/api/types";
+import { Bell, CalendarClock, ClipboardCheck, FileText, Users } from "lucide-react";
 import { WizardLayout } from "./wizard-layout";
 import { StepDefinition } from "./steps/step-definition";
 import { StepScheduling } from "./steps/step-scheduling";
@@ -21,12 +22,14 @@ import { tasksApi } from "@/api/tasks";
 import { notificationsApi } from "@/api/notifications";
 
 const STEP_KEYS = ['definition', 'scheduling', 'assignment', 'notifications', 'review'] as const;
+const STEP_ICONS = [FileText, CalendarClock, Users, Bell, ClipboardCheck];
 
 export default function WizardPage() {
     const { t } = useTranslation();
-    const steps = STEP_KEYS.map((key) => ({
+    const steps = STEP_KEYS.map((key, index) => ({
         title: t(`taskWizard.steps.${key}.title`),
         description: t(`taskWizard.steps.${key}.description`),
+        icon: STEP_ICONS[index],
     }));
     const [currentStep, setCurrentStep] = useState(0);
     const navigate = useNavigate();
@@ -188,7 +191,7 @@ export default function WizardPage() {
     };
 
     return (
-        <div className="container mx-auto py-6 max-w-5xl">
+        <div className="mx-auto w-full max-w-6xl pb-24 pt-4 sm:pt-6">
             <FormProvider {...methods}>
                 <WizardLayout
                     currentStep={currentStep}

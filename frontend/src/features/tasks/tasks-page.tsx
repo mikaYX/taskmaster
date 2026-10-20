@@ -2,10 +2,24 @@ import { useState, useMemo } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 import { getDateLocale } from '@/lib/date-locale';
 import { useNavigate } from 'react-router-dom';
-import { Plus, ClipboardList, ChevronUp, ChevronDown, Search } from 'lucide-react';
+import {
+    Plus,
+    ClipboardList,
+    ChevronUp,
+    ChevronDown,
+    ChevronsUpDown,
+    Search,
+    CheckCircle2,
+    UserX,
+    PauseCircle,
+    Repeat,
+    User,
+    Users,
+    X,
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import {
     Table,
     TableBody,
@@ -41,6 +55,15 @@ import { TaskActions } from './components/task-actions';
 import { TaskAssignmentsSheet } from './components/task-assignments-sheet';
 import { TaskDelegationsSheet } from './components/task-delegations-sheet';
 import type { Task } from '@/api/types';
+
+/** Soft colour per periodicity, shared by the row icon and the periodicity pill. */
+const PERIODICITY_TONE: Record<string, string> = {
+    daily: 'bg-sky-500/10 text-sky-700 dark:text-sky-400',
+    weekly: 'bg-violet-500/10 text-violet-700 dark:text-violet-400',
+    monthly: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400',
+    yearly: 'bg-amber-500/10 text-amber-700 dark:text-amber-400',
+    custom: 'bg-primary/10 text-primary',
+};
 
 
 
@@ -142,334 +165,386 @@ export function TasksPage() {
     // Count stats
     const activeCount = processedTasks?.filter(t => t.isActive).length || 0;
     const inactiveCount = processedTasks?.filter(t => !t.isActive).length || 0;
+    const now = new Date();
+    const activeDelegationsOf = (task: Task) =>
+        task.delegations?.filter(d => new Date(d.startAt) <= now && new Date(d.endAt) > now) || [];
+    const unassignedCount = processedTasks?.filter(t =>
+        t.isActive && (t.assignedUserIds?.length || 0) === 0 && (t.assignedGroupIds?.length || 0) === 0
+    ).length || 0;
+    const delegatedCount = processedTasks?.filter(t => activeDelegationsOf(t).length > 0).length || 0;
+    const filtersActive = filterUserId !== undefined || filterGroupId !== undefined || searchQuery !== '';
+
+    const stats = [
+        { key: 'active', icon: CheckCircle2, value: activeCount, tone: 'text-emerald-600 bg-emerald-500/10 dark:text-emerald-400' },
+        { key: 'unassigned', icon: UserX, value: unassignedCount, tone: 'text-amber-600 bg-amber-500/10 dark:text-amber-400' },
+        { key: 'delegated', icon: CalendarClock, value: delegatedCount, tone: 'text-orange-600 bg-orange-500/10 dark:text-orange-400' },
+        ...(showInactive
+            ? [{ key: 'inactive', icon: PauseCircle, value: inactiveCount, tone: 'text-muted-foreground bg-muted' }]
+            : []),
+    ];
+
+    const sortableHead = (key: keyof Task | 'assignments', label: string, className = '') => (
+        <TableHead className={cn('h-11 px-4 first:pl-6', className)}>
+            <button
+                type="button"
+                onClick={() => handleSort(key)}
+                className={cn(
+                    'inline-flex items-center gap-1 text-xs font-medium uppercase tracking-wide text-muted-foreground transition-colors hover:text-foreground',
+                    sortConfig?.key === key && 'text-foreground',
+                )}
+            >
+                {label}
+                {sortConfig?.key === key ? renderSortIcon(key) : <ChevronsUpDown className="ml-1 h-3 w-3 opacity-40" />}
+            </button>
+        </TableHead>
+    );
+
+    const renderDelegations = (task: Task) => {
+        const activeDelegations = activeDelegationsOf(task);
+        if (activeDelegations.length === 0) return null;
+
+        return (
+            <TooltipProvider delayDuration={100}>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Badge variant="outline" className="mt-1.5 text-orange-600 border-orange-200 bg-orange-50 font-medium cursor-help dark:border-orange-500/30 dark:bg-orange-500/10 dark:text-orange-400" aria-label={t('taskList.delegationsAria', { n: activeDelegations.length })}>
+                            <CalendarClock className="h-3 w-3 mr-1" />
+                            {activeDelegations.length > 1 ? t('taskList.delegatedMany', { n: activeDelegations.length }) : t('taskList.delegated')}
+                        </Badge>
+                    </TooltipTrigger>
+                    <TooltipContent align="start" className="max-w-sm p-3">
+                        <p className="font-semibold text-sm mb-2">{t('taskList.delegationsTitle')}</p>
+                        <div className="space-y-1.5">
+                            {activeDelegations.map(d => {
+                                type DelegationTarget = {
+                                    fullname?: string;
+                                    username?: string;
+                                    user?: { fullname?: string; username?: string };
+                                    name?: string;
+                                    group?: { name?: string };
+                                };
+                                type DelegationAny = {
+                                    delegatedBy?: DelegationTarget;
+                                    targetUsers?: DelegationTarget[];
+                                    targetGroups?: DelegationTarget[];
+                                };
+                                const dAny = d as unknown as DelegationAny;
+                                const rawDel = dAny.delegatedBy?.fullname || dAny.delegatedBy?.username || dAny.delegatedBy?.user?.fullname || dAny.delegatedBy?.user?.username || '';
+                                const delegator = rawDel.trim() || t('taskList.unknown');
+
+                                const tUsers = (dAny.targetUsers || []).map((tu) => {
+                                    const name = tu?.fullname || tu?.username || tu?.user?.fullname || tu?.user?.username || '';
+                                    return name.trim();
+                                }).filter(Boolean);
+
+                                const tGroups = (dAny.targetGroups || []).map((tg) => {
+                                    const name = tg?.name || tg?.group?.name || '';
+                                    return name.trim() ? t('taskList.groupSuffix', { name: name.trim() }) : null;
+                                }).filter(Boolean);
+
+                                const targetsList = [...tUsers, ...tGroups];
+                                const targets = targetsList.length > 0 ? targetsList.join(', ') : t('taskList.noRecipient');
+
+                                const formatOpts: Intl.DateTimeFormatOptions = {
+                                    day: '2-digit', month: '2-digit', year: 'numeric',
+                                    hour: '2-digit', minute: '2-digit'
+                                };
+                                // toLocaleString() yields "dd/MM/yyyy HH:mm" in fr-FR (sometimes with " à ", we replace it)
+                                const dateCode = getDateLocale().code;
+                                const start = new Date(d.startAt).toLocaleString(dateCode, formatOpts).replace(' à ', ' ');
+                                const end = new Date(d.endAt).toLocaleString(dateCode, formatOpts).replace(' à ', ' ');
+
+                                return (
+                                    <p key={d.id} className="text-xs text-muted-foreground leading-tight">
+                                        <Trans
+                                            i18nKey="taskList.delegationLine"
+                                            values={{ delegator, targets, start, end }}
+                                            components={{ b: <span className="font-medium text-foreground" /> }}
+                                        />
+                                    </p>
+                                );
+                            })}
+                        </div>
+                    </TooltipContent>
+                </Tooltip>
+            </TooltipProvider>
+        );
+    };
 
     return (
-        <div className="space-y-6">
-            {/* ========== HEADER SECTION ========== */}
-            <div className="flex flex-col gap-1">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <h1 className="text-3xl font-bold tracking-tight">{t('nav.tasks')}</h1>
-                        <p className="text-muted-foreground">
-                            {t('tasks.description')}
-                        </p>
+        <div className="mx-auto w-full max-w-6xl space-y-6 pb-24 pt-4 sm:pt-6">
+            {/* ========== HEADER ========== */}
+            <div className="flex flex-wrap items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                        <ClipboardList className="h-6 w-6" />
                     </div>
-                    {!isGuest && (
-                        <Button size="lg" onClick={handleCreate}>
-                            <Plus className="mr-2 h-4 w-4" />
-                            {t('tasks.addTask')}
+                    <div>
+                        <h1 className="text-2xl font-bold tracking-tight">{t('nav.tasks')}</h1>
+                        <p className="text-sm text-muted-foreground">{t('tasks.description')}</p>
+                    </div>
+                </div>
+                {!isGuest && (
+                    <Button onClick={handleCreate} className="gap-2 shadow-sm">
+                        <Plus className="h-4 w-4" />
+                        {t('tasks.addTask')}
+                    </Button>
+                )}
+            </div>
+
+            {/* ========== STATS ========== */}
+            <div className={cn('grid grid-cols-2 gap-3', stats.length === 4 ? 'sm:grid-cols-4' : 'sm:grid-cols-3')}>
+                {stats.map(({ key, icon: Icon, value, tone }) => (
+                    <div key={key} className="flex items-center gap-3 rounded-xl border bg-card p-3 shadow-sm">
+                        <span className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-lg', tone)}>
+                            <Icon className="h-4 w-4" />
+                        </span>
+                        <span className="min-w-0">
+                            <span className="block text-xl font-semibold leading-none tabular-nums">
+                                {isLoading ? '–' : value}
+                            </span>
+                            <span className="mt-1 block truncate text-xs text-muted-foreground">{t(`taskList.stats.${key}`)}</span>
+                        </span>
+                    </div>
+                ))}
+            </div>
+
+            {/* ========== TOOLBAR ========== */}
+            <div className="flex flex-col gap-3 rounded-xl border bg-card p-3 shadow-sm lg:flex-row lg:items-center">
+                <div className="relative flex-1">
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                        type="text"
+                        placeholder={t('taskList.searchPlaceholder')}
+                        aria-label={t('taskList.searchPlaceholder')}
+                        className="pl-9"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                </div>
+
+                {isManager && (
+                    <div className="flex flex-col gap-2 sm:flex-row">
+                        <Select
+                            value={filterUserId?.toString() || 'all'}
+                            onValueChange={(val) => {
+                                if (val && val !== 'all') {
+                                    setFilterUserId(parseInt(val, 10));
+                                    setFilterGroupId(undefined);
+                                } else {
+                                    setFilterUserId(undefined);
+                                }
+                            }}
+                            disabled={filterGroupId !== undefined}
+                        >
+                            <SelectTrigger className="w-full sm:w-[180px]" aria-label={t('taskList.filterUser')}>
+                                <SelectValue placeholder={t('taskList.filterUser')} />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">{t('taskList.allUsers')}</SelectItem>
+                                {users?.map(user => (
+                                    <SelectItem key={user.id} value={user.id.toString()}>
+                                        {user.fullname || user.username}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+
+                        <Select
+                            value={filterGroupId?.toString() || 'all'}
+                            onValueChange={(val) => {
+                                if (val && val !== 'all') {
+                                    setFilterGroupId(parseInt(val, 10));
+                                    setFilterUserId(undefined);
+                                } else {
+                                    setFilterGroupId(undefined);
+                                }
+                            }}
+                            disabled={filterUserId !== undefined}
+                        >
+                            <SelectTrigger className="w-full sm:w-[180px]" aria-label={t('taskList.filterGroup')}>
+                                <SelectValue placeholder={t('taskList.filterGroup')} />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">{t('taskList.allGroups')}</SelectItem>
+                                {groups?.map(group => (
+                                    <SelectItem key={group.id} value={group.id.toString()}>
+                                        {group.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                )}
+
+                <div className="flex items-center justify-between gap-3 lg:justify-start">
+                    <div className="flex items-center gap-2 rounded-lg border px-3 py-1.5">
+                        <Switch
+                            id="show-inactive"
+                            checked={showInactive}
+                            onCheckedChange={setShowInactive}
+                        />
+                        <Label htmlFor="show-inactive" className="cursor-pointer whitespace-nowrap text-sm font-normal text-muted-foreground">
+                            {t('taskList.showInactive')}
+                        </Label>
+                    </div>
+                    {filtersActive && (
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                                setFilterUserId(undefined);
+                                setFilterGroupId(undefined);
+                                setSearchQuery('');
+                            }}
+                            className="gap-1.5 text-muted-foreground"
+                        >
+                            <X className="h-3.5 w-3.5" />
+                            {t('taskList.clear')}
                         </Button>
                     )}
                 </div>
             </div>
 
-            {/* ========== CONTENT CARD ========== */}
-            <Card className="shadow-sm">
-                <CardHeader className="border-b bg-muted/30 py-4">
-                    <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">
-                            {isLoading
-                                ? t('common.loading')
-                                : t('taskList.counts', { active: activeCount, inactive: inactiveCount })
-                            }
-                        </span>
-                        <div className="flex flex-wrap items-center gap-4">
-                            <div className="flex items-center gap-4">
-                                <div className="relative w-64">
-                                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                                    <Input
-                                        type="text"
-                                        placeholder={t('taskList.searchPlaceholder')}
-                                        className="pl-8"
-                                        value={searchQuery}
-                                        onChange={(e) => setSearchQuery(e.target.value)}
-                                    />
+            {/* ========== LIST ========== */}
+            <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
+                {isLoading ? (
+                    <div className="space-y-4 p-6">
+                        {Array.from({ length: 5 }).map((_, i) => (
+                            <div key={i} className="flex items-center gap-4">
+                                <Skeleton className="h-10 w-10 rounded-xl" />
+                                <div className="flex-1 space-y-2">
+                                    <Skeleton className="h-4 w-48" />
+                                    <Skeleton className="h-3 w-32" />
                                 </div>
-                                <div className="flex items-center gap-2">
-                                    <Switch
-                                        id="show-inactive"
-                                        checked={showInactive}
-                                        onCheckedChange={setShowInactive}
-                                    />
-                                    <Label htmlFor="show-inactive" className="text-sm text-muted-foreground whitespace-nowrap">
-                                        {t('taskList.showInactive')}
-                                    </Label>
-                                </div>
+                                <Skeleton className="h-6 w-20 rounded-full" />
                             </div>
-
-                            {isManager && (
-                                <div className="flex items-center gap-2 border-l pl-4 ml-2">
-                                    <Select
-                                        value={filterUserId?.toString() || 'all'}
-                                        onValueChange={(val) => {
-                                            if (val && val !== 'all') {
-                                                setFilterUserId(parseInt(val, 10));
-                                                setFilterGroupId(undefined);
-                                            } else {
-                                                setFilterUserId(undefined);
-                                            }
-                                        }}
-                                        disabled={filterGroupId !== undefined}
-                                    >
-                                        <SelectTrigger className="w-[180px]">
-                                            <SelectValue placeholder={t('taskList.filterUser')} />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="all">{t('taskList.allUsers')}</SelectItem>
-                                            {users?.map(user => (
-                                                <SelectItem key={user.id} value={user.id.toString()}>
-                                                    {user.fullname || user.username}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-
-                                    <Select
-                                        value={filterGroupId?.toString() || 'all'}
-                                        onValueChange={(val) => {
-                                            if (val && val !== 'all') {
-                                                setFilterGroupId(parseInt(val, 10));
-                                                setFilterUserId(undefined);
-                                            } else {
-                                                setFilterGroupId(undefined);
-                                            }
-                                        }}
-                                        disabled={filterUserId !== undefined}
-                                    >
-                                        <SelectTrigger className="w-[180px]">
-                                            <SelectValue placeholder={t('taskList.filterGroup')} />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="all">{t('taskList.allGroups')}</SelectItem>
-                                            {groups?.map(group => (
-                                                <SelectItem key={group.id} value={group.id.toString()}>
-                                                    {group.name}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            )}
-
-                            {(filterUserId !== undefined || filterGroupId !== undefined || searchQuery !== '') && (
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => {
-                                        setFilterUserId(undefined);
-                                        setFilterGroupId(undefined);
-                                        setSearchQuery('');
-                                    }}
-                                    className="text-muted-foreground"
-                                >
-                                    {t('taskList.clear')}
-                                </Button>
-                            )}
-                        </div>
+                        ))}
                     </div>
-                </CardHeader>
-                <CardContent className="p-0">
-                    {isLoading ? (
-                        <div className="p-6 space-y-4">
-                            {Array.from({ length: 5 }).map((_, i) => (
-                                <div key={i} className="flex items-center gap-4">
-                                    <Skeleton className="h-10 w-10 rounded-lg" />
-                                    <div className="space-y-2 flex-1">
-                                        <Skeleton className="h-4 w-48" />
-                                        <Skeleton className="h-3 w-32" />
-                                    </div>
-                                    <Skeleton className="h-6 w-20" />
-                                </div>
-                            ))}
+                ) : tasks?.length === 0 ? (
+                    /* ========== EMPTY STATE ========== */
+                    <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
+                        <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10">
+                            <ClipboardList className="h-7 w-7 text-primary" />
                         </div>
-                    ) : tasks?.length === 0 ? (
-                        /* ========== EMPTY STATE ========== */
-                        <div className="flex flex-col items-center justify-center py-16 text-center">
-                            <ClipboardList className="h-12 w-12 text-muted-foreground/30 mb-4" />
-                            <h3 className="font-semibold text-lg">{t('taskList.emptyTitle')}</h3>
-                            <p className="text-muted-foreground text-sm max-w-sm mt-1">
-                                {t('taskList.emptyBody')}
-                            </p>
-                            <Button className="mt-6" onClick={handleCreate}>
-                                <Plus className="mr-2 h-4 w-4" />
+                        <h3 className="text-lg font-semibold">{t('taskList.emptyTitle')}</h3>
+                        <p className="mt-1 max-w-sm text-sm text-muted-foreground">
+                            {t('taskList.emptyBody')}
+                        </p>
+                        {!isGuest && (
+                            <Button className="mt-6 gap-2" onClick={handleCreate}>
+                                <Plus className="h-4 w-4" />
                                 {t('tasks.addTask')}
                             </Button>
-                        </div>
-                    ) : (
-                        /* ========== TABLE ========== */
-                        <Table>
-                            <TableHeader>
-                                <TableRow className="bg-muted/50 hover:bg-muted/50">
-                                    <TableHead
-                                        className="text-xs uppercase tracking-wide text-muted-foreground font-medium py-3 px-6 cursor-pointer select-none"
-                                        onClick={() => handleSort('name')}
-                                    >
-                                        {t('taskList.columns.name')} {renderSortIcon('name')}
-                                    </TableHead>
-                                    <TableHead
-                                        className="text-xs uppercase tracking-wide text-muted-foreground font-medium py-3 px-6 cursor-pointer select-none"
-                                        onClick={() => handleSort('periodicity')}
-                                    >
-                                        {t('taskList.columns.periodicity')} {renderSortIcon('periodicity')}
-                                    </TableHead>
-                                    <TableHead
-                                        className="text-xs uppercase tracking-wide text-muted-foreground font-medium py-3 px-6 cursor-pointer select-none"
-                                        onClick={() => handleSort('assignments')}
-                                    >
-                                        {t('taskList.columns.assignments')} {renderSortIcon('assignments')}
-                                    </TableHead>
-                                    <TableHead
-                                        className="text-xs uppercase tracking-wide text-muted-foreground font-medium py-3 px-6 cursor-pointer select-none"
-                                        onClick={() => handleSort('isActive')}
-                                    >
-                                        {t('taskList.columns.status')} {renderSortIcon('isActive')}
-                                    </TableHead>
-                                    <TableHead className="w-[60px]"></TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {processedTasks?.map((task) => (
+                        )}
+                    </div>
+                ) : processedTasks?.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center px-6 py-14 text-center">
+                        <Search className="mb-3 h-8 w-8 text-muted-foreground/40" />
+                        <p className="text-sm text-muted-foreground">{t('taskList.noMatch')}</p>
+                    </div>
+                ) : (
+                    /* ========== TABLE ========== */
+                    <Table>
+                        <TableHeader>
+                            <TableRow className="bg-muted/40 hover:bg-muted/40">
+                                {sortableHead('name', t('taskList.columns.name'))}
+                                {sortableHead('periodicity', t('taskList.columns.periodicity'), 'hidden md:table-cell')}
+                                {sortableHead('assignments', t('taskList.columns.assignments'), 'hidden lg:table-cell')}
+                                {sortableHead('isActive', t('taskList.columns.status'))}
+                                <TableHead className="w-[60px]"></TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {processedTasks?.map((task) => {
+                                const periodicity = (task.periodicity || 'daily').toLowerCase();
+                                const users = task.assignedUserIds?.length || 0;
+                                const groupsCount = task.assignedGroupIds?.length || 0;
+                                return (
                                     <TableRow
                                         key={task.id}
-                                        className={`hover:bg-muted/30 transition-colors ${!task.isActive ? 'opacity-50 bg-muted/20' : ''}`}
+                                        className={cn(
+                                            'group cursor-pointer transition-colors hover:bg-muted/40',
+                                            !task.isActive && 'bg-muted/20 opacity-60',
+                                        )}
+                                        onClick={(e) => {
+                                            // The row opens the task; buttons, menus and tooltips inside keep their own click.
+                                            // Clicks from portals (menus, dialogs) bubble through React too: only clicks really inside the row count.
+                                            const target = e.target as HTMLElement;
+                                            if (!e.currentTarget.contains(target) || target.closest('button, a, .cursor-help')) return;
+                                            handleEdit(task);
+                                        }}
                                     >
-                                        <TableCell className="py-4 px-6">
+                                        <TableCell className="whitespace-normal py-3.5 pl-6 pr-4">
                                             <div className="flex items-center gap-3">
-                                                <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                                                <div className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-xl', PERIODICITY_TONE[periodicity] ?? PERIODICITY_TONE.custom)}>
                                                     <ClipboardList className="h-4 w-4" />
                                                 </div>
-                                                <div>
-                                                    <span className="font-medium">{task.name}</span>
+                                                <div className="min-w-0">
+                                                    <span className="block break-words font-medium group-hover:text-primary">{task.name}</span>
                                                     {task.description && (
-                                                        <p className="text-xs text-muted-foreground line-clamp-1">
+                                                        <p className="line-clamp-1 max-w-md text-xs text-muted-foreground">
                                                             {task.description}
                                                         </p>
                                                     )}
                                                 </div>
                                             </div>
                                         </TableCell>
-                                        <TableCell className="py-4 px-6">
-                                            <div className="flex flex-col gap-1">
-                                                <div className="flex items-center gap-2">
-                                                    <Badge variant="outline" className="uppercase text-[10px] tracking-wider font-semibold">
-                                                        {t(`taskWizard.periodicities.${(task.periodicity || 'daily').toLowerCase()}.label`, { defaultValue: task.periodicity || 'DAILY' })}
-                                                    </Badge>
-
-                                                </div>
-
-                                                {/* Schedule Rules Tags */}
-                                                <div className="flex flex-wrap gap-1 mt-1">
-                                                    {task.skipWeekends && (
-                                                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-50 text-blue-700">
-                                                            {t('taskList.skipWeekends')}
-                                                        </span>
-                                                    )}
-                                                    {task.skipHolidays && (
-                                                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-indigo-50 text-indigo-700">
-                                                            {t('taskList.skipHolidays')}
-                                                        </span>
-                                                    )}
-                                                </div>
+                                        <TableCell className="hidden whitespace-normal px-4 py-3.5 md:table-cell">
+                                            <div className="flex flex-wrap items-center gap-1.5">
+                                                <span className={cn('inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold', PERIODICITY_TONE[periodicity] ?? PERIODICITY_TONE.custom)}>
+                                                    <Repeat className="h-3 w-3" />
+                                                    {t(`taskWizard.periodicities.${periodicity}.label`, { defaultValue: task.periodicity || 'DAILY' })}
+                                                </span>
+                                                {task.skipWeekends && (
+                                                    <span className="inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                                                        {t('taskList.skipWeekends')}
+                                                    </span>
+                                                )}
+                                                {task.skipHolidays && (
+                                                    <span className="inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                                                        {t('taskList.skipHolidays')}
+                                                    </span>
+                                                )}
                                             </div>
                                         </TableCell>
-                                        <TableCell className="py-4 px-6">
-                                            <div className="flex gap-1">
-                                                {(task.assignedUserIds?.length || 0) > 0 && (
-                                                    <Badge variant="secondary">
-                                                        {t('taskList.userCount', { n: task.assignedUserIds?.length })}
-                                                    </Badge>
+                                        <TableCell className="hidden px-4 py-3.5 lg:table-cell">
+                                            <div className="flex flex-wrap gap-1.5">
+                                                {users > 0 && (
+                                                    <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-xs">
+                                                        <User className="h-3 w-3" />
+                                                        {t('taskList.userCount', { n: users })}
+                                                    </span>
                                                 )}
-                                                {(task.assignedGroupIds?.length || 0) > 0 && (
-                                                    <Badge variant="outline">
-                                                        {t('taskList.groupCount', { n: task.assignedGroupIds?.length })}
-                                                    </Badge>
+                                                {groupsCount > 0 && (
+                                                    <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs">
+                                                        <Users className="h-3 w-3" />
+                                                        {t('taskList.groupCount', { n: groupsCount })}
+                                                    </span>
                                                 )}
-                                                {(task.assignedUserIds?.length || 0) === 0 && (task.assignedGroupIds?.length || 0) === 0 && (
-                                                    <span className="text-xs text-muted-foreground italic">
+                                                {users === 0 && groupsCount === 0 && (
+                                                    <span className="inline-flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400">
+                                                        <UserX className="h-3 w-3" />
                                                         {t('taskList.noAssignments')}
                                                     </span>
                                                 )}
                                             </div>
                                         </TableCell>
-                                        <TableCell className="py-4 px-6">
-                                            {task.isActive ? (
-                                                <Badge variant="default">{t('taskList.active')}</Badge>
-                                            ) : (
-                                                <Badge variant="secondary">{t('taskList.inactive')}</Badge>
-                                            )}
-                                            {(() => {
-                                                const activeDelegations = task.delegations?.filter(d => new Date(d.startAt) <= new Date() && new Date(d.endAt) > new Date()) || [];
-                                                if (activeDelegations.length === 0) return null;
-
-                                                return (
-                                                    <TooltipProvider delayDuration={100}>
-                                                        <Tooltip>
-                                                            <TooltipTrigger asChild>
-                                                                <Badge variant="outline" className="mt-2 text-orange-600 border-orange-200 bg-orange-50 font-medium cursor-help" aria-label={t('taskList.delegationsAria', { n: activeDelegations.length })}>
-                                                                    <CalendarClock className="h-3 w-3 mr-1" />
-                                                                    {activeDelegations.length > 1 ? t('taskList.delegatedMany', { n: activeDelegations.length }) : t('taskList.delegated')}
-                                                                </Badge>
-                                                            </TooltipTrigger>
-                                                            <TooltipContent align="start" className="max-w-sm p-3">
-                                                                <p className="font-semibold text-sm mb-2">{t('taskList.delegationsTitle')}</p>
-                                                                <div className="space-y-1.5">
-                                                                    {activeDelegations.map(d => {
-                                                                        type DelegationTarget = {
-                                                                            fullname?: string;
-                                                                            username?: string;
-                                                                            user?: { fullname?: string; username?: string };
-                                                                            name?: string;
-                                                                            group?: { name?: string };
-                                                                        };
-                                                                        type DelegationAny = {
-                                                                            delegatedBy?: DelegationTarget;
-                                                                            targetUsers?: DelegationTarget[];
-                                                                            targetGroups?: DelegationTarget[];
-                                                                        };
-                                                                        const dAny = d as unknown as DelegationAny;
-                                                                        const rawDel = dAny.delegatedBy?.fullname || dAny.delegatedBy?.username || dAny.delegatedBy?.user?.fullname || dAny.delegatedBy?.user?.username || '';
-                                                                        const delegator = rawDel.trim() || t('taskList.unknown');
-
-                                                                        const tUsers = (dAny.targetUsers || []).map((tu) => {
-                                                                            const name = tu?.fullname || tu?.username || tu?.user?.fullname || tu?.user?.username || '';
-                                                                            return name.trim();
-                                                                        }).filter(Boolean);
-
-                                                                        const tGroups = (dAny.targetGroups || []).map((tg) => {
-                                                                            const name = tg?.name || tg?.group?.name || '';
-                                                                            return name.trim() ? t('taskList.groupSuffix', { name: name.trim() }) : null;
-                                                                        }).filter(Boolean);
-
-                                                                        const targetsList = [...tUsers, ...tGroups];
-                                                                        const targets = targetsList.length > 0 ? targetsList.join(', ') : t('taskList.noRecipient');
-
-                                                                        const formatOpts: Intl.DateTimeFormatOptions = {
-                                                                            day: '2-digit', month: '2-digit', year: 'numeric',
-                                                                            hour: '2-digit', minute: '2-digit'
-                                                                        };
-                                                                        // toLocaleString() yields "dd/MM/yyyy HH:mm" in fr-FR (sometimes with " à ", we replace it)
-                                                                        const dateCode = getDateLocale().code;
-                                                                        const start = new Date(d.startAt).toLocaleString(dateCode, formatOpts).replace(' à ', ' ');
-                                                                        const end = new Date(d.endAt).toLocaleString(dateCode, formatOpts).replace(' à ', ' ');
-
-                                                                        return (
-                                                                            <p key={d.id} className="text-xs text-muted-foreground leading-tight">
-                                                                                <Trans
-                                                                                    i18nKey="taskList.delegationLine"
-                                                                                    values={{ delegator, targets, start, end }}
-                                                                                    components={{ b: <span className="font-medium text-foreground" /> }}
-                                                                                />
-                                                                            </p>
-                                                                        );
-                                                                    })}
-                                                                </div>
-                                                            </TooltipContent>
-                                                        </Tooltip>
-                                                    </TooltipProvider>
-                                                );
-                                            })()}
+                                        <TableCell className="px-4 py-3.5">
+                                            <span
+                                                className={cn(
+                                                    'inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium',
+                                                    task.isActive
+                                                        ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
+                                                        : 'bg-muted text-muted-foreground',
+                                                )}
+                                            >
+                                                <span className={cn('h-1.5 w-1.5 rounded-full', task.isActive ? 'bg-emerald-500' : 'bg-muted-foreground/60')} />
+                                                {task.isActive ? t('taskList.active') : t('taskList.inactive')}
+                                            </span>
+                                            {renderDelegations(task)}
                                         </TableCell>
-                                        <TableCell className="py-4 px-6">
+                                        <TableCell className="py-3.5 pr-4 text-right">
                                             {!isGuest && (
                                                 <TaskActions
                                                     task={task}
@@ -480,12 +555,12 @@ export function TasksPage() {
                                             )}
                                         </TableCell>
                                     </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    )}
-                </CardContent>
-            </Card>
+                                );
+                            })}
+                        </TableBody>
+                    </Table>
+                )}
+            </div>
 
             {/* ========== DIALOGS & SHEETS ========== */}
             <TaskAssignmentsSheet

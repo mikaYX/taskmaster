@@ -1,14 +1,13 @@
 import * as React from "react"
-import { Check } from "lucide-react"
+import { useNavigate } from "react-router-dom"
+import { ArrowLeft, Check, ChevronLeft, ChevronRight, Loader2, Sparkles, type LucideIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Separator } from "@/components/ui/separator"
 import { cn } from "@/lib/utils"
 import { useTranslation } from "react-i18next"
 
 interface WizardLayoutProps {
     currentStep: number;
-    steps: { title: string; description?: string }[];
+    steps: { title: string; description?: string; icon?: LucideIcon }[];
     children: React.ReactNode;
     onNext: () => void;
     onBack: () => void;
@@ -28,76 +27,154 @@ export function WizardLayout({
     nextLabel
 }: WizardLayoutProps) {
     const { t } = useTranslation();
+    const navigate = useNavigate();
+    const isLast = currentStep === steps.length - 1;
+    const progress = ((currentStep + 1) / steps.length) * 100;
+    const step = steps[currentStep];
+    const StepIcon = step.icon;
+
     return (
-        <div className="flex h-full min-h-[600px] gap-6">
-            {/* Sidebar Stepper */}
-            <aside className="w-64 flex-shrink-0 hidden md:block">
-                <div className="sticky top-4 space-y-4">
-                    <div className="px-4 py-2">
-                        <h2 className="text-lg font-semibold tracking-tight">{t('taskWizard.title')}</h2>
+        <div className="space-y-6">
+            {/* Header */}
+            <div className="flex flex-wrap items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                        <Sparkles className="h-6 w-6" />
+                    </div>
+                    <div>
+                        <h1 className="text-2xl font-bold tracking-tight">{t('taskWizard.title')}</h1>
                         <p className="text-sm text-muted-foreground">{t('taskWizard.subtitle')}</p>
                     </div>
-                    <Separator />
-                    <nav className="space-y-1">
-                        {steps.map((step, index) => {
-                            const isActive = currentStep === index;
-                            const isCompleted = currentStep > index;
-
-                            return (
-                                <div
-                                    key={step.title}
-                                    className={cn(
-                                        "group flex items-center gap-3 rounded-md px-4 py-3 text-sm font-medium transition-colors",
-                                        isActive ? "bg-accent text-accent-foreground" : "text-muted-foreground",
-                                        isCompleted ? "text-foreground" : ""
-                                    )}
-                                >
-                                    <div
-                                        className={cn(
-                                            "flex h-6 w-6 items-center justify-center rounded-full border text-[10px] transition-colors",
-                                            isActive ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground",
-                                            isCompleted ? "border-primary bg-primary text-primary-foreground" : ""
-                                        )}
-                                    >
-                                        {isCompleted ? <Check className="h-3 w-3" /> : index + 1}
-                                    </div>
-                                    <div className="flex flex-col">
-                                        <span>{step.title}</span>
-                                        {isActive && step.description && (
-                                            <span className="text-[10px] font-normal text-muted-foreground">
-                                                {step.description}
-                                            </span>
-                                        )}
-                                    </div>
-                                </div>
-                            )
-                        })}
-                    </nav>
                 </div>
-            </aside>
+                <Button variant="ghost" size="sm" className="gap-2 text-muted-foreground" onClick={() => navigate('/task-definitions')}>
+                    <ArrowLeft className="h-4 w-4" />
+                    {t('taskWizard.backToList')}
+                </Button>
+            </div>
 
-            {/* Main Content */}
-            <main className="flex-1 flex flex-col">
-                <Card className="flex-1 flex flex-col border-none shadow-none md:border md:shadow-sm">
-                    <CardHeader className="pb-4">
-                        <CardTitle>{steps[currentStep].title}</CardTitle>
-                        <CardDescription>{steps[currentStep].description || t('taskWizard.fillDetails')}</CardDescription>
-                    </CardHeader>
-                    <Separator />
-                    <CardContent className="flex-1 py-6">
+            {/* Progress (always visible, the only stepper on small screens) */}
+            <div className="space-y-2">
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span className="font-medium text-foreground md:hidden">{step.title}</span>
+                    <span className="hidden md:inline">{t('taskWizard.stepOf', { current: currentStep + 1, total: steps.length })}</span>
+                    <span className="tabular-nums md:hidden">{currentStep + 1}/{steps.length}</span>
+                    <span className="hidden tabular-nums md:inline">{Math.round(progress)} %</span>
+                </div>
+                <div
+                    className="h-1.5 overflow-hidden rounded-full bg-muted"
+                    role="progressbar"
+                    aria-valuemin={1}
+                    aria-valuemax={steps.length}
+                    aria-valuenow={currentStep + 1}
+                    aria-label={t('taskWizard.stepOf', { current: currentStep + 1, total: steps.length })}
+                >
+                    <div className="h-full rounded-full bg-primary transition-all duration-500 ease-out" style={{ width: `${progress}%` }} />
+                </div>
+            </div>
+
+            <div className="flex gap-6">
+                {/* Vertical stepper */}
+                <aside className="hidden w-64 shrink-0 md:block">
+                    <nav aria-label={t('taskWizard.title')} className="sticky top-4 rounded-xl border bg-card p-3 shadow-sm">
+                        <ol className="relative space-y-1">
+                            {steps.map((s, index) => {
+                                const isActive = currentStep === index;
+                                const isCompleted = currentStep > index;
+                                const Icon = s.icon;
+
+                                return (
+                                    <li key={s.title} className="relative">
+                                        {index < steps.length - 1 && (
+                                            <span
+                                                aria-hidden="true"
+                                                className={cn(
+                                                    "absolute -bottom-[0.875rem] left-[1.625rem] top-[2.625rem] w-px",
+                                                    isCompleted ? "bg-primary" : "bg-border"
+                                                )}
+                                            />
+                                        )}
+                                        <div
+                                            aria-current={isActive ? "step" : undefined}
+                                            className={cn(
+                                                "flex items-start gap-3 rounded-lg px-2.5 py-2.5 transition-colors",
+                                                isActive && "bg-primary/5"
+                                            )}
+                                        >
+                                            <span
+                                                className={cn(
+                                                    "relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 text-xs font-semibold transition-all",
+                                                    isCompleted && "border-primary bg-primary text-primary-foreground",
+                                                    isActive && "border-primary bg-background text-primary ring-4 ring-primary/15",
+                                                    !isActive && !isCompleted && "border-border bg-background text-muted-foreground"
+                                                )}
+                                            >
+                                                {isCompleted ? <Check className="h-4 w-4" /> : Icon ? <Icon className="h-4 w-4" /> : index + 1}
+                                            </span>
+                                            <span className="min-w-0 pt-1">
+                                                <span
+                                                    className={cn(
+                                                        "block text-sm font-medium leading-tight",
+                                                        isActive ? "text-foreground" : isCompleted ? "text-foreground/80" : "text-muted-foreground"
+                                                    )}
+                                                >
+                                                    {s.title}
+                                                </span>
+                                                {s.description && (
+                                                    <span className="mt-0.5 block text-[11px] leading-snug text-muted-foreground">
+                                                        {s.description}
+                                                    </span>
+                                                )}
+                                            </span>
+                                        </div>
+                                    </li>
+                                )
+                            })}
+                        </ol>
+                    </nav>
+                </aside>
+
+                {/* Step content */}
+                <main className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-xl border bg-card shadow-sm">
+                    <div className="flex items-center gap-3 border-b px-6 py-5">
+                        {StepIcon && (
+                            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                                <StepIcon className="h-5 w-5" />
+                            </span>
+                        )}
+                        <div className="min-w-0">
+                            <h2 className="text-lg font-semibold leading-tight">{step.title}</h2>
+                            <p className="text-sm text-muted-foreground">{step.description || t('taskWizard.fillDetails')}</p>
+                        </div>
+                    </div>
+                    <div className="flex-1 px-6 py-6">
                         {children}
-                    </CardContent>
-                    <Separator />
-                    <CardFooter className="py-4 justify-between bg-muted/20">
-                        <Button variant="ghost" onClick={onBack} disabled={currentStep === 0}>
+                    </div>
+                    <div className="flex items-center justify-between gap-3 border-t bg-muted/30 px-6 py-4">
+                        <Button variant="outline" onClick={onBack} disabled={currentStep === 0} className="gap-1.5">
+                            <ChevronLeft className="h-4 w-4" />
                             {t('common.back')}
                         </Button>
-                        <Button onClick={onNext} disabled={!canNext || isSubmitting}>
-                            {isSubmitting ? t('taskWizard.processing') : (currentStep === steps.length - 1 ? t('taskWizard.createButton') : (nextLabel ?? t('common.next')))}
+                        <Button onClick={onNext} disabled={!canNext || isSubmitting} className="min-w-36 gap-1.5 shadow-sm">
+                            {isSubmitting ? (
+                                <>
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                    {t('taskWizard.processing')}
+                                </>
+                            ) : isLast ? (
+                                <>
+                                    <Check className="h-4 w-4" />
+                                    {t('taskWizard.createButton')}
+                                </>
+                            ) : (
+                                <>
+                                    {nextLabel ?? t('common.next')}
+                                    <ChevronRight className="h-4 w-4" />
+                                </>
+                            )}
                         </Button>
-                    </CardFooter>
-                </Card>
-            </main>
+                    </div>
+                </main>
+            </div>
         </div>
     )
 }
