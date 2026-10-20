@@ -1,9 +1,7 @@
 
 import { useState } from 'react';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { FileJson, FileSpreadsheet, Info } from 'lucide-react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertTriangle, Download, FileJson, FileSpreadsheet, Info, Loader2 } from 'lucide-react';
+import { SettingsSection } from './settings-section';
 import { backupApi } from '@/api/backup';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
@@ -35,57 +33,47 @@ export function ExportSection() {
     };
 
     return (
-        <Card className="border-blue-100 dark:border-blue-900/50">
-            <CardHeader>
-                <div className="flex items-center gap-2">
-                    <FileJson className="h-5 w-5 text-blue-500" />
-                    <CardTitle>{t('exportSection.title')}</CardTitle>
-                </div>
-                <CardDescription>
-                    {t('exportSection.description')}
-                    <br />
-                    <span className="text-yellow-600 dark:text-yellow-500 font-medium">
-                        {t('exportSection.warning')}
+        <SettingsSection title={t('exportSection.title')} description={t('exportSection.description')} icon={FileJson}>
+            <p className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-800 dark:text-amber-300">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                {t('exportSection.warning')}
+            </p>
+            <div className="grid gap-3 md:grid-cols-2">
+                <button
+                    type="button"
+                    onClick={() => handleExport('json')}
+                    disabled={isGenerating}
+                    className="flex items-start gap-3 rounded-xl border p-4 text-left transition-all hover:border-primary/40 hover:bg-accent/40 hover:shadow-sm disabled:pointer-events-none disabled:opacity-50"
+                >
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-500/10 text-blue-700 dark:text-blue-400">
+                        {isGenerating ? <Loader2 className="h-5 w-5 animate-spin" /> : <FileJson className="h-5 w-5" />}
                     </span>
-                </CardDescription>
-            </CardHeader>
-            <CardContent>
-                <div className="flex flex-col md:flex-row gap-4">
-                    <Button
-                        variant="outline"
-                        onClick={() => handleExport('json')}
-                        disabled={isGenerating}
-                        className="flex-1 h-auto py-4 justify-start"
-                    >
-                        <FileJson className="mr-3 h-5 w-5 text-muted-foreground" />
-                        <div className="text-left">
-                            <div className="font-semibold">{t('exportSection.formats.json.title')}</div>
-                            <div className="text-xs text-muted-foreground">{t('exportSection.formats.json.description')}</div>
-                        </div>
-                    </Button>
-
-                    <Button
-                        variant="outline"
-                        onClick={() => handleExport('csv')}
-                        disabled={isGenerating}
-                        className="flex-1 h-auto py-4 justify-start"
-                    >
-                        <FileSpreadsheet className="mr-3 h-5 w-5 text-muted-foreground" />
-                        <div className="text-left">
-                            <div className="font-semibold">{t('exportSection.formats.csv.title')}</div>
-                            <div className="text-xs text-muted-foreground">{t('exportSection.formats.csv.description')}</div>
-                        </div>
-                    </Button>
-                </div>
-
-                <Alert className="mt-4 bg-blue-50/50 dark:bg-blue-950/20 border-none">
-                    <Info className="h-4 w-4 text-blue-500" />
-                    <AlertTitle>{t('exportSection.informationTitle')}</AlertTitle>
-                    <AlertDescription className="text-xs text-muted-foreground">
-                        {t('exportSection.informationDescription')}
-                    </AlertDescription>
-                </Alert>
-            </CardContent>
-        </Card>
+                    <span className="min-w-0 flex-1">
+                        <span className="block font-semibold">{t('exportSection.formats.json.title')}</span>
+                        <span className="block text-xs text-muted-foreground">{t('exportSection.formats.json.description')}</span>
+                    </span>
+                    <Download className="mt-1 h-4 w-4 shrink-0 text-muted-foreground" />
+                </button>
+                <button
+                    type="button"
+                    onClick={() => handleExport('csv')}
+                    disabled={isGenerating}
+                    className="flex items-start gap-3 rounded-xl border p-4 text-left transition-all hover:border-primary/40 hover:bg-accent/40 hover:shadow-sm disabled:pointer-events-none disabled:opacity-50"
+                >
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">
+                        {isGenerating ? <Loader2 className="h-5 w-5 animate-spin" /> : <FileSpreadsheet className="h-5 w-5" />}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                        <span className="block font-semibold">{t('exportSection.formats.csv.title')}</span>
+                        <span className="block text-xs text-muted-foreground">{t('exportSection.formats.csv.description')}</span>
+                    </span>
+                    <Download className="mt-1 h-4 w-4 shrink-0 text-muted-foreground" />
+                </button>
+            </div>
+            <p className="flex items-start gap-2 text-xs text-muted-foreground">
+                <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                <span><span className="font-medium text-foreground">{t('exportSection.informationTitle')}</span> {t('exportSection.informationDescription')}</span>
+            </p>
+        </SettingsSection>
     );
 }

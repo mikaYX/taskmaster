@@ -1,9 +1,8 @@
-
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Server, CalendarClock, History } from 'lucide-react';
 import { format } from 'date-fns';
 import { useTranslation } from 'react-i18next';
+import { getDateLocale } from '@/lib/date-locale';
+import { cn } from '@/lib/utils';
 
 interface BackupHeaderProps {
     status?: {
@@ -15,62 +14,66 @@ interface BackupHeaderProps {
     isLoading: boolean;
 }
 
+const STATUS_TONE: Record<string, string> = {
+    SUCCESS: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400',
+    FAILED: 'bg-red-500/10 text-red-700 dark:text-red-400',
+    PENDING: 'bg-amber-500/10 text-amber-700 dark:text-amber-400',
+};
+
 export function BackupHeader({ status, isLoading }: BackupHeaderProps) {
     const { t } = useTranslation();
+    const locale = getDateLocale();
 
-    if (isLoading) return <div className="h-24 bg-muted animate-pulse rounded-xl" />;
+    if (isLoading) return <div className="h-28 animate-pulse rounded-xl bg-muted" />;
 
-    const lastRun = status?.lastBackupAt ? format(new Date(status.lastBackupAt), 'PP p') : t('backupHeader.never');
-    const nextRun = status?.nextRunAt ? format(new Date(status.nextRunAt), 'PP p') : t('backupHeader.automaticBackupsDisabled');
+    const lastRun = status?.lastBackupAt ? format(new Date(status.lastBackupAt), 'PP p', { locale }) : t('backupHeader.never');
+    const nextRun = status?.nextRunAt ? format(new Date(status.nextRunAt), 'PP p', { locale }) : t('backupHeader.automaticBackupsDisabled');
     const statusLabel = status?.lastBackupStatus
         ? t(`backupHeader.status.${status.lastBackupStatus.toLowerCase()}`)
         : t('backupHeader.status.noData');
 
+    const tile = 'flex items-start gap-3 rounded-xl border bg-card p-4 shadow-sm';
+
     return (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <Card>
-                <CardContent className="p-6 flex flex-row items-center justify-between space-y-0">
-                    <div className="space-y-1">
-                        <span className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                            <History className="h-4 w-4" /> {t('backupHeader.lastBackup')}
-                        </span>
-                        <div className="text-2xl font-bold">{lastRun}</div>
-                        <Badge variant={status?.lastBackupStatus === 'SUCCESS' ? 'default' : 'destructive'} className="mt-1">
-                            {statusLabel}
-                        </Badge>
-                    </div>
-                </CardContent>
-            </Card>
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <div className={tile}>
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-cyan-500/10 text-cyan-700 dark:text-cyan-400">
+                    <History className="h-5 w-5" />
+                </span>
+                <div className="min-w-0 space-y-1">
+                    <p className="text-xs font-medium text-muted-foreground">{t('backupHeader.lastBackup')}</p>
+                    <p className="font-semibold leading-tight">{lastRun}</p>
+                    <span className={cn('inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium', STATUS_TONE[status?.lastBackupStatus ?? ''] ?? 'bg-muted text-muted-foreground')}>
+                        {statusLabel}
+                    </span>
+                </div>
+            </div>
 
-            <Card>
-                <CardContent className="p-6 flex flex-row items-center justify-between space-y-0">
-                    <div className="space-y-1">
-                        <span className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                            <CalendarClock className="h-4 w-4" /> {t('backupHeader.nextRun')}
-                        </span>
-                        <div className="text-lg font-bold leading-tight pt-1">{nextRun}</div>
-                        <p className="text-xs text-muted-foreground pt-1">{t('backupHeader.serverTimezone')}</p>
-                    </div>
-                </CardContent>
-            </Card>
+            <div className={tile}>
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-sky-500/10 text-sky-700 dark:text-sky-400">
+                    <CalendarClock className="h-5 w-5" />
+                </span>
+                <div className="min-w-0 space-y-1">
+                    <p className="text-xs font-medium text-muted-foreground">{t('backupHeader.nextRun')}</p>
+                    <p className="font-semibold leading-tight">{nextRun}</p>
+                    <p className="text-[11px] text-muted-foreground">{t('backupHeader.serverTimezone')}</p>
+                </div>
+            </div>
 
-            <Card className="md:col-span-2">
-                <CardContent className="p-6 flex flex-row items-center justify-between space-y-0">
-                    <div className="space-y-1 w-full">
-                        <span className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                            <Server className="h-4 w-4" /> {t('backupHeader.storageLocation')}
-                        </span>
-                        <div className="flex items-center gap-2 pt-1">
-                            <code className="bg-muted px-2 py-1 rounded text-sm w-full font-mono block truncate">
-                                {status?.storagePath || '/var/lib/taskmaster/backups'}
-                            </code>
-                        </div>
-                        <p className="text-xs text-muted-foreground pt-1">
-                            {t('backupHeader.configuredVia')} <code className="text-xs">BACKUP_STORAGE_PATH</code> {t('backupHeader.environmentVariable')}
-                        </p>
-                    </div>
-                </CardContent>
-            </Card>
+            <div className={cn(tile, 'md:col-span-2')}>
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-500/10 text-slate-700 dark:text-slate-300">
+                    <Server className="h-5 w-5" />
+                </span>
+                <div className="min-w-0 flex-1 space-y-1">
+                    <p className="text-xs font-medium text-muted-foreground">{t('backupHeader.storageLocation')}</p>
+                    <code className="block truncate rounded-md bg-muted px-2 py-1 font-mono text-sm">
+                        {status?.storagePath || '/var/lib/taskmaster/backups'}
+                    </code>
+                    <p className="text-[11px] text-muted-foreground">
+                        {t('backupHeader.configuredVia')} <code>BACKUP_STORAGE_PATH</code> {t('backupHeader.environmentVariable')}
+                    </p>
+                </div>
+            </div>
         </div>
     );
 }

@@ -152,23 +152,20 @@ export function BackupSettingsPage() {
     }
 
     return (
-        <div className="space-y-8 max-w-6xl pb-20">
+        <div className="space-y-6">
             {/* ZONE A: Header */}
             <BackupHeader status={status} isLoading={isHistoryLoading} />
 
             {/* ZONE B: Exports */}
-            <section className="space-y-4">
-                <h3 className="text-lg font-medium">{t('exportSection.title')}</h3>
-                <ExportSection />
-            </section>
+            <ExportSection />
 
             {/* ZONE C: System Backups (Schedule + History) */}
             <section className="space-y-4">
-                <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-medium">{t('backupPage.systemBackupsTitle')}</h3>
+                <div className="flex items-center justify-between gap-3 pt-2">
+                    <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t('backupPage.systemBackupsTitle')}</h3>
                     {!isDirty && (
-                        <Button onClick={form.handleSubmit(onSubmit)} disabled={isUpdating} variant="outline">
-                            <Save className="mr-2 h-4 w-4" />
+                        <Button onClick={form.handleSubmit(onSubmit)} disabled={isUpdating} variant="outline" size="sm" className="gap-2">
+                            <Save className="h-4 w-4" />
                             {t('backupPage.saveConfig')}
                         </Button>
                     )}
@@ -210,7 +207,7 @@ export function BackupSettingsPage() {
                     </Alert>
                 )}
 
-                <div className="pt-4">
+                <div>
                     <BackupHistoryTable
                         backups={backups}
                         onRefresh={handleRefresh}
@@ -222,7 +219,7 @@ export function BackupSettingsPage() {
             </section>
 
             {/* ZONE D: Restore */}
-            <section className="space-y-4 pt-8">
+            <section className="space-y-4 pt-2">
                 <RestoreZone
                     ref={restoreZoneRef}
                     selectedBackup={selectedBackupForRestore}

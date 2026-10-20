@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Download, Trash2, Database, FolderArchive, Lock, Loader2, Play, UploadCloud, RefreshCw, RotateCcw } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { getDateLocale } from '@/lib/date-locale';
 import { backupApi } from '@/api/backup';
 import type { BackupFile } from '@/api/backup';
 import { toast } from 'sonner';
@@ -162,7 +163,7 @@ export function BackupHistoryTable({ backups, onRefresh, canRunFull, isDirty, on
                                             </TableCell>
                                             <TableCell>{(backup.size / 1024 / 1024).toFixed(2)} MB</TableCell>
                                             <TableCell title={new Date(backup.createdAt).toLocaleString()}>
-                                                {formatDistanceToNow(new Date(backup.createdAt), { addSuffix: true })}
+                                                {formatDistanceToNow(new Date(backup.createdAt), { addSuffix: true, locale: getDateLocale() })}
                                             </TableCell>
                                             <TableCell className="text-right">
                                                 <div className="flex justify-end gap-1">
