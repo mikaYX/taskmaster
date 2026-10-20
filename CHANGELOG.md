@@ -7,9 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.2.0-beta.1] - 2026-10-20
+## [1.2.0-beta.2] - 2026-10-20
 
-Beta of 1.2.0, for testing only: it is published as a pre-release and under the `beta` Docker tag, never as `latest`. **Additive database migrations** (`todolist_v2`, `todo_reminder_email_opt_in`) run automatically on start; existing rows keep working.
+Beta of 1.2.0, for testing only (1.2.0-beta.1 was tagged but never published): it is published as a pre-release and under the `beta` Docker tag, never as `latest`. **Additive database migrations** (`todolist_v2`, `todo_reminder_email_opt_in`) run automatically on start; existing rows keep working.
 
 ### Added
 
