@@ -138,7 +138,10 @@ async function bootstrap(): Promise<void> {
 
   const logger = app.get(Logger);
   logger.log(`Application running on port ${port} [${nodeEnv}]`, 'Bootstrap');
-  logger.log(`API available at ${process.env.TLS_CERT_FILE ? 'https' : 'http'}://localhost:${port}/api`, 'Bootstrap');
+  logger.log(
+    `API available at ${process.env.TLS_CERT_FILE ? 'https' : 'http'}://localhost:${port}/api`,
+    'Bootstrap',
+  );
 }
 
 bootstrap();

@@ -699,7 +699,8 @@ export const SETTINGS_REGISTRY = {
     schema: z.string(),
     sensitive: true,
     default: '',
-    description: 'Web Push (VAPID) private key, generated on first start (encrypted)',
+    description:
+      'Web Push (VAPID) private key, generated on first start (encrypted)',
   },
   'addons.todolist.reminders.enabled': {
     schema: z.preprocess(

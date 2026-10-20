@@ -357,7 +357,9 @@ postgresTests('todolist against isolated PostgreSQL', () => {
     await service.update(todo.id, { isCompleted: true }, owner, 'USER', siteId);
 
     expect(
-      await client.todo.count({ where: { userId: owner, title: 'one-off check' } }),
+      await client.todo.count({
+        where: { userId: owner, title: 'one-off check' },
+      }),
     ).toBe(1);
   });
 

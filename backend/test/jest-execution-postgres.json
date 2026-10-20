@@ -2,6 +2,9 @@
   "rootDir": ".",
   "testEnvironment": "node",
   "testRegex": "task-execution.postgres-spec.ts$",
-  "transform": { "^.+\\.(t|j)s$": "ts-jest" },
-  "moduleFileExtensions": ["js", "json", "ts"]
+  "transform": { "^.+\.(t|j)s$": "ts-jest" },
+  "moduleFileExtensions": ["js", "json", "ts"],
+  "moduleNameMapper": {
+    "^otplib$": "<rootDir>/../src/__mocks__/otplib.ts"
+  }
 }

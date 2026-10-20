@@ -114,7 +114,13 @@ suite('legacy upgrade and real encrypted PostgreSQL restore', () => {
         )
       ).rowCount,
     ).toBe(1);
-    expect(await rows('users', "- 'guest_view'")).toEqual(legacy.users);
+    // guest_view and the todo_reminder_* opt-ins are additive columns with defaults.
+    expect(
+      await rows(
+        'users',
+        "- 'guest_view' - 'todo_reminder_push' - 'todo_reminder_email' - 'todo_reminder_collective'",
+      ),
+    ).toEqual(legacy.users);
     expect(await rows('tasks', "- 'execution_checklist'")).toEqual(
       legacy.tasks,
     );

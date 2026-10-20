@@ -290,7 +290,6 @@ describe('TodosService schedule fields', () => {
     expect(todo.update.mock.calls[0][0].data.dueTime).toBe('14:30');
     expect(todo.update.mock.calls[1][0].data.remindBeforeMinutes).toBe(60);
   });
-
 });
 
 describe('TodosService.reorder', () => {

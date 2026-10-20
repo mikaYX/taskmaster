@@ -74,8 +74,12 @@ describe('todo DTO validation', () => {
         })
       ).map((e) => e.property);
 
-    expect(await strict(CreateTodoDto, { title: 'x', recurrence: 'WEEKLY' })).toEqual(['recurrence']);
-    expect(await strict(UpdateTodoDto, { recurrence: 'DAILY' })).toEqual(['recurrence']);
+    expect(
+      await strict(CreateTodoDto, { title: 'x', recurrence: 'WEEKLY' }),
+    ).toEqual(['recurrence']);
+    expect(await strict(UpdateTodoDto, { recurrence: 'DAILY' })).toEqual([
+      'recurrence',
+    ]);
   });
 
   it.each(['9:30', '24:00', '12:60', 'noon', '12:5'])(
