@@ -1144,7 +1144,10 @@
         "jobStatusDescription": "État en temps réel des tâches planifiées en arrière-plan",
         "description": "Description",
         "scheduleCron": "Planification (Cron)",
-        "noJobs": "Aucun job actif trouvé."
+        "noJobs": "Aucun job actif trouvé.",
+        "pauseJob": "Mettre le job en pause",
+        "enableJob": "Activer le job",
+        "runNow": "Lancer"
     },
     "theme": {
         "light": "Clair",

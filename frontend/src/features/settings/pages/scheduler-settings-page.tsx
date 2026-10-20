@@ -9,17 +9,11 @@ import { settingsApi } from '@/api/settings';
 import { toast } from 'sonner';
 
 import { Switch } from '@/components/ui/switch';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Loader2, Power, Clock, Info, Play, Pause, Globe, ListChecks } from 'lucide-react';
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/components/ui/table';
+import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
+import { getDateLocale } from '@/lib/date-locale';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export function SchedulerSettingsPage() {
@@ -158,80 +152,79 @@ export function SchedulerSettingsPage() {
             {/* JOB STATUS (READ ONLY) */}
             <SettingsSection title={t('schedulerSettings.jobStatusTitle')} description={t('schedulerSettings.jobStatusDescription')} icon={ListChecks}>
                 {isLoadingJobs ? (
-                    <div className="flex justify-center p-4">
-                        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                    <div className="space-y-2">
+                        <Skeleton className="h-16 rounded-xl" />
+                        <Skeleton className="h-16 rounded-xl" />
                     </div>
+                ) : !jobs || jobs.length === 0 ? (
+                    <p className="rounded-xl border border-dashed py-8 text-center text-sm text-muted-foreground">{t('schedulerSettings.noJobs')}</p>
                 ) : (
-                    <div className="rounded-md border">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>{t('scheduler.jobName')}</TableHead>
-                                    <TableHead>{t('schedulerSettings.description')}</TableHead>
-                                    <TableHead>{t('schedulerSettings.scheduleCron')}</TableHead>
-                                    <TableHead>{t('scheduler.status')}</TableHead>
-                                    <TableHead>{t('common.actions')}</TableHead>
-                                    <TableHead className="text-right">{t('scheduler.nextRun')}</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {jobs?.map((job) => (
-                                    <TableRow key={job.name} className={!enabled ? "opacity-50" : ""}>
-                                        <TableCell className="font-medium font-mono text-xs">{job.name}</TableCell>
-                                        <TableCell>{job.description}</TableCell>
-                                        <TableCell className="font-mono text-xs text-muted-foreground">{job.cron}</TableCell>
-                                        <TableCell>
-                                            <Badge variant={(enabled && job.enabled) ? "default" : "secondary"} className={(enabled && job.enabled) ? "bg-green-600 hover:bg-green-700" : ""}>
-                                                {(enabled && job.enabled) ? t('schedulerSettings.active') : t('schedulerSettings.disabled')}
-                                            </Badge>
-                                        </TableCell>
-                                        <TableCell>
-                                            <div className="flex items-center gap-2">
-                                                <Button
-                                                    type="button"
-                                                    variant="outline"
-                                                    size="sm"
-                                                    onClick={() => handleToggleJob(job.name)}
-                                                    disabled={!enabled || togglingJobName === job.name}
-                                                >
-                                                    {togglingJobName === job.name ? (
-                                                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                                    ) : job.enabled ? (
-                                                        <Pause className="h-3.5 w-3.5" />
-                                                    ) : (
-                                                        <Power className="h-3.5 w-3.5" />
-                                                    )}
-                                                </Button>
-                                                <Button
-                                                    type="button"
-                                                    variant="secondary"
-                                                    size="sm"
-                                                    onClick={() => handleTriggerJob(job.name)}
-                                                    disabled={!enabled || runningJobName === job.name}
-                                                >
-                                                    {runningJobName === job.name ? (
-                                                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                                    ) : (
-                                                        <Play className="h-3.5 w-3.5" />
-                                                    )}
-                                                </Button>
+                    <ul className="divide-y rounded-xl border">
+                        {jobs.map((job) => {
+                            const active = enabled && job.enabled;
+                            return (
+                                <li key={job.name} className={cn("flex flex-col gap-3 p-4 sm:flex-row sm:items-center", !enabled && "opacity-60")}>
+                                    <div className="flex min-w-0 flex-1 items-start gap-3">
+                                        <span className={cn("mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg", active ? "bg-sky-500/10 text-sky-700 dark:text-sky-400" : "bg-muted text-muted-foreground")}>
+                                            <Clock className="h-4 w-4" />
+                                        </span>
+                                        <div className="min-w-0">
+                                            <p className="font-mono text-sm font-semibold">{job.name}</p>
+                                            {job.description && <p className="text-xs text-muted-foreground">{job.description}</p>}
+                                            <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[11px]">
+                                                <code className="rounded bg-muted px-1.5 py-0.5 text-muted-foreground" title={t('schedulerSettings.scheduleCron')}>{job.cron}</code>
+                                                <span className="text-muted-foreground">
+                                                    {t('scheduler.nextRun')} : {active && job.nextRun ? new Date(job.nextRun).toLocaleString(getDateLocale().code, { dateStyle: 'medium', timeStyle: 'short' }) : '—'}
+                                                </span>
                                             </div>
-                                        </TableCell>
-                                        <TableCell className="text-right font-mono text-xs text-muted-foreground">
-                                            {enabled && job.nextRun ? new Date(job.nextRun).toLocaleString() : '-'}
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                                {(!jobs || jobs.length === 0) && (
-                                    <TableRow>
-                                        <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-                                            {t('schedulerSettings.noJobs')}
-                                        </TableCell>
-                                    </TableRow>
-                                )}
-                            </TableBody>
-                        </Table>
-                    </div>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2 sm:shrink-0">
+                                        <span className={cn(
+                                            "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium",
+                                            active ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" : "bg-muted text-muted-foreground",
+                                        )}>
+                                            <span className={cn("h-1.5 w-1.5 rounded-full", active ? "bg-emerald-500" : "bg-muted-foreground/60")} />
+                                            {active ? t('schedulerSettings.active') : t('schedulerSettings.disabled')}
+                                        </span>
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="icon"
+                                            className="h-8 w-8"
+                                            aria-label={job.enabled ? t('schedulerSettings.pauseJob') : t('schedulerSettings.enableJob')}
+                                            title={job.enabled ? t('schedulerSettings.pauseJob') : t('schedulerSettings.enableJob')}
+                                            onClick={() => handleToggleJob(job.name)}
+                                            disabled={!enabled || togglingJobName === job.name}
+                                        >
+                                            {togglingJobName === job.name ? (
+                                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                            ) : job.enabled ? (
+                                                <Pause className="h-3.5 w-3.5" />
+                                            ) : (
+                                                <Power className="h-3.5 w-3.5" />
+                                            )}
+                                        </Button>
+                                        <Button
+                                            type="button"
+                                            variant="secondary"
+                                            size="sm"
+                                            className="h-8 gap-1.5"
+                                            onClick={() => handleTriggerJob(job.name)}
+                                            disabled={!enabled || runningJobName === job.name}
+                                        >
+                                            {runningJobName === job.name ? (
+                                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                            ) : (
+                                                <Play className="h-3.5 w-3.5" />
+                                            )}
+                                            {t('schedulerSettings.runNow')}
+                                        </Button>
+                                    </div>
+                                </li>
+                            );
+                        })}
+                    </ul>
                 )}
             </SettingsSection>
         </div>

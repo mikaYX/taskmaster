@@ -5,17 +5,8 @@ import i18n from '@/lib/i18n';
 import { apiKeys, type CreateApiKeyDto } from '@/api/api-keys';
 import type { ApiKey } from '@/api/types';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Loader2, Plus, Trash2, Copy, AlertTriangle, RefreshCw, Search, Filter } from 'lucide-react';
+import { Loader2, Plus, Trash2, Copy, AlertTriangle, RefreshCw, Search, Filter, KeyRound } from 'lucide-react';
+import { SettingsSection } from '../components/settings-section';
 import { format, isAfter } from 'date-fns';
 import {
     Dialog,
@@ -188,34 +179,14 @@ export function ApiKeysSettingsPage() {
     }
 
     return (
-        <div className="space-y-6">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="flex items-center gap-2">
-                    <div className="relative">
-                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                        <Input
-                            placeholder={t('apiKeys.search')}
-                            className="pl-9 w-[250px]"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                        />
-                    </div>
-                    <Select value={statusFilter} onValueChange={(val: 'all' | 'active' | 'revoked') => setStatusFilter(val)}>
-                        <SelectTrigger className="w-[150px]">
-                            <Filter className="mr-2 h-4 w-4 text-muted-foreground" />
-                            <SelectValue placeholder={t('apiKeys.status')} />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">{t('apiKeys.statuses.all')}</SelectItem>
-                            <SelectItem value="active">{t('apiKeys.statuses.active')}</SelectItem>
-                            <SelectItem value="revoked">{t('apiKeys.statuses.revoked')}</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
-
+        <SettingsSection
+            title={t('apiKeys.orgTitle')}
+            description={t('apiKeys.orgDescription')}
+            icon={KeyRound}
+            action={
                 <Dialog open={createOpen} onOpenChange={open => !newKey && (open ? setCreateOpen(true) : handleCloseCreate())}>
                     <DialogTrigger asChild>
-                        <Button className="glow-on-hover"><Plus className="mr-2 h-4 w-4" /> {t('apiKeys.generate')}</Button>
+                        <Button className="gap-2"><Plus className="h-4 w-4" /> {t('apiKeys.generate')}</Button>
                     </DialogTrigger>
                     <DialogContent className="sm:max-w-xl">
                         <DialogHeader>
@@ -308,114 +279,102 @@ export function ApiKeysSettingsPage() {
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>
-            </div>
-
-            <Card className="glass-morphism">
-                <CardHeader>
-                    <CardTitle>{t('apiKeys.orgTitle')}</CardTitle>
-                    <CardDescription>
-                        {t('apiKeys.orgDescription')}
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <div className="rounded-md border overflow-hidden">
-                        <Table>
-                            <TableHeader className="bg-muted/50">
-                                <TableRow>
-                                    <TableHead className="w-[200px]">{t('apiKeys.columns.name')}</TableHead>
-                                    <TableHead>{t('apiKeys.columns.permissions')}</TableHead>
-                                    <TableHead>{t('apiKeys.columns.lastUsed')}</TableHead>
-                                    <TableHead>{t('apiKeys.columns.status')}</TableHead>
-                                    <TableHead className="text-right">{t('apiKeys.columns.actions')}</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {filteredKeys.length === 0 ? (
-                                    <TableRow>
-                                        <TableCell colSpan={5} className="h-48 text-center text-muted-foreground italic">
-                                            <div className="flex flex-col items-center gap-2">
-                                                <AlertTriangle className="h-8 w-8 opacity-20" />
-                                                {t('apiKeys.empty')}
-                                            </div>
-                                        </TableCell>
-                                    </TableRow>
-                                ) : (
-                                    filteredKeys.map((key) => {
-                                        const isExpired = key.expiresAt && !isAfter(new Date(key.expiresAt), new Date());
-                                        const isActive = !key.revokedAt && !isExpired;
-
-                                        return (
-                                            <TableRow key={key.id} className={cn(!isActive && "opacity-60 bg-muted/20")}>
-                                                <TableCell>
-                                                    <div className="flex flex-col">
-                                                        <span className="font-bold text-sm">{key.name || t('apiKeys.unnamed')}</span>
-                                                        <span className="font-mono text-[10px] text-muted-foreground">{key.keyPrefix}...</span>
-                                                        {key.description && <span className="text-[11px] text-muted-foreground line-clamp-1">{key.description}</span>}
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <div className="flex max-w-[250px] flex-wrap gap-1">
-                                                        {key.scopes.map(scope => {
-                                                            const label = scopeLabel(scope);
-                                                            return (
-                                                                <Badge key={scope} variant="secondary" className="whitespace-nowrap px-1.5 py-0 text-[10px]">
-                                                                    {label}
-                                                                </Badge>
-                                                            );
-                                                        })}
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <div className="flex flex-col text-[11px]">
-                                                        <span className="text-muted-foreground">{t('apiKeys.used', { when: key.lastUsedAt ? format(new Date(key.lastUsedAt), 'PPp', { locale: dateLocale }) : t('apiKeys.never') })}</span>
-                                                        <span className="text-muted-foreground/70">{t('apiKeys.created', { date: format(new Date(key.createdAt), 'PP', { locale: dateLocale }) })}</span>
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell>
-                                                    {key.revokedAt ? (
-                                                        <Badge variant="destructive" className="font-bold">{t('apiKeys.revokedBadge')}</Badge>
-                                                    ) : isExpired ? (
-                                                        <Badge variant="outline" className="border-orange-500 text-orange-500">{t('apiKeys.expiredBadge')}</Badge>
-                                                    ) : (
-                                                        <Badge variant="outline" className="border-green-500/20 bg-green-500/10 text-green-500">{t('apiKeys.activeBadge')}</Badge>
-                                                    )}
-                                                    {key.expiresAt && !isExpired && (
-                                                        <p className="mt-1 text-[10px] text-muted-foreground">{t('apiKeys.expiresOn', { date: format(new Date(key.expiresAt), 'PP', { locale: dateLocale }) })}</p>
-                                                    )}
-                                                </TableCell>
-                                                <TableCell className="text-right">
-                                                    <div className="flex justify-end gap-1">
-                                                        {isActive && (
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="icon"
-                                                                title={t('apiKeys.rotate')}
-                                                                onClick={() => handleRotate(key.id)}
-                                                            >
-                                                                <RefreshCw className="h-4 w-4" />
-                                                            </Button>
-                                                        )}
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            className="text-destructive hover:bg-destructive/10"
-                                                            title={t('apiKeys.revoke')}
-                                                            disabled={key.revokedAt !== null}
-                                                            onClick={() => handleRevoke(key.id)}
-                                                        >
-                                                            <Trash2 className="h-4 w-4" />
-                                                        </Button>
-                                                    </div>
-                                                </TableCell>
-                                            </TableRow>
-                                        );
-                                    })
-                                )}
-                            </TableBody>
-                        </Table>
+            }
+        >
+                <div className="flex flex-col gap-2 sm:flex-row">
+                    <div className="relative flex-1">
+                        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                            placeholder={t('apiKeys.search')}
+                            className="pl-9"
+                            aria-label={t('apiKeys.search')}
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                        />
                     </div>
-                </CardContent>
-            </Card>
-        </div>
+                    <Select value={statusFilter} onValueChange={(val: 'all' | 'active' | 'revoked') => setStatusFilter(val)}>
+                        <SelectTrigger className="w-full sm:w-[170px]" aria-label={t('apiKeys.status')}>
+                            <Filter className="mr-2 h-4 w-4 text-muted-foreground" />
+                            <SelectValue placeholder={t('apiKeys.status')} />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">{t('apiKeys.statuses.all')}</SelectItem>
+                            <SelectItem value="active">{t('apiKeys.statuses.active')}</SelectItem>
+                            <SelectItem value="revoked">{t('apiKeys.statuses.revoked')}</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+
+            {filteredKeys.length === 0 ? (
+                <div className="flex flex-col items-center justify-center rounded-xl border border-dashed px-6 py-10 text-center">
+                    <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-muted">
+                        <KeyRound className="h-6 w-6 text-muted-foreground" />
+                    </div>
+                    <p className="text-sm text-muted-foreground">{t('apiKeys.empty')}</p>
+                </div>
+            ) : (
+                <ul className="divide-y rounded-xl border">
+                    {filteredKeys.map((key) => {
+                        const isExpired = key.expiresAt && !isAfter(new Date(key.expiresAt), new Date());
+                        const isActive = !key.revokedAt && !isExpired;
+                        return (
+                            <li key={key.id} className={cn('flex flex-col gap-3 p-4 lg:flex-row lg:items-center', !isActive && 'bg-muted/20 opacity-70')}>
+                                <div className="flex min-w-0 flex-1 items-start gap-3">
+                                    <span className={cn('mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg', isActive ? 'bg-amber-500/10 text-amber-700 dark:text-amber-400' : 'bg-muted text-muted-foreground')}>
+                                        <KeyRound className="h-4 w-4" />
+                                    </span>
+                                    <div className="min-w-0 space-y-1">
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            <span className="font-semibold">{key.name || t('apiKeys.unnamed')}</span>
+                                            <code className="rounded bg-muted px-1.5 py-0.5 text-[11px] text-muted-foreground">{key.keyPrefix}…</code>
+                                        </div>
+                                        {key.description && <p className="line-clamp-1 text-xs text-muted-foreground">{key.description}</p>}
+                                        <div className="flex flex-wrap gap-1">
+                                            {key.scopes.map(scope => (
+                                                <span key={scope} className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-medium">{scopeLabel(scope)}</span>
+                                            ))}
+                                        </div>
+                                        <p className="text-[11px] text-muted-foreground">
+                                            {t('apiKeys.used', { when: key.lastUsedAt ? format(new Date(key.lastUsedAt), 'PPp', { locale: dateLocale }) : t('apiKeys.never') })}
+                                            {' · '}
+                                            {t('apiKeys.created', { date: format(new Date(key.createdAt), 'PP', { locale: dateLocale }) })}
+                                            {key.expiresAt && !isExpired && <> · {t('apiKeys.expiresOn', { date: format(new Date(key.expiresAt), 'PP', { locale: dateLocale }) })}</>}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-2 lg:shrink-0">
+                                    {key.revokedAt ? (
+                                        <span className="rounded-full bg-red-500/10 px-2.5 py-0.5 text-xs font-medium text-red-700 dark:text-red-400">{t('apiKeys.revokedBadge')}</span>
+                                    ) : isExpired ? (
+                                        <span className="rounded-full bg-orange-500/10 px-2.5 py-0.5 text-xs font-medium text-orange-700 dark:text-orange-400">{t('apiKeys.expiredBadge')}</span>
+                                    ) : (
+                                        <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-medium text-emerald-700 dark:text-emerald-400">
+                                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                                            {t('apiKeys.activeBadge')}
+                                        </span>
+                                    )}
+                                    {isActive && (
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" title={t('apiKeys.rotate')} aria-label={t('apiKeys.rotate')} onClick={() => handleRotate(key.id)}>
+                                            <RefreshCw className="h-4 w-4" />
+                                        </Button>
+                                    )}
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                                        title={t('apiKeys.revoke')}
+                                        aria-label={t('apiKeys.revoke')}
+                                        disabled={key.revokedAt !== null}
+                                        onClick={() => handleRevoke(key.id)}
+                                    >
+                                        <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                            </li>
+                        );
+                    })}
+                </ul>
+            )}
+        </SettingsSection>
     );
 }

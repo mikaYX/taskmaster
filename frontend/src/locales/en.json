@@ -1144,7 +1144,10 @@
         "jobStatusDescription": "Real-time status of scheduled background tasks",
         "description": "Description",
         "scheduleCron": "Schedule (Cron)",
-        "noJobs": "No active jobs found."
+        "noJobs": "No active jobs found.",
+        "pauseJob": "Pause the job",
+        "enableJob": "Enable the job",
+        "runNow": "Run"
     },
     "theme": {
         "light": "Light",
