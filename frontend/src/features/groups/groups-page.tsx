@@ -68,17 +68,25 @@ export function GroupsList({ embedded = false }: GroupsListProps) {
                     </div>
                 </div>
             )}
-            {embedded && (
-                <div className="flex justify-end">
-                    <Button onClick={handleCreate}>
-                        <Plus className="mr-2 h-4 w-4" />
-                        {t('groups.addGroup')}
-                    </Button>
-                </div>
-            )}
-
-            <Card className="shadow-sm">
-                <CardHeader className="border-b bg-muted/30 py-4">
+            <Card className="gap-0 overflow-hidden py-0 shadow-sm">
+                {embedded && (
+                    <div className="flex flex-wrap items-start justify-between gap-3 border-b px-6 py-4">
+                        <div className="flex items-start gap-3">
+                            <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+                                <Users className="h-4 w-4" />
+                            </span>
+                            <div>
+                                <h3 className="font-semibold leading-tight">{t('settings.groupsManager')}</h3>
+                                <p className="mt-1 text-sm text-muted-foreground">{t('settings.groupsManagerDescription')}</p>
+                            </div>
+                        </div>
+                        <Button className="gap-2" onClick={handleCreate}>
+                            <Plus className="h-4 w-4" />
+                            {t('groups.addGroup')}
+                        </Button>
+                    </div>
+                )}
+                <CardHeader className="border-b bg-muted/30 py-3">
                     <div className="flex items-center justify-between">
                         <span className="text-sm text-muted-foreground">
                             {isLoading ? t('common.loading') : t('groupMgmt.page.count', { n: groups?.length || 0 })}
@@ -157,7 +165,8 @@ export function GroupsList({ embedded = false }: GroupsListProps) {
                                         <TableCell className="py-4 px-6">
                                             <button
                                                 onClick={() => handleManageMembers(group)}
-                                                className="flex items-center gap-2 text-sm hover:underline text-muted-foreground hover:text-foreground transition-colors"
+                                                className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-2.5 py-0.5 text-xs font-medium transition-colors hover:bg-primary/10 hover:text-primary"
+                                                aria-label={t('groupMgmt.page.columns.members')}
                                             >
                                                 <Users className="h-3.5 w-3.5" />
                                                 {group.memberCount ?? 0}

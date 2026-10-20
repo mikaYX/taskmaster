@@ -22,30 +22,10 @@ export function SecuritySettingsPage() {
                 </TabsList>
 
                 <TabsContent value="users" className="mt-6 space-y-4">
-                    <div className="flex flex-col gap-2">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <h3 className="text-lg font-medium">{t('settings.usersManager')}</h3>
-                                <p className="text-sm text-muted-foreground">
-                                    {t('settings.usersManagerDescription')}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
                     <UsersList embedded />
                 </TabsContent>
 
                 <TabsContent value="groups" className="mt-6 space-y-4">
-                    <div className="flex flex-col gap-2">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <h3 className="text-lg font-medium">{t('settings.groupsManager')}</h3>
-                                <p className="text-sm text-muted-foreground">
-                                    {t('settings.groupsManagerDescription')}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
                     <GroupsList embedded />
                 </TabsContent>
 

@@ -11,7 +11,6 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useUsers } from '@/hooks/use-users';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -34,6 +33,15 @@ import type { User } from '@/api/types';
 interface UsersListProps {
     embedded?: boolean;
 }
+
+/** Pill colour per role. */
+const ROLE_TONE: Record<string, string> = {
+    SUPER_ADMIN: 'bg-violet-500/10 text-violet-700 dark:text-violet-400',
+    ADMIN: 'bg-indigo-500/10 text-indigo-700 dark:text-indigo-400',
+    MANAGER: 'bg-sky-500/10 text-sky-700 dark:text-sky-400',
+    USER: 'bg-slate-500/10 text-slate-700 dark:text-slate-300',
+    GUEST: 'bg-amber-500/10 text-amber-700 dark:text-amber-400',
+};
 
 export function UsersList({ embedded = false }: UsersListProps) {
     const { t } = useTranslation();
@@ -85,22 +93,32 @@ export function UsersList({ embedded = false }: UsersListProps) {
                     </div>
                 </div>
             )}
-            {embedded && (
-                <div className="flex justify-end gap-2">
-                    <Button variant="outline" onClick={() => setIsGuestDialogOpen(true)}>
-                        <Tv className="mr-2 h-4 w-4" />
-                        {t('userMgmt.page.guestLinks')}
-                    </Button>
-                    <Button onClick={handleCreate}>
-                        <Plus className="mr-2 h-4 w-4" />
-                        {t('users.addUser')}
-                    </Button>
-                </div>
-            )}
-
             {/* ========== CONTENT CARD ========== */}
-            <Card className="shadow-sm">
-                <CardHeader className="border-b bg-muted/30 py-4">
+            <Card className="gap-0 overflow-hidden py-0 shadow-sm">
+                {embedded && (
+                    <div className="flex flex-wrap items-start justify-between gap-3 border-b px-6 py-4">
+                        <div className="flex items-start gap-3">
+                            <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+                                <UsersIcon className="h-4 w-4" />
+                            </span>
+                            <div>
+                                <h3 className="font-semibold leading-tight">{t('settings.usersManager')}</h3>
+                                <p className="mt-1 text-sm text-muted-foreground">{t('settings.usersManagerDescription')}</p>
+                            </div>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                            <Button variant="outline" className="gap-2" onClick={() => setIsGuestDialogOpen(true)}>
+                                <Tv className="h-4 w-4" />
+                                {t('userMgmt.page.guestLinks')}
+                            </Button>
+                            <Button className="gap-2" onClick={handleCreate}>
+                                <Plus className="h-4 w-4" />
+                                {t('users.addUser')}
+                            </Button>
+                        </div>
+                    </div>
+                )}
+                <CardHeader className="border-b bg-muted/30 py-3">
                     <div className="flex items-center justify-between">
                         <span className="text-sm text-muted-foreground">
                             {isLoading ? t('common.loading') : t('userMgmt.page.count', { n: users?.length || 0 })}
@@ -181,17 +199,21 @@ export function UsersList({ embedded = false }: UsersListProps) {
                                             {user.email || user.username}
                                         </TableCell>
                                         <TableCell className="py-4 px-6">
-                                            <Badge
-                                                variant={user.role === 'ADMIN' ? 'default' : user.role === 'GUEST' ? 'outline' : 'secondary'}
-                                            >
-                                                {user.role}
-                                            </Badge>
+                                            <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${ROLE_TONE[user.role] ?? ROLE_TONE.USER}`}>
+                                                {t(`profilePage.roleBadge.${user.role}`, { defaultValue: user.role })}
+                                            </span>
                                         </TableCell>
                                         <TableCell className="py-4 px-6">
                                             {user.deletedAt ? (
-                                                <Badge variant="destructive">{t('users.status.deleted')}</Badge>
+                                                <span className="inline-flex items-center gap-1.5 rounded-full bg-red-500/10 px-2.5 py-0.5 text-xs font-medium text-red-700 dark:text-red-400">
+                                                    <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
+                                                    {t('users.status.deleted')}
+                                                </span>
                                             ) : (
-                                                <Badge variant="secondary">{t('users.status.active')}</Badge>
+                                                <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-medium text-emerald-700 dark:text-emerald-400">
+                                                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                                                    {t('users.status.active')}
+                                                </span>
                                             )}
                                         </TableCell>
                                         <TableCell className="py-4 px-6">
