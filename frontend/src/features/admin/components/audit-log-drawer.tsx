@@ -2,7 +2,11 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "
 import type { AuditLog } from "@/api/types";
 import { format } from "date-fns";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Badge } from "@/components/ui/badge";
+import { ScrollText } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { getDateLocale } from "@/lib/date-locale";
+import { SeverityBadge } from "./audit-log-table";
+import { CATEGORY_TONE } from "./audit-style";
 import { useTranslation } from "react-i18next";
 
 interface AuditLogDrawerProps {
@@ -10,8 +14,6 @@ interface AuditLogDrawerProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
 }
-
-// ... imports
 
 function DiffViewer({ details }: { details: Record<string, unknown> }) {
     const { t } = useTranslation();
@@ -63,73 +65,55 @@ export function AuditLogDrawer({ log, open, onOpenChange }: AuditLogDrawerProps)
         parsedDetails = log.details;
     }
 
+    const field = (label: string, value: React.ReactNode, mono = false) => (
+        <div className="rounded-lg border bg-muted/20 p-3">
+            <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{label}</div>
+            <div className={cn("mt-1 break-all text-sm", mono && "font-mono")}>{value}</div>
+        </div>
+    );
+
     return (
         <Sheet open={open} onOpenChange={onOpenChange}>
-            <SheetContent className="sm:max-w-xl flex flex-col h-full">
-                <SheetHeader>
-                    <SheetTitle>{t('auditLog.detailsTitle')}</SheetTitle>
-                    <SheetDescription>
-                        {t('auditLog.transactionId', { id: log.id })}
-                    </SheetDescription>
+            <SheetContent className="flex h-full w-full flex-col gap-0 p-0 sm:max-w-xl">
+                <SheetHeader className="space-y-0 border-b p-6 text-left">
+                    <div className="flex items-start gap-3 pr-8">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-500/10 text-slate-700 dark:text-slate-300">
+                            <ScrollText className="h-5 w-5" />
+                        </div>
+                        <div className="min-w-0">
+                            <SheetTitle className="text-lg">{t('auditLog.detailsTitle')}</SheetTitle>
+                            <SheetDescription>{t('auditLog.transactionId', { id: log.id })}</SheetDescription>
+                        </div>
+                    </div>
                 </SheetHeader>
 
-                <ScrollArea className="flex-1 -mx-6 px-6">
-                    <div className="mt-6 space-y-6 pb-6">
-                        {/* Header Info */}
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-1">
-                                <span className="text-xs font-medium text-muted-foreground uppercase">{t('auditLog.columns.timestamp')}</span>
-                                <div className="text-sm font-mono">
-                                    {format(new Date(log.timestamp), 'PPP pp')}
-                                </div>
+                <ScrollArea className="min-h-0 flex-1">
+                    <div className="space-y-5 p-6">
+                        <div className="space-y-2">
+                            <div className="flex flex-wrap items-center gap-2">
+                                <SeverityBadge severity={log.severity} />
+                                <span className={cn("inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold", CATEGORY_TONE[log.category] ?? CATEGORY_TONE.SYSTEM)}>
+                                    {t(`auditLog.categories.${log.category.toLowerCase()}`, { defaultValue: log.category })}
+                                </span>
                             </div>
-                            <div className="space-y-1">
-                                <span className="text-xs font-medium text-muted-foreground uppercase">{t('auditLog.columns.severity')}</span>
-                                <div>
-                                    <Badge variant={log.severity === 'CRITICAL' ? 'destructive' : log.severity === 'WARN' ? 'default' : 'secondary'}>
-                                        {log.severity}
-                                    </Badge>
-                                </div>
-                            </div>
+                            <code className="block break-all rounded-lg bg-muted px-3 py-2 font-mono text-sm font-semibold">{log.action}</code>
                         </div>
 
-                        <div className="space-y-1">
-                            <span className="text-xs font-medium text-muted-foreground uppercase">{t('auditLog.columns.action')}</span>
-                            <div className="text-base font-semibold">{log.action}</div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-1">
-                                <span className="text-xs font-medium text-muted-foreground uppercase">{t('auditLog.columns.category')}</span>
-                                <div className="text-sm">{log.category}</div>
-                            </div>
-                            <div className="space-y-1">
-                                <span className="text-xs font-medium text-muted-foreground uppercase">{t('auditLog.columns.target')}</span>
-                                <div className="text-sm font-mono bg-muted inline-block px-1 rounded">
-                                    {log.target || t('auditLog.notAvailable')}
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-1">
-                                <span className="text-xs font-medium text-muted-foreground uppercase">{t('auditLog.columns.actor')}</span>
-                                <div className="text-sm">{log.actorName || t('auditLog.systemActor')} {log.actorId ? `(ID: ${log.actorId})` : ''}</div>
-                            </div>
-                            <div className="space-y-1">
-                                <span className="text-xs font-medium text-muted-foreground uppercase">{t('auditLog.ipAddress')}</span>
-                                <div className="text-sm font-mono">{log.ipAddress || t('auditLog.unknown')}</div>
-                            </div>
+                        <div className="grid gap-3 sm:grid-cols-2">
+                            {field(t('auditLog.columns.timestamp'), format(new Date(log.timestamp), 'PPP · HH:mm:ss', { locale: getDateLocale() }))}
+                            {field(t('auditLog.columns.actor'), <>{log.actorName || t('auditLog.systemActor')}{log.actorId ? <span className="text-muted-foreground"> · ID {log.actorId}</span> : null}</>)}
+                            {field(t('auditLog.columns.target'), log.target || t('auditLog.notAvailable'), true)}
+                            {field(t('auditLog.ipAddress'), log.ipAddress || t('auditLog.unknown'), true)}
                         </div>
 
                         {/* Payload */}
                         <div className="space-y-2">
-                            <span className="text-xs font-medium text-muted-foreground uppercase">{t('auditLog.changesDetails')}</span>
-                            <div className="rounded-md border bg-zinc-950 p-4 font-mono text-xs text-zinc-50 dark:bg-zinc-900">
+                            <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{t('auditLog.changesDetails')}</span>
+                            <div className="overflow-x-auto rounded-xl border bg-zinc-950 p-4 font-mono text-xs text-zinc-50 dark:bg-zinc-900">
                                 {parsedDetails ? (
                                     <DiffViewer details={parsedDetails} />
                                 ) : (
-                                    <span className="text-zinc-500 italic">{t('auditLog.noAdditionalDetails')}</span>
+                                    <span className="italic text-zinc-500">{t('auditLog.noAdditionalDetails')}</span>
                                 )}
                             </div>
                         </div>

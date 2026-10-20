@@ -136,7 +136,8 @@
         "diff": {
             "before": "Avant",
             "after": "Après"
-        }
+        },
+        "openDetails": "Détails"
     },
     "status": {
         "pending": "En attente",
