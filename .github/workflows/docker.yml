@@ -5,6 +5,9 @@ name: Docker Build & Push
     tags:
       - 'v[0-9]+.[0-9]+.[0-9]+'
       - '[0-9]+.[0-9]+.[0-9]+'
+      # Pre-releases (e.g. v1.2.0-beta.1) are published without moving `latest`.
+      - 'v[0-9]+.[0-9]+.[0-9]+-*'
+      - '[0-9]+.[0-9]+.[0-9]+-*'
 
 permissions:
   contents: read
@@ -57,9 +60,12 @@ jobs:
         uses: docker/metadata-action@v6
         with:
           images: ${{ env.DOCKERHUB_USERNAME }}/taskmaster
+          # `latest` is only added for stable versions; pre-releases get `beta` instead.
+          flavor: |
+            latest=auto
           tags: |
             type=semver,pattern={{version}}
-            type=raw,value=latest
+            type=raw,value=beta,enable=${{ contains(github.ref_name, '-') }}
 
       - name: Build and push
         uses: docker/build-push-action@v7

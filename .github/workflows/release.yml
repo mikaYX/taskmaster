@@ -3,7 +3,10 @@ name: Release
 'on':
   push:
     tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
       - '[0-9]+.[0-9]+.[0-9]+'
+      - 'v[0-9]+.[0-9]+.[0-9]+-*'
+      - '[0-9]+.[0-9]+.[0-9]+-*'
 
 permissions:
   contents: write
@@ -19,18 +22,33 @@ jobs:
 
       - name: Extract changelog for this version
         id: changelog
+        shell: bash
         run: |
-          VERSION="${GITHUB_REF_NAME}"
+          # Tags may be prefixed with "v"; CHANGELOG.md headings are not.
+          VERSION="${GITHUB_REF_NAME#v}"
           # Extract the section between ## [VERSION] and the next ## [
-          BODY=$(awk "/^## \[${VERSION}\]/{flag=1; next} /^## \[/{flag=0} flag" CHANGELOG.md)
-          # Write to a temp file to avoid multiline env issues
-          echo "$BODY" > /tmp/release_body.md
+          awk -v version="${VERSION}" '
+            index($0, "## [" version "]") == 1 { flag = 1; next }
+            /^## \[/ { flag = 0 }
+            flag
+          ' CHANGELOG.md > /tmp/release_body.md
+          if [ ! -s /tmp/release_body.md ]; then
+            echo "::error title=Changelog missing::No '## [${VERSION}]' section found in CHANGELOG.md."
+            exit 1
+          fi
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          # A version with a suffix (1.2.0-beta.1) is a pre-release and must not become "Latest".
+          if [[ "${VERSION}" == *-* ]]; then
+            echo "prerelease=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v3
         with:
-          name: "v${{ steps.changelog.outputs.version }}"
+          name: "Taskmaster ${{ steps.changelog.outputs.version }}"
           body_path: /tmp/release_body.md
           draft: false
-          prerelease: false
+          prerelease: ${{ steps.changelog.outputs.prerelease == 'true' }}
+          make_latest: ${{ steps.changelog.outputs.prerelease == 'true' && 'false' || 'true' }}
