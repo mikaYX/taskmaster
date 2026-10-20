@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Loader2, Mail } from 'lucide-react';
+import { Loader2, Mail, Power, Server, KeyRound } from 'lucide-react';
 import {
     Dialog,
     DialogContent,
@@ -149,7 +149,7 @@ export function EmailSettingsPage() {
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
                     {/* Enable Email */}
-                    <SettingsSection title={t('emailSettings.globalConfiguration')}>
+                    <SettingsSection title={t('emailSettings.globalConfiguration')} icon={Power}>
                         <FormField
                             control={form.control}
                             name="enabled"
@@ -170,7 +170,7 @@ export function EmailSettingsPage() {
                     {emailEnabled && (
                         <>
                             {/* Provider */}
-                            <SettingsSection title={t('email.provider')}>
+                            <SettingsSection title={t('email.provider')} icon={Server}>
                                 <FormField
                                     control={form.control}
                                     name="provider"
@@ -244,7 +244,7 @@ export function EmailSettingsPage() {
 
                             {/* SMTP Config */}
                             {emailProvider === 'smtp' && (
-                                        <SettingsSection title={t('emailSettings.smtpConfiguration')}>
+                                        <SettingsSection title={t('emailSettings.smtpConfiguration')} icon={KeyRound}>
                                     <div className="grid grid-cols-2 gap-4">
                                         <FormField control={form.control} name="smtp.host" render={({ field }) => (
                                                     <FormItem><FormLabel>{t('email.smtpHost')}</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
@@ -270,7 +270,7 @@ export function EmailSettingsPage() {
 
                             {/* Mailgun Config */}
                             {emailProvider === 'mailgun' && (
-                                        <SettingsSection title={t('emailSettings.mailgunConfiguration')}>
+                                        <SettingsSection title={t('emailSettings.mailgunConfiguration')} icon={KeyRound}>
                                     <div className="grid gap-4">
                                         <FormField control={form.control} name="mailgun.apiKey" render={({ field }) => (
                                                     <FormItem><FormLabel>{t('email.apiKey')}</FormLabel><FormControl><Input type="password" {...field} /></FormControl><FormMessage /></FormItem>
@@ -290,7 +290,7 @@ export function EmailSettingsPage() {
 
                             {/* Mailjet Config */}
                             {emailProvider === 'mailjet' && (
-                                        <SettingsSection title={t('emailSettings.mailjetConfiguration')}>
+                                        <SettingsSection title={t('emailSettings.mailjetConfiguration')} icon={KeyRound}>
                                     <div className="grid gap-4">
                                         <FormField control={form.control} name="mailjet.apiKey" render={({ field }) => (
                                                     <FormItem><FormLabel>{t('email.apiKey')}</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
@@ -310,7 +310,7 @@ export function EmailSettingsPage() {
 
                             {/* SendGrid Config */}
                             {emailProvider === 'sendgrid' && (
-                                        <SettingsSection title={t('emailSettings.sendgridConfiguration')}>
+                                        <SettingsSection title={t('emailSettings.sendgridConfiguration')} icon={KeyRound}>
                                     <div className="grid gap-4">
                                         <FormField control={form.control} name="sendgrid.apiKey" render={({ field }) => (
                                                     <FormItem><FormLabel>{t('email.apiKey')}</FormLabel><FormControl><Input type="password" {...field} /></FormControl><FormMessage /></FormItem>

@@ -1,17 +1,21 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ScrollAreaHorizontal } from '@/components/ui/scroll-area';
 import {
-    Breadcrumb,
-    BreadcrumbList,
-    BreadcrumbItem,
-    BreadcrumbLink,
-    BreadcrumbSeparator,
-    BreadcrumbPage,
-} from '@/components/ui/breadcrumb';
-import { ChevronRight } from 'lucide-react';
+    Bell,
+    CalendarClock,
+    Cloud,
+    Database,
+    Download,
+    Fingerprint,
+    KeyRound,
+    Mail,
+    MapPin,
+    Settings2,
+    ShieldCheck,
+    SlidersHorizontal,
+    type LucideIcon,
+} from 'lucide-react';
 
 import { GeneralSettingsPage } from './pages/general-settings-page';
 import { SecuritySettingsPage } from './pages/security-settings-page';
@@ -26,11 +30,58 @@ import { NotificationsSettingsPage } from './pages/notifications-settings-page';
 import { UpdatesPage } from './pages/updates-page';
 import { useAuthStore } from '@/stores/auth-store';
 
+interface SettingsTab {
+    value: string;
+    labelKey: string;
+    descriptionKey: string;
+    icon: LucideIcon;
+    /** Tailwind classes of the icon tile: one colour per tab, the same in the menu and the tab header. */
+    tone: string;
+    render: () => React.ReactNode;
+    /** Who sees the tab. */
+    visible: 'all' | 'notManager' | 'superAdmin';
+}
+
+/** Tabs grouped as they appear in the menu. */
+const GROUPS: { labelKey: string; tabs: SettingsTab[] }[] = [
+    {
+        labelKey: 'settingsShell.groups.application',
+        tabs: [
+            { value: 'general', labelKey: 'settings.general', descriptionKey: 'settingsShell.descriptions.general', icon: SlidersHorizontal, tone: 'bg-primary/10 text-primary', render: () => <GeneralSettingsPage />, visible: 'notManager' },
+            { value: 'sites', labelKey: 'settings.sites', descriptionKey: 'settingsShell.descriptions.sites', icon: MapPin, tone: 'bg-teal-500/10 text-teal-700 dark:text-teal-400', render: () => <SitesSettingsPage />, visible: 'superAdmin' },
+            { value: 'scheduler', labelKey: 'settings.scheduler', descriptionKey: 'settingsShell.descriptions.scheduler', icon: CalendarClock, tone: 'bg-sky-500/10 text-sky-700 dark:text-sky-400', render: () => <SchedulerSettingsPage />, visible: 'notManager' },
+        ],
+    },
+    {
+        labelKey: 'settingsShell.groups.access',
+        tabs: [
+            { value: 'security', labelKey: 'settings.security', descriptionKey: 'settingsShell.descriptions.security', icon: ShieldCheck, tone: 'bg-violet-500/10 text-violet-700 dark:text-violet-400', render: () => <SecuritySettingsPage />, visible: 'all' },
+            { value: 'auth', labelKey: 'settings.auth', descriptionKey: 'settingsShell.descriptions.auth', icon: Fingerprint, tone: 'bg-indigo-500/10 text-indigo-700 dark:text-indigo-400', render: () => <AuthSettingsPage />, visible: 'notManager' },
+            { value: 'api-keys', labelKey: 'settings.apiKeys.title', descriptionKey: 'settingsShell.descriptions.apiKeys', icon: KeyRound, tone: 'bg-amber-500/10 text-amber-700 dark:text-amber-400', render: () => <ApiKeysSettingsPage />, visible: 'superAdmin' },
+        ],
+    },
+    {
+        labelKey: 'settingsShell.groups.communication',
+        tabs: [
+            { value: 'email', labelKey: 'settings.email', descriptionKey: 'settingsShell.descriptions.email', icon: Mail, tone: 'bg-rose-500/10 text-rose-700 dark:text-rose-400', render: () => <EmailSettingsPage />, visible: 'notManager' },
+            { value: 'notifications', labelKey: 'settings.notifications.tab', descriptionKey: 'settingsShell.descriptions.notifications', icon: Bell, tone: 'bg-orange-500/10 text-orange-700 dark:text-orange-400', render: () => <NotificationsSettingsPage />, visible: 'superAdmin' },
+        ],
+    },
+    {
+        labelKey: 'settingsShell.groups.data',
+        tabs: [
+            { value: 'export', labelKey: 'settings.export', descriptionKey: 'settingsShell.descriptions.export', icon: Download, tone: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400', render: () => <ExportSettingsPage />, visible: 'notManager' },
+            { value: 'backup', labelKey: 'settings.backup', descriptionKey: 'settingsShell.descriptions.backup', icon: Database, tone: 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-400', render: () => <BackupSettingsPage />, visible: 'notManager' },
+            { value: 'updates', labelKey: 'settings.updates', descriptionKey: 'settingsShell.descriptions.updates', icon: Cloud, tone: 'bg-slate-500/10 text-slate-700 dark:text-slate-300', render: () => <UpdatesPage />, visible: 'notManager' },
+        ],
+    },
+];
+
 /**
  * Settings Page.
- * 
- * Unified settings interface with horizontal tab navigation.
- * Main AppSidebar remains visible (no dedicated settings sidebar).
+ *
+ * One menu of tabs grouped by theme (a column on wide screens, a scrolling bar on phones),
+ * and for each tab the same header: icon, title and what it is for.
  */
 export function SettingsPage() {
     const { t } = useTranslation();
@@ -40,127 +91,69 @@ export function SettingsPage() {
     const isManager = role === 'MANAGER';
     const [activeTab, setActiveTab] = useState(isManager ? 'security' : 'general');
 
-    return (
-        <div className="container mx-auto py-6 space-y-6 max-w-6xl">
-            {/* Breadcrumb */}
-            <Breadcrumb>
-                <BreadcrumbList>
-                    <BreadcrumbItem>
-                        <BreadcrumbLink asChild>
-                            <Link to="/">{t('nav.taskBoard')}</Link>
-                        </BreadcrumbLink>
-                    </BreadcrumbItem>
-                    <BreadcrumbSeparator>
-                        <ChevronRight className="h-4 w-4" />
-                    </BreadcrumbSeparator>
-                    <BreadcrumbItem>
-                        <BreadcrumbPage>{t('settings.title')}</BreadcrumbPage>
-                    </BreadcrumbItem>
-                </BreadcrumbList>
-            </Breadcrumb>
+    const canSee = (tab: SettingsTab) =>
+        tab.visible === 'all' || (tab.visible === 'notManager' && !isManager) || (tab.visible === 'superAdmin' && isSuperAdmin);
+    const groups = GROUPS.map((group) => ({ ...group, tabs: group.tabs.filter(canSee) })).filter((group) => group.tabs.length > 0);
+    const showMenu = groups.reduce((n, group) => n + group.tabs.length, 0) > 1;
 
+    return (
+        <div className="mx-auto w-full max-w-7xl space-y-6 pb-24 pt-4 sm:pt-6">
             {/* Header */}
-            <div>
-                <h1 className="text-3xl font-bold tracking-tight">{t('settings.title')}</h1>
-                <p className="text-muted-foreground mt-2">
-                    {t('settings.description')}
-                </p>
+            <div className="flex items-center gap-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                    <Settings2 className="h-6 w-6" />
+                </div>
+                <div>
+                    <h1 className="text-2xl font-bold tracking-tight">{t('settings.title')}</h1>
+                    <p className="text-sm text-muted-foreground">{t('settings.description')}</p>
+                </div>
             </div>
 
-            {/* Tab Navigation — ScrollArea horizontal shadcn en fenêtre réduite */}
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-                <ScrollAreaHorizontal className="w-full border-b border-border">
-                    <TabsList variant="line" className="inline-flex w-max min-w-full justify-start h-auto pb-2 pt-0 border-0 bg-transparent">
-                        {!isManager && <TabsTrigger value="general">{t('settings.general')}</TabsTrigger>}
-                        <TabsTrigger value="security">{t('settings.security')}</TabsTrigger>
-                        {!isManager && (
-                            <>
-                                <TabsTrigger value="auth">{t('settings.auth')}</TabsTrigger>
-                                <TabsTrigger value="email">{t('settings.email')}</TabsTrigger>
-                                <TabsTrigger value="export">{t('settings.export')}</TabsTrigger>
-                                <TabsTrigger value="backup">{t('settings.backup')}</TabsTrigger>
-                                <TabsTrigger value="scheduler">{t('settings.scheduler')}</TabsTrigger>
-                            </>
-                        )}
-                        {isSuperAdmin && (
-                            <>
-                                <TabsTrigger value="sites">{t('settings.sites')}</TabsTrigger>
-                                <TabsTrigger value="notifications">{t('settings.notifications.tab')}</TabsTrigger>
-                                <TabsTrigger value="api-keys">{t('settings.apiKeys.title')}</TabsTrigger>
-                            </>
-                        )}
-                        {!isManager && <TabsTrigger value="updates">{t('settings.updates')}</TabsTrigger>}
-                    </TabsList>
-                </ScrollAreaHorizontal>
+            {/* Horizontal on purpose: a vertical Tabs would also turn the sub-tabs of each page vertical (Tailwind group variants). */}
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="gap-6 lg:items-start lg:data-[orientation=horizontal]:flex-row">
+                <TabsList
+                    aria-label={t('settings.title')}
+                    className={
+                        showMenu
+                            ? 'h-auto group-data-[orientation=horizontal]/tabs:h-auto w-full shrink-0 flex-row items-stretch justify-start gap-1 overflow-x-auto rounded-xl border bg-card p-2 shadow-sm lg:sticky lg:top-4 lg:w-60 lg:flex-col lg:overflow-visible'
+                            : 'sr-only'
+                    }
+                >
+                    {groups.map((group) => (
+                        <div key={group.labelKey} className="flex shrink-0 gap-1 lg:flex-col">
+                            <p className="hidden px-3 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground first:pt-1 lg:block">
+                                {t(group.labelKey)}
+                            </p>
+                            {group.tabs.map(({ value, labelKey, icon: Icon, tone }) => (
+                                <TabsTrigger
+                                    key={value}
+                                    value={value}
+                                    className="group h-auto flex-none justify-start gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium text-muted-foreground data-[state=active]:bg-primary/5 data-[state=active]:text-foreground data-[state=active]:shadow-none lg:w-full"
+                                >
+                                    <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-colors ${tone} opacity-80 group-data-[state=active]:opacity-100`}>
+                                        <Icon className="h-4 w-4" />
+                                    </span>
+                                    {t(labelKey)}
+                                </TabsTrigger>
+                            ))}
+                        </div>
+                    ))}
+                </TabsList>
 
-                <TabsContent value="general" className="mt-6">
-                    <div className="space-y-6">
-                        <GeneralSettingsPage />
-                    </div>
-                </TabsContent>
-
-                <TabsContent value="security" className="mt-6">
-                    <div className="space-y-6">
-                        <SecuritySettingsPage />
-                    </div>
-                </TabsContent>
-
-                <TabsContent value="auth" className="mt-6">
-                    <div className="space-y-6">
-                        <AuthSettingsPage />
-                    </div>
-                </TabsContent>
-
-                <TabsContent value="email" className="mt-6">
-                    <div className="space-y-6">
-                        <EmailSettingsPage />
-                    </div>
-                </TabsContent>
-
-                <TabsContent value="export" className="mt-6">
-                    <div className="space-y-6">
-                        <ExportSettingsPage />
-                    </div>
-                </TabsContent>
-
-                <TabsContent value="backup" className="mt-6">
-                    <div className="space-y-6">
-                        <BackupSettingsPage />
-                    </div>
-                </TabsContent>
-
-                <TabsContent value="scheduler" className="mt-6">
-                    <div className="space-y-6">
-                        <SchedulerSettingsPage />
-                    </div>
-                </TabsContent>
-
-                <TabsContent value="api-keys" className="mt-6">
-                    <div className="space-y-6">
-                        <ApiKeysSettingsPage />
-                    </div>
-                </TabsContent>
-
-                {isSuperAdmin && (
-                    <>
-                        <TabsContent value="sites" className="mt-6">
-                            <div className="space-y-6">
-                                <SitesSettingsPage />
+                {groups.flatMap((group) => group.tabs).map(({ value, labelKey, descriptionKey, icon: Icon, tone, render }) => (
+                    <TabsContent key={value} value={value} className="mt-0 min-w-0 flex-1 space-y-6">
+                        <div className="flex items-center gap-3">
+                            <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${tone}`}>
+                                <Icon className="h-5 w-5" />
+                            </span>
+                            <div className="min-w-0">
+                                <h2 className="text-lg font-semibold leading-tight">{t(labelKey)}</h2>
+                                <p className="text-sm text-muted-foreground">{t(descriptionKey)}</p>
                             </div>
-                        </TabsContent>
-                        <TabsContent value="notifications" className="mt-6">
-                            <div className="space-y-6">
-                                <NotificationsSettingsPage />
-                            </div>
-                        </TabsContent>
-                    </>
-                )}
-
-                <TabsContent value="updates" className="mt-6">
-                    <div className="space-y-6">
-                        <UpdatesPage />
-                    </div>
-                </TabsContent>
+                        </div>
+                        {render()}
+                    </TabsContent>
+                ))}
             </Tabs>
         </div>
     );

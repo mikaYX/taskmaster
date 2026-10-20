@@ -242,8 +242,8 @@ export function EditTaskPage() {
             </div>
 
             <FormProvider {...methods}>
-                <Tabs defaultValue="definition" orientation="vertical" className="flex-col gap-6 md:flex-row">
-                    <TabsList className="h-auto w-full shrink-0 flex-row flex-wrap justify-start gap-1 rounded-xl border bg-card p-2 shadow-sm md:sticky md:top-4 md:w-64 md:flex-col md:items-stretch md:self-start">
+                <Tabs defaultValue="definition" className="gap-6 md:data-[orientation=horizontal]:flex-row">
+                    <TabsList className="h-auto group-data-[orientation=horizontal]/tabs:h-auto w-full shrink-0 flex-row flex-wrap justify-start gap-1 rounded-xl border bg-card p-2 shadow-sm md:sticky md:top-4 md:w-64 md:flex-col md:items-stretch md:self-start">
                         {sections.map(({ value, icon: Icon, title, description }) => (
                             <TabsTrigger
                                 key={value}

@@ -8,7 +8,8 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Trash2, Edit, Play, Plus, Loader2 } from "lucide-react";
+import { Trash2, Edit, Play, Plus, Loader2, Bell, BellOff } from "lucide-react";
+import { SettingsSection } from "../components/settings-section";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -138,20 +139,25 @@ export function NotificationsSettingsPage() {
 
     return (
         <div className="space-y-6">
-            <div>
-                <h3 className="text-lg font-medium">{t('settings.notifications.title')}</h3>
-                <p className="text-sm text-muted-foreground">
-                    {t('settings.notifications.description')}
-                </p>
-            </div>
-
-            <div className="flex justify-end">
-                <Button onClick={() => { setEditingChannel(null); setIsDialogOpen(true); }}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    {t('settings.notifications.add')}
-                </Button>
-            </div>
-
+            <SettingsSection
+                title={t('settings.notifications.title')}
+                description={t('settings.notifications.description')}
+                icon={Bell}
+                action={
+                    <Button className="gap-2" onClick={() => { setEditingChannel(null); setIsDialogOpen(true); }}>
+                        <Plus className="h-4 w-4" />
+                        {t('settings.notifications.add')}
+                    </Button>
+                }
+            >
+            {channels && channels.length === 0 && (
+                <div className="flex flex-col items-center justify-center rounded-xl border border-dashed px-6 py-10 text-center">
+                    <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-muted">
+                        <BellOff className="h-6 w-6 text-muted-foreground" />
+                    </div>
+                    <p className="text-sm text-muted-foreground">{t('settings.notifications.empty')}</p>
+                </div>
+            )}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {channels?.map((channel) => (
                     <Card key={channel.id}>
@@ -188,6 +194,7 @@ export function NotificationsSettingsPage() {
                     </Card>
                 ))}
             </div>
+            </SettingsSection>
 
             {/* Editor Dialog */}
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>

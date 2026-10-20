@@ -422,7 +422,8 @@
             },
             "validation": {
                 "nameRequired": "Name is required"
-            }
+            },
+            "empty": "No channel yet: add one to alert people when a task fails or is missed."
         },
         "usersManager": "User Management",
         "usersTab": "Users",
@@ -2690,5 +2691,26 @@
         "due": "Due date",
         "dueValue": "Due {{date}}",
         "resolutionPlaceholder": "What was done to fix it..."
+    },
+    "settingsShell": {
+        "groups": {
+            "application": "Application",
+            "access": "Security and access",
+            "communication": "Communication",
+            "data": "Data and system"
+        },
+        "descriptions": {
+            "general": "Language, time zone, branding, add-ons and appearance",
+            "sites": "The sites of the organisation and who belongs to them",
+            "scheduler": "Background jobs and the system time zone",
+            "security": "Users and groups",
+            "auth": "Sign-in methods, MFA, passkeys and sessions",
+            "apiKeys": "Keys giving other applications access to the API",
+            "email": "Sending emails: provider and sender",
+            "notifications": "Channels used to alert on tasks",
+            "export": "Automatic exports and reports",
+            "backup": "Backups of the database and their restoration",
+            "updates": "Version of the application and available updates"
+        }
     }
 }

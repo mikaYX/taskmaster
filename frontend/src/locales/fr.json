@@ -422,7 +422,8 @@
             },
             "validation": {
                 "nameRequired": "Le nom est requis"
-            }
+            },
+            "empty": "Aucun canal pour le moment : ajoutez-en un pour prévenir quand une tâche échoue ou est manquée."
         },
         "usersManager": "Gestion des Utilisateurs",
         "usersTab": "Utilisateurs",
@@ -2690,5 +2691,26 @@
         "due": "Échéance",
         "dueValue": "Échéance : {{date}}",
         "resolutionPlaceholder": "Ce qui a été fait pour corriger..."
+    },
+    "settingsShell": {
+        "groups": {
+            "application": "Application",
+            "access": "Sécurité et accès",
+            "communication": "Communication",
+            "data": "Données et système"
+        },
+        "descriptions": {
+            "general": "Langue, fuseau horaire, image de marque, modules et apparence",
+            "sites": "Les sites de l'organisation et leurs membres",
+            "scheduler": "Tâches de fond et fuseau horaire du système",
+            "security": "Utilisateurs et groupes",
+            "auth": "Méthodes de connexion, MFA, passkeys et sessions",
+            "apiKeys": "Clés donnant accès à l'API à d'autres applications",
+            "email": "Envoi des emails : fournisseur et expéditeur",
+            "notifications": "Canaux utilisés pour alerter sur les tâches",
+            "export": "Exports automatiques et rapports",
+            "backup": "Sauvegardes de la base et restauration",
+            "updates": "Version de l'application et mises à jour disponibles"
+        }
     }
 }

@@ -21,7 +21,7 @@ import { Button } from '@/components/ui/button';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Loader2, Download, Trash2, Mail, Clock, Calendar, CheckCircle2, XCircle, AlertTriangle, Play, Settings, FolderOpen, CalendarDays, Info, FileText, History, RefreshCw } from 'lucide-react';
+import { Loader2, Download, Trash2, Mail, Clock, Calendar, CheckCircle2, XCircle, AlertTriangle, Play, Settings, FolderOpen, CalendarDays, Info, FileText, History, RefreshCw, CalendarClock } from 'lucide-react';
 import {
     Select,
     SelectContent,
@@ -453,7 +453,7 @@ export function ExportSettingsPage() {
 
                     {/* === MASTER SWITCH === */}
                     <FormField control={form.control} name="autoExport.enabled" render={({ field }) => (
-                        <SettingsSection title={t('exportSettings.automaticExports')}>
+                        <SettingsSection title={t('exportSettings.automaticExports')} icon={RefreshCw}>
                             <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                                 <div className="space-y-0.5">
                                     <FormLabel className="text-base">{t('exportSettings.enableAutomaticExports')}</FormLabel>
@@ -468,7 +468,7 @@ export function ExportSettingsPage() {
 
                     {/* === SCHEDULE (Progressive Disclosure) === */}
                     {autoExportEnabled && (
-                        <SettingsSection title={t('exportSettings.scheduleTitle')} description={t('exportSettings.scheduleDescription')}>
+                        <SettingsSection title={t('exportSettings.scheduleTitle')} icon={CalendarClock} description={t('exportSettings.scheduleDescription')}>
                             <div className="space-y-6">
                                 {/* Frequency Selection */}
                                 <FormField control={form.control} name="autoExport.scheduleType" render={({ field }) => (
@@ -634,7 +634,7 @@ export function ExportSettingsPage() {
                     )}
 
                     {/* === DATA RANGE === */}
-                    <SettingsSection title={t('exportSettings.dataRangeTitle')} description={t('exportSettings.dataRangeDescription')}>
+                    <SettingsSection title={t('exportSettings.dataRangeTitle')} icon={CalendarDays} description={t('exportSettings.dataRangeDescription')}>
                         <div className="space-y-4">
                             {/* Range Mode Toggle */}
                             <div className="flex gap-2 mb-4">
@@ -724,7 +724,7 @@ export function ExportSettingsPage() {
                     </SettingsSection>
 
                     {/* === DESTINATION === */}
-                    <SettingsSection title={t('exportSettings.destinationTitle')} description={t('exportSettings.destinationDescription')}>
+                    <SettingsSection title={t('exportSettings.destinationTitle')} icon={FolderOpen} description={t('exportSettings.destinationDescription')}>
                         <div className="space-y-4">
                             <FormField control={form.control} name="config.path" render={({ field }) => (
                                 <FormItem>
@@ -752,7 +752,7 @@ export function ExportSettingsPage() {
                     </SettingsSection>
 
                     {/* === EMAIL DELIVERY (Feature-Gated) === */}
-                    <SettingsSection title={t('exportSettings.emailDeliveryTitle')} description={t('exportSettings.emailDeliveryDescription')}>
+                    <SettingsSection title={t('exportSettings.emailDeliveryTitle')} icon={Mail} description={t('exportSettings.emailDeliveryDescription')}>
                         {!emailConfigStatus?.enabled ? (
                             <Alert>
                                 <Mail className="h-4 w-4" />
@@ -856,7 +856,7 @@ export function ExportSettingsPage() {
                     </SettingsSection>
 
                     {/* === RETENTION & CLEANUP === */}
-                    <SettingsSection title={t('exportSettings.retentionCleanupTitle')} description={t('exportSettings.retentionCleanupDescription')}>
+                    <SettingsSection title={t('exportSettings.retentionCleanupTitle')} icon={Trash2} description={t('exportSettings.retentionCleanupDescription')}>
                         <div className="space-y-4">
                             <div className="flex gap-4 items-end">
                                 <FormField control={form.control} name="retention.days" render={({ field }) => (
@@ -912,7 +912,7 @@ export function ExportSettingsPage() {
                     </SettingsSection>
 
                     {/* === RUN NOW (Actions) === */}
-                    <SettingsSection title={t('exportSettings.manualActionsTitle')} description={t('exportSettings.manualActionsDescription')}>
+                    <SettingsSection title={t('exportSettings.manualActionsTitle')} icon={Play} description={t('exportSettings.manualActionsDescription')}>
                         <div className="space-y-4">
                             {/* Run Now with Draft Warning */}
                             <div className="flex items-center justify-between p-4 border rounded-lg">
@@ -957,7 +957,7 @@ export function ExportSettingsPage() {
                     </SettingsSection>
 
                     {/* === RUN HISTORY === */}
-                    <SettingsSection title={t('exportSettings.historyTitle')} description={t('exportSettings.historyDescription')}>
+                    <SettingsSection title={t('exportSettings.historyTitle')} icon={History} description={t('exportSettings.historyDescription')}>
                         {recentExports.length === 0 ? (
                             <div className="flex flex-col items-center justify-center p-8 text-center text-muted-foreground">
                                 <History className="h-8 w-8 mb-2" />

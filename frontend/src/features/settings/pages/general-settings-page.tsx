@@ -17,7 +17,8 @@ import { Button } from '@/components/ui/button';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
-import { Loader2, Sun, Moon, Monitor, ImageUp, X, Check, ChevronLeft, ChevronRight, Calendar, ChevronDown } from 'lucide-react';
+import { Loader2, Sun, Moon, Monitor, ImageUp, X, Check, ChevronLeft, ChevronRight, Calendar, ChevronDown, Globe, Clock, Palette, Puzzle, SunMoon } from 'lucide-react';
+import { SettingsSection } from '../components/settings-section';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import {
@@ -295,15 +296,9 @@ export function GeneralSettingsPage() {
     }
 
     return (
-        <div className="space-y-10 max-w-6xl">
+        <div className="space-y-6">
             {/* LANGUAGE & REGION */}
-            <div className="space-y-6">
-                <div>
-                    <h2 className="text-lg font-semibold">{t('generalSettings.languageAndRegion')}</h2>
-                    <p className="text-sm text-muted-foreground">
-                        {t('generalSettings.languageAndRegionDescription')}
-                    </p>
-                </div>
+            <SettingsSection title={t('generalSettings.languageAndRegion')} description={t('generalSettings.languageAndRegionDescription')} icon={Globe}>
 
                 <div className="grid md:grid-cols-2 gap-6">
                     <div className="space-y-2">
@@ -457,18 +452,10 @@ export function GeneralSettingsPage() {
                         )}
                     </CollapsibleContent>
                 </Collapsible>
-            </div>
-
-            <Separator />
+            </SettingsSection>
 
             {/* SCHEDULING DEFAULTS */}
-            <div className="space-y-6">
-                <div>
-                    <h2 className="text-lg font-semibold">{t('generalSettings.schedulingDefaults')}</h2>
-                    <p className="text-sm text-muted-foreground">
-                        {t('generalSettings.schedulingDefaultsDescription')}
-                    </p>
-                </div>
+            <SettingsSection title={t('generalSettings.schedulingDefaults')} description={t('generalSettings.schedulingDefaultsDescription')} icon={Clock}>
 
                 <div className="grid md:grid-cols-2 gap-6">
                     <div className="space-y-3">
@@ -497,18 +484,10 @@ export function GeneralSettingsPage() {
                         </p>
                     </div>
                 </div>
-            </div>
-
-            <Separator />
+            </SettingsSection>
 
             {/* BRANDING */}
-            <div className="space-y-6">
-                <div>
-                    <h2 className="text-lg font-semibold">{t('generalSettings.branding')}</h2>
-                    <p className="text-sm text-muted-foreground">
-                        {t('generalSettings.brandingDescription')}
-                    </p>
-                </div>
+            <SettingsSection title={t('generalSettings.branding')} description={t('generalSettings.brandingDescription')} icon={Palette}>
 
                 {/* Application Naming */}
                 <div className="space-y-4">
@@ -660,18 +639,10 @@ export function GeneralSettingsPage() {
                         {t('generalSettings.saveBrandingChanges')}
                     </Button>
                 </div>
-            </div>
-
-            <Separator />
+            </SettingsSection>
 
             {/* ADD-ONS */}
-            <div className="space-y-6">
-                <div>
-                    <h2 className="text-lg font-semibold">{t('settings.addons')}</h2>
-                    <p className="text-sm text-muted-foreground">
-                        {t('settings.addonsDescription')}
-                    </p>
-                </div>
+            <SettingsSection title={t('settings.addons')} description={t('settings.addonsDescription')} icon={Puzzle}>
 
                 <div className="border rounded-lg p-4 space-y-4">
                     <div className="flex items-center justify-between">
@@ -703,18 +674,10 @@ export function GeneralSettingsPage() {
                         </div>
                     )}
                 </div>
-            </div>
-
-            <Separator />
+            </SettingsSection>
 
             {/* APPEARANCE */}
-            <div className="space-y-6">
-                <div>
-                    <h2 className="text-lg font-semibold">{t('generalSettings.appearance')}</h2>
-                    <p className="text-sm text-muted-foreground">
-                        {t('generalSettings.appearanceDescription')}
-                    </p>
-                </div>
+            <SettingsSection title={t('generalSettings.appearance')} description={t('generalSettings.appearanceDescription')} icon={SunMoon}>
 
                 {/* Display Mode */}
                 <div className="space-y-3">
@@ -792,7 +755,7 @@ export function GeneralSettingsPage() {
                     </div>
                     <p className="text-xs text-muted-foreground">{t('generalSettings.themeDescription')}</p>
                 </div>
-            </div>
+            </SettingsSection>
         </div>
     );
 }

@@ -9,10 +9,9 @@ import { settingsApi } from '@/api/settings';
 import { toast } from 'sonner';
 
 import { Switch } from '@/components/ui/switch';
-import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Loader2, Power, Clock, Info, Play, Pause } from 'lucide-react';
+import { Loader2, Power, Clock, Info, Play, Pause, Globe, ListChecks } from 'lucide-react';
 import {
     Table,
     TableBody,
@@ -119,30 +118,23 @@ export function SchedulerSettingsPage() {
     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
     return (
-        <div className="space-y-6 max-w-6xl">
+        <div className="space-y-6">
 
             {/* MASTER TOGGLE */}
-            <Card className={!enabled ? "border-destructive/50 bg-destructive/5" : ""}>
-                <CardContent className="pt-6">
-                    <div className="flex items-center justify-between">
-                        <div className="space-y-1">
-                            <h3 className="font-semibold flex items-center gap-2">
-                                <Power className="h-4 w-4" />
-                                {t('scheduler.masterSwitch')}
-                            </h3>
-                            <p className="text-sm text-muted-foreground">
-                                {t('scheduler.masterDesc')}
-                            </p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <span className={enabled ? "font-medium text-green-600" : "font-medium text-destructive"}>
-                                {enabled ? t('schedulerSettings.active') : t('schedulerSettings.suspended')}
-                            </span>
-                            <Switch checked={enabled} onCheckedChange={handleToggle} disabled={isSyncingScheduler} />
-                        </div>
+            <SettingsSection
+                title={t('scheduler.masterSwitch')}
+                description={t('scheduler.masterDesc')}
+                icon={Power}
+                className={!enabled ? "border-destructive/50 bg-destructive/5" : ""}
+                action={
+                    <div className="flex items-center gap-2">
+                        <span className={enabled ? "text-sm font-medium text-emerald-600 dark:text-emerald-400" : "text-sm font-medium text-destructive"}>
+                            {enabled ? t('schedulerSettings.active') : t('schedulerSettings.suspended')}
+                        </span>
+                        <Switch checked={enabled} onCheckedChange={handleToggle} disabled={isSyncingScheduler} aria-label={t('scheduler.masterSwitch')} />
                     </div>
-                </CardContent>
-            </Card>
+                }
+            />
 
 
             {!enabled && (
@@ -156,7 +148,7 @@ export function SchedulerSettingsPage() {
             )}
 
             {/* TIMEZONE */}
-            <SettingsSection title={t('schedulerSettings.systemTimezoneTitle')} description={t('schedulerSettings.systemTimezoneDescription')}>
+            <SettingsSection title={t('schedulerSettings.systemTimezoneTitle')} description={t('schedulerSettings.systemTimezoneDescription')} icon={Globe}>
                 <div className="flex items-center gap-2 p-3 bg-muted rounded-md font-mono text-sm">
                     <Clock className="h-4 w-4 text-muted-foreground" />
                     <span>{t('schedulerSettings.detectedTimezone', { timezone })}</span>
@@ -164,7 +156,7 @@ export function SchedulerSettingsPage() {
             </SettingsSection>
 
             {/* JOB STATUS (READ ONLY) */}
-            <SettingsSection title={t('schedulerSettings.jobStatusTitle')} description={t('schedulerSettings.jobStatusDescription')}>
+            <SettingsSection title={t('schedulerSettings.jobStatusTitle')} description={t('schedulerSettings.jobStatusDescription')} icon={ListChecks}>
                 {isLoadingJobs ? (
                     <div className="flex justify-center p-4">
                         <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
