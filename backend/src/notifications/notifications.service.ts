@@ -17,6 +17,37 @@ import {
 import { SaveTaskNotificationsDto } from './dto/task-notification.dto';
 import { PushService } from './push.service';
 
+/** What the caller knows about the occurrence that triggered the notification. */
+export interface TaskNotificationContext {
+  /** Occurrence date, YYYY-MM-DD. */
+  instanceDate?: string;
+  /** Free-text reason given when the task was marked as failed. */
+  comment?: string | null;
+  /** Who marked the occurrence. */
+  actor?: string | null;
+  /** Title of the corrective action created together with the failure. */
+  correctiveAction?: string | null;
+}
+
+interface DetailLine {
+  label: string;
+  value: string;
+}
+
+const PRIORITY_LABELS: Record<string, string> = {
+  LOW: 'Basse',
+  MEDIUM: 'Moyenne',
+  HIGH: 'Haute',
+  CRITICAL: 'Critique',
+};
+
+const escapeHtml = (value: string) =>
+  value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+
 @Injectable()
 export class NotificationsService {
   private readonly logger = new Logger(NotificationsService.name);
@@ -201,12 +232,12 @@ export class NotificationsService {
   async dispatchTaskNotifications(
     taskId: number,
     event: 'FAILED' | 'OVERDUE' | 'REMINDER',
-    context?: any,
+    context?: TaskNotificationContext,
   ) {
     try {
       const task = await this.prisma.client.task.findUnique({
         where: { id: taskId },
-        select: { name: true, description: true },
+        select: { name: true, description: true, priority: true },
       });
 
       if (!task) return;
@@ -241,11 +272,12 @@ export class NotificationsService {
 
         if (!shouldNotify) continue;
 
-        const message = this.buildNotificationMessage(
-          task,
-          eventLabel,
-          context,
-        );
+        const details = this.buildDetails(taskId, task, context);
+        const message = this.buildNotificationMessage(eventLabel, details);
+        // The date makes each occurrence a distinct subject (one ticket per failure in a helpdesk).
+        const subject = `${eventLabel}: ${task.name}${
+          context?.instanceDate ? ` — ${context.instanceDate}` : ''
+        }`;
 
         // Decode config once per channel
         let config = {};
@@ -268,6 +300,8 @@ export class NotificationsService {
           message,
           task.name,
           eventLabel,
+          subject,
+          details,
         ).catch((err) => {
           this.logger.error(
             `Error sending ${notif.channel.type} notification for task ${taskId}:`,
@@ -283,12 +317,56 @@ export class NotificationsService {
     }
   }
 
+  /** The facts shared by every channel; empty ones are left out. */
+  private buildDetails(
+    taskId: number,
+    task: { name: string; description: string | null; priority: string | null },
+    context?: TaskNotificationContext,
+  ): DetailLine[] {
+    const lines: DetailLine[] = [{ label: 'Tâche', value: task.name }];
+    if (context?.instanceDate) {
+      lines.push({ label: 'Date', value: context.instanceDate });
+    }
+    if (task.priority) {
+      lines.push({
+        label: 'Priorité',
+        value: PRIORITY_LABELS[task.priority] ?? task.priority,
+      });
+    }
+    if (context?.actor) {
+      lines.push({ label: 'Signalé par', value: context.actor });
+    }
+    if (context?.comment?.trim()) {
+      lines.push({ label: 'Motif', value: context.comment.trim() });
+    }
+    if (context?.correctiveAction) {
+      lines.push({
+        label: 'Action corrective',
+        value: context.correctiveAction,
+      });
+    }
+    if (task.description) {
+      lines.push({ label: 'Description', value: task.description });
+    }
+    const base = (process.env.FRONTEND_URL || process.env.BACKEND_URL || '')
+      .trim()
+      .replace(/\/+$/, '');
+    if (base) {
+      lines.push({
+        label: 'Lien',
+        value: `${base}/task-definitions/${taskId}`,
+      });
+    }
+    return lines;
+  }
+
   private buildNotificationMessage(
-    task: any,
     eventLabel: string,
-    context?: any,
+    details: DetailLine[],
   ): string {
-    return `🚨 *${eventLabel}*\n\n*Tâche:* ${task.name}\n${task.description ? `*Description:* ${task.description}\n` : ''}${context ? `*Détails:* ${JSON.stringify(context)}` : ''}`;
+    return `🚨 *${eventLabel}*\n\n${details
+      .map((line) => `*${line.label}:* ${line.value}`)
+      .join('\n')}`;
   }
 
   private async sendToChannel(
@@ -298,6 +376,8 @@ export class NotificationsService {
     message: string,
     taskName: string,
     eventLabel: string,
+    subject: string,
+    details: DetailLine[],
   ) {
     switch (type) {
       case 'SLACK':
@@ -309,7 +389,7 @@ export class NotificationsService {
       case 'DISCORD':
         return this.sendDiscord(config, message);
       case 'EMAIL':
-        return this.sendEmail(notif, `${eventLabel}: ${taskName}`, message);
+        return this.sendEmail(notif, subject, details);
       case 'WEBHOOK':
         return this.sendWebhook(config, message, taskName, eventLabel);
       case 'PUSH':
@@ -414,7 +494,7 @@ export class NotificationsService {
     );
   }
 
-  private async sendEmail(notif: any, subject: string, message: string) {
+  private async sendEmail(notif: any, subject: string, details: DetailLine[]) {
     const recipients = new Set<string>();
 
     // 1. Custom emails
@@ -452,18 +532,26 @@ export class NotificationsService {
 
     if (recipients.size === 0) return;
 
-    const htmlMessage = message.replace(/\n/g, '<br>');
+    // Every value comes from user input (task name, comment...): escape before it enters the HTML.
+    const rows = details
+      .map((line) => {
+        const value = escapeHtml(line.value).replace(/\n/g, '<br>');
+        const shown =
+          line.label === 'Lien' && /^https?:\/\//.test(line.value)
+            ? `<a href="${escapeHtml(line.value)}">${value}</a>`
+            : value;
+        return `<tr><td style="padding:6px 12px 6px 0;color:#666;vertical-align:top;white-space:nowrap;"><strong>${escapeHtml(line.label)}</strong></td><td style="padding:6px 0;color:#222;">${shown}</td></tr>`;
+      })
+      .join('');
 
     await this.emailService.send({
       to: Array.from(recipients),
       subject,
       html: `<div style="font-family: sans-serif; padding: 20px;">
-                <h2 style="color: #333;">${subject}</h2>
-                <div style="background: #f5f5f5; padding: 15px; border-radius: 5px; margin-top: 15px;">
-                    ${htmlMessage}
-                </div>
+                <h2 style="color: #333;">${escapeHtml(subject)}</h2>
+                <table style="background: #f5f5f5; padding: 15px; border-radius: 5px; margin-top: 15px; border-collapse: collapse;">${rows}</table>
             </div>`,
-      text: message,
+      text: details.map((line) => `${line.label} : ${line.value}`).join('\n'),
     });
   }
 

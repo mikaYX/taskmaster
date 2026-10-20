@@ -6,6 +6,7 @@ import {
   NotFoundException,
   Logger,
   BadRequestException,
+  Optional,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma';
 import { ConfigService } from '@nestjs/config';
@@ -34,6 +35,7 @@ import { AuditAction, AuditCategory } from '../audit/audit.constants';
 
 import { ProcedureStorageService } from './procedure-storage.service';
 import { BeneficiaryResolverService } from '../modules/delegations/beneficiary-resolver.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 /**
  * Tasks Service.
@@ -53,6 +55,8 @@ export class TasksService {
     private readonly auditService: AuditService,
     private readonly procedureStorage: ProcedureStorageService,
     private readonly beneficiaryResolver: BeneficiaryResolverService,
+    // Optional so a context without the notifications module (and the specs) still builds.
+    @Optional() private readonly notifications?: NotificationsService,
   ) {}
 
   private readonly includeRelations = {
@@ -1417,7 +1421,7 @@ export class TasksService {
 
     const user = await this.prisma.client.user.findUnique({
       where: { id: userId },
-      select: { username: true },
+      select: { username: true, fullname: true },
     });
 
     const record = prepareExecutionRecord(
@@ -1499,6 +1503,23 @@ export class TasksService {
           return saved;
         })
       : await writeStatus(this.prisma.client);
+
+    // Notify once per failure: saving the same failed occurrence again (retry, edited comment) stays silent.
+    if (dto.status === 'FAILED' && existing?.status !== 'FAILED') {
+      void this.notifications
+        ?.dispatchTaskNotifications(taskId, 'FAILED', {
+          instanceDate: dto.date,
+          comment: dto.comment,
+          actor: user?.fullname || user?.username,
+          correctiveAction: dto.correctiveAction?.title,
+        })
+        .catch((err: unknown) => {
+          this.logger.error(
+            `Failed to dispatch FAILED notifications for task ${taskId}`,
+            err,
+          );
+        });
+    }
 
     this.logger.log(
       `Set status ${dto.status} for task ${taskId} on ${dto.date} by user ${userId} (role: ${userRole})`,

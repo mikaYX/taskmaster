@@ -4,10 +4,11 @@ import { BeneficiaryResolverService } from '../modules/delegations/beneficiary-r
 import { PrismaService } from '../prisma';
 import { SettingsService } from '../settings';
 import { TasksService } from './tasks.service';
+import type { NotificationsService } from '../notifications/notifications.service';
 import { InstanceService } from './instance.service';
 import { ProcedureStorageService } from './procedure-storage.service';
 
-function fixture() {
+function fixture(notifications?: { dispatchTaskNotifications: jest.Mock }) {
   const task = {
     id: 1,
     siteId: 1,
@@ -26,7 +27,10 @@ function fixture() {
     taskEvidence: { findMany: jest.fn().mockResolvedValue([]) },
     correctiveAction: { upsert: jest.fn().mockResolvedValue({ id: 4 }) },
     user: {
-      findUnique: jest.fn().mockResolvedValue({ username: 'operator' }),
+      findUnique: jest.fn().mockResolvedValue({
+        username: 'operator',
+        fullname: 'Olivia Operator',
+      }),
       findFirst: jest.fn(),
     },
     $transaction: jest.fn(),
@@ -57,6 +61,7 @@ function fixture() {
     {} as AuditService,
     {} as ProcedureStorageService,
     {} as BeneficiaryResolverService,
+    notifications as unknown as NotificationsService,
   );
   return { task, client, prisma, service, instances };
 }
@@ -164,6 +169,78 @@ describe('checklist status submission', () => {
       update: {},
     });
   });
+  describe('failure notification', () => {
+    const notifications = () => ({
+      dispatchTaskNotifications: jest.fn().mockResolvedValue(undefined),
+    });
+    const failed = {
+      date: '2026-10-16',
+      status: 'FAILED' as const,
+      comment: 'Panel is dead',
+      correctiveAction: { title: 'Repair panel' },
+    };
+
+    it('notifies once with what the occurrence needs to be a ticket', async () => {
+      const notify = notifications();
+      const { service, client } = fixture(notify);
+      client.status.findUnique.mockResolvedValue({ status: 'RUNNING' });
+
+      await service.setStatus(1, failed, 1, 'USER');
+
+      expect(notify.dispatchTaskNotifications).toHaveBeenCalledWith(
+        1,
+        'FAILED',
+        {
+          instanceDate: '2026-10-16',
+          comment: 'Panel is dead',
+          actor: 'Olivia Operator',
+          correctiveAction: 'Repair panel',
+        },
+      );
+    });
+
+    it('stays silent when the occurrence was already failed', async () => {
+      const notify = notifications();
+      const { service, client } = fixture(notify);
+      client.status.findUnique.mockResolvedValue({ status: 'FAILED' });
+
+      await service.setStatus(1, failed, 1, 'SUPER_ADMIN');
+
+      expect(notify.dispatchTaskNotifications).not.toHaveBeenCalled();
+    });
+
+    it('stays silent for other statuses', async () => {
+      const notify = notifications();
+      const { service, client } = fixture(notify);
+      client.status.findUnique.mockResolvedValue(null);
+
+      await service.setStatus(
+        1,
+        {
+          date: '2026-10-16',
+          status: 'SUCCESS',
+          executionAnswers: [{ id: 'check', value: true }],
+        },
+        1,
+        'USER',
+      );
+
+      expect(notify.dispatchTaskNotifications).not.toHaveBeenCalled();
+    });
+
+    it('does not fail the status change when the notification fails', async () => {
+      const notify = notifications();
+      notify.dispatchTaskNotifications.mockRejectedValue(
+        new Error('smtp down'),
+      );
+      const { service } = fixture(notify);
+
+      await expect(
+        service.setStatus(1, failed, 1, 'USER'),
+      ).resolves.toBeDefined();
+    });
+  });
+
   it('rejects corrective actions for success and nonmanager reassignment', async () => {
     const { service, client } = fixture();
     await expect(

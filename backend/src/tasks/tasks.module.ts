@@ -4,6 +4,7 @@ import { Module } from '@nestjs/common';
 import { ScheduleModule } from '@nestjs/schedule';
 import { SettingsModule } from '../settings/settings.module';
 import { DelegationsModule } from '../modules/delegations/delegations.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { TasksService } from './tasks.service';
 
 import { TasksController } from './tasks.controller';
@@ -22,7 +23,12 @@ import { ProcedureStorageService } from './procedure-storage.service';
  * No status/instances/scheduler logic.
  */
 @Module({
-  imports: [ScheduleModule, SettingsModule, DelegationsModule],
+  imports: [
+    ScheduleModule,
+    SettingsModule,
+    DelegationsModule,
+    NotificationsModule,
+  ],
   controllers: [TasksController, TaskExecutionController],
   providers: [
     TasksService,

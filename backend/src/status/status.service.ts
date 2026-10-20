@@ -77,7 +77,11 @@ export class StatusService {
 
     if (dto.status === 'FAILED') {
       this.notificationsService
-        .dispatchTaskNotifications(dto.taskId, 'FAILED')
+        .dispatchTaskNotifications(dto.taskId, 'FAILED', {
+          instanceDate: dto.instanceDate,
+          comment: dto.comment,
+          actor: username,
+        })
         .catch((err) => {
           this.logger.error(
             `Failed to dispatch FAILED notifications for task ${dto.taskId}`,
