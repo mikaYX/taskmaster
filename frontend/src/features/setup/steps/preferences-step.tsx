@@ -31,7 +31,7 @@ export function PreferencesStep({ onNext, onBack, isFirstStep }: PreferencesStep
     // re-renders this component whenever the active language changes, so no local
     // state/effect is needed to keep it in sync.
     const language = i18n.language?.split('-')[0] === 'fr' ? 'fr' : 'en';
-    const [timezone, setTimezone] = useState('Europe/Paris');
+    const [timezone, setTimezone] = useState(initialPreferences.timezone ?? 'Europe/Paris');
     const [todolistEnabled, setTodolistEnabled] = useState(initialPreferences.todolistEnabled);
     const [isLoading, setIsLoading] = useState(false);
 
@@ -44,7 +44,7 @@ export function PreferencesStep({ onNext, onBack, isFirstStep }: PreferencesStep
     const handleNext = async () => {
         setIsLoading(true);
         try {
-            setInitialPreferences({ todolistEnabled: todolistEnabled });
+            setInitialPreferences({ todolistEnabled, timezone });
             await new Promise((resolve) => setTimeout(resolve, 300));
             completeStep('preferences');
             onNext();

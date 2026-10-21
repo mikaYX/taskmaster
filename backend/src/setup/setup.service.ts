@@ -62,7 +62,12 @@ export class SetupService {
   async initializeAdmin(
     username: string,
     password: string,
-    preferences?: { addonsTodolistEnabled?: boolean; ip?: string },
+    preferences?: {
+      addonsTodolistEnabled?: boolean;
+      language?: 'en' | 'fr';
+      timezone?: string;
+      ip?: string;
+    },
   ): Promise<{ success: boolean; message: string }> {
     const ip = preferences?.ip || 'unknown';
 
@@ -155,6 +160,22 @@ export class SetupService {
       create: { key: 'addons.todolist.enabled', value: todolistEnabled },
       update: { value: todolistEnabled },
     });
+
+    // Language and time zone picked in the wizard. Stored the way the settings
+    // service does (JSON), and only when chosen, so the defaults stay otherwise.
+    const chosen: Record<string, string | undefined> = {
+      'ui.language': preferences?.language,
+      'scheduler.timezone': preferences?.timezone,
+    };
+    for (const [key, value] of Object.entries(chosen)) {
+      if (!value) continue;
+      const serialized = JSON.stringify(value);
+      await this.prisma.client.config.upsert({
+        where: { key },
+        create: { key, value: serialized },
+        update: { value: serialized },
+      });
+    }
 
     // Mark setup as completed so `needsSetup()` short-circuits afterwards
     // even if every SUPER_ADMIN ends up soft-deleted (AUDIT.md Finding #7).

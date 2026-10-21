@@ -216,6 +216,34 @@ describe('SetupService', () => {
     });
   });
 
+  it('stores the language and time zone chosen in the wizard like the settings service does', async () => {
+    await service.initializeAdmin('admin', 'StrongP@ss123!', {
+      language: 'en',
+      timezone: 'America/New_York',
+    });
+
+    expect(mockPrisma.client.config.upsert).toHaveBeenCalledWith({
+      where: { key: 'ui.language' },
+      create: { key: 'ui.language', value: '"en"' },
+      update: { value: '"en"' },
+    });
+    expect(mockPrisma.client.config.upsert).toHaveBeenCalledWith({
+      where: { key: 'scheduler.timezone' },
+      create: { key: 'scheduler.timezone', value: '"America/New_York"' },
+      update: { value: '"America/New_York"' },
+    });
+  });
+
+  it('leaves the language and time zone defaults alone when none was chosen', async () => {
+    await service.initializeAdmin('admin', 'StrongP@ss123!');
+
+    const keys = mockPrisma.client.config.upsert.mock.calls.map(
+      ([arg]: [{ where: { key: string } }]) => arg.where.key,
+    );
+    expect(keys).not.toContain('ui.language');
+    expect(keys).not.toContain('scheduler.timezone');
+  });
+
   it('needsSetup() should return false as soon as setup.completed=true is persisted, even with no admin', async () => {
     mockPrisma.client.config.findUnique.mockResolvedValue({ value: 'true' });
     mockPrisma.client.user.count.mockResolvedValue(0);

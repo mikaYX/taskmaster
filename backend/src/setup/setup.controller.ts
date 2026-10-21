@@ -49,6 +49,8 @@ export class SetupController {
     const ip = req.ip || req.socket?.remoteAddress || 'unknown';
     return this.setupService.initializeAdmin(dto.username, dto.password, {
       addonsTodolistEnabled: dto.addonsTodolistEnabled,
+      language: dto.language,
+      timezone: dto.timezone,
       ip,
     });
   }

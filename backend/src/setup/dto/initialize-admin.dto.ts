@@ -1,8 +1,10 @@
 import {
   IsBoolean,
+  IsIn,
   IsNotEmpty,
   IsOptional,
   IsString,
+  IsTimeZone,
   MaxLength,
 } from 'class-validator';
 import { IsStrongPassword, IsNotCommonPassword } from '../../common/validators';
@@ -30,4 +32,15 @@ export class InitializeAdminDto {
   @IsOptional()
   @IsBoolean()
   addonsTodolistEnabled?: boolean;
+
+  /** Initial preference: default interface language of the instance. */
+  @IsOptional()
+  @IsIn(['en', 'fr'])
+  language?: 'en' | 'fr';
+
+  /** Initial preference: IANA time zone of the scheduler (e.g. `Europe/Paris`). */
+  @IsOptional()
+  @IsString()
+  @IsTimeZone()
+  timezone?: string;
 }

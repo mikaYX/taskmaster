@@ -3,6 +3,8 @@ import { persist } from 'zustand/middleware';
 
 export interface InitialPreferences {
     todolistEnabled: boolean;
+    /** IANA time zone chosen in step 1. Absent from state saved by an older version. */
+    timezone?: string;
 }
 
 /**

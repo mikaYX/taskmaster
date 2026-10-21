@@ -40,7 +40,7 @@ function getApiErrorMessage(error: ApiError): string | null {
  * Now uses Email as the primary identifier.
  */
 export function SecurityStep({ onNext, onBack }: SecurityStepProps) {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const completeStep = useSetupStore((state) => state.completeStep);
     const initialPreferences = useSetupStore((state) => state.initialPreferences);
 
@@ -87,6 +87,9 @@ export function SecurityStep({ onNext, onBack }: SecurityStepProps) {
                 username: email,
                 password,
                 addonsTodolistEnabled: initialPreferences.todolistEnabled,
+                // The language the wizard is displayed in becomes the instance default.
+                language: i18n.language?.split('-')[0] === 'fr' ? 'fr' : 'en',
+                timezone: initialPreferences.timezone,
             });
 
             if (!result.success) {

@@ -9,6 +9,10 @@ export interface InitializeAdminRequest {
     password: string;
     /** Initial preference: enable Todo list (default true). */
     addonsTodolistEnabled?: boolean;
+    /** Initial preference: default interface language of the instance. */
+    language?: 'en' | 'fr';
+    /** Initial preference: IANA time zone of the scheduler. */
+    timezone?: string;
 }
 
 export interface InitializeAdminResponse {
