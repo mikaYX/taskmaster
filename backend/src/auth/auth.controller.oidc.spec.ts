@@ -65,7 +65,7 @@ describe('AuthController OIDC endpoints', () => {
 
       expect(oidcService.getLoginUrl).toHaveBeenCalledWith(
         'generic',
-        'http://test-server.com/auth/external/callback/generic',
+        'http://test-server.com/api/auth/external/callback/generic',
       );
       expect(res.redirect).toHaveBeenCalledWith(
         'https://idp.example.com/auth?state=abc',
@@ -94,7 +94,7 @@ describe('AuthController OIDC endpoints', () => {
       const req = {
         protocol: 'https',
         get: jest.fn().mockReturnValue('api.example.com'), // Ignored for redirectUri
-        url: '/auth/external/callback/generic?code=xyz&state=abc',
+        url: '/api/auth/external/callback/generic?code=xyz&state=abc',
         headers: { 'user-agent': 'test' },
         ip: '127.0.0.1',
         socket: { remoteAddress: '127.0.0.1' },
@@ -105,8 +105,8 @@ describe('AuthController OIDC endpoints', () => {
 
       expect(oidcService.handleCallback).toHaveBeenCalledWith(
         'generic',
-        'http://test-server.com/auth/external/callback/generic',
-        'https://api.example.com/auth/external/callback/generic?code=xyz&state=abc',
+        'http://test-server.com/api/auth/external/callback/generic',
+        'https://api.example.com/api/auth/external/callback/generic?code=xyz&state=abc',
       );
 
       // Must NOT contain access_token or refresh_token in redirect URL

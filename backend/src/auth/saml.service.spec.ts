@@ -89,6 +89,22 @@ describe('SamlService', () => {
       expect(config.idpCert).toBe('cert-content');
       expect(config.wantAssertionsSigned).toBe(true);
     });
+
+    it('sends the assertion consumer URL under the /api prefix', async () => {
+      const previous = process.env.BACKEND_URL;
+      process.env.BACKEND_URL = 'https://taskmaster.example.com';
+      settingsService.getRawValue.mockResolvedValue('value');
+
+      try {
+        const config = await service.getSamlConfig();
+        expect(config.callbackUrl).toBe(
+          'https://taskmaster.example.com/api/auth/saml/acs',
+        );
+      } finally {
+        if (previous === undefined) delete process.env.BACKEND_URL;
+        else process.env.BACKEND_URL = previous;
+      }
+    });
   });
 
   describe('getSpMetadata', () => {

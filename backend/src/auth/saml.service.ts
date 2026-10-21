@@ -10,6 +10,7 @@ import * as crypto from 'crypto';
 import Redis from 'ioredis';
 import { REDIS_CLIENT } from '../common/redis/redis.module';
 import { SettingsService } from '../settings/settings.service';
+import { backendApiUrl } from './backend-url';
 
 export interface SamlProfile {
   email: string;
@@ -30,9 +31,7 @@ export class SamlService {
   ) {}
 
   async getSamlConfig(): Promise<SamlConfig> {
-    const callbackUrl = `${
-      process.env.BACKEND_URL || 'http://localhost:3000'
-    }/auth/saml/acs`;
+    const callbackUrl = backendApiUrl('/auth/saml/acs');
 
     const entityId = String(
       await this.settingsService.getRawValue('auth.generic.saml.entityId'),

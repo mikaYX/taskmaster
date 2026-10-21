@@ -19,6 +19,7 @@ import { AuthService } from './auth.service';
 import { OidcService } from './oidc.service';
 import { AzureAdService } from './azure-ad.service';
 import { SamlService } from './saml.service';
+import { backendApiUrl } from './backend-url';
 import { GuestTicketService } from './guest-ticket.service';
 import { LoginDto, ChangePasswordDto, ExchangeGuestTicketDto } from './dto';
 import { JwtAuthGuard } from './guards';
@@ -313,8 +314,7 @@ export class AuthController {
     @Req() req: Request,
     @Res() res: Response,
   ) {
-    const baseUrl = process.env.BACKEND_URL || 'http://localhost:3000';
-    const redirectUri = `${baseUrl}/auth/external/callback/${provider}`;
+    const redirectUri = backendApiUrl(`/auth/external/callback/${provider}`);
     const url = await this.oidcService.getLoginUrl(provider, redirectUri);
     res.redirect(url);
   }
@@ -325,8 +325,7 @@ export class AuthController {
     @Req() req: Request,
     @Res() res: Response,
   ) {
-    const baseUrl = process.env.BACKEND_URL || 'http://localhost:3000';
-    const redirectUri = `${baseUrl}/auth/external/callback/${provider}`;
+    const redirectUri = backendApiUrl(`/auth/external/callback/${provider}`);
     const fullUrl = `${req.protocol}://${req.get('host')}${req.url}`;
     const profile = await this.oidcService.handleCallback(
       provider,
@@ -354,16 +353,14 @@ export class AuthController {
 
   @Get('azure/login')
   async azureLogin(@Req() req: Request, @Res() res: Response) {
-    const baseUrl = process.env.BACKEND_URL || 'http://localhost:3000';
-    const redirectUri = `${baseUrl}/auth/azure/callback`;
+    const redirectUri = backendApiUrl('/auth/azure/callback');
     const url = await this.azureAdService.getLoginUrl(redirectUri);
     res.redirect(url);
   }
 
   @Get('azure/callback')
   async azureCallback(@Req() req: Request, @Res() res: Response) {
-    const baseUrl = process.env.BACKEND_URL || 'http://localhost:3000';
-    const redirectUri = `${baseUrl}/auth/azure/callback`;
+    const redirectUri = backendApiUrl('/auth/azure/callback');
 
     const code = req.query.code as string;
     const state = req.query.state as string;

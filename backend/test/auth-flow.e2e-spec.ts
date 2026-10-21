@@ -231,7 +231,7 @@ describe('Auth Flow Non-Regression (E2E)', () => {
         'oidc:state:mock-state',
         JSON.stringify({
           nonce: 'mock-nonce',
-          redirectUri: `${process.env.BACKEND_URL || 'http://localhost:3000'}/auth/external/callback/google`,
+          redirectUri: `${process.env.BACKEND_URL || 'http://localhost:3000'}/api/auth/external/callback/google`,
         }),
       );
 
@@ -258,7 +258,7 @@ describe('Auth Flow Non-Regression (E2E)', () => {
         'oidc:state:mock-state',
         JSON.stringify({
           nonce: 'mock-nonce',
-          redirectUri: `${process.env.BACKEND_URL || 'http://localhost:3000'}/auth/external/callback/google`,
+          redirectUri: `${process.env.BACKEND_URL || 'http://localhost:3000'}/api/auth/external/callback/google`,
         }),
       );
 
@@ -279,7 +279,7 @@ describe('Auth Flow Non-Regression (E2E)', () => {
         'oidc:state:mock-state',
         JSON.stringify({
           nonce: 'mock-nonce',
-          redirectUri: `${process.env.BACKEND_URL || 'http://localhost:3000'}/auth/external/callback/google`,
+          redirectUri: `${process.env.BACKEND_URL || 'http://localhost:3000'}/api/auth/external/callback/google`,
         }),
       );
 
@@ -336,7 +336,7 @@ describe('Auth Flow Non-Regression (E2E)', () => {
         'azure-state:mock-state',
         JSON.stringify({
           nonce: 'mock-nonce',
-          redirectUri: `${process.env.BACKEND_URL || 'http://localhost:3000'}/auth/azure/callback`,
+          redirectUri: `${process.env.BACKEND_URL || 'http://localhost:3000'}/api/auth/azure/callback`,
         }),
       );
 
@@ -358,7 +358,7 @@ describe('Auth Flow Non-Regression (E2E)', () => {
         'azure-state:mock-state',
         JSON.stringify({
           nonce: 'mock-nonce',
-          redirectUri: `${process.env.BACKEND_URL || 'http://localhost:3000'}/auth/azure/callback`,
+          redirectUri: `${process.env.BACKEND_URL || 'http://localhost:3000'}/api/auth/azure/callback`,
         }),
       );
 
