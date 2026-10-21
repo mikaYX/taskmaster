@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0-beta.4] - 2026-10-21
+
+Beta of 1.2.0, for testing only: it is published as a pre-release and under the `beta` Docker tag, never as `latest`. Same features as 1.2.0-beta.3; this build only refreshes dependencies and the Docker base image.
+
+### Security
+
+- Dependencies refreshed so the security scan passes again: `follow-redirects`, `vite`, `react-router`, `fast-uri` (the backend override was pinned to a vulnerable version) and the backend/frontend lockfiles; the Docker image now follows `node:24-alpine` instead of a pinned 24.12.0 to pick up OS fixes.
+- Routine dependency updates (npm minor/patch group, GitHub Actions, `mailgun.js` 14, `eslint-config-prettier` 10). `@nestjs/common` 12 and `@types/node` 26 are deliberately not adopted yet.
+
+### Changed
+
+- Docker build no longer fails when every backend dependency is hoisted to the root `node_modules`.
+
 ## [1.2.0-beta.3] - 2026-10-21
 
 Beta of 1.2.0, for testing only (1.2.0-beta.1 and 1.2.0-beta.2 were tagged but never published): it is published as a pre-release and under the `beta` Docker tag, never as `latest`. **Additive database migrations** (`todolist_v2`, `todo_reminder_email_opt_in`) run automatically on start; existing rows keep working.
