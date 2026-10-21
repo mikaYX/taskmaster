@@ -269,6 +269,7 @@
         "chartPlaceholder": "Chart placeholder - will be implemented with real data"
     },
     "setup": {
+        "brandTagline": "A few steps to get your workspace ready: preferences, administrator account, and you're done.",
         "title": "Setup Wizard",
         "stepOf": "Step {{current}} of {{total}}",
         "complete": "Setup Complete!",
@@ -348,6 +349,8 @@
                 "passwordHint": "At least 12 characters, with uppercase, lowercase, a number, and a special character (any character that is not a letter or a number). They can be in any position.",
                 "confirmPassword": "Confirm Password",
                 "confirmPlaceholder": "Re-enter password",
+                "showPassword": "Show password",
+                "hidePassword": "Hide password",
                 "creating": "Creating...",
                 "rules": {
                     "length": "at least 12 characters",

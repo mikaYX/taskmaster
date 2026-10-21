@@ -269,6 +269,7 @@
         "chartPlaceholder": "Espace réservé au graphique - sera remplacé par des données réelles"
     },
     "setup": {
+        "brandTagline": "Quelques étapes pour préparer votre espace : préférences, compte administrateur, puis c'est parti.",
         "title": "Assistant de configuration",
         "stepOf": "Étape {{current}} sur {{total}}",
         "complete": "Configuration terminée !",
@@ -348,6 +349,8 @@
                 "passwordHint": "Au moins 12 caractères, avec une majuscule, une minuscule, un chiffre et un caractère spécial (tout caractère qui n'est ni une lettre ni un chiffre). Ils peuvent être à n'importe quelle position.",
                 "confirmPassword": "Confirmer le mot de passe",
                 "confirmPlaceholder": "Saisissez à nouveau le mot de passe",
+                "showPassword": "Afficher le mot de passe",
+                "hidePassword": "Masquer le mot de passe",
                 "creating": "Création...",
                 "rules": {
                     "length": "au moins 12 caractères",

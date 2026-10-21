@@ -5,7 +5,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ApiError } from '@/api/http';
 import { useSetupStore } from '@/stores';
-import { Shield, Eye, EyeOff, Mail } from 'lucide-react';
+import { AlertCircle, Check, Eye, EyeOff, Lock, Mail, Shield } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { SetupStepLayout } from './setup-step-layout';
 import { PASSWORD_RULES } from '@/lib/password-policy';
 
 interface SecurityStepProps {
@@ -122,46 +124,58 @@ export function SecurityStep({ onNext, onBack }: SecurityStepProps) {
         }
     };
 
-    return (
-        <div className="space-y-6">
-            <div className="flex items-center gap-3 text-primary">
-                <Shield className="h-8 w-8" />
-                <div>
-                    <h3 className="font-semibold">{t('setup.steps.admin.title')}</h3>
-                    <p className="text-sm text-muted-foreground">
-                        {t('setup.steps.admin.subtitle')}
-                    </p>
-                </div>
-            </div>
+    const confirmMismatch = confirmPassword.length > 0 && confirmPassword !== password;
 
-            <div className="space-y-4">
+    return (
+        <SetupStepLayout
+            icon={Shield}
+            title={t('setup.steps.admin.title')}
+            subtitle={t('setup.steps.admin.subtitle')}
+            actions={
+                <>
+                    <Button variant="outline" onClick={onBack}>{t('common.back')}</Button>
+                    <Button onClick={handleSubmit} disabled={isLoading} className="min-w-[120px]">
+                        {isLoading ? t('setup.steps.admin.creating') : t('common.next')}
+                    </Button>
+                </>
+            }
+        >
+            <form
+                className="space-y-5"
+                onSubmit={(e) => {
+                    e.preventDefault();
+                    void handleSubmit();
+                }}
+            >
                 {/* Admin Email */}
                 <div className="space-y-2">
                     <Label htmlFor="email">{t('setup.steps.admin.email')} <span className="text-destructive">*</span></Label>
                     <div className="relative">
-                        <Mail className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Mail className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                         <Input
                             id="email"
                             type="email"
+                            autoComplete="username"
                             placeholder={t('setup.steps.admin.emailPlaceholder')}
-                            className="pl-9"
+                            className="h-11 rounded-xl pl-10"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             autoFocus
                         />
                     </div>
-                    <p className="text-[0.8rem] text-muted-foreground">
-                        {t('setup.steps.admin.emailHint')}
-                    </p>
+                    <p className="text-xs text-muted-foreground">{t('setup.steps.admin.emailHint')}</p>
                 </div>
 
                 {/* Password */}
                 <div className="space-y-2">
                     <Label htmlFor="password">{t('setup.steps.admin.password')} <span className="text-destructive">*</span></Label>
                     <div className="relative">
+                        <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                         <Input
                             id="password"
                             type={showPassword ? 'text' : 'password'}
+                            autoComplete="new-password"
+                            className="h-11 rounded-xl pl-10 pr-11"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             placeholder={t('setup.steps.admin.passwordPlaceholder')}
@@ -170,42 +184,70 @@ export function SecurityStep({ onNext, onBack }: SecurityStepProps) {
                             type="button"
                             variant="ghost"
                             size="icon"
-                            className="absolute right-0 top-0 h-full"
+                            className="absolute right-1 top-1/2 h-9 w-9 -translate-y-1/2 rounded-lg"
                             onClick={() => setShowPassword(!showPassword)}
+                            aria-label={showPassword ? t('setup.steps.admin.hidePassword') : t('setup.steps.admin.showPassword')}
                         >
                             {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </Button>
                     </div>
-                    <p className="text-[0.8rem] text-muted-foreground">
-                        {t('setup.steps.admin.passwordHint')}
-                    </p>
+                    <ul className="grid gap-1.5 pt-1 sm:grid-cols-2" aria-live="polite">
+                        {PASSWORD_RULES.map((rule) => {
+                            const ok = rule.test(password);
+                            return (
+                                <li
+                                    key={rule.key}
+                                    className={cn(
+                                        'flex items-start gap-2 text-xs transition-colors',
+                                        ok ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground',
+                                    )}
+                                >
+                                    <span
+                                        className={cn(
+                                            'mt-px flex h-4 w-4 shrink-0 items-center justify-center rounded-full border',
+                                            ok ? 'border-emerald-500 bg-emerald-500 text-white' : 'border-muted-foreground/40',
+                                        )}
+                                    >
+                                        {ok && <Check className="h-3 w-3" />}
+                                    </span>
+                                    {t(`setup.steps.admin.rules.${rule.key}`)}
+                                </li>
+                            );
+                        })}
+                    </ul>
                 </div>
 
                 {/* Confirm Password */}
                 <div className="space-y-2">
                     <Label htmlFor="confirmPassword">{t('setup.steps.admin.confirmPassword')} <span className="text-destructive">*</span></Label>
-                    <Input
-                        id="confirmPassword"
-                        type="password"
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        placeholder={t('setup.steps.admin.confirmPlaceholder')}
-                    />
+                    <div className="relative">
+                        <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                            id="confirmPassword"
+                            type="password"
+                            autoComplete="new-password"
+                            className={cn('h-11 rounded-xl pl-10', confirmMismatch && 'border-destructive focus-visible:ring-destructive')}
+                            value={confirmPassword}
+                            onChange={(e) => setConfirmPassword(e.target.value)}
+                            placeholder={t('setup.steps.admin.confirmPlaceholder')}
+                            aria-invalid={confirmMismatch}
+                        />
+                    </div>
+                    {confirmMismatch && (
+                        <p className="text-xs text-destructive">{t('setup.steps.admin.errors.mismatch')}</p>
+                    )}
                 </div>
 
                 {error && (
-                    <div className="p-3 text-sm text-destructive bg-destructive/10 rounded-md border border-destructive/20">
-                        {error}
+                    <div className="flex items-start gap-2.5 rounded-xl border border-destructive/20 bg-destructive/10 p-3.5 text-sm text-destructive" role="alert">
+                        <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                        <span>{error}</span>
                     </div>
                 )}
-            </div>
 
-            <div className="flex justify-between pt-4">
-                <Button variant="outline" onClick={onBack}>{t('common.back')}</Button>
-                <Button onClick={handleSubmit} disabled={isLoading} className="min-w-[100px]">
-                    {isLoading ? t('setup.steps.admin.creating') : t('common.next')}
-                </Button>
-            </div>
-        </div>
+                {/* Lets Enter submit the form */}
+                <button type="submit" className="hidden" aria-hidden="true" tabIndex={-1} />
+            </form>
+        </SetupStepLayout>
     );
 }
