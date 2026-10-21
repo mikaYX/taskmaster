@@ -1,28 +1,31 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
-import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
 import { REDIS_CLIENT } from '../src/common/redis/redis.module';
+import {
+  TRUSTED_ORIGIN,
+  cookieNamed,
+  cookiesOf,
+  createE2eApp,
+  loginCookies,
+} from './helpers/e2e-app';
 
 describe('Auth Chaos Testing (E2E)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
+  /** Session cookies (`refresh_token=…`, `access_token=…`). */
   let currentRefreshToken: string;
   let currentAccessToken: string;
   let redisClient: any;
+  const refresh = (refreshCookie: string) =>
+    request(app.getHttpServer())
+      .post('/api/auth/refresh')
+      .set('Origin', TRUSTED_ORIGIN)
+      .set('Cookie', refreshCookie);
 
   beforeAll(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
-
-    app = moduleFixture.createNestApplication();
-    app.useGlobalPipes(
-      new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }),
-    );
-    await app.init();
+    app = await createE2eApp();
 
     prisma = app.get(PrismaService);
     redisClient = app.get(REDIS_CLIENT);
@@ -50,13 +53,13 @@ describe('Auth Chaos Testing (E2E)', () => {
 
   beforeEach(async () => {
     // Obtenir des jetons frais avant chaque test chaotique
-    const res = await request(app.getHttpServer())
-      .post('/auth/login')
-      .send({ username: 'testchaosuser', password: 'chaos_password123' })
-      .expect(200);
-
-    currentAccessToken = res.body.accessToken;
-    currentRefreshToken = res.body.refreshToken;
+    const cookies = await loginCookies(
+      app,
+      'testchaosuser',
+      'chaos_password123',
+    );
+    currentAccessToken = cookieNamed(cookies, 'access_token')!;
+    currentRefreshToken = cookieNamed(cookies, 'refresh_token')!;
   });
 
   afterEach(() => {
@@ -75,8 +78,8 @@ describe('Auth Chaos Testing (E2E)', () => {
     try {
       // L'API ne doit PAS crasher en 500, elle doit fallback sur la BDD transparente.
       const res = await request(app.getHttpServer())
-        .get('/auth/session')
-        .set('Authorization', `Bearer ${currentAccessToken}`)
+        .get('/api/auth/session')
+        .set('Cookie', currentAccessToken)
         .expect(200);
 
       expect(res.body.username).toBe('testchaosuser');
@@ -102,15 +105,14 @@ describe('Auth Chaos Testing (E2E)', () => {
       });
 
     const start = Date.now();
-    const res = await request(app.getHttpServer())
-      .post('/auth/refresh')
-      .send({ refreshToken: currentRefreshToken })
-      .expect(200);
+    const res = await refresh(currentRefreshToken).expect(200);
     const duration = Date.now() - start;
 
     // Le refresh doit réussir même s'il est très lent, pas de fail explicite
     expect(duration).toBeGreaterThanOrEqual(2500);
-    expect(res.body.accessToken).toBeDefined();
+    expect(cookieNamed(cookiesOf(res), 'access_token')).toBeDefined();
+    // Anti-fuite : aucun jeton dans le corps
+    expect(res.body.accessToken).toBeUndefined();
 
     // Anti-fuite
     expect(res.body.passwordHash).toBeUndefined();
@@ -122,29 +124,21 @@ describe('Auth Chaos Testing (E2E)', () => {
     // Le client rejoue le refresh original avec le même token (retry grace window).
 
     // Appel #1 (Backend traite, client perd la co / ignore)
-    const res1 = await request(app.getHttpServer())
-      .post('/auth/refresh')
-      .send({ refreshToken: currentRefreshToken })
-      .expect(200);
+    const res1 = await refresh(currentRefreshToken).expect(200);
 
-    const nextValidToken = res1.body.refreshToken;
+    const nextValidToken = cookieNamed(cookiesOf(res1), 'refresh_token')!;
 
     // Appel #2 (Le client re-envoie immédiatement le token précédent, pensant qu'il n'est pas passé)
-    const res2 = await request(app.getHttpServer())
-      .post('/auth/refresh')
-      .send({ refreshToken: currentRefreshToken })
-      .expect(401); // Le backend refuse la rotation (gently) avec un 401
+    // Dans la fenêtre de grâce, le backend refuse la rotation en douceur : 409, sans révoquer.
+    const res2 = await refresh(currentRefreshToken).expect(409);
 
-    expect(res2.body.message).toContain('Invalid or expired'); // Transmis au client pour le forcer à recharger ou utiliser le token mis en cache
+    expect(res2.body.error).toContain('Refresh already in progress');
 
     // Mais L'INVARIANT fondamental : La ressource protégée ne doit pas devenir inaccessible avec le NOUVEAU token !
     // La famille n'a pas été révoquée par le 2e appel (Grâce accordée).
-    const res3 = await request(app.getHttpServer())
-      .post('/auth/refresh')
-      .send({ refreshToken: nextValidToken }) // Retry later with correct
-      .expect(200);
+    const res3 = await refresh(nextValidToken).expect(200); // Retry later with correct
 
-    expect(res3.body.accessToken).toBeDefined();
+    expect(cookieNamed(cookiesOf(res3), 'access_token')).toBeDefined();
   });
 
   it('4. Chaos: Backend Clock Skew (Désynchronisation Heure Serveur)', async () => {
@@ -156,9 +150,7 @@ describe('Auth Chaos Testing (E2E)', () => {
     jest.setSystemTime(fakeNow);
 
     try {
-      const res = await request(app.getHttpServer())
-        .post('/auth/refresh')
-        .send({ refreshToken: currentRefreshToken });
+      const res = await refresh(currentRefreshToken);
 
       // Peut aboutir à un refresh OK ou un 401 expiré, l'important est qu'il n'y ait PAS de code HTTP 500
       expect([200, 401]).toContain(res.status);

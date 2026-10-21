@@ -9,12 +9,12 @@
  *  - Security: refreshToken MUST NOT appear in JSON body
  */
 
-import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import * as bcrypt from 'bcrypt';
-import { AppModule } from '../src/app.module';
+import * as crypto from 'crypto';
 import { PrismaService } from '../src/prisma/prisma.service';
+import { createE2eApp } from './helpers/e2e-app';
 
 const TEST_USER = {
   username: 'cookie_e2e_user',
@@ -27,13 +27,7 @@ describe('Auth Cookie Contract (e2e)', () => {
   let userId: number;
 
   beforeAll(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
-
-    app = moduleFixture.createNestApplication();
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
-    await app.init();
+    app = await createE2eApp();
 
     prisma = app.get(PrismaService);
 
@@ -81,7 +75,7 @@ describe('Auth Cookie Contract (e2e)', () => {
       expect(res.body.accessToken).toBeUndefined();
       expect(res.body.refreshToken).toBeUndefined();
 
-      const setCookies: string[] = res.headers['set-cookie'] ?? [];
+      const setCookies: string[] = res.get('Set-Cookie') ?? [];
       const refreshCookie = setCookies.find((c) =>
         c.startsWith('refresh_token='),
       );
@@ -110,7 +104,7 @@ describe('Auth Cookie Contract (e2e)', () => {
         .send(TEST_USER)
         .expect(200);
 
-      const setCookies: string[] = loginRes.headers['set-cookie'] ?? [];
+      const setCookies: string[] = loginRes.get('Set-Cookie') ?? [];
       refreshCookie =
         setCookies.find((c) => c.startsWith('refresh_token=')) ?? '';
     });
@@ -127,9 +121,8 @@ describe('Auth Cookie Contract (e2e)', () => {
       expect(res.body.refreshToken).toBeUndefined();
 
       const rotatedRefreshCookie =
-        (res.headers['set-cookie'] as string[] | undefined)?.find((c) =>
-          c.startsWith('refresh_token='),
-        ) ?? '';
+        res.get('Set-Cookie')?.find((c) => c.startsWith('refresh_token=')) ??
+        '';
       expect(rotatedRefreshCookie).toContain('refresh_token=');
       expect(rotatedRefreshCookie).not.toBe(refreshCookie); // Cookie must be rotated
     });
@@ -183,7 +176,7 @@ describe('Auth Cookie Contract (e2e)', () => {
         .send(TEST_USER)
         .expect(200);
 
-      const setCookies: string[] = loginRes.headers['set-cookie'] ?? [];
+      const setCookies: string[] = loginRes.get('Set-Cookie') ?? [];
       const refreshCookie =
         setCookies.find((c) => c.startsWith('refresh_token=')) ?? '';
       const accessCookie =
@@ -197,7 +190,7 @@ describe('Auth Cookie Contract (e2e)', () => {
 
       expect(logoutRes.body.ok).toBe(true);
 
-      const clearedCookie: string = logoutRes.headers['set-cookie']?.[0] ?? '';
+      const clearedCookie: string = logoutRes.get('Set-Cookie')?.[0] ?? '';
       const isCleared =
         clearedCookie.includes('Max-Age=0') ||
         /Expires=Thu,? 01 Jan 1970/i.test(clearedCookie);
@@ -211,7 +204,7 @@ describe('Auth Cookie Contract (e2e)', () => {
         .send(TEST_USER)
         .expect(200);
 
-      const setCookies: string[] = loginRes.headers['set-cookie'] ?? [];
+      const setCookies: string[] = loginRes.get('Set-Cookie') ?? [];
       const refreshCookie =
         setCookies.find((c) => c.startsWith('refresh_token=')) ?? '';
       const accessCookie =
@@ -227,6 +220,34 @@ describe('Auth Cookie Contract (e2e)', () => {
   // ─────────────────────────────────────────────────────────────────────────
 
   describe('Token theft detection', () => {
+    const refreshWith = (cookie: string) =>
+      request(app.getHttpServer())
+        .post('/api/auth/refresh')
+        .set('Origin', 'http://localhost:5173')
+        .set('Cookie', cookie);
+
+    it('answers 409 without revoking anything when a just-rotated token is replayed (grace window)', async () => {
+      const loginRes = await request(app.getHttpServer())
+        .post('/api/auth/login')
+        .send(TEST_USER)
+        .expect(200);
+      const staleRefreshCookie =
+        (loginRes.get('Set-Cookie') ?? [])
+          .find((c) => c.startsWith('refresh_token='))
+          ?.split(';')[0] ?? '';
+
+      const rotated = await refreshWith(staleRefreshCookie).expect(200);
+      const freshRefreshCookie =
+        (rotated.get('Set-Cookie') ?? [])
+          .find((c) => c.startsWith('refresh_token='))
+          ?.split(';')[0] ?? '';
+
+      // A second tab refreshing with the same token a moment later: refused gently.
+      await refreshWith(staleRefreshCookie).expect(409);
+      // ...and the session survives.
+      await refreshWith(freshRefreshCookie).expect(200);
+    });
+
     it('revokes family when stale token is reused after rotation', async () => {
       const loginRes = await request(app.getHttpServer())
         .post('/api/auth/login')
@@ -234,24 +255,43 @@ describe('Auth Cookie Contract (e2e)', () => {
         .send(TEST_USER)
         .expect(200);
 
-      const setCookies: string[] = loginRes.headers['set-cookie'] ?? [];
+      const setCookies: string[] = loginRes.get('Set-Cookie') ?? [];
       const staleRefreshCookie =
         setCookies.find((c) => c.startsWith('refresh_token=')) ?? '';
 
       // Rotate once — stale cookie is now invalid
-      await request(app.getHttpServer())
-        .post('/api/auth/refresh')
-        .set('Origin', 'http://localhost:5173')
-        .set('Cookie', staleRefreshCookie)
-        .expect(200);
+      const rotated = await refreshWith(staleRefreshCookie).expect(200);
+      const freshRefreshCookie =
+        (rotated.get('Set-Cookie') ?? [])
+          .find((c) => c.startsWith('refresh_token='))
+          ?.split(';')[0] ?? '';
 
-      // Reuse stale cookie — should trigger theft detection (401 or 403)
-      const replayRes = await request(app.getHttpServer())
-        .post('/api/auth/refresh')
-        .set('Origin', 'http://localhost:5173')
-        .set('Cookie', staleRefreshCookie);
+      // Age the rotation past the 30 s grace window: a replay now means theft.
+      const staleHash = crypto
+        .createHash('sha256')
+        .update(staleRefreshCookie.split(';')[0].split('=')[1])
+        .digest('hex');
+      await prisma.client.refreshToken.updateMany({
+        where: { tokenHash: staleHash },
+        data: { revokedAt: new Date(Date.now() - 120_000) },
+      });
 
+      // Reuse stale cookie — theft detection: refused and the whole family revoked
+      const replayRes = await refreshWith(staleRefreshCookie);
       expect([401, 403]).toContain(replayRes.status);
+
+      const stale = await prisma.client.refreshToken.findUnique({
+        where: { tokenHash: staleHash },
+      });
+      expect(
+        await prisma.client.refreshToken.count({
+          where: { familyId: stale!.familyId, revokedAt: null },
+        }),
+      ).toBe(0);
+      // The newest token of the family no longer refreshes either. It was revoked a
+      // moment ago, so it gets the grace-window 409 rather than 401: never a session.
+      const afterTheft = await refreshWith(freshRefreshCookie);
+      expect(afterTheft.status).not.toBe(200);
     });
   });
 });

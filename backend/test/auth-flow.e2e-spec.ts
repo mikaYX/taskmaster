@@ -1,11 +1,16 @@
-import { INestApplication, ValidationPipe } from '@nestjs/common';
-import { Test, TestingModule } from '@nestjs/testing';
+import { INestApplication } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 import request from 'supertest';
-import { AppModule } from '../src/app.module';
 import { REDIS_CLIENT } from '../src/common/redis/redis.module';
 import { PrismaService } from '../src/prisma/prisma.service';
+import {
+  TRUSTED_ORIGIN,
+  cookieNamed,
+  cookiesOf,
+  createE2eApp,
+  loginCookies,
+} from './helpers/e2e-app';
 import { mockState } from './mock-state';
 
 jest.mock('openid-client', () => {
@@ -76,19 +81,23 @@ jest.mock('@node-saml/node-saml', () => {
 describe('Auth Flow Non-Regression (E2E)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
-  let currentRefreshToken: string;
-  let currentAccessToken: string;
+  /** The current session cookies (`access_token=…`, `refresh_token=…`). */
+  let session: string[];
+  const refresh = (refreshCookie: string) =>
+    request(app.getHttpServer())
+      .post('/api/auth/refresh')
+      .set('Origin', TRUSTED_ORIGIN)
+      .set('Cookie', refreshCookie);
+  const refreshCookieOf = (cookies: string[]) =>
+    cookieNamed(cookies, 'refresh_token')!;
+  const hashOf = (refreshCookie: string) =>
+    crypto
+      .createHash('sha256')
+      .update(refreshCookie.split('=')[1])
+      .digest('hex');
 
   beforeAll(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
-
-    app = moduleFixture.createNestApplication();
-    app.useGlobalPipes(
-      new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }),
-    );
-    await app.init();
+    app = await createE2eApp();
 
     prisma = app.get(PrismaService);
 
@@ -111,91 +120,68 @@ describe('Auth Flow Non-Regression (E2E)', () => {
     await app.close();
   });
 
-  it('1. Login and get initial tokens', async () => {
-    const res = await request(app.getHttpServer())
-      .post('/auth/login')
-      .send({ username: 'testauthuser', password: 'password123' })
-      .expect(200);
+  it('1. Login sets the session cookies', async () => {
+    session = await loginCookies(app, 'testauthuser', 'password123');
 
-    expect(res.body.accessToken).toBeDefined();
-    expect(res.body.refreshToken).toBeDefined();
-
-    currentAccessToken = res.body.accessToken;
-    currentRefreshToken = res.body.refreshToken;
+    expect(cookieNamed(session, 'access_token')).toBeDefined();
+    expect(cookieNamed(session, 'refresh_token')).toBeDefined();
   });
 
-  it('2. Refresh successful using valid refresh token', async () => {
-    const res = await request(app.getHttpServer())
-      .post('/auth/refresh')
-      .send({ refreshToken: currentRefreshToken })
-      .expect(200);
+  it('2. Refresh rotates the refresh token', async () => {
+    const res = await refresh(refreshCookieOf(session)).expect(200);
+    const next = cookiesOf(res);
 
-    expect(res.body.accessToken).toBeDefined();
-    expect(res.body.refreshToken).toBeDefined();
-
-    currentAccessToken = res.body.accessToken;
-    currentRefreshToken = res.body.refreshToken; // This is token #2
+    expect(refreshCookieOf(next)).toBeDefined();
+    expect(refreshCookieOf(next)).not.toBe(refreshCookieOf(session));
+    session = next;
   });
 
   it('3. Concurrent Refreshes (Grace Window) - No Wipe Out', async () => {
-    // Send two requests exactly at the same time using the SAME valid token
+    // Two tabs refreshing with the SAME token at the same time
     const [res1, res2] = await Promise.all([
-      request(app.getHttpServer())
-        .post('/auth/refresh')
-        .send({ refreshToken: currentRefreshToken }),
-      request(app.getHttpServer())
-        .post('/auth/refresh')
-        .send({ refreshToken: currentRefreshToken }),
+      refresh(refreshCookieOf(session)),
+      refresh(refreshCookieOf(session)),
     ]);
 
-    // One should succeed (200), the other should fail (401)
-    const statuses = [res1.status, res2.status];
-    expect(statuses).toContain(200);
-    expect(statuses).toContain(401);
-
-    // Retrieve the new token from the successful request
-    const successRes = res1.status === 200 ? res1 : res2;
-    expect(successRes.body.accessToken).toBeDefined();
-    currentAccessToken = successRes.body.accessToken;
-    currentRefreshToken = successRes.body.refreshToken;
+    // One rotates (200), the other is refused gently (409), nothing is revoked
+    expect([res1.status, res2.status].sort()).toEqual([200, 409]);
+    session = cookiesOf(res1.status === 200 ? res1 : res2);
 
     // Verify session still works (family was NOT wiped out)
     await request(app.getHttpServer())
-      .get('/auth/session')
-      .set('Authorization', `Bearer ${currentAccessToken}`)
+      .get('/api/auth/session')
+      .set('Cookie', cookieNamed(session, 'access_token')!)
       .expect(200);
   });
 
   it('4. Replay Attack OUTSIDE Grace Window -> Entire Family Revoked', async () => {
     // We rotate current token normally to have a 'used' token
-    const rotateRes = await request(app.getHttpServer())
-      .post('/auth/refresh')
-      .send({ refreshToken: currentRefreshToken })
-      .expect(200);
+    const oldRefreshCookie = refreshCookieOf(session);
+    const rotateRes = await refresh(oldRefreshCookie).expect(200);
+    const veryNewRefreshCookie = refreshCookieOf(cookiesOf(rotateRes));
 
-    const oldRawToken = currentRefreshToken;
-    currentAccessToken = rotateRes.body.accessToken;
-    const veryNewRefreshToken = rotateRes.body.refreshToken;
-
-    // We manually simulate that 'oldRawToken' was used more than 60s ago
-    const hash = crypto.createHash('sha256').update(oldRawToken).digest('hex');
-
+    // We manually simulate that the old token was used more than 60s ago
     await prisma.client.refreshToken.updateMany({
-      where: { tokenHash: hash },
+      where: { tokenHash: hashOf(oldRefreshCookie) },
       data: { revokedAt: new Date(Date.now() - 120000) }, // outside grace window
     });
 
-    // Now, sending oldRawToken should trigger the outside-grace-window thief detection
-    await request(app.getHttpServer())
-      .post('/auth/refresh')
-      .send({ refreshToken: oldRawToken })
-      .expect(401);
+    // Now, sending the old token triggers the outside-grace-window thief detection
+    await refresh(oldRefreshCookie).expect(401);
 
-    // Verify family wipe-out by trying to use the latest valid token (which is in the same family)
-    await request(app.getHttpServer())
-      .post('/auth/refresh')
-      .send({ refreshToken: veryNewRefreshToken })
-      .expect(401); // Boom! Everything revoked.
+    // Family wipe-out: no token of the family is active any more...
+    const old = await prisma.client.refreshToken.findUnique({
+      where: { tokenHash: hashOf(oldRefreshCookie) },
+    });
+    expect(
+      await prisma.client.refreshToken.count({
+        where: { familyId: old!.familyId, revokedAt: null },
+      }),
+    ).toBe(0);
+    // ...and the latest token no longer gives a session (409 while its revocation is
+    // within the grace window, 401 after).
+    const afterTheft = await refresh(veryNewRefreshCookie);
+    expect(afterTheft.status).not.toBe(200);
   });
 
   describe('Google OAuth Flow', () => {
@@ -231,7 +217,7 @@ describe('Auth Flow Non-Regression (E2E)', () => {
 
     it('should redirect to Google login', async () => {
       const res = await request(app.getHttpServer())
-        .get('/auth/external/login/google')
+        .get('/api/auth/external/login/google')
         .expect(302);
       expect(res.header.location).toContain(
         'https://accounts.google.com/o/oauth2/v2/auth?state=mock-state',
@@ -250,7 +236,9 @@ describe('Auth Flow Non-Regression (E2E)', () => {
       );
 
       const res = await request(app.getHttpServer())
-        .get('/auth/external/callback/google?code=mock-code&state=mock-state')
+        .get(
+          '/api/auth/external/callback/google?code=mock-code&state=mock-state',
+        )
         .expect(302);
       expect(res.header.location).toContain('sso_ticket=');
 
@@ -275,7 +263,9 @@ describe('Auth Flow Non-Regression (E2E)', () => {
       );
 
       await request(app.getHttpServer())
-        .get('/auth/external/callback/google?code=mock-code&state=mock-state')
+        .get(
+          '/api/auth/external/callback/google?code=mock-code&state=mock-state',
+        )
         .expect(401);
     });
 
@@ -294,7 +284,9 @@ describe('Auth Flow Non-Regression (E2E)', () => {
       );
 
       await request(app.getHttpServer())
-        .get('/auth/external/callback/google?code=mock-code&state=mock-state')
+        .get(
+          '/api/auth/external/callback/google?code=mock-code&state=mock-state',
+        )
         .expect(401);
     });
   });
@@ -331,7 +323,7 @@ describe('Auth Flow Non-Regression (E2E)', () => {
 
     it('should redirect to Azure AD login', async () => {
       const res = await request(app.getHttpServer())
-        .get('/auth/azure/login')
+        .get('/api/auth/azure/login')
         .expect(302);
       expect(res.header.location).toContain(
         'https://login.microsoftonline.com',
@@ -349,7 +341,7 @@ describe('Auth Flow Non-Regression (E2E)', () => {
       );
 
       const res = await request(app.getHttpServer())
-        .get('/auth/azure/callback?code=mock-code&state=mock-state')
+        .get('/api/auth/azure/callback?code=mock-code&state=mock-state')
         .expect(302);
       expect(res.header.location).toContain('sso_ticket=');
 
@@ -373,7 +365,7 @@ describe('Auth Flow Non-Regression (E2E)', () => {
       mockState.azureClaims.tid = 'some-other-tenant';
       mockState.azureClaims.email = 'multi@azure.com';
       await request(app.getHttpServer())
-        .get('/auth/azure/callback?code=mock-code&state=mock-state')
+        .get('/api/auth/azure/callback?code=mock-code&state=mock-state')
         .expect(302);
 
       const user = await prisma.client.user.findFirst({
@@ -385,7 +377,7 @@ describe('Auth Flow Non-Regression (E2E)', () => {
     it('should reject if email missing in claims', async () => {
       delete mockState.azureClaims.email;
       await request(app.getHttpServer())
-        .get('/auth/azure/callback?code=mock-code&state=mock-state')
+        .get('/api/auth/azure/callback?code=mock-code&state=mock-state')
         .expect(401);
     });
   });
@@ -421,14 +413,14 @@ describe('Auth Flow Non-Regression (E2E)', () => {
 
     it('should generate valid SP metadata XML', async () => {
       const res = await request(app.getHttpServer())
-        .get('/auth/saml/metadata')
+        .get('/api/auth/saml/metadata')
         .expect(200);
       expect(res.text).toBe('<md:EntityDescriptor></md:EntityDescriptor>');
     });
 
     it('should redirect to SAML IdP', async () => {
       const res = await request(app.getHttpServer())
-        .get('/auth/saml/login')
+        .get('/api/auth/saml/login')
         .expect(302);
       expect(res.header.location).toContain(
         'https://idp.example.com/sso?SAMLRequest=mock',
@@ -437,7 +429,7 @@ describe('Auth Flow Non-Regression (E2E)', () => {
 
     it('should validate SAML response and create user', async () => {
       const res = await request(app.getHttpServer())
-        .post('/auth/saml/acs')
+        .post('/api/auth/saml/acs')
         .type('form')
         .send({
           SAMLResponse: '<samlp:Response></samlp:Response>',
@@ -457,7 +449,7 @@ describe('Auth Flow Non-Regression (E2E)', () => {
     it('should reject if signature invalid', async () => {
       mockState.samlProfile = null as any;
       await request(app.getHttpServer())
-        .post('/auth/saml/acs')
+        .post('/api/auth/saml/acs')
         .type('form')
         .send({ SAMLResponse: '<invalid></invalid>', RelayState: 'mock-state' })
         .expect(401);
@@ -466,7 +458,7 @@ describe('Auth Flow Non-Regression (E2E)', () => {
     it('should reject if email missing in assertions', async () => {
       mockState.samlProfile = { displayname: 'SAML User', nameID: 'something' };
       await request(app.getHttpServer())
-        .post('/auth/saml/acs')
+        .post('/api/auth/saml/acs')
         .type('form')
         .send({
           SAMLResponse: '<samlp:Response></samlp:Response>',

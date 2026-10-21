@@ -16,7 +16,7 @@
     "test": "npx jest",
     "test:watch": "npx jest --watch",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "npx jest --config ./test/jest-e2e.json --forceExit",
+    "test:e2e": "npx jest --config ./test/jest-e2e.json --forceExit --runInBand",
     "test:auth:ci": "npx jest --config ./test/jest-e2e.json test/auth-flow.e2e-spec.ts --forceExit --coverage --collectCoverageFrom='src/auth/**/*.ts' --coverageDirectory='coverage-auth'",
     "test:auth:flaky": "node scripts/detect-flaky-auth.js",
     "typecheck": "npx tsc --noEmit -p tsconfig.build.json",

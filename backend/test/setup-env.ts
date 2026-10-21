@@ -11,6 +11,12 @@ if (!process.env.AUTH_SECRET || process.env.AUTH_SECRET.length < 32) {
   process.env.AUTH_SECRET = 'test-secret-at-least-32-chars-long-for-e2e';
 }
 
+// BackupService refuses to boot without a non-default signing key.
+if (!process.env.BACKUP_ENCRYPTION_KEY) {
+  process.env.BACKUP_ENCRYPTION_KEY =
+    'e2e-test-backup-signing-key-not-for-production';
+}
+
 if (!process.env.DATABASE_URL) {
   process.env.DATABASE_URL =
     'postgresql://taskmaster:taskmaster_dev@localhost:5432/taskmaster';
@@ -53,29 +59,39 @@ jest.mock('ioredis', () => {
     }
 
     private parseExpiry(args: unknown[]): number | undefined {
-      if (args.length < 2) return undefined;
-      const mode = String(args[0] ?? '').toUpperCase();
-      const ttl = Number(args[1]);
-
-      if (!Number.isFinite(ttl) || ttl <= 0) return undefined;
-      if (mode === 'EX') return Date.now() + ttl * 1000;
-      if (mode === 'PX') return Date.now() + ttl;
+      for (let i = 0; i < args.length - 1; i += 1) {
+        const mode = String(args[i] ?? '').toUpperCase();
+        const ttl = Number(args[i + 1]);
+        if (!Number.isFinite(ttl) || ttl <= 0) continue;
+        if (mode === 'EX') return Date.now() + ttl * 1000;
+        if (mode === 'PX') return Date.now() + ttl;
+      }
       return undefined;
     }
 
-    get = jest.fn(async (key: string) => {
+    private hasFlag(args: unknown[], flag: string): boolean {
+      return args.some((arg) => String(arg).toUpperCase() === flag);
+    }
+
+    // Plain functions, not jest.fn(): jest.spyOn on an existing mock reuses it,
+    // and restoring it wipes its implementation for every later test.
+    get = async (key: string) => {
       this.cleanupIfExpired(key);
       const entry = this.store.get(key);
       return entry ? entry.value : null;
-    });
+    };
 
-    set = jest.fn(async (key: string, value: unknown, ...args: unknown[]) => {
+    set = async (key: string, value: unknown, ...args: unknown[]) => {
+      this.cleanupIfExpired(key);
+      // NX / XX: used by the job and refresh-token locks.
+      if (this.hasFlag(args, 'NX') && this.store.has(key)) return null;
+      if (this.hasFlag(args, 'XX') && !this.store.has(key)) return null;
       const expiresAt = this.parseExpiry(args);
       this.store.set(key, { value: String(value), expiresAt });
       return 'OK';
-    });
+    };
 
-    del = jest.fn(async (...keys: string[]) => {
+    del = async (...keys: string[]) => {
       let count = 0;
       for (const key of keys) {
         if (this.store.delete(key)) {
@@ -83,18 +99,18 @@ jest.mock('ioredis', () => {
         }
       }
       return count;
-    });
+    };
 
-    incr = jest.fn(async (key: string) => {
+    incr = async (key: string) => {
       this.cleanupIfExpired(key);
       const entry = this.store.get(key);
       const current = entry ? Number.parseInt(entry.value, 10) || 0 : 0;
       const next = current + 1;
       this.store.set(key, { value: String(next), expiresAt: entry?.expiresAt });
       return next;
-    });
+    };
 
-    expire = jest.fn(async (key: string, seconds: number) => {
+    expire = async (key: string, seconds: number) => {
       this.cleanupIfExpired(key);
       const entry = this.store.get(key);
       if (!entry) return 0;
@@ -103,7 +119,50 @@ jest.mock('ioredis', () => {
         expiresAt: Date.now() + Number(seconds) * 1000,
       });
       return 1;
-    });
+    };
+
+    // Only the INCR + EXPIRE-on-first-hit script of AuthRateLimitGuard is emulated;
+    // any other script fails loudly instead of silently passing.
+    eval = async (
+      script: string,
+      _numKeys: number,
+      key: string,
+      ttl: string,
+    ) => {
+      if (!/INCR/.test(script) || !/EXPIRE/.test(script)) {
+        throw new Error('MockRedis.eval: unsupported Lua script');
+      }
+      const count = await this.incr(key);
+      if (count === 1) await this.expire(key, Number(ttl));
+      return count;
+    };
+
+    multi = () => {
+      const queued: Array<() => Promise<unknown>> = [];
+      const chain = {
+        get: (key: string) => {
+          queued.push(() => this.get(key));
+          return chain;
+        },
+        del: (...keys: string[]) => {
+          queued.push(() => this.del(...keys));
+          return chain;
+        },
+        exec: async () => {
+          const results: Array<[null, unknown]> = [];
+          for (const run of queued) results.push([null, await run()]);
+          return results;
+        },
+      };
+      return chain;
+    };
+
+    flushdb = async () => {
+      this.store.clear();
+      return 'OK';
+    };
+
+    ping = async () => 'PONG';
 
     quit = jest.fn().mockResolvedValue('OK');
     on = jest.fn().mockImplementation((event, cb) => {
