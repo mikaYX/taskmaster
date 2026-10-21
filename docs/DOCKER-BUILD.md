@@ -18,7 +18,7 @@ Les ordres de grandeur actuellement observés restent :
 | --- | --- | --- |
 | `taskmaster:secure-local` | ~2.32 GB | valide |
 
-La taille vient surtout de Chromium/Puppeteer, nécessaire à l'export PDF, et des dépendances backend Prisma/OpenTelemetry.
+L'export PDF est généré en JavaScript (pdfkit) : l'image n'embarque plus de navigateur. La taille vient surtout des dépendances backend Prisma/OpenTelemetry. La valeur ci-dessus date de l'époque où Chromium était embarqué et sera plus basse.
 
 ## Pré-requis
 
@@ -69,15 +69,14 @@ TASKMASTER_IMAGE=taskmaster:secure-local docker compose --env-file .env up -d
 
 ### Relever les limites connues
 
-1. Chromium est embarqué pour préserver l'export PDF, ce qui augmente fortement la taille.
-2. Prisma CLI reste présent dans l'image pour `migrate deploy`.
-3. Les vulnérabilités npm doivent être corrigées dans les dépendances, pas dans les Dockerfiles.
+1. Prisma CLI reste présent dans l'image pour `migrate deploy`.
+2. Les vulnérabilités npm doivent être corrigées dans les dépendances, pas dans les Dockerfiles.
 
 ## Vérifications
 
 Le workflow `security-scan.yml` récupère l'image de base et reconstruit le stage
 `production` sans cache pour réexécuter `apk upgrade` et installer les correctifs
-disponibles pour Chromium et ses dépendances. Le numéro de version Node reste
+disponibles pour les paquets système de l'image. Le numéro de version Node reste
 celui du Dockerfile : `apk upgrade` ne met pas à jour le binaire Node de l'image
 officielle ; une CVE Node nécessite une mise à jour de `NODE_VERSION`.
 
