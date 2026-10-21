@@ -33,6 +33,9 @@ export/
 data/
 
 # Generated Files
+backend/coverage/
+backend/flaky-report/
+backend/backups/
 exports/*
 client/public/uploads/
 backend/public/uploads/
