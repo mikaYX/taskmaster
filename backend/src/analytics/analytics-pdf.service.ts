@@ -10,6 +10,8 @@ interface PdfGenerationData {
   endDate: string;
 }
 
+const FONT_REGULAR = 'Body';
+const FONT_BOLD = 'Body-Bold';
 const PAGE_MARGIN = 40;
 const FOOTER_HEIGHT = 36;
 const ROW_HEIGHT = 26;
@@ -29,8 +31,9 @@ const COLORS = {
   total: '#2563eb',
 };
 
-// The built-in PDF fonts only cover Windows-1252; anything else would be
-// drawn as garbage, so it is replaced by "?" before being written.
+// DejaVu Sans is embedded so Latin, Greek and Cyrillic names render correctly.
+// If the font files are missing, the built-in Helvetica (Windows-1252 only) is
+// used instead. Whatever the active font cannot draw is replaced by "?".
 const WIN_ANSI_EXTRA = new Set(
   [...'€‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”•–—˜™š›œžŸ'].map((c) => c.codePointAt(0)!),
 );
@@ -48,19 +51,30 @@ export class AnalyticsPdfService {
     return this.render({ overview, tasks, startDate, endDate });
   }
 
-  /** Keeps only characters the built-in Helvetica can draw. */
-  private safe(value: string): string {
+  private static readonly isWinAnsi = (code: number): boolean =>
+    (code >= 0x20 && code <= 0x7e) ||
+    (code >= 0xa1 && code <= 0xff) ||
+    WIN_ANSI_EXTRA.has(code);
+
+  /** Keeps only characters the active font can draw. */
+  private safe(
+    value: string,
+    canDraw: (code: number) => boolean = AnalyticsPdfService.isWinAnsi,
+  ): string {
     return [...value.replace(/[\s\u00a0\u202f]+/g, ' ')]
-      .map((c) => {
-        const code = c.codePointAt(0)!;
-        const printable =
-          (code >= 0x20 && code <= 0x7e) ||
-          (code >= 0xa1 && code <= 0xff) ||
-          code === 0x20 ||
-          WIN_ANSI_EXTRA.has(code);
-        return printable ? c : '?';
-      })
+      .map((c) => (canDraw(c.codePointAt(0)!) ? c : '?'))
       .join('');
+  }
+
+  private loadFonts(): { regular: string; bold: string } | null {
+    try {
+      return {
+        regular: require.resolve('dejavu-fonts-ttf/ttf/DejaVuSans.ttf'),
+        bold: require.resolve('dejavu-fonts-ttf/ttf/DejaVuSans-Bold.ttf'),
+      };
+    } catch {
+      return null;
+    }
   }
 
   private rateColor(rate: number): string {
@@ -86,6 +100,20 @@ export class AnalyticsPdfService {
       },
     });
 
+    const fonts = this.loadFonts();
+    if (fonts) {
+      doc.registerFont(FONT_REGULAR, fonts.regular);
+      doc.registerFont(FONT_BOLD, fonts.bold);
+    }
+    const regular = fonts ? FONT_REGULAR : 'Helvetica';
+    const bold = fonts ? FONT_BOLD : 'Helvetica-Bold';
+    const face = (doc.font(regular) as any)._font?.font;
+    const canDraw: (code: number) => boolean =
+      fonts && typeof face?.hasGlyphForCodePoint === 'function'
+        ? (code) => face.hasGlyphForCodePoint(code)
+        : AnalyticsPdfService.isWinAnsi;
+    const safe = (value: string) => this.safe(value, canDraw);
+
     const chunks: Buffer[] = [];
     const done = new Promise<Buffer>((resolve, reject) => {
       doc.on('data', (chunk: Buffer) => chunks.push(chunk));
@@ -100,23 +128,20 @@ export class AnalyticsPdfService {
     doc.rect(0, 0, pageWidth, 130).fill(COLORS.headerBg);
     doc
       .fillColor('#ffffff')
-      .font('Helvetica-Bold')
+      .font(bold)
       .fontSize(26)
-      .text(this.safe('Rapport de Conformité'), PAGE_MARGIN, 38, {
+      .text(safe('Rapport de Conformité'), PAGE_MARGIN, 38, {
         lineBreak: false,
       });
     doc
-      .font('Helvetica')
+      .font(regular)
       .fontSize(11)
       .fillColor('#dbeafe')
-      .text(this.safe('Analyse de performance des tâches'), PAGE_MARGIN, 72, {
+      .text(safe('Analyse de performance des tâches'), PAGE_MARGIN, 72, {
         lineBreak: false,
       });
-    const period = this.safe(`Période : ${startDate}  au  ${endDate}`);
-    const periodWidth = doc
-      .font('Helvetica-Bold')
-      .fontSize(10)
-      .widthOfString(period);
+    const period = safe(`Période : ${startDate}  au  ${endDate}`);
+    const periodWidth = doc.font(bold).fontSize(10).widthOfString(period);
     doc
       .roundedRect(PAGE_MARGIN, 94, periodWidth + 28, 22, 11)
       .fillAndStroke('#3b6fd8', '#6b93e6');
@@ -142,7 +167,7 @@ export class AnalyticsPdfService {
       doc.rect(x + 1, cardTop + 1, cardWidth - 2, 3).fill(kpi.color);
       doc
         .fillColor(kpi.color)
-        .font('Helvetica-Bold')
+        .font(bold)
         .fontSize(26)
         .text(String(kpi.value), x, cardTop + 18, {
           width: cardWidth,
@@ -151,9 +176,9 @@ export class AnalyticsPdfService {
         });
       doc
         .fillColor(COLORS.muted)
-        .font('Helvetica-Bold')
+        .font(bold)
         .fontSize(8)
-        .text(this.safe(kpi.label), x, cardTop + 54, {
+        .text(safe(kpi.label), x, cardTop + 54, {
           width: cardWidth,
           align: 'center',
           lineBreak: false,
@@ -169,9 +194,9 @@ export class AnalyticsPdfService {
       .fillAndStroke('#f0f9ff', '#e0f2fe');
     doc
       .fillColor(COLORS.muted)
-      .font('Helvetica-Bold')
+      .font(bold)
       .fontSize(9)
-      .text(this.safe('TAUX DE CONFORMITÉ GLOBAL'), PAGE_MARGIN, secTop + 14, {
+      .text(safe('TAUX DE CONFORMITÉ GLOBAL'), PAGE_MARGIN, secTop + 14, {
         width: contentWidth,
         align: 'center',
         lineBreak: false,
@@ -199,9 +224,9 @@ export class AnalyticsPdfService {
     doc.rect(PAGE_MARGIN, y, 4, 20).fill(COLORS.total);
     doc
       .fillColor(COLORS.ink)
-      .font('Helvetica-Bold')
+      .font(bold)
       .fontSize(14)
-      .text(this.safe('Conformité par tâche'), PAGE_MARGIN + 12, y + 3, {
+      .text(safe('Conformité par tâche'), PAGE_MARGIN + 12, y + 3, {
         lineBreak: false,
       });
     y += 34;
@@ -218,19 +243,19 @@ export class AnalyticsPdfService {
 
     const drawTableHead = (top: number): number => {
       doc.rect(PAGE_MARGIN, top, contentWidth, 26).fill(COLORS.tableHead);
-      doc.fillColor('#ffffff').font('Helvetica-Bold').fontSize(8);
-      doc.text(this.safe('TÂCHE'), cols.name.x, top + 9, { lineBreak: false });
+      doc.fillColor('#ffffff').font(bold).fontSize(8);
+      doc.text(safe('TÂCHE'), cols.name.x, top + 9, { lineBreak: false });
       doc.text('TOTAL', cols.total.x, top + 9, {
         width: cols.total.w,
         align: 'center',
         lineBreak: false,
       });
-      doc.text(this.safe('ÉCHECS'), cols.failed.x, top + 9, {
+      doc.text(safe('ÉCHECS'), cols.failed.x, top + 9, {
         width: cols.failed.w,
         align: 'center',
         lineBreak: false,
       });
-      doc.text(this.safe('CONFORMITÉ'), cols.rate.x, top + 9, {
+      doc.text(safe('CONFORMITÉ'), cols.rate.x, top + 9, {
         width: cols.rate.w,
         align: 'right',
         lineBreak: false,
@@ -244,18 +269,13 @@ export class AnalyticsPdfService {
     if (tasks.length === 0) {
       doc
         .fillColor(COLORS.muted)
-        .font('Helvetica')
+        .font(regular)
         .fontSize(10)
-        .text(
-          this.safe('Aucune tâche sur cette période'),
-          PAGE_MARGIN,
-          y + 18,
-          {
-            width: contentWidth,
-            align: 'center',
-            lineBreak: false,
-          },
-        );
+        .text(safe('Aucune tâche sur cette période'), PAGE_MARGIN, y + 18, {
+          width: contentWidth,
+          align: 'center',
+          lineBreak: false,
+        });
     }
 
     tasks.forEach((task, index) => {
@@ -275,9 +295,9 @@ export class AnalyticsPdfService {
 
       doc
         .fillColor(COLORS.text)
-        .font('Helvetica')
+        .font(regular)
         .fontSize(9.5)
-        .text(this.safe(task.taskName), cols.name.x, y + 8, {
+        .text(safe(task.taskName), cols.name.x, y + 8, {
           width: cols.name.w - 8,
           height: 12,
           ellipsis: true,
@@ -290,7 +310,7 @@ export class AnalyticsPdfService {
       });
       doc
         .fillColor(task.failed > 0 ? COLORS.failed : COLORS.text)
-        .font(task.failed > 0 ? 'Helvetica-Bold' : 'Helvetica')
+        .font(task.failed > 0 ? bold : regular)
         .text(String(task.failed), cols.failed.x, y + 8, {
           width: cols.failed.w,
           align: 'center',
@@ -299,7 +319,7 @@ export class AnalyticsPdfService {
 
       const label = `${task.complianceRate.toFixed(1)}%`;
       const colors = this.badgeColors(task.complianceRate);
-      doc.font('Helvetica-Bold').fontSize(8.5);
+      doc.font(bold).fontSize(8.5);
       const badgeW = doc.widthOfString(label) + 20;
       const badgeX = cols.rate.x + cols.rate.w - badgeW;
       doc.roundedRect(badgeX, y + 5, badgeW, 16, 8).fill(colors.bg);
@@ -313,7 +333,7 @@ export class AnalyticsPdfService {
     });
 
     // Footer + page numbers on every page
-    const generatedAt = this.safe(
+    const generatedAt = safe(
       new Date().toLocaleString('fr-FR', {
         dateStyle: 'long',
         timeStyle: 'short',
@@ -327,10 +347,10 @@ export class AnalyticsPdfService {
       doc.page.margins.bottom = 0;
       doc
         .fillColor(COLORS.faint)
-        .font('Helvetica')
+        .font(regular)
         .fontSize(8)
         .text(
-          this.safe(`Généré le ${generatedAt} - Taskmaster`),
+          safe(`Généré le ${generatedAt} - Taskmaster`),
           PAGE_MARGIN,
           footerY,
           { width: contentWidth - 60, lineBreak: false },

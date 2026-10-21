@@ -63,6 +63,22 @@ describe('AnalyticsPdfService', () => {
     expect(pages.length).toBeGreaterThan(1);
   });
 
+  it('embeds a Unicode font so Cyrillic and Greek names are kept', async () => {
+    analytics.getByTask.mockResolvedValue([
+      {
+        taskId: 1,
+        taskName: 'Проверка резервных копий – Έλεγχος αντιγράφων',
+        total: 4,
+        failed: 0,
+        complianceRate: 100,
+      },
+    ]);
+
+    const buffer = await service.generate('2026-01-01', '2026-01-31');
+
+    expect(buffer.toString('latin1')).toContain('DejaVuSans');
+  });
+
   it('replaces characters the built-in font cannot draw', () => {
     const safe = (service as any).safe('Café – 日本 😀 12');
 

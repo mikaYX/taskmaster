@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- The analytics PDF report is now generated directly in JavaScript (pdfkit) instead of through a headless browser. The Docker image no longer ships Chromium (and its ffmpeg/libsndfile dependencies), which removes the unfixable OS-level HIGH findings and makes the image much smaller; Windows no longer needs Microsoft Edge for PDF export. `PUPPETEER_EXECUTABLE_PATH` is no longer used by the application. Characters the built-in PDF font cannot draw (non-Latin scripts, emoji) are shown as `?`.
+- The analytics PDF report is now generated directly in JavaScript (pdfkit) instead of through a headless browser. The Docker image no longer ships Chromium (and its ffmpeg/libsndfile dependencies), which removes the unfixable OS-level HIGH findings and makes the image much smaller; Windows no longer needs Microsoft Edge for PDF export. `PUPPETEER_EXECUTABLE_PATH` is no longer used by the application. The report embeds DejaVu Sans, so Latin, Greek and Cyrillic task names render correctly; characters that font lacks (for example Chinese or Japanese) are shown as `?`.
 
 ## [1.2.0-beta.4] - 2026-10-21
 
