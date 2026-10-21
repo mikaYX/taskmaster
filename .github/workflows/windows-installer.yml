@@ -13,12 +13,12 @@ jobs:
     env:
       DOTNET_ROLL_FORWARD: Major
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: npm
-      - uses: actions/setup-dotnet@v5
+      - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: 8.0.x
       - name: Install the repository's WiX 5 build toolchain
@@ -34,7 +34,7 @@ jobs:
         shell: powershell
         run: ./installer/build.ps1
       - name: Upload candidate and checksums for VM acceptance testing
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: taskmaster-windows-candidate
           path: |
