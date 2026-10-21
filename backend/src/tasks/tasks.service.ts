@@ -886,8 +886,7 @@ export class TasksService {
         description: updates.description,
         procedureUrl: updates.procedureUrl,
         executionChecklist: updates.executionChecklist as unknown as
-          | Prisma.InputJsonValue
-          | undefined,
+          Prisma.InputJsonValue | undefined,
         startDate: updates.startDate ? new Date(updates.startDate) : undefined,
         endDate: updates.endDate ? new Date(updates.endDate) : undefined,
         skipWeekends: updates.skipWeekends,

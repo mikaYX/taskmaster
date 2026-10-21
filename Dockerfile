@@ -39,6 +39,9 @@ RUN --mount=type=cache,target=/root/.npm,id=npm-cache,sharing=locked \
     sh -c 'if [ -f /tmp/ca.pem ]; then export NODE_EXTRA_CA_CERTS=/tmp/ca.pem; fi; \
     npm ci --omit=dev --workspace backend --ignore-scripts'
 
+# npm may hoist everything to /app/node_modules; keep the directory so the runtime COPY below never fails.
+RUN mkdir -p /app/backend/node_modules
+
 # -----------------------------------------------------------------------------
 # Stage: dépendances de build
 # -----------------------------------------------------------------------------

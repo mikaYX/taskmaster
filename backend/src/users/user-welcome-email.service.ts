@@ -18,10 +18,7 @@ export type { CredentialsEmailReason };
  * - NO_ADDRESS: the account has no email address to write to
  */
 export type WelcomeEmailStatus =
-  | 'SENT'
-  | 'FAILED'
-  | 'NOT_ACTIVE'
-  | 'NO_ADDRESS';
+  'SENT' | 'FAILED' | 'NOT_ACTIVE' | 'NO_ADDRESS';
 
 /**
  * Sends the credentials of a freshly created or reset local account.
