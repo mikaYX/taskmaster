@@ -73,7 +73,8 @@ import { SystemModule } from './system';
         const isProd = config.get<string>('NODE_ENV') === 'production';
         return {
           pinoHttp: {
-            level: isProd ? 'info' : 'debug',
+            level:
+              config.get<string>('LOG_LEVEL') ?? (isProd ? 'info' : 'debug'),
             // En production : JSON brut parseable par Datadog/Loki/ELK
             // En dev : format lisible avec pino-pretty
             transport: isProd

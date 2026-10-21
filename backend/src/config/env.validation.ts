@@ -2,6 +2,7 @@ import { plainToInstance, Transform, Type } from 'class-transformer';
 import {
   IsBoolean,
   IsEnum,
+  IsIn,
   IsNumber,
   IsOptional,
   IsString,
@@ -96,9 +97,13 @@ class EnvironmentVariables {
   @IsString()
   CORS_ORIGIN?: string;
 
+  /** Pino level. Unset: `info` in production, `debug` otherwise. */
   @IsOptional()
-  @IsString()
-  LOG_LEVEL = 'info';
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.trim().toLowerCase() : value,
+  )
+  @IsIn(['silent', 'fatal', 'error', 'warn', 'info', 'debug', 'trace'])
+  LOG_LEVEL?: string;
 
   @IsOptional()
   @Type(() => Number)
@@ -171,10 +176,6 @@ class EnvironmentVariables {
   @IsOptional()
   @IsString()
   PG_BIN_PATH?: string;
-
-  @IsOptional()
-  @IsString()
-  PUPPETEER_EXECUTABLE_PATH?: string;
 
   @IsOptional()
   @Transform(({ value }) => value === true || value === 'true' || value === '1')
