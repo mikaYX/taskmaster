@@ -36,6 +36,7 @@ data/
 backend/coverage/
 backend/flaky-report/
 backend/backups/
+backend/test/coverage-auth/
 exports/*
 client/public/uploads/
 backend/public/uploads/
