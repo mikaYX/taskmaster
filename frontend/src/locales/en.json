@@ -106,7 +106,7 @@
         "settings": "Settings",
         "analytics": "Analytics",
         "analyticsGroup": "Analytics",
-        "todoList": "Todo List",
+        "todoList": "Todo",
         "correctiveActions": "Corrective actions",
         "accountMenu": "Account menu"
     },
@@ -396,7 +396,7 @@
         "schedulerDescription": "View and manage scheduled jobs",
         "addons": "Add-ons",
         "addonsDescription": "Enable or disable additional features",
-        "todoListEnabled": "Enable Todo List",
+        "todoListEnabled": "Enable Todo",
         "todoListHint": "Shows a personal and collective todo list in the sidebar",
         "todoListReminders": "Reminders",
         "todoListRemindersHint": "Reminds people when a task is due: notification center, browser pop-up and email (each person chooses; email also needs email sending enabled)",
@@ -1829,7 +1829,7 @@
             "week1": "1 week before"
         },
         "openReminder": {
-            "title": "Your todo list needs you",
+            "title": "Your Todo needs you",
             "overdue_one": "{{count}} task overdue",
             "overdue_other": "{{count}} tasks overdue",
             "today_one": "{{count}} task due today",

@@ -103,7 +103,7 @@
         "settings": "Paramètres",
         "analytics": "Analytiques",
         "analyticsGroup": "Analytiques",
-        "todoList": "Liste de tâches",
+        "todoList": "Todo",
         "exports": "Exports",
         "backups": "Sauvegardes",
         "auditLog": "Journal d'audit",
@@ -396,8 +396,8 @@
         "schedulerDescription": "Voir et gérer les tâches planifiées",
         "addons": "Modules complémentaires",
         "addonsDescription": "Activer ou désactiver des fonctionnalités supplémentaires",
-        "todoListEnabled": "Activer la Liste de tâches",
-        "todoListHint": "Affiche une liste de tâches personnelle et collective dans la barre latérale",
+        "todoListEnabled": "Activer Todo",
+        "todoListHint": "Affiche une todo personnelle et collective dans la barre latérale",
         "todoListReminders": "Rappels",
         "todoListRemindersHint": "Prévient lorsqu'une tâche arrive à échéance : centre de notifications, pop-up navigateur et email (chacun choisit ; l'email nécessite aussi l'envoi d'emails activé)",
         "apiKeys": {
@@ -1829,7 +1829,7 @@
             "week1": "1 semaine avant"
         },
         "openReminder": {
-            "title": "Votre liste de tâches vous attend",
+            "title": "Votre Todo vous attend",
             "overdue_one": "{{count}} tâche en retard",
             "overdue_other": "{{count}} tâches en retard",
             "today_one": "{{count}} tâche pour aujourd'hui",

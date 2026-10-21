@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- The sidebar entry "Liste de tâches" / "Todo List" is now simply "Todo" (French and English), so it no longer reads like the core Taskmaster tasks. Only the label changes.
 - The setup wizard has a new design and scrolls on short screens, with the step buttons always visible.
 - The analytics page has a new design: compliance gauge with status, execution breakdown, KPI tiles, executions per period stacked by status, a "Needs attention" list, searchable per-task ranking and clearer per-user ranking. Status colors are colorblind-checked and always paired with an icon and a label.
 - Analytics TV mode is now a dedicated full-screen layout sized for a 1080p wall screen: large figures, live clock, auto-refresh every 30 seconds with the last update time.
