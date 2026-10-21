@@ -1,137 +1,121 @@
-# Guide d'exploitation de la production
+# Operations
 
-Ce guide explique comment déployer, mettre à jour, superviser et restaurer l'environnement de production Taskmaster avec [`../docker-compose.yml`](../docker-compose.yml).
+Running Taskmaster in production with [`docker-compose.yml`](../docker-compose.yml): deploy, update, back up, restore and monitor. Run the commands from the folder that holds `docker-compose.yml` and `.env`.
 
-## Contexte
+The stack has three services:
 
-La stack Docker actuelle regroupe :
+| Service | Default container | Role |
+| --- | --- | --- |
+| `app` | `taskmaster_app` | API and web interface; applies the migrations at startup |
+| `postgres` | `taskmaster_db` | PostgreSQL 18 |
+| `redis` | `taskmaster_redis` | Redis 8: cache, job queues, sign-in lockouts |
 
-- `postgres`
-- `redis`
-- `app`
+Data lives in named volumes:
 
-Le service `app` embarque l'API et le frontend dans une seule image. Par défaut, les exemples utilisent `--env-file .env` parce que ce fichier existe dans le dépôt. Si votre environnement utilise un autre fichier, remplacez simplement ce paramètre.
+| Volume | Content |
+| --- | --- |
+| `postgres_data` | Database |
+| `redis_data` | Redis |
+| `app_backups` | Backups |
+| `app_uploads` | Uploaded images |
+| `app_procedures` | Procedure files |
+| `app_evidence` | Photo evidence |
 
-## Pré-requis
-
-- Avoir Docker et Docker Compose v2 installés.
-- Avoir un fichier [`../.env.docker.example`](../.env.docker.example) copié vers `../.env`.
-- Avoir défini au minimum `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`, `AUTH_SECRET`, `BACKUP_ENCRYPTION_KEY`, `CORS_ORIGIN` et `TASKMASTER_IMAGE`.
-- Exécuter les commandes depuis la racine du dépôt.
-
-## Étapes
-
-### Déployer la stack complète
-
-1. Vérifiez la configuration d'environnement.
-2. Récupérez l'image applicative attendue.
-3. Démarrez les services.
+## Deploy
 
 ```bash
-docker compose --env-file .env pull app
-docker compose --env-file .env up -d
-docker compose --env-file .env ps
+docker compose pull app
+docker compose up -d
+docker compose ps
 ```
 
-### Mettre à jour l'application
+Before the first start, set at least `POSTGRES_PASSWORD`, `AUTH_SECRET`, `BOOTSTRAP_SECRET`, `BACKUP_ENCRYPTION_KEY`, `CORS_ORIGIN` and `TASKMASTER_IMAGE` in `.env`. See [Getting started](getting-started.md#run-with-docker).
 
-1. Sauvegardez la base avant toute mise à jour.
-2. Mettez à jour `TASKMASTER_IMAGE` dans `.env` si vous ciblez un tag précis.
-3. Récupérez la nouvelle image.
-4. Redémarrez uniquement `app`.
+Behind a reverse proxy (nginx, Traefik…):
+- forward everything to port 3000: the app serves both `/api` and the web interface;
+- set `TRUST_PROXY=1`, so rate limiting and the audit log see the real client IP;
+- set the public HTTPS address in `CORS_ORIGIN`, `FRONTEND_URL` and `BACKEND_URL`.
+
+## Update and roll back
+
+See [Version updates](version-updates.md). Always back up first.
+
+Migrations only move forward. Rolling back to an older image after a migration is not supported: restore the backup taken before the update instead.
+
+## Back up the database
+
+**From the application.** In **Settings → Backup**, a super admin can:
+- create, schedule, download, validate and restore backups;
+- choose a **DB** backup (database only) or a **FULL** one (database plus uploads, procedures and photo evidence).
+
+Archives are encrypted with AES-256-GCM and signed with `BACKUP_ENCRYPTION_KEY`. Taskmaster refuses to restore an altered or unsigned archive. Keep the key outside the server: it is never stored in the archive, and the `.env` secrets are not backed up either.
+
+**By hand,** with `pg_dump` in the database container:
 
 ```bash
-docker compose --env-file .env pull app
-docker compose --env-file .env up -d app
-docker compose --env-file .env logs --tail=100 app
+docker exec taskmaster_db sh -c 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB"' > "taskmaster_$(date +%Y%m%d_%H%M%S).sql"
 ```
 
-Taskmaster compare automatiquement la version courante au remote officiel correspondant au mode de déploiement : releases GitHub pour une installation source, tags Docker Hub pour une image Docker Hub. Les variables `VERSION_CHECK_REPO` et `VERSION_CHECK_DOCKER_IMAGE` sont réservées aux forks.
+A database dump does not contain the files (uploads, procedures, photos). Back up the `app_*` volumes as well, or use a FULL backup.
 
-### Sauvegarder la base PostgreSQL
+## Restore a manual dump
 
-1. Créez un export SQL horodaté.
-2. Vérifiez que le fichier généré a une taille cohérente.
-
-```bash
-TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-docker exec -t taskmaster_db pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" > "backup_db_${TIMESTAMP}.sql"
-ls -lh "backup_db_${TIMESTAMP}.sql"
-```
-
-### Restaurer une sauvegarde SQL
-
-1. Arrêtez temporairement l'application pour éviter les écritures concurrentes.
-2. Réinitialisez le schéma si vous voulez une restauration propre.
-3. Réinjectez le dump SQL.
-4. Redémarrez `app`.
+1. Stop the app, so nothing writes during the restore.
+2. Reset the schema.
+3. Load the dump.
+4. Start the app again.
 
 ```bash
 docker stop taskmaster_app
-docker exec -i taskmaster_db psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
-cat backup_db_YYYYMMDD_HHMMSS.sql | docker exec -i taskmaster_db psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"
+docker exec taskmaster_db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"'
+docker exec -i taskmaster_db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"' < taskmaster_YYYYMMDD_HHMMSS.sql
 docker start taskmaster_app
 ```
 
-### Consulter les logs et la consommation
+> [!CAUTION]
+> This replaces all the data. Test it on a throwaway instance first.
 
-```bash
-docker compose --env-file .env logs -f
-docker compose --env-file .env logs -f --tail=100 app
-docker stats
-```
+## Monitor
 
-### Appliquer un rollback applicatif
+| What | How |
+| --- | --- |
+| Health | `curl http://localhost:3000/api/health` checks the database, Redis and the memory heap. The image also has a Docker `HEALTHCHECK` on it. |
+| Logs | `docker compose logs -f --tail=100 app` (JSON, via Pino) |
+| Metrics | Prometheus format on `/api/metrics`, from local network addresses only |
+| Traces | OpenTelemetry, exported when `OTEL_EXPORTER_OTLP_ENDPOINT` is set |
+| Resources | `docker stats` |
 
-1. Pointez `TASKMASTER_IMAGE` vers le dernier tag stable connu.
-2. Redéployez `app`.
-3. Si nécessaire, restaurez la dernière sauvegarde compatible.
+Check after a deployment:
+- `docker compose ps` shows the three services as running (healthy);
+- `/api/health` answers `200`;
+- the app log shows no Prisma or Redis error at startup.
 
-```bash
-docker compose --env-file .env pull app
-docker compose --env-file .env up -d app
-```
+## Privacy and retention
 
-## Vérifications
+Taskmaster anonymizes IP addresses before storing them in the audit log (`audit_logs.ip_address`) and the session table (`refresh_tokens.ip_address`):
 
-- `docker compose --env-file .env ps` montre `postgres`, `redis` et `app` actifs.
-- `curl http://localhost:3000/api/health` renvoie un statut `200`.
-- `docker compose --env-file .env logs --tail=100 app` ne montre ni erreur Prisma ni erreur Redis au démarrage.
+| Input | Stored as |
+| --- | --- |
+| IPv4 | Last byte masked: `192.168.1.42` becomes `192.168.1.0` |
+| IPv6 | First 48 bits kept: `2001:db8:abcd::1` becomes `2001:db8:abcd::` |
+| `unknown` | Kept as is |
+| Malformed value | Not stored |
 
-## RGPD, IP et rétention
+Anonymization is on by default. `IP_ANONYMIZATION_ENABLED=false` exists only for a validated forensic investigation window: remove it afterwards. It applies to new records only, and existing rows are left unchanged. Back-filling older rows reduces what past investigations can use, so it is a decision for your data protection officer.
 
-Taskmaster anonymise les adresses IP avant persistance dans les nouvelles lignes de `audit_logs.ip_address` et `refresh_tokens.ip_address`.
+Retention jobs delete old data progressively:
 
-- IPv4 : dernier octet masqué, par exemple `192.168.1.42` devient `192.168.1.0`.
-- IPv6 : seuls les 48 premiers bits sont conservés, par exemple `2001:db8:abcd::1` devient `2001:db8:abcd::`.
-- La valeur sentinelle `unknown` reste inchangée.
-- Les valeurs malformées ne sont pas persistées.
+| Variable | Default | Data |
+| --- | --- | --- |
+| `AUDIT_LOG_RETENTION_DAYS` | 365 | Audit log |
+| `REFRESH_TOKEN_REVOKED_RETENTION_DAYS` | 90 | Revoked sessions |
 
-L'anonymisation est activée par défaut. L'option `IP_ANONYMIZATION_ENABLED=false` existe uniquement pour une fenêtre d'investigation forensique validée ; elle doit être retirée après l'incident.
+After changing a retention or anonymization policy:
+- check the `cleanup-audit-logs` and `cleanup-refresh-tokens` lines in the log;
+- record the decision in your record of processing activities.
 
-Cette anonymisation s'applique aux nouvelles écritures. Elle ne modifie pas les lignes historiques déjà stockées. Un backfill historique de `audit_logs.ip_address` et `refresh_tokens.ip_address` doit être arbitré par le DPO ou le responsable conformité, car il réduit la granularité disponible pour les investigations passées.
+## See also
 
-Les jobs de rétention suppriment progressivement les anciennes données :
-
-- `AUDIT_LOG_RETENTION_DAYS` : rétention des journaux d'audit, défaut 365 jours.
-- `REFRESH_TOKEN_REVOKED_RETENTION_DAYS` : rétention des refresh tokens révoqués, défaut 90 jours.
-
-Après tout changement de politique de rétention ou d'anonymisation, vérifiez les logs applicatifs autour de `cleanup-audit-logs` et `cleanup-refresh-tokens`, puis documentez la décision dans le registre de traitement ou le dossier conformité.
-
-## Ressources
-
-- Compose principal : [`../docker-compose.yml`](../docker-compose.yml)
-- Variables d'environnement : [`../.env.docker.example`](../.env.docker.example)
-- Guide de dépannage : [`./troubleshooting.md`](./troubleshooting.md)
-- Runbook incident : [`./incident_runbook.md`](./incident_runbook.md)
-
-Notes :
-
-- Les migrations Prisma restent exécutées par l'entrypoint de l'image `app`.
-- En production, évitez les commandes destructrices hors fenêtre de maintenance validée.
-
-## Voir aussi
-
-- [`../README.md`](../README.md)
-- [`../SETUP.md`](../SETUP.md)
-- [`./local-db.md`](./local-db.md)
+- [Configuration](configuration.md)
+- [Troubleshooting](troubleshooting.md)
+- [Docker build](docker-build.md)

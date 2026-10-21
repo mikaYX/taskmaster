@@ -1,55 +1,63 @@
-# Security Policy
+# Security policy
 
-## Supported Versions
+## Supported versions
 
 | Version | Supported |
-|---------|-----------|
-| 1.1.x   | ✅        |
-| < 1.1   | ❌        |
+| --- | --- |
+| 1.2.x | ✅ |
+| < 1.2 | ❌ |
 
-Seule la dernière mineure de la branche `main` reçoit des correctifs de sécurité.
-Les déploiements sur d'anciennes versions doivent être mis à jour avant tout signalement.
+Only the latest minor version receives security fixes. Update before reporting an issue found on an older version.
 
-## Reporting a Vulnerability
+## Report a vulnerability
 
-Merci de **ne pas ouvrir d'issue publique** pour une vulnérabilité.
+Please **do not open a public issue** for a vulnerability. Instead:
 
-Privilégier l'un des canaux suivants :
+1. Use **GitHub Security Advisories**: the *Security* tab of the repository, then *Report a vulnerability*.
+2. Or contact the maintainer privately through the email address on their GitHub profile.
 
-1. **GitHub Security Advisories** : onglet *Security* du dépôt → *Report a vulnerability*.
-2. À défaut, contacter le mainteneur en privé via le mail listé dans le profil GitHub.
+Include:
+- a description of the problem and the affected file or module;
+- steps to reproduce, ideally a minimal one;
+- the estimated impact (CVSS if relevant);
+- the version and any specific configuration.
 
-Inclure dans le rapport :
+What to expect:
+- an acknowledgement within **5 working days**;
+- an assessment and a fix plan within **15 working days**;
+- a coordinated advisory once the fix is released.
 
-- une description du problème et du fichier / module impacté ;
-- les étapes de reproduction (minimal repro si possible) ;
-- l'impact estimé (CVSS si pertinent) ;
-- toute version / configuration spécifique.
+## Scope
 
-Engagement :
+In scope:
+- the NestJS backend (`backend/`): authentication, authorization, validation, audit;
+- the React frontend (`frontend/`): XSS, session handling, data exposure;
+- the Docker image and Compose files, the Windows installer (`installer/`) and the scripts (`scripts/`);
+- the direct dependencies listed in the `package.json` files.
 
-- accusé de réception sous **5 jours ouvrés** ;
-- évaluation et plan de correction sous **15 jours ouvrés** ;
-- publication d'un *advisory* coordonné après correction et release.
+Out of scope:
+- attacks that need physical access to the server or its secrets;
+- third-party dependencies with a public advisory not yet fixed upstream (report them to their maintainers);
+- denial of service by network flooding.
 
-## Périmètre
+## Security controls
 
-En scope :
+| Area | Controls |
+| --- | --- |
+| Sessions | 15-minute access token and 7-day refresh token, both in `HttpOnly` cookies. Each refresh rotates the token, and reusing a revoked one revokes its whole family. Renewals are refused from untrusted origins (CSRF). |
+| Sign-in | bcrypt password hashes, TOTP MFA, passkeys (WebAuthn), MFA and passkey requirements per role, rate limits and a progressive lockout per account and per IP ([details](docs/authentication.md#protection-against-brute-force)) |
+| Authorization | Roles (super admin, manager, user, guest) and permissions checked on the server. Data is filtered by site. Guest accounts can only reach an allowlist of read-only endpoints. API keys are hashed (SHA-256) and limited by scopes and site. |
+| Input | Global validation: unknown fields are rejected. Every setting is checked against its own schema. Outbound URLs (OIDC issuers, notification channels) are checked against private addresses (SSRF). |
+| HTTP | Helmet security headers, with a Content-Security-Policy in production. Error responses carry no stack trace in production. |
+| Data | Sensitive settings encrypted at rest (AES-256-GCM, key derived from `AUTH_SECRET`). Backups encrypted (AES-256-GCM) and signed (HMAC) with `BACKUP_ENCRYPTION_KEY`. Photo evidence is only downloadable with access to its task. |
+| Privacy | IPs anonymized before storage, retention jobs for audit logs and sessions ([details](docs/operations.md#privacy-and-retention)) |
+| Audit | Security and business actions are written to the audit log, visible to super admins |
+| Supply chain | CodeQL and a Trivy scan of the Docker image in CI, with reviewed and expiring exceptions in [`security/trivy-exceptions.json`](security/trivy-exceptions.json). The image runs as a non-root user. |
 
-- backend NestJS (`backend/`) — authentification, autorisation, validation, audit.
-- frontend React (`frontend/`) — XSS, gestion des sessions, expositions de données.
-- pipeline Docker (`Dockerfile`, `docker-compose*.yml`) et scripts (`scripts/`).
-- dépendances directes listées dans `package.json` (racine, `backend/`, `frontend/`).
+## Deployment checklist
 
-Hors scope :
-
-- attaques nécessitant un accès physique au serveur ou aux secrets ;
-- dépendances tierces avec un advisory public déjà connu et non encore corrigé en amont (signaler à l'éditeur originel) ;
-- déni de service par saturation réseau.
-
-## Bonnes pratiques de déploiement
-
-Voir [backend/SECURITY.md](backend/SECURITY.md) pour la liste détaillée des
-contrôles implémentés (JWT rotation, MFA, rate limiting, chiffrement backups,
-SSRF protection, etc.) et [backend/docs/auth-hardening-report.md](backend/docs/auth-hardening-report.md)
-pour le hardening de l'authentification.
+- Generate long random values for `AUTH_SECRET`, `BOOTSTRAP_SECRET` and `BACKUP_ENCRYPTION_KEY`, and keep a copy of the backup key outside the server.
+- Serve Taskmaster over HTTPS only, and set `CORS_ORIGIN`, `FRONTEND_URL` and `BACKEND_URL` to that address.
+- Behind a reverse proxy, set `TRUST_PROXY`.
+- Do not expose PostgreSQL, Redis or `/api/metrics` to the Internet.
+- Require MFA or passkeys for super admins, and keep one local super admin as a fallback for SSO outages.

@@ -1,309 +1,146 @@
-# Taskmaster sur Windows Server 2019 x64 — installation locale (sans Docker)
+# Windows Server installation (without Docker)
 
-Ce document décrit l'installation de production de Taskmaster sur un Windows
-Server 2019 x64 propre, entièrement locale, sans Docker, WSL, Git, npm ou
-Node.js installés globalement sur le serveur cible. C'est le chemin
-**recommandé** pour la production ; les procédures existantes
-[`WINDOWS_DOCKER_PROCEDURE.txt`](../WINDOWS_DOCKER_PROCEDURE.txt) et
-[`WINDOWS_LOCAL_NODE_PROCEDURE.txt`](../WINDOWS_LOCAL_NODE_PROCEDURE.txt) à la
-racine du dépôt restent valides pour du développement/test — elles ne sont ni
-supprimées ni remplacées par ce document.
+Taskmaster installs on Windows Server 2019 x64 or later as a Windows service, from `Taskmaster-<version>-x64.msi`. Docker, WSL, Git and a global Node.js are not needed: the MSI ships its own Node.js 24 runtime.
 
-## Vue d'ensemble
+## Prerequisites
 
-- **MSI** (`Taskmaster-<version>-x64.msi`) : installe uniquement Taskmaster
-  (fichiers applicatifs, runtime Node embarqué, service Windows). Utilisable
-  seul pour un déploiement scripté contre un PostgreSQL/Redis déjà en place.
-- **Setup.exe** (`Taskmaster-Setup-<version>-x64.exe`) : chemin recommandé.
-  Enchaîne PostgreSQL 17 x64, Memurai (cache compatible Redis), puis le MSI,
-  puis l'orchestration (secrets, migration Prisma, service, contrôle de
-  santé).
+- Windows Server 2019 x64 or later, with administrator rights.
+- **PostgreSQL**, installed beforehand on this server or another one. Version 18 matches the Docker stack.
+- **A Redis-compatible server**, installed beforehand: Redis, or [Memurai](https://www.memurai.com) on Windows.
+- **The PostgreSQL client tools** (`pg_dump.exe`, `pg_restore.exe`) on this server, same major version as the database, for backups.
 
-## Prérequis
+## Install
 
-- Windows Server 2019 x64, droits administrateur.
-- Aucun logiciel préalable requis (ni Node, ni npm, ni Git, ni Docker, ni
-  PostgreSQL) pour une installation locale simple.
-- Accès réseau sortant **uniquement pendant la construction** de l'installeur
-  (`installer/build.ps1`, sur une machine de build séparée) — le `Setup.exe`
-  produit est utilisable hors ligne.
+Run the MSI. The configuration dialog asks for:
 
-## Interface d'installation
+| Field | Default | Silent-install property |
+| --- | --- | --- |
+| Application port | `3000` | `TASKMASTER_PORT` |
+| PostgreSQL host, port, database | `localhost`, `5432`, `taskmaster` | `POSTGRES_DB_HOST`, `POSTGRES_DB_PORT`, `POSTGRES_DB_NAME` |
+| PostgreSQL user and password | `taskmaster` | `POSTGRES_DB_USER`, `POSTGRES_DB_PASSWORD` |
+| PostgreSQL admin user and password (optional) | `postgres` | `POSTGRES_ADMIN_USER`, `POSTGRES_ADMIN_PASSWORD` |
+| Redis host, port | `localhost`, `6379` | `REDIS_DB_HOST`, `REDIS_DB_PORT` |
+| PostgreSQL `bin` folder | Detected | `POSTGRES_BIN_PATH` |
+| Public URL (optional) | | `TASKMASTER_PUBLIC_URL` |
+| Offline mode | On | `TASKMASTER_OFFLINE_MODE` |
+| Backup folder | `C:\ProgramData\Taskmaster\backups` | `TASKMASTER_BACKUP_PATH` |
 
-Le `Setup.exe` utilise le Bootstrapper Application standard de WiX
-(WixStandardBootstrapperApplication). Ce choix a été fait pour rester
-simple et maintenable avec WiX seul plutôt que développer un assistant
-graphique entièrement personnalisé (Managed Bootstrapper App .NET/WPF), ce
-qui serait un chantier nettement plus lourd. Conséquence concrète :
+**Database account.** With the admin credentials, the installer creates or updates the `taskmaster` role (without superuser rights) and its database. Without them, a DBA must create both beforehand. The admin credentials are only used during the installation and are never stored.
 
-- **Cas simple (recommandé)** : accepter les valeurs par défaut — port 3000,
-  accès local uniquement, PostgreSQL et Memurai installés localement. Aucune
-  question n'est posée au-delà des écrans standard (licence, répertoire
-  d'installation, progression).
-- **Cas avancé** (accès LAN, port personnalisé, serveur PostgreSQL/Redis
-  existant) : ces choix se font via des propriétés passées en ligne de
-  commande au lancement de `Setup.exe`, pas via des écrans graphiques
-  supplémentaires :
+The installer then:
+1. writes `C:\ProgramData\Taskmaster\config\.env`, with generated secrets;
+2. applies the database migrations with the bundled Node.js;
+3. registers the **Taskmaster** service (WinSW): delayed automatic start, restart on failure, running as `LocalSystem`;
+4. checks `GET /api/health` and the web interface before reporting success, and writes `C:\ProgramData\Taskmaster\logs\install.log`;
+5. adds a **Taskmaster** shortcut to the Start menu.
 
-  ```powershell
-  Taskmaster-Setup-1.1.3-x64.exe /passive `
-    PORT=8080 `
-    ACCESS_MODE=Lan `
-    HOST_NAME=taskmaster.monentreprise.local `
-    POSTGRES_MODE=Existing `
-    EXISTING_DATABASE_URL="postgresql://taskmaster:motdepasse@10.0.0.5:5432/taskmaster" `
-    EXISTING_PG_BIN_PATH="C:\Program Files\PostgreSQL\17\bin" `
-    REDIS_MODE=Existing `
-    EXISTING_REDIS_URL="redis://10.0.0.5:6379"
-  ```
+Open the shortcut and create the first administrator in the setup wizard.
 
-  Une évolution future pourrait remplacer le Bootstrapper standard par un
-  assistant graphique entièrement personnalisé si ce mode avancé doit devenir
-  pilotable à la souris — voir le commentaire en tête de
-  `installer/wix/Bundle.wxs`.
-
-## Déroulé de l'installation (mode simple)
-
-1. **Installation de PostgreSQL** — PostgreSQL 17 x64 installé silencieusement
-   (serveur + outils en ligne de commande uniquement, sans pgAdmin), service
-   Windows en démarrage automatique, écoute restreinte à `localhost`, port
-   5432 **jamais** ouvert dans le pare-feu.
-2. **Initialisation de la base** — création idempotente du rôle `taskmaster`
-   (sans droits superutilisateur) et de la base `taskmaster`, mot de passe
-   généré cryptographiquement.
-3. **Installation du cache** — Memurai (compatible Redis) installé en
-   service Windows, lié à `127.0.0.1`, port 6379 jamais ouvert dans le
-   pare-feu.
-4. **Migration Prisma** — `prisma migrate deploy` exécuté avec le Node
-   embarqué.
-5. **Installation du service** — le service Windows **Taskmaster** est
-   enregistré (WinSW), démarrage automatique différé, redémarrage
-   automatique en cas de crash, aucun secret dans la configuration du
-   service.
-6. **Démarrage** — le service démarre ; aucune fenêtre de terminal ne reste
-   ouverte à la fin de l'installation.
-7. **Contrôle de santé** — vérifie : service PostgreSQL actif, service
-   Memurai actif, service Taskmaster actif, `GET /api/health`, `GET /`,
-   présence du frontend (`client/index.html`). **L'installation n'est
-   jamais annoncée comme réussie si un de ces contrôles échoue** — un
-   message en français indique le contrôle en échec et le chemin du journal
-   (`C:\ProgramData\Taskmaster\logs\install.log`), sans jamais exposer de
-   secret.
-
-À la fin, un raccourci **Taskmaster** est créé dans le menu Démarrer, ouvrant
-`http://localhost:3000/` (ou l'URL configurée). Créez le premier compte
-`SUPER_ADMIN` via le Setup Wizard web existant de Taskmaster.
-
-## URL publique et passkeys
-
-Pour une nouvelle installation via le MSI, renseigner **URL publique
-(facultatif)** dans le dialogue de configuration si l'application sera ouverte
-avec une adresse différente de `http://localhost:3000`. Exemple :
-`https://taskmaster.itiz-cpt-eu.local`. Utiliser l'adresse de chaque installation,
-sans chemin ni paramètres. Sans valeur, le fonctionnement local reste inchangé.
-
-Avec le bootstrapper, transmettre la variable correspondante :
+Example of a silent installation:
 
 ```powershell
-.\Taskmaster-Setup-<version>-x64.exe PUBLIC_URL="https://taches.exemple.fr"
+msiexec /i Taskmaster-1.2.0-x64.msi /qn `
+  POSTGRES_DB_HOST=db01 POSTGRES_DB_PASSWORD="…" `
+  POSTGRES_ADMIN_PASSWORD="…" `
+  REDIS_DB_HOST=localhost `
+  POSTGRES_BIN_PATH="C:\Program Files\PostgreSQL\18\bin" `
+  TASKMASTER_PUBLIC_URL="https://taskmaster.example.com"
 ```
 
-Pour un déploiement MSI silencieux, utiliser
-`TASKMASTER_PUBLIC_URL="https://taches.exemple.fr"` avec les autres propriétés
-requises pour PostgreSQL et Redis. Cette URL est transmise aux valeurs
-`FRONTEND_URL`, `BACKEND_URL` et `CORS_ORIGIN` lors de la création initiale du
-`.env`, ainsi qu'au raccourci du menu Démarrer. Elle ne change pas le port
-interne du service et ne configure ni reverse proxy ni certificat TLS.
+## Public URL and passkeys
 
-Une mise à jour conserve le `.env` existant, même si une autre URL est transmise
-à l'installateur. Le raccourci réutilise alors l'URL publique existante. Pour
-modifier une adresse déjà installée, suivre la
-[configuration passkey](authentication.md#passkeys--url-publique-et-service-windows).
+Set **Public URL** when users open Taskmaster with another address than `http://localhost:3000`, for example `https://taskmaster.example.com`: scheme and host only, no path or parameters. URLs with credentials, a path or parameters are refused before anything is installed.
 
-Vérifications sur une VM Windows avant livraison :
+The URL fills `FRONTEND_URL`, `BACKEND_URL` and `CORS_ORIGIN` when the `.env` is first created, and the Start menu shortcut. It does not change the internal port and does not set up a reverse proxy or a TLS certificate. Taskmaster can also serve HTTPS itself with `TLS_CERT_FILE` and `TLS_KEY_FILE` (see [Configuration](configuration.md#server-and-urls)).
 
-- Installer avec une URL HTTPS publique ; vérifier le `.env`, le raccourci et
-  l'enrôlement passkey depuis cette adresse avec un certificat approuvé.
-- Mettre à jour avec une autre valeur d'URL : la configuration et le raccourci
-  doivent conserver l'adresse précédente.
-- Installer sans URL publique : l'accès local habituel doit fonctionner.
-- Vérifier qu'une URL avec identifiants, chemin ou paramètres est refusée avant
-  le provisionnement de la base.
+An update keeps the existing `.env`, even when another URL is given. To change the address of an installed server, see [Authentication → Passkeys](authentication.md#passkeys-need-a-stable-domain).
 
-Le script `installer/test-public-url.ps1` vérifie la résolution et la validation
-des URL sans installer de service ni modifier la configuration du poste.
+## Folders
 
-## Emplacements sur disque
-
-```
+```text
 C:\Program Files\Taskmaster\
-  app\            (fichiers applicatifs — immuables, remplacés à chaque mise à niveau)
-  runtime\node\   (runtime Node.js 24 LTS x64 portable — jamais installé globalement, PATH système non modifié)
-  service\        (WinSW + descripteur de service)
+  app\            application files, replaced at every update
+  runtime\node\   Node.js 24 runtime (the system PATH is not changed)
+  service\        WinSW and the service definition
 
 C:\ProgramData\Taskmaster\
-  config\.env     (configuration + secrets — lecture restreinte à Administrateurs, SYSTEM, compte du service)
-  data\
+  config\.env     configuration and secrets (readable by Administrators, SYSTEM and the service only)
   public\uploads\
   storage\procedures\
+  storage\evidence\
   backups\
   logs\
 ```
 
-`C:\ProgramData\Taskmaster\config\.env` est créé **une seule fois**, à la
-première installation, et n'est plus jamais recréé ni écrasé (réparation
-MSI, mise à niveau) — voir `installer/common/Taskmaster.Common.psm1`
-(`New-EnvFileIfMissing`).
+`config\.env` is created once, at the first installation. A repair or an update never rewrites it.
 
-## Sauvegarde et restauration
+The installation and data folders are recorded in `HKLM\SOFTWARE\Taskmaster` (`InstallDir`, `DataDir`). An update starts from the existing folders. To pick another data folder:
 
-Les sauvegardes/restaurations PostgreSQL utilisent `pg_dump.exe`/
-`pg_restore.exe` (chemin absolu dans `PG_BIN_PATH`) via `execFile`/`spawn`
-avec des tableaux d'arguments — jamais de chaîne shell contenant
-`DATABASE_URL`. Aucun repli Docker n'existe sur ce chemin d'installation
-Windows.
+```powershell
+msiexec /i Taskmaster-<version>-x64.msi TASKMASTERDATAROOT="D:\Taskmaster\data"
+```
 
-## Mise à niveau
+## Updates
 
-Une mise à niveau MSI (`MajorUpgrade` dans `installer/wix/Product.wxs`) :
-arrête proprement le service, conserve `ProgramData` (config, uploads,
-procédures, sauvegardes, base de données), effectue une sauvegarde
-PostgreSQL avant migration, applique `prisma migrate deploy`, redémarre,
-contrôle `/api/health` — **sans jamais régénérer les secrets**.
+Run the new MSI over the installed one. The update:
+1. stops the service;
+2. replaces the files under `Program Files`;
+3. keeps `ProgramData` (configuration, uploads, procedures, evidence, backups) and the secrets;
+4. applies the migrations and restarts the service.
 
-Une réparation MSI (`msiexec /fa`) ne touche jamais `.env` (ce fichier n'est
-délibérément jamais un composant MSI).
+Back up from Settings → Backup before updating. A repair (`msiexec /fa`) never touches `.env`.
 
-## Désinstallation
+To change a setting of an installed server, edit `C:\ProgramData\Taskmaster\config\.env`, then restart the service.
 
-- **Désinstallation par défaut** (menu "Programmes et fonctionnalités" ou
-  `msiexec /x`) : arrête et supprime uniquement le service Taskmaster,
-  retire les fichiers de `Program Files` et le raccourci. **Conserve**
-  `ProgramData`, PostgreSQL, Memurai et la base de données.
-- **Purge complète** (`installer/purge/purge-full.ps1`, à exécuter
-  manuellement — il n'y a délibérément aucun raccourci automatique vers ce
-  script) : supprime `ProgramData\Taskmaster` et, uniquement après
-  confirmation explicite du nom et de l'emplacement de la base, une base
-  PostgreSQL **locale**. Ce script ne supprime **jamais** une base externe.
+## Backups
 
-## Export PDF hors ligne
+- Archives go to `C:\ProgramData\Taskmaster\backups` by default, or to `TASKMASTER_BACKUP_PATH` (a local path or a UNC share, created and checked before installation).
+- On an installed server, change `BACKUP_STORAGE_PATH` in `.env`. Existing archives are not moved: copy the `*.enc` files yourself.
+- Backups run `pg_dump.exe` and `pg_restore.exe` from `PG_BIN_PATH`. Left empty, the newest version under `C:\Program Files\PostgreSQL` is used. When the database is on another server, install the client tools of the same major version here.
+- The service runs as `LocalSystem`. For a network share, grant write access to the server's machine account (`DOMAIN\SERVER$`): drives mapped in a user session are not visible to the service.
 
-`AnalyticsPdfService` génère le PDF directement en JavaScript (pdfkit) : aucun
-navigateur (ni Edge, ni Chromium) n'est requis et aucune police ni ressource
-externe n'est chargée, ce qui permet l'export PDF sans connexion Internet.
+More in [Troubleshooting](troubleshooting.md#a-backup-fails).
 
-## `OFFLINE_MODE`
+## Offline mode
 
-`OFFLINE_MODE=true` désactive les vérifications automatiques de mise à jour
-via l'API GitHub / Docker Hub (`backend/src/system/version.service.ts`).
-Les intégrations externes explicitement configurées par un administrateur
-(SSO, SMTP, etc.) restent disponibles.
+The MSI writes `OFFLINE_MODE=true` by default: Taskmaster never calls GitHub to check for updates. SSO, SMTP and other integrations configured by an administrator still work.
 
-Le MSI écrit `OFFLINE_MODE=true` par défaut (aucun appel sortant vers GitHub).
-Pour activer les vérifications de mise à jour, décocher « Mode hors ligne » dans
-l'écran de configuration, ou en ligne de commande :
+To keep update checks, untick **Offline mode** in the dialog, or:
 
 ```powershell
 msiexec /i Taskmaster-<version>-x64.msi TASKMASTER_OFFLINE_MODE=""
 ```
 
-Le fichier `.env` n'est jamais réécrit lors d'une mise à jour : sur une
-installation existante, modifier `OFFLINE_MODE` dans
-`C:\ProgramData\Taskmaster\config\.env` puis redémarrer le service.
+On an installed server, change `OFFLINE_MODE` in `.env` and restart the service. PDF export works offline: it needs no browser and no external resource.
 
-## Mise à jour : retrouver l'emplacement existant
+## Uninstall
 
-Le MSI enregistre le dossier d'installation et le dossier de données dans
-`HKLM\SOFTWARE\Taskmaster` (`InstallDir`, `DataDir`). Lors d'une mise à jour, la page
-« dossier d'installation » démarre sur l'emplacement existant au lieu de
-`C:\Program Files\Taskmaster`, et reste modifiable ; le dossier de données (qui contient
-`config\.env`) est retrouvé tel quel. Pour le changer en ligne de commande :
-`msiexec /i Taskmaster-<version>-x64.msi TASKMASTERDATAROOT="D:\Taskmaster\data"`.
-Une valeur dont le dossier n'existe plus est ignorée et le défaut s'applique. Les
-installations faites avec une version antérieure à la 1.1.10 n'ont pas encore cette
-valeur : choisir le dossier une fois dans l'assistant lors de la première mise à jour.
+**Programs and Features**, or `msiexec /x`:
+- removes the service, the `Program Files` folder and the shortcut;
+- keeps `ProgramData`, PostgreSQL, Redis and the database.
 
-## Sauvegardes : dossier des archives (`BACKUP_STORAGE_PATH`)
+`installer\purge\purge-full.ps1` removes everything, and must be run by hand:
+- it deletes `ProgramData\Taskmaster`;
+- it deletes a **local** database only after you confirm its name and location;
+- it never deletes a database on another server.
 
-Par défaut les archives sont écrites dans `C:\ProgramData\Taskmaster\backups`. Pour
-un autre emplacement (autre disque, partage réseau) :
+## Build the MSI
 
-- **à l'installation** : `msiexec /i Taskmaster-<version>-x64.msi TASKMASTER_BACKUP_PATH="D:\Sauvegardes"`
-  (chemin absolu ou partage UNC ; le dossier est créé et vérifié avant l'installation) ;
-- **sur une installation existante** : modifier `BACKUP_STORAGE_PATH` dans
-  `C:\ProgramData\Taskmaster\config\.env`, puis redémarrer le service. Les archives déjà
-  créées ne sont pas déplacées : copier les fichiers `*.enc` vers le nouveau dossier.
-
-Le service tourne sous `LocalSystem` : un disque local convient sans réglage. Pour un
-partage, utiliser un chemin UNC et donner les droits d'écriture au compte machine du
-serveur (`DOMAINE\NOMSERVEUR$`), car un lecteur réseau monté dans une session n'est pas
-visible du service.
-
-## Sauvegardes : dossier des outils PostgreSQL (`PG_BIN_PATH`)
-
-Les sauvegardes et restaurations lancent `pg_dump.exe` et `pg_restore.exe`.
-Le service Windows ne les trouve pas dans son `PATH` : le MSI propose donc le champ
-« Dossier bin PostgreSQL » (ex. `C:Program FilesPostgreSQL8in`), écrit dans
-`PG_BIN_PATH`. Laissé vide, le backend cherche la version la plus récente sous
-`C:Program FilesPostgreSQL`. Si la base est sur un autre serveur, installer les
-outils clients PostgreSQL (même version majeure que la base) sur cette machine et
-renseigner leur dossier. Sur une installation existante, modifier `PG_BIN_PATH` dans
-`C:ProgramDataTaskmasterconfig.env`, puis redémarrer le service.
-
-## Construire les installeurs
-
-Sur une machine de build **Windows x64** (jamais Linux — les binaires
-natifs Prisma/bcrypt doivent être compilés/téléchargés pour Windows) :
+On a Windows x64 build machine (the native Prisma and bcrypt binaries must be the Windows ones):
 
 ```powershell
 cd installer
-.\build.ps1
+.\build.ps1          # add -Sign to sign the MSI with Authenticode
 ```
 
-Voir `installer/build.ps1` pour le détail des étapes (npm ci, génération
-Prisma, typecheck/tests/lint, build, staging, téléchargement du runtime
-Node/WinSW avec vérification SHA-256, construction MSI puis Setup.exe,
-sommes de contrôle finales, signature Authenticode optionnelle). Voir
-`installer/payloads/README.md` pour la gestion des paquets tiers
-(PostgreSQL auto-téléchargé, Memurai à fournir manuellement pour des raisons
-de licence).
+`build.ps1` runs:
+1. `npm ci`, Prisma generation, typecheck, tests and lint;
+2. the build and staging;
+3. the download of Node.js and WinSW, verified by SHA-256;
+4. the MSI build and the `SHA256SUMS` file.
 
-## Tester une installation
+The **Build Windows installer candidate** workflow does the same on GitHub Actions and uploads an unsigned test MSI.
 
-Le build actuel produit un MSI pour des prérequis déjà installés. Suivre la
-[recette du candidat Windows](windows-release-checklist.md) et utiliser
-`installer/verify-installation.ps1` après installation ou mise à jour.
-La commande historique ci-dessous concerne uniquement un ancien `Setup.exe`.
+## Test an installation
 
-
-```powershell
-.\installer\test-install.ps1 -SetupExePath 'C:\...\Taskmaster-Setup-1.1.3-x64.exe'
-```
-
-Automatise la checklist de contrôle de santé ci-dessus, ainsi que les
-scénarios de mise à niveau et de désinstallation par défaut. N'exécutez ce
-script que sur une VM jetable — il installe de vrais services Windows.
-
-## Limites connues / ce qui doit être validé sur une vraie machine Windows
-
-Les fichiers WiX sont contrôlés statiquement et les fonctions de résolution
-d'URL sont testées avec PowerShell 7 dans l'environnement Linux de développement.
-Le workflow de qualité prévoit aussi leur exécution avec Windows PowerShell.
-Ces contrôles ne valident pas la construction du MSI ni l'installation des
-services. Doivent être validés sur un Windows Server 2019 x64 réel avant
-toute mise en production :
-
-- La construction effective du `.msi`/`.exe` (`installer/build.ps1`) et en
-  particulier la stratégie de `node_modules` de production sous npm
-  workspaces (voir le commentaire dans `build.ps1`, étape 7).
-- Le chargement du module natif `bcrypt` sous le runtime Node embarqué
-  (repli documenté : `bcryptjs` si aucun binaire précompilé n'est
-  disponible pour la version Windows/Node ciblée).
-- L'exécution réelle de `Setup.exe` : installation silencieuse de
-  PostgreSQL/Memurai, installation du service WinSW, droits du compte
-  `NT AUTHORITY\LocalService` sur `ProgramData\Taskmaster` (repli documenté :
-  compte de service dédié à faibles privilèges si LocalService s'avère
-  insuffisant).
-- Les scénarios de mise à niveau, réparation et désinstallation.
-- Le comportement réel du pare-feu (aucune règle pour 5432/6379, une seule
-  règle pour le port applicatif en mode LAN).
+Follow the [Windows release checklist](windows-release-checklist.md) on a throwaway VM. After an installation or an update, run `installer\verify-installation.ps1`: it checks the service, the HTTP health, the PostgreSQL tools, the version and the kept configuration, without changing anything. `installer\test-public-url.ps1` checks the public URL validation, without installing anything.

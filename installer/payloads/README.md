@@ -1,6 +1,9 @@
 # installer/payloads/
 
-Third-party installers that `installer/build.ps1` chains into `Setup.exe`.
+> [!NOTE]
+> `build.ps1` now builds the MSI only, which expects PostgreSQL and Redis to be installed already. This folder is only used by the former `Setup.exe` path (`Bundle.wxs` and the `provision/` scripts), kept for reference.
+
+Third-party installers that the former `Setup.exe` chained before the MSI.
 This directory holds **binary payloads only** — never commit the actual
 installer binaries to git (`.gitignore` excludes `*.exe`/`*.msi` here, keeping
 only this README and `checksums.sha256`).

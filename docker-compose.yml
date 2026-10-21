@@ -1,6 +1,6 @@
-# Stack Taskmaster : image fullstack (API + SPA) + Postgres + Redis.
-# Toutes les chaînes (URLs, identifiants) viennent du fichier .env - aucune valeur en dur ici.
-# Copier .env.docker.example vers .env et renseigner les variables.
+# Taskmaster stack: fullstack image (API + web app) + Postgres + Redis.
+# Every value (URLs, credentials) comes from the .env file - nothing is hard-coded here.
+# Copy .env.docker.example to .env and fill in the variables.
 
 name: taskmaster
 

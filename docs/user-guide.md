@@ -1,217 +1,147 @@
-# Guide utilisateur Taskmaster
+# User guide
 
-Ce guide décrit l’usage quotidien de Taskmaster : consulter le tableau de bord, valider ou signaler une tâche, utiliser les délégations et la liste des tâches à faire (todos).
+Day-to-day use of Taskmaster: the task board, validating and reporting tasks, checklists, corrective actions, delegations, the Todo module and the analytics.
 
----
+## Concepts
 
-## Tableau de bord (page d’accueil)
+- A **task definition** describes recurring work: its name, procedure, schedule, time window, priority and the people or groups assigned to it.
+- From each definition, Taskmaster generates **occurrences**: one per scheduled date. They are what you validate on the task board.
+- An occurrence has one of four statuses:
 
-Après connexion, la page **Tableau de bord** (`/tasks`) affiche toutes les occurrences de tâches dans quatre blocs :
+| Status | Meaning |
+| --- | --- |
+| Running | To do, within its time window |
+| Validated | Done |
+| Failed | Done, with a problem reported |
+| Missing | Not done before the end of its window. Taskmaster sets this status by itself. |
 
-- **En retard** : tâches dont la date de réalisation est passée et qui n’ont pas encore été validées, échouées ou marquées manquantes.
-- **Aujourd’hui** : tâches à faire aujourd’hui (dans la fenêtre horaire configurée).
-- **À venir** : prochaines occurrences à venir.
-- **Terminées** : tâches déjà validées (SUCCESS), échouées (FAILED) ou manquées (MISSING). L’affichage des terminées peut être activé/désactivé via un interrupteur en haut de page.
+## Task board
 
-Chaque ligne correspond à **une occurrence** d’une tâche (une date donnée). Vous y voyez notamment :
+The **Task Board** (`/tasks`) is the home page.
 
-- Le nom de la tâche et sa description.
-- Le type de récurrence (daily, weekly, monthly, etc.) et la priorité (LOW, MEDIUM, HIGH, CRITICAL).
-- La plage de date/heure dans laquelle la tâche doit être réalisée.
-- Les utilisateurs ou groupes assignés.
-- Le statut actuel (En cours, Validé, Échoué, Manquée).
-- Un lien ou bouton pour ouvrier/télécharger la procédure associée.
+- **Header tiles**: overall progress, then the number of tasks in progress, urgent and completed. A task is *urgent* when its window ends within the hour.
+- **Filters**: period (Today, 7d, 30d, 90d or a date range), text search, user and group. **Saved views** stores a set of filters under a name.
+- **Compact layout** shows more rows on screen.
+- **Completed** shows the occurrences already validated, failed or missing.
 
-Des **filtres** (utilisateur, groupe, site, recherche texte) permettent de restreindre la liste. Le **mode TV** adapte l’affichage pour un écran mural (rafraîchissement automatique, mise en page simplifiée).
+Each row shows:
+- the periodicity, status and priority;
+- the task name and description;
+- the assignees and the time window;
+- three actions: open the procedure, **validate** (✓) and **report a failure** (✕).
 
----
+### Validate a task
 
-## Valider une tâche (marquer comme effectuée)
+Click the green check (✓) on the row. Without a checklist, the occurrence becomes **Validated** immediately. With a checklist, a dialog asks for the steps first. The action is recorded in the audit log and counted in the analytics.
 
-1. Sur le tableau de bord, repérez une tâche dont le statut est **En cours** (badge « En cours »).
-2. Cliquez sur l’icône **coche verte** (✓) en fin de ligne.
-3. La tâche passe immédiatement au statut **Validé** et est déplacée dans le bloc **Terminées** (si l’affichage des terminées est activé).
+### Report a failure
 
-Aucun commentaire n’est demandé pour une validation simple. L’action est enregistrée dans l’audit et prise en compte dans les analytiques (taux de conformité, tendances).
+Click the red cross (✕), describe the problem (required) and confirm. The occurrence becomes **Failed**. Managers and administrators see the reason in the reports and the audit log.
 
----
+### TV mode
 
-## Signaler une tâche en échec (non conforme)
+**TV mode** shows the board full screen for a wall display. It refreshes by itself.
 
-1. Sur le tableau de bord, pour une tâche **En cours**, cliquez sur l’icône **croix rouge** (✕).
-2. Une fenêtre s’ouvre pour saisir un **commentaire** (obligatoire) décrivant la non-conformité ou la raison de l’échec.
-3. Validez. La tâche passe au statut **Échoué** et rejoint le bloc **Terminées**.
+For a screen that stays signed in without a personal account, an administrator creates a guest link in **Settings → Security → Guest TV Links**. A guest is read-only and sees only its site.
 
-Le commentaire est visible par les managers et administrateurs et reste associé à cette occurrence dans les rapports et l’audit.
+## Checklists and evidence
 
----
+A task definition can hold an **execution checklist** of up to 50 steps:
+- step types: checkbox, text, measurement or photo;
+- each step is required or optional;
+- with an empty checklist, validation stays a single click.
 
-## Marquer une tâche comme manquée
+When you validate, every required step must be completed. A measurement of zero is a valid answer. Photos must be PNG, JPEG or WebP, up to 5 MB: wait until a photo is saved before validating. Photos are never public. Downloading one requires access to the task and its site.
 
-Une occurrence **En cours** peut être marquée **Manquée** (non réalisée dans les délais) soit :
+The **Execution report** of a finished occurrence shows the answers and the step labels as they were at execution time, even if the checklist changed since. If the server refuses a validation, the answers already typed stay in the dialog.
 
-- Par un administrateur via l’action dédiée (édition de statut depuis le tableau de bord ou l’interface d’administration),  
-- Soit en la signalant en **Échoué** avec un commentaire du type « Non réalisée » si votre organisation utilise ce convention.
+## Corrective actions
 
-Selon la configuration des notifications, les alertes (email, web push) peuvent être déclenchées pour les tâches en retard ou manquées.
+When you report a failure, the checklist can stay incomplete. Tick **Create a corrective action** to describe the work needed and, optionally, a due date:
+- the action is assigned to you, but a manager can pick another active member of the same site;
+- the failed check and the action are saved together;
+- a retry does not create a second action for the same occurrence.
 
----
+The **Corrective actions** page lists open and closed actions.
+- **Who sees what**: you see the actions you own or created; managers see those of their sites.
+- **Closing**: the owner or a manager closes an action by describing the resolution, and can reopen it. Closing keeps the original check as failed.
+- **Search and filters**: search covers the action title, the task name and the owner. **My actions** keeps the actions you own. **Overdue only** keeps open actions whose due date is before today. Actions due today or without a due date are not overdue.
+- **Sorting and pages**: results are sorted by due date, actions without one last, 50 per page.
 
-## Délégations de tâches
+## Delegations
 
-Une **délégation** permet de confier temporairement une tâche à d’autres utilisateurs ou groupes : ils deviennent responsables de la réalisation (et de la validation/échec) pendant la période indiquée.
+A delegation hands a task to other users or groups for a period, for example during leave. They then see it on their board and can validate it.
 
-### Créer une délégation
+1. Open **Task Definitions**, then the task.
+2. Open **Delegations** and click **New Delegation**.
+3. Set the start and end, the users and/or groups, and optionally a reason (for example *Annual leave*).
+4. Click **Create Delegation**.
 
-1. Allez dans **Définitions de tâches** (`/task-definitions`).
-2. Ouvrez la fiche de la tâche concernée (clic sur la ligne ou « Détail »).
-3. Ouvrez le panneau **Délégations** (bouton ou onglet prévu à cet effet).
-4. Cliquez sur **Ajouter une délégation** (ou équivalent).
-5. Renseignez :
-   - **Date de début** et **date de fin** de la délégation.
-   - **Bénéficiaires** : un ou plusieurs utilisateurs et/ou groupes.
-   - **Raison** (optionnel) : congés, absence, réorganisation, etc.
-6. Validez. Les utilisateurs ciblés verront la tâche dans leur tableau de bord pendant la période.
+The same panel lists active and planned delegations. Removing one gives the task back to its usual assignees.
 
-### Consulter et supprimer des délégations
+## Create a task
 
-Dans le même panneau Délégations, la liste des délégations en cours et passées est affichée. Vous pouvez supprimer une délégation si vous avez les droits nécessaires ; la tâche revient alors aux assignations « normales » (utilisateurs ou groupes définis sur la définition de tâche).
+**Task Definitions → Add Task** opens a five-step wizard. Super admins and managers can create and edit tasks:
 
----
+| Step | What you set |
+| --- | --- |
+| 1. Definition | Name, priority, procedure (link or file), description, periodicity (daily, weekly, monthly, yearly or custom) and an optional checklist |
+| 2. Scheduling | Start date, skip weekends and holidays, interval, time zone, due offset, recurrence mode (on schedule, or from the last completion) and the time window |
+| 3. Assignment | Users and/or groups |
+| 4. Notifications | Channels, and when to alert: on failure, when missed, or as a reminder before the due time |
+| 5. Review & Create | Summary and the next five occurrences |
 
-## Liste des tâches à faire (Todos)
+Examples of schedules are in [Use cases](use-cases.md).
 
-La section **Todos** (accessible depuis le menu) affiche une liste personnelle et éventuellement collective de tâches à faire. Elle complète le tableau de bord en offrant une vue plus « checklist » pour suivre l’avancement au quotidien. Les tâches cochées sont synchronisées avec les statuts du tableau de bord lorsque cela s’applique.
+## Todo
 
----
+**Todo** is a lightweight checklist, separate from the recurring tasks:
+- a **Private** list, and a **Collective** list shared with a group or the whole site;
+- due dates, priorities (low, normal, high, urgent), subtasks and recurrence;
+- reminders by email or push notification, set under **Reminders**;
+- **History** lists everything ticked in the private or collective list.
 
-## Analytiques et conformité
+Quick add reads the date, time and priority from what you type:
 
-La page **Analytiques** (`/analytics`) est réservée aux rôles avec droits (hors invités). Elle affiche notamment :
+```text
+Call the supplier @tomorrow @14:30 !urgent
+```
 
-- **Vue d’ensemble** : nombre de tâches validées, échouées, manquées, en cours, et taux de conformité sur la période choisie.
-- **Tendances** : courbes d’évolution (par jour ou par semaine) des succès, échecs et manquées.
-- **Par tâche** et **par utilisateur** : performance et conformité par définition de tâche ou par utilisateur.
+| Token | Examples |
+| --- | --- |
+| Priority | `!low` `!normal` `!high` `!urgent` |
+| Day | `@today` `@tomorrow` `@monday` `@+3d` `@+2w` `@2026-11-02` `@02/11` |
+| Time | `@14:30` `@9h` |
 
-Vous pouvez exporter les données (CSV, PDF) selon les options disponibles dans l’interface.
+Anything else stays in the title. The French words (`@demain`, `!haute`…) work too. An administrator can turn the module off in Settings → General.
 
----
+## Analytics
 
-## Profil et paramètres
+**Analytics** (`/analytics`):
+- **Overview**: compliance rate against the goal, success, failure and missing counts, a status trend by day or week, and the tasks below the goal under **Needs attention**;
+- **By task**: ranking of the tasks over the selected period;
+- **By user** (managers and super admins): ranking of the users;
+- **Reports** (managers and super admins): export to CSV or PDF;
+- **TV mode**: a full-screen layout for a 1080p wall screen, refreshed every 30 seconds.
 
-- **Profil** (`/profile`) : consultez et modifiez vos informations (nom, mot de passe, préférences). Selon la configuration, l’authentification à deux facteurs (MFA) et les passkeys peuvent être gérés depuis cette page.
-- **Paramètres** (`/settings`) : réservés aux administrateurs. Ils regroupent la configuration générale, l’authentification (SSO, LDAP, etc.), les notifications, les sauvegardes et les exports.
-
----
-
-## Raccourcis utiles
-
-| Action | Où |
-|--------|-----|
-| Voir toutes mes tâches du jour | Tableau de bord (`/tasks`) |
-| Valider une tâche | Coche verte sur la ligne (tableau de bord) |
-| Signaler un échec | Croix rouge sur la ligne → commentaire |
-| Créer une nouvelle tâche récurrente | Définitions de tâches → Nouvelle tâche (wizard 5 étapes) |
-| Déléguer une tâche | Fiche de la tâche → Délégations → Ajouter |
-| Consulter les stats | Analytiques (`/analytics`) |
-
-Pour toute question sur les droits (rôles, sites, groupes), contactez votre administrateur Taskmaster.
-
-
-## Checklists, preuves et actions correctives
-
-Dans la définition ou la modification d’une tâche, la section **Checklist d’exécution**
-permet d’ajouter jusqu’à 50 étapes : case à cocher, texte, mesure numérique ou photo.
-Chaque étape peut être obligatoire ou facultative. Une checklist vide conserve la
-validation habituelle en un clic. Les libellés des étapes doivent être renseignés.
-
-Depuis le tableau, **Valider** ouvre la saisie des étapes lorsqu’une checklist est
-configurée. Toutes les étapes obligatoires doivent être complétées pour réussir le
-contrôle. Une mesure de zéro est une réponse valide. Les photos acceptées sont les
-PNG, JPEG et WebP de 5 Mo maximum ; attendre leur enregistrement avant de valider.
-Les photos ne sont pas publiées par URL publique : leur téléchargement nécessite
-un accès authentifié à la tâche et à son site.
-
-Le bouton **Compte rendu** d’une occurrence terminée présente les réponses et les
-libellés enregistrés au moment de l’exécution, même si la définition de la checklist
-a changé depuis. Les réponses déjà saisies restent dans la fenêtre si la validation
-est refusée par le serveur.
-
-Lors d’un échec, les étapes peuvent rester incomplètes. Cocher **Créer une action
-corrective** permet de préciser le travail à réaliser et une échéance facultative.
-L’action est attribuée à la personne qui la crée ; un manager peut choisir un autre
-membre actif du même site. Le contrôle échoué et l’action sont enregistrés ensemble.
-Une relance ne crée pas une deuxième action pour la même occurrence.
-
-La page **Actions correctives** affiche les actions ouvertes et clôturées. Une
-personne voit les actions dont elle est responsable ou qu’elle a créées ; les
-managers supervisent celles de leurs sites. Le responsable ou un manager peut
-clôturer une action en décrivant sa résolution, ou la rouvrir. La clôture conserve
-le statut d’échec du contrôle d’origine.
-
-### Déploiement de cette évolution
-
-La migration `20261016000000_task_execution` ajoute des colonnes et des tables sans
-supprimer de données. Elle doit être appliquée au déploiement de la version qui
-utilise ces fonctions. Les tâches existantes reçoivent une checklist vide.
-
-Les photos sont conservées dans `storage/evidence` sous `TASKMASTER_DATA_DIR`.
-Les sauvegardes complètes incluent ce dossier. Les configurations Docker déclarent
-un volume `app_evidence` ; l’installateur Windows crée le dossier et donne les droits
-au compte `LocalService`. Pour une installation personnalisée, le dossier doit être
-persistant et accessible en écriture au compte du service. Les métadonnées seules
-sont dans PostgreSQL : une sauvegarde DB seule ne contient pas les fichiers photo.
-
-Les tests PostgreSQL de ce parcours utilisent une base de test distincte nommée
-`taskmaster_execution_test`, explicitement fournie via
-`TASKMASTER_EXECUTION_TEST_DATABASE_URL`. Ils se lancent avec
-`npm -w backend run test:execution:postgres`.
-
-### Vues enregistrées et affichage compact
-
-Le tableau permet d’enregistrer une vue nommée avec ses filtres, sa période,
-l’affichage des tâches terminées et son mode compact. Les périodes prédéfinies
-restent relatives au jour de réapplication ; les périodes personnalisées conservent
-leurs dates. Les vues peuvent être appliquées ou supprimées depuis le dialogue.
-Elles sont enregistrées dans ce navigateur, séparément pour chaque compte et site,
-et ne sont pas partagées entre postes. Un message signale un stockage indisponible.
-Le mode compact réduit l’espace occupé par les lignes sans retirer les actions.
-Le mode TV conserve sa présentation habituelle.
-
-### Suivre les actions correctives
-
-La page Actions correctives permet de rechercher dans le titre de l’action,
-le nom de la tâche ou celui du responsable. Le filtre **Mes actions** conserve
-les actions dont vous êtes responsable. **En retard uniquement** affiche les
-actions ouvertes dont l’échéance précède la date du jour dans votre navigateur ;
-les actions sans échéance et celles dues aujourd’hui ne sont pas considérées
-en retard. Les résultats sont triés par échéance, les actions sans échéance
-apparaissant en dernier.
-
-La liste est paginée par 50 résultats, avec le nombre total correspondant aux
-filtres. Les recherches portent sur toutes les actions autorisées, y compris
-au-delà des 500 premières. Les droits par utilisateur et par site restent
-appliqués par le serveur. Une clôture ramène à la première page des résultats.
-
-### Modifier son profil
-
-Depuis le profil, vous pouvez modifier votre nom affiché et l’enregistrer.
-Le rôle et l’adresse e-mail restent administrés séparément. En cas d’échec,
-la saisie reste présente pour permettre une nouvelle tentative.
-
-L’état MFA affiché correspond au compte connecté. Après une activation ou une
-désactivation, la fermeture du dialogue actualise le profil. Les codes de
-récupération ne sont affichés qu’au moment de l’activation : conservez-les
-avant de fermer le dialogue.
-
-### Navigation et accès aux pages d’administration
-
-Les liens Paramètres et Journal d’audit sont affichés aux super administrateurs.
-L’ouverture directe des pages Paramètres, Sauvegardes ou Administration avec
-un autre rôle affiche un message d’accès non autorisé et un lien de retour au
-tableau de bord. Les autorisations restent également contrôlées par le serveur.
-
-Le titre, le logo, le thème et les options d’affichage de l’application sont
-chargés depuis les paramètres publics pour tous les rôles. Leur affichage ne
-nécessite pas de charger la configuration administrative ni l’état du serveur
-mail. Les changements enregistrés dans les paramètres actualisent l’habillage.
+## Profile
+
+Open the account menu, then **Profile**, to:
+- change your display name and password;
+- set up MFA and passkeys.
+
+Todo reminder preferences are under **Todo → Reminders**.
+
+Your role and email address are managed by an administrator. The MFA recovery codes are shown only once, when you enable MFA: keep them before closing the dialog.
+
+## Who sees what
+
+| Page | Super Admin | Manager | User | Guest |
+| --- | --- | --- | --- | --- |
+| Task Board, Todo, Corrective actions | ✓ | ✓ | ✓ | Board only |
+| Analytics | ✓ | ✓ | Without By user and exports | Through an analytics guest link |
+| Task Definitions | ✓ | ✓ | Read only | |
+| Settings | ✓ | Users only | | |
+| Audit Log | ✓ | | | |
+
+Opening a page your role does not allow shows an "access denied" message. The server enforces the same rules.

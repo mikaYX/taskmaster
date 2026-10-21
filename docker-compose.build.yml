@@ -1,9 +1,9 @@
-# Même stack que docker-compose.yml mais l'app est construite localement (build) au lieu de l'image du registry.
-# Pour tester les changements sans push/pull. Utilise le même .env.
+# Same stack as docker-compose.yml, but the app is built locally instead of pulled from the registry.
+# To test changes without push/pull. Uses the same .env.
 #
-# Persistance : idem docker-compose.yml (volumes postgres_data, redis_data, app_*).
-# Pour ne pas revoir l'assistant de setup à chaque « up » : ne jamais lancer « down -v » (garder les volumes).
-# Même name que docker-compose.yml pour réutiliser les mêmes volumes.
+# Persistence: same as docker-compose.yml (volumes postgres_data, redis_data, app_*).
+# To avoid going through the setup wizard on every "up": never run "down -v" (keep the volumes).
+# Same project name as docker-compose.yml, to reuse the same volumes.
 #
 # Usage: docker compose -f docker-compose.build.yml up --build -d
 

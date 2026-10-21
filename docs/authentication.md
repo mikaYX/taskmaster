@@ -1,163 +1,151 @@
-# Guide d'authentification
+# Authentication
 
-Ce guide explique comment choisir, configurer et valider les mécanismes d'authentification pris en charge par Taskmaster.
+Taskmaster supports local accounts and several single sign-on (SSO) methods. All of them are configured by a super administrator in **Settings → Authentication**, except the public URLs, which come from environment variables.
 
-## Contexte
+| Method | Typical use |
+| --- | --- |
+| Local accounts | Built-in accounts with a password. Keep at least one as a fallback when SSO is unavailable. |
+| LDAP | Active Directory or another directory |
+| Azure AD / Microsoft Entra ID | Microsoft 365 organizations |
+| Google Workspace | Google accounts, optionally limited to one domain |
+| Generic OIDC | Keycloak, Auth0, Okta or any OpenID Connect provider |
+| Generic SAML 2.0 | Enterprise SSO that requires SAML |
 
-Taskmaster prend en charge plusieurs modes d'authentification pour s'adapter aux environnements internes comme aux fournisseurs d'identité externes :
+Taskmaster has one generic provider, set to either OIDC or SAML.
 
-| Méthode | Cas d'usage principal | Niveau d'effort | Niveau de sécurité |
-| --- | --- | --- | --- |
-| `Local` | compte administrateur interne ou usage simple | faible | élevé si les secrets sont bien gérés |
-| `OIDC générique` | Keycloak, Auth0, Okta, fournisseur OpenID Connect | moyen | élevé |
-| `Google OAuth` | Google Workspace ou comptes Google | faible à moyen | élevé |
-| `Azure AD / Entra ID` | Microsoft 365 et annuaires Azure | moyen | élevé |
-| `SAML 2.0` | SSO d'entreprise historique | élevé | élevé |
-| `LDAP` | Active Directory ou annuaire interne | moyen | moyen à élevé selon l'infra |
+On top of any method: TOTP multi-factor authentication (MFA), passkeys (WebAuthn), and per-role requirements for both.
 
-Le choix dépend surtout du fournisseur d'identité existant, du niveau d'intégration souhaité et de la stratégie de gestion des comptes.
+## Roles
 
-## Pré-requis
+| Role | Can |
+| --- | --- |
+| Super Admin | Everything: settings, sign-in methods, backups, sites, task deletion and the audit log |
+| Manager | Create and edit tasks and schedules, manage the users of their sites (Settings shows them only the users part), see the analytics |
+| User | Validate and report their tasks, view the task definitions, use the Todo module |
+| Guest | A read-only wall screen (task board or analytics) of one site, opened through a guest link |
 
-- Disposer d'une instance Taskmaster accessible publiquement si vous utilisez un SSO externe.
-- Connaître l'URL publique du backend et celle du frontend.
-- Pouvoir modifier la configuration d'authentification dans l'application.
-- Avoir un administrateur capable de valider un test de connexion.
+Guest accounts are created from **Settings → Security → Guest TV Links**, one link per site and per screen. A guest can only call the endpoints its screen needs.
 
-## Étapes
+## Public URLs
 
-### Définir les variables d'environnement communes
+SSO providers redirect the browser back to Taskmaster, so the public addresses must be set in `.env`:
 
-Les intégrations SSO reposent au minimum sur :
+| Variable | Example |
+| --- | --- |
+| `BACKEND_URL` | `https://taskmaster.example.com` |
+| `FRONTEND_URL` | `https://taskmaster.example.com` |
+| `CORS_ORIGIN` | `https://taskmaster.example.com` |
 
-| Variable | Rôle | Exemple |
-| --- | --- | --- |
-| `BACKEND_URL` | URL publique de l'API pour les callbacks | `https://api.taskmaster.example` |
-| `FRONTEND_URL` | URL publique du frontend pour la redirection finale | `https://app.taskmaster.example` |
-| `AUTH_SECRET` | signature des jetons applicatifs | secret long et unique |
+With the single Docker image, all three are the same address. Taskmaster sends these redirect (callback) URLs to the provider. Register them exactly as shown:
 
-Selon le fournisseur, d'autres secrets ou identifiants sont nécessaires dans les paramètres d'authentification de l'application.
+| Provider | Callback URL sent by Taskmaster |
+| --- | --- |
+| Google | `<BACKEND_URL>/auth/external/callback/google` |
+| Generic OIDC | `<BACKEND_URL>/auth/external/callback/generic` |
+| Azure AD | `<BACKEND_URL>/auth/azure/callback` |
+| SAML (ACS) | `<BACKEND_URL>/auth/saml/acs` |
 
-### Choisir une méthode adaptée
+The SAML service provider metadata is served at `/api/auth/saml/metadata`.
 
-1. Utilisez `Local` si vous avez seulement besoin d'un accès interne simple.
-2. Utilisez `OIDC générique` si votre fournisseur expose OpenID Connect.
-3. Utilisez `Google OAuth` pour Google Workspace.
-4. Utilisez `Azure AD / Entra ID` pour Microsoft 365.
-5. Utilisez `SAML 2.0` si votre SI impose ce standard.
-6. Utilisez `LDAP` pour un annuaire interne classique.
+## Configure a provider
 
-### Configurer OIDC générique
+Each provider has a form under Settings → Authentication. Fill it in, save, then sign in with a test account before relying on it.
 
-1. Récupérez l'URL de l'issuer de votre fournisseur.
-2. Créez un client OAuth côté fournisseur d'identité.
-3. Déclarez l'URL de callback construite à partir de `BACKEND_URL`.
-4. Saisissez l'issuer, le client ID, le client secret et les scopes dans Taskmaster.
-5. Testez puis activez le provider.
+### LDAP
 
-Points d'attention :
+| Field | Example |
+| --- | --- |
+| URL | `ldaps://dc01.example.com:636` |
+| Bind DN and password | A service account allowed to search the directory |
+| Search base | `OU=Users,DC=example,DC=com` |
+| Search filter | `(sAMAccountName={{username}})`. `{{username}}` is replaced by the login typed by the user. |
 
-- scopes usuels : `openid email profile`
-- vérifiez que l'horloge serveur est correcte
-- utilisez des URLs publiques cohérentes avec vos reverse proxies
+### Azure AD / Microsoft Entra ID
 
-### Configurer Google OAuth
+1. In the Azure portal, register an application and add the Azure callback URL above as a web redirect URI.
+2. Copy the **tenant ID**, the **client ID** and a **client secret** into Taskmaster.
 
-1. Créez des identifiants OAuth dans Google Cloud Console.
-2. Ajoutez l'URI de redirection autorisée basée sur `BACKEND_URL`.
-3. Reportez `Client ID` et `Client Secret` dans Taskmaster.
-4. Si nécessaire, limitez l'accès via le domaine hébergé.
-5. Testez avant activation.
+### Google Workspace
 
-### Configurer Azure AD / Entra ID
+1. In Google Cloud Console, create an OAuth client ID of type *Web application* and add the Google callback URL above.
+2. Copy the **client ID** and the **client secret** into Taskmaster.
+3. Optionally set the **hosted domain** to accept only accounts of that Google Workspace domain.
 
-1. Créez l'application dans le portail Azure.
-2. Renseignez l'URI de redirection basée sur `BACKEND_URL`.
-3. Récupérez `Tenant ID`, `Client ID` et le secret applicatif.
-4. Saisissez ces valeurs dans Taskmaster.
-5. Testez puis activez le provider.
+### Generic OIDC
 
-### Configurer SAML 2.0
+1. In your identity provider, create a client with the generic OIDC callback URL above.
+2. In Taskmaster, set the **issuer URL**, the **client ID**, the **client secret**, the **scopes** (usually `openid email profile`) and the name shown on the sign-in button.
 
-1. Créez une application SAML dans votre fournisseur d'identité.
-2. Déclarez l'ACS URL et, si nécessaire, l'Entity ID de Taskmaster.
-3. Importez ou recopiez les métadonnées nécessaires dans Taskmaster.
-4. Vérifiez les attributs envoyés pour l'identité utilisateur.
-5. Testez avec un compte de recette avant mise en production.
+The issuer must resolve to a public IP. For a provider on the internal network, set `OIDC_ALLOW_PRIVATE_IPS=true`.
 
-### Configurer LDAP
+### Generic SAML 2.0
 
-1. Renseignez l'hôte, le port et le schéma de connexion.
-2. Définissez l'utilisateur de bind si nécessaire.
-3. Configurez la base de recherche et les filtres d'utilisateurs.
-4. Testez la connexion et l'authentification.
-5. Activez la méthode uniquement après validation d'un compte réel.
+1. In your identity provider, create a SAML application with the ACS URL above.
+2. In Taskmaster, set the **entity ID**, the identity provider **SSO URL** and its **X.509 signing certificate**.
 
-### Préparer le mode local
+Assertions must be signed.
 
-Le mode local reste utile pour :
+## MFA and passkeys
 
-- un compte d'administration de secours ;
-- un environnement de développement ;
-- une stratégie de repli si le SSO externe est indisponible.
+- **MFA**: users enroll an authenticator app (TOTP) from their profile. The recovery codes are shown only once, at enrollment.
+- **Passkeys**: enable them under Settings → Authentication. Users then register one from their profile and can sign in without a password.
+- **Requirements**: MFA and passkeys can each be required per role (super admin, manager, user). A user who must change their password does it before enrolling a passkey.
 
-Dans ce cas, sécurisez fortement `AUTH_SECRET`, les mots de passe et l'accès administrateur.
+### Passkeys need a stable domain
 
-## Vérifications
-
-- La redirection vers le fournisseur d'identité fonctionne sans erreur de callback.
-- La connexion aboutit avec un compte de test valide.
-- L'utilisateur revient bien vers le frontend après authentification.
-- Les erreurs de configuration sont visibles dans les logs backend.
-- Un plan de repli existe si le provider externe est indisponible.
-
-## Ressources
-
-- Point d'entrée projet : [`../README.md`](../README.md)
-- Installation et environnement : [`../SETUP.md`](../SETUP.md)
-- Dépannage général : [`./troubleshooting.md`](./troubleshooting.md)
-- Tests auth : [`./AUTH_CI_TESTING.md`](./AUTH_CI_TESTING.md)
-
-Notes :
-
-- Les URLs publiques cohérentes entre `BACKEND_URL`, `FRONTEND_URL` et le fournisseur d'identité sont une dépendance implicite de tout SSO.
-- Selon le provider choisi, il peut être nécessaire de générer ou de renouveler régulièrement des secrets applicatifs.
-
-## Voir aussi
-
-- [`./AUTH_CI_TESTING.md`](./AUTH_CI_TESTING.md)
-- [`./AUTH_GRACE_WINDOW_HARDENING.md`](./AUTH_GRACE_WINDOW_HARDENING.md)
-- [`./incident_runbook.md`](./incident_runbook.md)
-
-### Passkeys : URL publique et service Windows
-
-Le RP ID est automatiquement déduit du domaine de `FRONTEND_URL` si `RP_ID`
-n’est pas défini. Il n’est jamais déduit des en-têtes envoyés par le navigateur.
-Chaque installation doit donc renseigner sa propre URL publique.
-Par exemple, pour `https://taskmaster.itiz-cpt-eu.local` :
+The passkey domain (relying party ID) is the domain of `FRONTEND_URL`, unless `RP_ID` is set. It is never taken from the browser request, so each installation must set its own public URL:
 
 ```dotenv
-FRONTEND_URL=https://taskmaster.itiz-cpt-eu.local
+FRONTEND_URL=https://taskmaster.example.com
+# Optional, domain only (no https://, port or path):
+# RP_ID=taskmaster.example.com
 ```
 
-Laisser `RP_ID` absent permet de déduire `taskmaster.itiz-cpt-eu.local`.
-Si un `RP_ID` explicite est nécessaire, utiliser uniquement le domaine, sans
-`https://`, port ni chemin. Conserver un RP ID existant compatible : les clés
-créées pour un autre domaine ne peuvent pas être transférées automatiquement.
-HTTPS et un certificat approuvé par le navigateur sont nécessaires hors localhost.
-Une adresse IP ne convient pas pour le RP ID.
+- Outside `localhost`, passkeys need HTTPS with a certificate the browser trusts.
+- An IP address cannot be a relying party ID.
+- Passkeys registered for one domain do not work on another one. Keep the same domain when you move a server.
 
-Sous Windows, modifier `C:\ProgramData\Taskmaster\config\.env`, puis redémarrer
-le service Taskmaster. L’installateur conserve ce fichier lors des mises à jour :
-une ancienne valeur `localhost` doit donc être corrigée sur le serveur.
-Vérifier aussi `BACKEND_URL` et `CORS_ORIGIN` selon l’adresse publique utilisée.
-Pour une nouvelle installation, le MSI propose un champ **URL publique** et
-`Setup.exe` accepte la variable `PUBLIC_URL`. Le script `orchestrate-install.ps1` accepte `-PublicUrl "https://votre-domaine"`
-pour une nouvelle installation ; ce paramètre ne remplace pas un `.env` existant.
-Il décrit l’URL publique et ne configure pas le certificat ni le proxy HTTPS.
+The error `'rp.id' cannot be used with the current origin` means the browser opened a different address than the configured one. Open the configured public address, or fix `FRONTEND_URL`, and restart.
 
-L’erreur `'rp.id' cannot be used with the current origin` indique généralement
-que le domaine configuré ne correspond pas au domaine ouvert dans le navigateur.
-Ouvrir l’adresse publique configurée, puis réessayer après redémarrage du service.
-Les règles de correspondance sont décrites dans la
-[documentation WebAuthn](https://developer.mozilla.org/en-US/docs/Web/API/PublicKeyCredentialCreationOptions).
+**Windows service:** edit `C:\ProgramData\Taskmaster\config\.env`, then restart the Taskmaster service. Updates keep this file, so an old `localhost` value must be fixed by hand. For a new installation, the MSI has a **Public URL** field (`TASKMASTER_PUBLIC_URL` in a silent install) that fills `FRONTEND_URL`, `BACKEND_URL` and `CORS_ORIGIN`.
+
+## Sessions
+
+- The access token lasts 15 minutes. The browser renews it on its own through `/api/auth/refresh`.
+- Both tokens are `HttpOnly` cookies, never readable by JavaScript.
+- **Sign out after inactivity** (Settings → Authentication) is how long a user can stay idle before signing in again: 5 to 1440 minutes, 30 by default. Every use of the application restarts the period. A change applies within a minute, including to open sessions.
+- Guest (TV) sessions last a year, whatever this setting says.
+- Renewing a session is refused when the request does not come from a trusted origin. The trusted origins are the address used to reach the server, `CORS_ORIGIN`, `FRONTEND_URL` and `BACKEND_URL`. See [Troubleshooting](troubleshooting.md#users-are-signed-out-every-15-minutes).
+
+## Protection against brute force
+
+**Rate limits per IP**, on top of the global limit of 60 requests per minute:
+
+| Endpoint | Limit |
+| --- | --- |
+| `POST /api/auth/login` | 5 per minute |
+| `POST /api/auth/mfa/verify` | 5 per minute |
+| `POST /api/auth/refresh` | 30 per minute |
+| `POST /api/auth/external/exchange`, `POST /api/auth/guest/exchange` | 10 per minute |
+
+**Progressive lockout.** Failed sign-ins are counted in Redis, per account and per IP:
+
+| Failures within 30 minutes | Lockout |
+| --- | --- |
+| 5th | 5 minutes |
+| 10th and later | 30 minutes |
+
+A successful sign-in resets both counters. IPs listed in `AUTH_LOCKOUT_IP_WHITELIST` skip the per-IP counter (useful behind a shared NAT), but the per-account counter still applies.
+
+**Logs.** Every attempt writes a structured line that a SIEM can alert on. No password is logged:
+
+- `[AUTH_METRIC_SUCCESS]`
+- `[AUTH_METRIC_FAIL] motif=…`, where the motif is `USER_NOT_FOUND`, `BAD_PASSWORD`, `INVALID_MFA_CODE`…
+- `[AUTH_METRIC_LOCKED_OUT]`
+
+## Check a configuration
+
+- The provider redirects back without a callback error.
+- A test account signs in and lands on the task board.
+- The backend log shows no `[AUTH_METRIC_FAIL]` for that account.
+- A local super admin account still works, in case the provider goes down.

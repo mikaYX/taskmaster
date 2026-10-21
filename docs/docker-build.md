@@ -1,118 +1,88 @@
-# Guide de build Docker
+# Docker build
 
-Ce guide explique comment construire les images Docker de production de Taskmaster, quels fichiers sont impliqués et quels points vérifier avant un déploiement.
+Taskmaster ships as a single image holding the API and the web interface. Official images are published on Docker Hub as [`mikaxy/taskmaster`](https://hub.docker.com/r/mikaxy/taskmaster). This page is for building your own.
 
-## Contexte
+| File | Role |
+| --- | --- |
+| [`Dockerfile`](../Dockerfile) | Multi-stage build (production dependencies, build, `production` image) |
+| [`docker-compose.yml`](../docker-compose.yml) | Production stack, using `TASKMASTER_IMAGE` |
+| [`docker-compose.build.yml`](../docker-compose.build.yml) | The same stack, building the app from the local sources |
+| [`scripts/docker-build-push.sh`](../scripts/docker-build-push.sh), [`.bat`](../scripts/docker-build-push.bat) | Build and push to your Docker Hub account |
 
-Le build s'appuie sur une seule image fullstack :
-
-- `../Dockerfile`
-- `../docker-compose.yml`
-- `../docker-compose.build.yml`
-- `../scripts/docker-build-push.sh`
-- `../scripts/docker-build-push.bat`
-
-Les ordres de grandeur actuellement observés restent :
-
-| Image | Taille observée | Statut |
-| --- | --- | --- |
-| `taskmaster:secure-local` | ~2.32 GB | valide |
-
-L'export PDF est généré en JavaScript (pdfkit) : l'image n'embarque plus de navigateur. La taille vient surtout des dépendances backend Prisma/OpenTelemetry. La valeur ci-dessus date de l'époque où Chromium était embarqué et sera plus basse.
-
-## Pré-requis
-
-- Docker et Docker Compose v2 installés.
-- Un fichier `../.env` prêt à être utilisé au moment du lancement de la stack.
-- Les variables `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`, `AUTH_SECRET`, `BACKUP_ENCRYPTION_KEY` et `CORS_ORIGIN` définies.
-
-### Publication via GitHub Actions
-
-Le workflow [../.github/workflows/docker.yml](../.github/workflows/docker.yml) publie automatiquement les tags de release sur Docker Hub.
-
-- Définir le secret de dépôt `DOCKERHUB_TOKEN` avec un token Docker Hub valide.
-- Définir la variable de dépôt `DOCKERHUB_USERNAME` avec le namespace Docker Hub à publier.
-- Compatibilité héritée : le workflow accepte aussi un secret `DOCKERHUB_USERNAME`, mais la variable de dépôt est préférable car le username n'est pas sensible.
-
-### Publication manuelle vers Docker Hub
-
-Les scripts `../scripts/docker-build-push.sh` et `../scripts/docker-build-push.bat` construisent et publient directement l'image Docker Hub sans fichier Compose dédié.
-
-## Étapes
-
-### Construire les images
+## Build
 
 ```bash
-DOCKER_BUILDKIT=1 docker build -t taskmaster:secure-local -f Dockerfile .
+DOCKER_BUILDKIT=1 docker build -t taskmaster:secure-local .
+TASKMASTER_IMAGE=taskmaster:secure-local docker compose up -d
 ```
 
-Ou via Compose local :
+Or build and start in one go, reusing the volumes of `docker-compose.yml`:
 
 ```bash
-DOCKER_BUILDKIT=1 docker compose -f docker-compose.build.yml build
+docker compose -f docker-compose.build.yml up --build -d
 ```
 
-### Démarrer la stack de production
+Behind a TLS-inspecting corporate proxy, pass its CA certificate as a BuildKit secret, so npm and Prisma can download:
 
 ```bash
-TASKMASTER_IMAGE=taskmaster:secure-local docker compose --env-file .env up -d
+docker build --secret id=ca_cert,src=/path/to/corporate-ca.pem -t taskmaster:secure-local .
 ```
 
-### Relire les choix techniques
+`scripts/docker-build-push.sh` does the same when `CORPORATE_CA_CERT_FILE` is set.
 
-1. Le backend et le frontend utilisent un build multi-stage.
-2. L'image finale démarre en utilisateur non-root (`node`).
-3. Les dépendances runtime sont installées au build via `npm ci` et le lockfile.
-4. Le conteneur ne fait plus d'installation npm au démarrage.
-5. Les fichiers `.dockerignore` limitent le contexte de build.
-6. Les migrations Prisma restent exécutées au démarrage par l'entrypoint.
+## Publish
 
-### Relever les limites connues
+**From GitHub Actions.** Pushing a version tag (`v1.2.0`, `v1.2.0-beta.1`…) runs [`release.yml`](../.github/workflows/release.yml), which:
+- runs the quality checks, and publishes nothing if they fail;
+- builds `linux/amd64`;
+- pushes the version tag to Docker Hub;
+- creates the GitHub release from the changelog.
 
-1. Prisma CLI reste présent dans l'image pour `migrate deploy`.
-2. Les vulnérabilités npm doivent être corrigées dans les dépendances, pas dans les Dockerfiles.
+A stable version also moves `latest`. A pre-release (`v1.2.0-beta.1`) moves `beta` instead and is marked as a pre-release on GitHub.
 
-## Vérifications
+The repository needs:
+- a `DOCKERHUB_TOKEN` secret;
+- a `DOCKERHUB_USERNAME` variable, the Docker Hub namespace. A secret of the same name still works.
 
-Le workflow `security-scan.yml` récupère l'image de base et reconstruit le stage
-`production` sans cache pour réexécuter `apk upgrade` et installer les correctifs
-disponibles pour les paquets système de l'image. Le numéro de version Node reste
-celui du Dockerfile : `apk upgrade` ne met pas à jour le binaire Node de l'image
-officielle ; une CVE Node nécessite une mise à jour de `NODE_VERSION`.
+**By hand:**
 
-Le contrôle Trivy bloque les vulnérabilités HIGH/CRITICAL avec correctif connu,
-hors exceptions actives. L'artefact `trivy-image-report` conserve aussi celles
-sans correctif, pour examen. Un scan réussi ne signifie donc pas une absence de
-vulnérabilités. Les commentaires du Dockerfile ne remplacent pas ce rapport.
+```bash
+DOCKERHUB_USER=your-account TAG=1.2.0 ./scripts/docker-build-push.sh push
+```
 
-Pour reproduire le contrôle localement :
+## What the image does
+
+- Runs as the non-root `node` user. The entrypoint refuses to start as root.
+- Installs its dependencies at build time with `npm ci`. Nothing is installed at startup.
+- Applies `prisma migrate deploy` at startup, then starts the server. The Prisma CLI stays in the image for that.
+- Generates PDF reports in JavaScript (pdfkit), so no browser is bundled. The 1.2.0-beta.5 image is about 1.1 GB.
+- Declares a `HEALTHCHECK` on `/api/health` (through Node.js, since the image has no `curl`).
+- Ships the PostgreSQL 18 client (`pg_dump`, `pg_restore`) for backups.
+
+## Security scan
+
+[`security-scan.yml`](../.github/workflows/security-scan.yml):
+1. rebuilds the `production` stage without cache, so `apk upgrade` picks up the latest Alpine fixes;
+2. runs Trivy;
+3. checks that `pg_dump` is present.
+
+`apk upgrade` does not update Node.js itself: a Node.js CVE needs a newer `NODE_VERSION` in the Dockerfile.
+
+The scan blocks HIGH and CRITICAL vulnerabilities that have a fix, except the active entries of [`security/trivy-exceptions.json`](../security/trivy-exceptions.json). The `trivy-image-report` artifact also lists those without a fix. A passing scan therefore does not mean there are no vulnerabilities.
+
+To reproduce it locally:
 
 ```bash
 docker buildx build --pull --no-cache-filter production --load -t taskmaster:ci .
 node scripts/validate-trivy-exceptions.js
-trivy image --scanners vuln --severity HIGH,CRITICAL --format json --output trivy-image-report.json taskmaster:ci
 trivy image --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 taskmaster:ci
 ```
 
-- `docker build -t taskmaster:secure-local -f Dockerfile .` se termine sans erreur.
-- `docker image inspect taskmaster:secure-local --format '{{.Config.User}}'` retourne `node`.
-- `TASKMASTER_IMAGE=taskmaster:secure-local docker compose --env-file .env up -d` démarre les services attendus.
-- `docker compose --env-file .env ps` montre les services actifs.
-- `curl http://localhost:3000/api/health` répond correctement.
+## Check a build
 
-## Ressources
-
-- Dossier backend : [`../backend`](../backend)
-- Dossier frontend : [`../frontend`](../frontend)
-- Compose principal : [`../docker-compose.yml`](../docker-compose.yml)
-- Variables d'environnement : [`../.env.docker.example`](../.env.docker.example)
-
-Notes :
-
-- Prisma est une dépendance implicite du `migrator`.
-- Le backend n'embarque pas `curl` ; le healthcheck repose sur Node dans le compose.
-
-## Voir aussi
-
-- [`./operations.md`](./operations.md)
-- [`./troubleshooting.md`](./troubleshooting.md)
+```bash
+docker image inspect taskmaster:secure-local --format '{{.Config.User}}'   # node
+TASKMASTER_IMAGE=taskmaster:secure-local docker compose up -d
+docker compose ps
+curl http://localhost:3000/api/health
+```

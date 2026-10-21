@@ -1,205 +1,169 @@
+<div align="center">
+
+<img src="docs/logo.svg" width="88" alt="Taskmaster logo">
+
 # Taskmaster
 
-**Gestion de tâches périodiques pour les équipes opérationnelles.**
+**Plan, validate and prove your recurring operational tasks.**
 
-Taskmaster est une application web open source conçue pour les organisations qui ont besoin de tracer, planifier et valider des tâches récurrentes : rondes de sécurité, vérifications techniques, procédures métier, contrôles qualité. L'interface est pensée pour une utilisation quotidienne sur le terrain, en salle de contrôle ou depuis un bureau.
+Safety walkthroughs, technical checks, quality audits, compliance reviews: define them once, Taskmaster schedules every occurrence, your team validates them on a live board, and you get the history and the compliance figures.
 
----
+[![Release](https://img.shields.io/github/v/release/mikaYX/taskmaster?sort=semver)](https://github.com/mikaYX/taskmaster/releases)
+[![Docker Pulls](https://img.shields.io/docker/pulls/mikaxy/taskmaster)](https://hub.docker.com/r/mikaxy/taskmaster)
+[![Quality](https://github.com/mikaYX/taskmaster/actions/workflows/quality.yml/badge.svg)](https://github.com/mikaYX/taskmaster/actions/workflows/quality.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-## Pourquoi Taskmaster
+[Getting started](docs/getting-started.md) · [Documentation](docs/README.md) · [Changelog](CHANGELOG.md)
 
-La plupart des outils de gestion de tâches sont pensés pour des équipes de développement. Taskmaster part d'un autre besoin : des organisations qui ont des **tâches périodiques critiques** à tracer - chaque jour, chaque semaine, chaque mois - et qui ont besoin d'un tableau de bord opérationnel clair, d'une traçabilité fiable et d'un historique exploitable.
+<br>
 
-- Les tâches sont définies une fois, puis générées automatiquement selon leur planification
-- Chaque occurrence est assignée, validée ou escaladée en temps réel
-- Les managers voient l'état global de leur équipe en un coup d'œil
-- Les administrateurs contrôlent finement les accès, les sites et les intégrations
+<img src="docs/screenshots/validate-task.gif" width="900" alt="Validating tasks on the task board: the progress gauge rises as each task is completed">
 
----
+</div>
 
-## Aperçu de l'interface
+## Why Taskmaster
 
-### Tableau de bord opérationnel
-Le cœur de l'application : toutes les tâches du jour, regroupées par statut, filtrables par utilisateur, groupe ou site. Mode TV disponible pour affichage mural.
+Most task tools are built for projects. Taskmaster is built for **recurring work that must be done and proven**, every day, week, month or year:
 
-![Tableau de bord](docs/screenshots/01-task-board.png)
+- **Define once, run forever.** Occurrences are generated from the schedule, with weekends, holidays and time windows taken into account.
+- **One board for the whole team.** Everyone sees what is due now, validates it in one click or reports a problem, on a desk or on a wall screen.
+- **Traceable by design.** Checklists, photo evidence, corrective actions and an audit log keep the record auditors ask for.
 
-### Analytiques et conformité
-Taux de complétion, tendances sur 1 à 90 jours, performance par tâche et par utilisateur. Export CSV ou PDF intégré.
+## Features
 
-![Analytiques](docs/screenshots/02-analytics.png)
+| | |
+| --- | --- |
+| **Operations** | Live task board with filters and saved views · TV mode and read-only guest screens · execution checklists with photo evidence · corrective actions · delegations · personal and collective Todo lists |
+| **Scheduling** | Daily, weekly, monthly, yearly or custom (RRULE) · skip weekends and public holidays by country · time windows and time zones · recurrence from the last completion |
+| **Analytics** | Compliance rate against a goal · trends by day or week · rankings by task and by user · CSV and PDF reports · full-screen TV layout |
+| **Organization** | Multiple sites with a hierarchy · groups · roles: Super Admin, Manager, User, Guest · audit log |
+| **Sign-in and security** | Local accounts, LDAP / Active Directory, Azure AD / Entra ID, Google Workspace, OIDC, SAML 2.0 · TOTP MFA and passkeys · API keys with scopes · encrypted settings and backups |
+| **Notifications** | Email (SMTP, SendGrid, Mailgun, Mailjet), Slack, Microsoft Teams, Telegram and web push, on failure, missed task or as a reminder |
+| **Operations-ready** | Single Docker image or Windows MSI · scheduled, encrypted backups with restore · health check, Prometheus metrics, OpenTelemetry · English and French |
 
-### Bibliothèque de tâches
-Définition des tâches, configuration des planifications (quotidien, hebdomadaire, mensuel, règles RRULE personnalisées), gestion des procédures attachées.
+## Screenshots
 
-![Bibliothèque de tâches](docs/screenshots/03-task-definitions.png)
+<table>
+  <tr>
+    <td width="50%">
+      <picture>
+        <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/board-dark.png">
+        <img src="docs/screenshots/board-light.png" alt="Task board">
+      </picture>
+      <p align="center"><b>Task board</b>: today's tasks, progress and filters</p>
+    </td>
+    <td width="50%">
+      <picture>
+        <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/analytics-dark.png">
+        <img src="docs/screenshots/analytics-light.png" alt="Analytics">
+      </picture>
+      <p align="center"><b>Analytics</b>: compliance, trends and tasks needing attention</p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <picture>
+        <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/task-definitions-dark.png">
+        <img src="docs/screenshots/task-definitions-light.png" alt="Task definitions">
+      </picture>
+      <p align="center"><b>Task definitions</b>: schedules, rules and assignments</p>
+    </td>
+    <td width="50%">
+      <picture>
+        <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/analytics-tv-dark.png">
+        <img src="docs/screenshots/analytics-tv-light.png" alt="Analytics TV mode">
+      </picture>
+      <p align="center"><b>TV mode</b>: a wall screen for the control room</p>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <picture>
+        <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/todos-dark.png">
+        <img src="docs/screenshots/todos-light.png" alt="Todo">
+      </picture>
+      <p align="center"><b>Todo</b>: private and collective lists</p>
+    </td>
+    <td width="50%">
+      <picture>
+        <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/settings-dark.png">
+        <img src="docs/screenshots/settings-light.png" alt="Settings">
+      </picture>
+      <p align="center"><b>Settings</b>: sign-in, notifications, backups and more</p>
+    </td>
+  </tr>
+</table>
 
-### Paramètres et intégrations
-Configuration des authentifications (SSO, LDAP, OIDC, SAML…), des notifications, des sauvegardes et de l'identité de l'organisation.
+<details>
+<summary><b>Create a task in five steps</b></summary>
+<br>
+<img src="docs/screenshots/create-task.gif" alt="Task creation wizard: definition, scheduling, assignment, notifications, review">
+</details>
 
-![Paramètres](docs/screenshots/04-settings.png)
+<details>
+<summary><b>First launch: the setup wizard</b></summary>
+<br>
+<img src="docs/screenshots/setup-wizard.gif" alt="Setup wizard: preferences, administrator account, summary">
+</details>
 
----
+## Quick start
 
-## Fonctionnalités principales
-
-**Opérationnel**
-- Tableau de bord temps réel avec filtres (utilisateur, groupe, site, date)
-- Statuts granulaires : en attente, complété, en retard, manquant, escaladé
-- Mode TV pour affichage mural en salle de contrôle
-- Todo list personnelle et collective
-- Recherche et filtres avancés sur toutes les vues
-
-**Planification**
-- Tâches périodiques : quotidien, hebdomadaire, mensuel, annuel ou règles RRULE personnalisées
-- Gestion des jours fériés et des week-ends
-- Fenêtres de complétion configurables
-- Mode "depuis la dernière complétion" pour les cycles dynamiques
-- Délégation de tâches entre utilisateurs
-
-**Organisation**
-- Gestion multi-sites avec hiérarchie de sites
-- Groupes d'utilisateurs et affectations collectives
-- Rôles : Super Admin, Admin, Manager, Utilisateur, Invité (lecture seule)
-- Journal d'audit complet de toutes les actions
-
-**Authentification et sécurité**
-- Authentification locale avec JWT + rotation des tokens
-- LDAP / Active Directory
-- Google OAuth, Azure AD / Microsoft Entra ID
-- OIDC et SAML 2.0
-- Authentification multi-facteurs (TOTP) et passkeys (WebAuthn)
-- Clés API pour intégrations externes
-- Chiffrement des données sensibles au repos
-
-**Notifications et exports**
-- Alertes email (SMTP, SendGrid, Mailgun, Mailjet)
-- Notifications web push
-- Export CSV et PDF des rapports analytiques
-- Sauvegardes automatisées avec chiffrement
-
----
-
-## Pour qui
-
-| Profil | Ce que Taskmaster apporte |
-|---|---|
-| **Responsable opérationnel** | Visibilité temps réel sur l'avancement des tâches de son équipe |
-| **Agent ou technicien** | Interface claire pour valider ses tâches du jour, sans friction |
-| **Administrateur IT** | Gestion centralisée des accès, SSO, audit, sauvegardes |
-| **Développeur** | Codebase TypeScript structuré, API documentée, stack standard |
-
----
-
-## Stack technique
-
-| Couche | Technologie |
-|---|---|
-| **Frontend** | React 19, Vite, Tailwind CSS, shadcn/ui, Tanstack Query, Zustand |
-| **Backend** | NestJS, Prisma ORM, PostgreSQL, Redis, BullMQ |
-| **Auth** | Passport.js, JWT, LDAP, OIDC, SAML, WebAuthn |
-| **Observabilité** | OpenTelemetry, Prometheus, Pino |
-| **Déploiement** | Docker, image fullstack unique (API + SPA) |
-
-Monorepo npm workspaces. TypeScript end-to-end. Tests unitaires sur backend et frontend.
-
----
-
-## Démarrage rapide
-
-**Avec Docker (recommandé)**
+With Docker:
 
 ```bash
-cp .env.docker.example .env
-# Éditer .env pour définir les secrets (dont TASKMASTER_IMAGE si besoin)
-
-# Dossiers de persistance montés par docker-compose.yml — les créer avant le premier up
-mkdir -p data/node_modules data/app/backups data/app/public/uploads data/app/storage/procedures
-# Linux / WSL : l’app tourne ensuite en utilisateur node (UID 1000) — droits d’écriture sur les volumes
-sudo chown -R 1000:1000 data
-# (alternative rapide mais moins stricte : chmod -R a+rwX data)
-
+curl -O https://raw.githubusercontent.com/mikaYX/taskmaster/main/docker-compose.yml
+curl -o .env https://raw.githubusercontent.com/mikaYX/taskmaster/main/.env.docker.example
+# Edit .env: set POSTGRES_PASSWORD, AUTH_SECRET, BOOTSTRAP_SECRET and BACKUP_ENCRYPTION_KEY
 docker compose up -d
 ```
 
-Sous **Windows (Docker Desktop)**, le `mkdir` suffit en général ; le `chown` est surtout nécessaire sur **Linux / WSL** pour éviter les erreurs d’accès (backups, uploads, procédures, `node_modules` dans le volume).
+Open `http://localhost:3000` and create the first administrator in the setup wizard.
 
-L'application sera disponible sur `http://localhost:3000`. Un assistant de configuration guidera la création du premier compte administrateur.
-
-Les vérifications de mise à jour pointent automatiquement vers l'upstream officiel correspondant au mode de déploiement : releases GitHub pour une installation source, tags Docker Hub pour une stack démarrée avec `TASKMASTER_IMAGE` sur Docker Hub. 
-Les variables `VERSION_CHECK_REPO` et `VERSION_CHECK_DOCKER_IMAGE` ne sont utiles que pour les forks.
-
-→ Guide dédié : [`docs/version-updates.md`](docs/version-updates.md)
-
-**En développement local**
-
-```bash
-npm install
-docker compose -f docker-compose.local-db.yml up -d  # PostgreSQL + Redis
-cd backend && npx prisma migrate deploy && cd ..
-npm run dev
-```
-
-- Backend : `http://localhost:3000`
-- Frontend : `http://localhost:5173`
-
-→ Guide complet : [`QUICKSTART.md`](QUICKSTART.md) · [`SETUP.md`](SETUP.md)
-
----
+Running from source, on Windows Server without Docker, or behind a reverse proxy: see [Getting started](docs/getting-started.md).
 
 ## Documentation
 
-| Document | Contenu |
-|---|---|
-| [`QUICKSTART.md`](QUICKSTART.md) | Démarrage en 5 minutes |
-| [`SETUP.md`](SETUP.md) | Installation détaillée |
-| [`docs/user-guide.md`](docs/user-guide.md) | Guide utilisateur : valider une tâche, délégations, todos |
-| [`docs/use-cases.md`](docs/use-cases.md) | Cas d’usage métier et exemples de planification |
-| [`docs/authentication.md`](docs/authentication.md) | SSO, LDAP, OIDC, SAML, MFA |
-| [`docs/local-db.md`](docs/local-db.md) | PostgreSQL et Redis en local |
-| [`docs/version-updates.md`](docs/version-updates.md) | Mises à jour de version en local et Docker |
-| [`docs/DOCKER-BUILD.md`](docs/DOCKER-BUILD.md) | Build et publication Docker |
-| [`docs/operations.md`](docs/operations.md) | Exploitation et administration |
-| [`docs/troubleshooting.md`](docs/troubleshooting.md) | Dépannage |
-| [`docs/incident_runbook.md`](docs/incident_runbook.md) | Runbook incident |
+| | |
+| --- | --- |
+| [Getting started](docs/getting-started.md) | Docker, development setup, first login |
+| [User guide](docs/user-guide.md) | Day-to-day use |
+| [Use cases](docs/use-cases.md) | Example schedules |
+| [Configuration](docs/configuration.md) | Environment variables |
+| [Authentication](docs/authentication.md) | SSO, MFA, passkeys, roles |
+| [API keys](docs/api-keys.md) | Integrations and webhook |
+| [Operations](docs/operations.md) | Backups, monitoring, privacy |
+| [Version updates](docs/version-updates.md) | Updating an installation |
+| [Troubleshooting](docs/troubleshooting.md) | Common problems |
+| [Windows Server](docs/windows-server-2019-local.md) | MSI installation |
 
----
+## Tech stack
 
-## Contribuer
+| Layer | Technology |
+| --- | --- |
+| Frontend | React 19, Vite, Tailwind CSS 4, shadcn/ui, TanStack Query, Zustand |
+| Backend | NestJS 11, Prisma, PostgreSQL 18, Redis, BullMQ |
+| Auth | Passport, JWT in HttpOnly cookies, LDAP, OIDC, SAML, WebAuthn |
+| Observability | Pino, Prometheus, OpenTelemetry |
+| Delivery | Single Docker image (API + web app), Windows MSI |
 
-Le projet est ouvert aux contributions. Le codebase est structuré en modules NestJS côté backend et en features React côté frontend, avec des conventions claires et une couverture de tests existante.
+TypeScript end to end, in an npm workspaces monorepo.
 
-**Pour démarrer :**
-1. Forker le dépôt et cloner localement
-2. Suivre le guide [`SETUP.md`](SETUP.md) pour l'environnement de développement
-3. Ouvrir une issue pour discuter d'une fonctionnalité ou d'un bug
-4. Soumettre une pull request en respectant les conventions du projet
+## Contributing
 
-Les contributions peuvent porter sur des fonctionnalités, des corrections de bugs, des traductions, de la documentation ou des tests.
+Contributions are welcome: features, fixes, translations, documentation and tests. Read [CONTRIBUTING.md](CONTRIBUTING.md) to get set up, and open an issue to discuss a larger change first. Security issues go through [SECURITY.md](SECURITY.md), never a public issue.
 
----
+## Roadmap
 
-## Statut du projet
+- Outgoing webhooks (an incoming webhook already exists, see [API keys](docs/api-keys.md))
+- An installable mobile app (PWA)
+- More interface languages
 
-Le projet est en développement actif. L'interface principale, la gestion des tâches périodiques, l'authentification multi-provider et les analytiques sont fonctionnels et utilisés.
+## Support the project
 
-**Prochaines étapes envisagées :**
-- Internationalisation complète (i18n en place, traductions à étendre)
-- Intégrations tierces via webhooks
-- Application mobile (PWA)
-
----
-
-## Soutenir le projet
-
-Si Taskmaster vous est utile, vous pouvez soutenir son développement :
+If Taskmaster is useful to you, you can support its development:
 
 <a href="https://buymeacoffee.com/mikaxy" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" width="200"></a>
 
-[![Star History Chart](https://api.star-history.com/svg?repos=mikaxy/taskmaster&type=Date)](https://star-history.com/#mikaxy/taskmaster&Date)
+## License
 
----
-
-## Licence
-
-Ce projet est distribué sous licence MIT. Voir [`LICENSE`](LICENSE) pour les détails.
+[MIT](LICENSE)

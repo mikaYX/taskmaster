@@ -1,84 +1,58 @@
-# Recette du candidat Windows
+# Windows release checklist
 
-Le build actuel produit `Taskmaster-<version>-x64.msi` pour une installation
-avec PostgreSQL et Redis/Memurai déjà disponibles. `Setup.exe` et l’ancien
-`test-install.ps1` concernent le chemin historique avec prérequis embarqués.
-Utiliser le MSI et la procédure ci-dessous pour ce candidat.
+How to validate a Windows MSI candidate (`Taskmaster-<version>-x64.msi`) before shipping it. The MSI expects PostgreSQL and Redis (or Memurai) to be installed already.
 
-## Produire le candidat
+## Build the candidate
 
-Depuis une machine de build Windows, exécuter `installer/build.ps1`, ou lancer
-manuellement le workflow **Build Windows installer candidate** sur la révision
-à tester. Ce workflow construit un MSI non signé et dépose un artefact de test ;
-il ne crée pas de release publique et n’installe rien sur le serveur cible.
-Les scripts de vérification et leur dossier `common` sont inclus dans l’artefact.
+On a Windows build machine, run `installer/build.ps1`, or start the **Build Windows installer candidate** workflow manually on the revision to test. The workflow:
+- builds an unsigned MSI;
+- uploads it as a test artifact, with the verification scripts and their `common` folder;
+- creates no public release and installs nothing.
 
-Le numéro du candidat est celui de `package.json`. Les changements non publiés
-figurent dans la section `1.2.0` du changelog. Les versions des trois `package.json` et des
-lockfiles sont alignées sur `1.2.0`. Valider ce candidat sur la machine Windows
-avant déploiement ; ne pas redistribuer une version déjà publiée avec un contenu
-modifié. Signer le MSI de livraison avec le certificat de l’organisation et
-recalculer `SHA256SUMS` après signature (`build.ps1 -Sign`).
+The candidate number is the one in `package.json`, and its changes are in the matching section of the [changelog](../CHANGELOG.md). Never ship a published version again with different content.
 
-## Installation et mise à jour sur une VM
+Sign the delivered MSI with the organization's certificate, and compute `SHA256SUMS` again after signing (`build.ps1 -Sign`).
 
-1. Utiliser une VM Windows Server jetable avec une base de test et un Redis de
-   test. Conserver un instantané de la VM. Vérifier le SHA-256 du MSI téléchargé.
-2. Installer la version précédente, puis créer quelques tâches et des statuts,
-   un avatar et une procédure. Noter les valeurs attendues sans copier les
-   secrets dans le rapport de recette.
-3. Dans une console PowerShell administrateur de la VM, conserver l’empreinte du `.env` :
+## Install and update on a VM
+
+1. Use a throwaway Windows Server VM, with a test database and a test Redis. Take a snapshot. Check the SHA-256 of the downloaded MSI.
+2. Install the **previous** version. Create a few tasks, statuses, an avatar and a procedure. Note the expected values, without copying secrets into the report.
+3. In an administrator PowerShell, record the fingerprint of `.env`:
 
    ```powershell
    $configHash = (Get-FileHash 'C:\ProgramData\Taskmaster\config\.env' -Algorithm SHA256).Hash
    ```
 
-4. Créer une sauvegarde **complète depuis l’interface Taskmaster**. Attendre la
-   fin effective du travail et télécharger une copie. Cette opération sollicite
-   le compte du service ; lancer `pg_dump` dans une console administrateur ne
-   suffit pas à vérifier les droits du service. Si l’ancienne version échoue,
-   consigner cet échec et conserver l’instantané de la VM ainsi qu’une copie
-   indépendante de la base et des fichiers avant le test de mise à jour.
-5. Installer le MSI candidat sur cette VM, puis exécuter :
+4. Create a **FULL backup from the Taskmaster interface**, wait until it is finished, and download a copy.
+   - This step exercises the service account: running `pg_dump` in an administrator console does not prove the service has the rights.
+   - If the previous version fails here, note it, and keep the VM snapshot plus an independent copy of the database and files before testing the update.
+5. Install the candidate MSI over it, then run:
 
    ```powershell
    .\installer\verify-installation.ps1 `
-     -ExpectedVersion '<version-du-candidat>' `
+     -ExpectedVersion '<candidate-version>' `
      -ExpectedEnvHash $configHash `
-     -PublicUrl 'https://votre-domaine' `
-     -ReportPath '.\recette-installation.json'
+     -PublicUrl 'https://taskmaster.example.com' `
+     -ReportPath '.\installation-report.json'
    ```
 
-   Le script vérifie service, santé HTTP, outils PostgreSQL, version, conservation
-   de la configuration et cohérence des options passkey. Il ne modifie pas les
-   services ni la base. Son rapport contient des résultats de contrôles et le
-   nom du compte de service, jamais les valeurs du `.env`.
-6. Vérifier les anciennes tâches et leur historique. Une tâche sans checklist
-   doit rester validable. Créer une checklist, une preuve et une action
-   corrective, puis vérifier leur consultation avec les rôles concernés.
+   The script checks the service, the HTTP health, the PostgreSQL tools, the version, the kept configuration and the passkey options. It changes neither the services nor the database. Its report holds check results and the service account name, never `.env` values.
+6. Check the old tasks and their history:
+   - a task without a checklist must still validate in one click;
+   - create a checklist, photo evidence and a corrective action, then check who can see them with each role.
 
-## Sauvegarde et restauration
+## Backup and restore
 
-1. Sur l’instance candidate de test, créer une nouvelle sauvegarde complète
-   après avoir ajouté des données reconnaissables et une preuve photo.
-2. Valider cette archive depuis l’interface. Conserver séparément la clé de
-   chiffrement nécessaire ; elle n’est volontairement pas incluse dans l’archive.
-3. Restaurer sur une **autre instance jetable isolée**, avec la même version
-   applicative et la clé correspondante. Une restauration remplace les données
-   de la cible : ne jamais utiliser la production comme cible de recette.
-4. Comparer tâches, statuts, checklists, photos, procédures, actions correctives
-   et comptes. Vérifier les nouveaux enregistrements après restauration pour
-   contrôler aussi les séquences PostgreSQL.
-5. Vérifier qu’une archive altérée, non signée ou dépourvue de dump est refusée.
-   Ne pas forcer une restauration interversion pour contourner un échec de test.
+1. On the candidate test instance, add recognizable data and a photo, then create a new FULL backup.
+2. Validate the archive from the interface. Keep the encryption key separately: it is never in the archive.
+3. Restore it on **another isolated throwaway instance**, with the same version and the matching key. A restore replaces the target's data: never use production as the target.
+4. Compare tasks, statuses, checklists, photos, procedures, corrective actions and accounts. Create new records after the restore, to check the PostgreSQL sequences too.
+5. Check that an altered, unsigned or dump-less archive is refused. Do not force a cross-version restore to get around a failed test.
 
-## Passkeys et validation finale
+## Passkeys and final validation
 
-Depuis un navigateur avec un certificat HTTPS approuvé, utiliser le domaine
-public propre à l’installation. Tester création, déconnexion et connexion par
-passkey. Le contrôle automatique des options ne remplace pas ce parcours.
-Vérifier aussi un compte utilisateur standard, un manager et le mode invité.
+From a browser that trusts the HTTPS certificate, use the installation's own public domain:
+- create a passkey, sign out and sign in with it. The automatic check of the options does not replace this test;
+- also check a standard user, a manager and guest mode.
 
-Conserver le rapport JSON, le SHA-256 du candidat, les résultats de restauration
-et les observations navigateur. Tant que ces vérifications Windows ne sont pas
-réalisées, le candidat n’est pas considéré comme validé pour la production.
+Keep the JSON report, the SHA-256 of the candidate, the restore results and the browser observations. Until these Windows checks are done, the candidate is not validated for production.

@@ -12,8 +12,12 @@ First stable release of 1.2.0: everything from 1.2.0-beta.1 to beta.5, plus the 
 ### Fixed
 
 - Docker: backups failed with `spawn pg_dump ENOENT` because the image had no PostgreSQL client. The image now ships `postgresql18-client` (`pg_dump`/`pg_restore`, matching the Postgres 18 of the compose stack) and the security workflow checks it is present.
+- `npm -w backend run start:prod` pointed to `dist/main`, which the build does not produce; it now starts `dist/src/main`.
 
 ### Changed
+
+- Documentation rewritten in English and checked against the code. It now has a getting-started guide, a reference of every environment variable, an API keys guide and a CONTRIBUTING guide, and new light and dark screenshots with demo GIFs. Outdated guides were removed or merged: `QUICKSTART.md`, `SETUP.md`, `SECURITY_AUDIT.md`, `notes-api-keys.md`, `docs/TIPS.md`, `docs/local-db.md` and the backend security notes.
+- The Vite dev server and `vite preview` forward `/api` to `TASKMASTER_API_URL` (default `http://localhost:3000`, unchanged).
 
 - `DATABASE_POOL_MAX` (default 10) and `DATABASE_STATEMENT_TIMEOUT_MS` (default 0, no limit) tune the PostgreSQL connection pool; connections now time out after 10 s instead of waiting forever.
 - Redis reconnects with a delay capped at 5 s and logs a connection error once instead of on every attempt.

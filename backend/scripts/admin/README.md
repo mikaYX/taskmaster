@@ -1,33 +1,22 @@
 # `backend/scripts/admin/`
 
-Outils ponctuels (debug, support, maintenance) **non utilisés par l'application**.
-Ils ont été regroupés ici pour :
+One-off tools for debugging, support and maintenance. **The application does not use them**: no `package.json` script, Dockerfile, entrypoint or CI workflow refers to them. They live here so that a destructive script is not run by mistake from the root, and so their purpose is written down.
 
-- éviter qu'un script destructif soit lancé par erreur depuis la racine ;
-- clarifier la séparation avec le code applicatif (`src/`) ;
-- documenter leur intention.
+| File | Type | Purpose |
+| --- | --- | --- |
+| `check-saml.js` | Debug | Lists the methods of `SAML.prototype` |
+| `check-users.ts` | Debug | Dumps the `User` table as JSON. **Never run it in production: it prints password hashes.** |
+| `clear.ts` | Destructive | Deletes the `auth.azureAd.*` and `auth.google.*` settings. Requires `CONFIRM_CLEAR=yes`. |
+| `reset_password.js` | Destructive | Resets the password of the `admin` user. Requires `CONFIRM_RESET=yes` and `ADMIN_NEW_PASSWORD`. |
+| `parse-audit.js`, `show-jest-audit.js`, `show-jest-core-audit.js`, `show-minimatch.js`, `show-vuln-sources.js` | Debug | Parse an old `audit.json`, no longer tracked |
+| `test.js` | Debug | Scratchpad |
+| `walkthrough_fix.sh` | Obsolete | `sed` on an absolute Windows path |
 
-Aucun de ces scripts n'est référencé par `package.json`, `Dockerfile`,
-`docker-entrypoint.sh` ou par un workflow CI.
-
-## Inventaire
-
-| Fichier | Type | Usage |
-|---|---|---|
-| `check-saml.js` | debug | liste les méthodes de `SAML.prototype` (ponctuel) |
-| `check-users.ts` | debug | dump JSON de la table `User` — **ne pas exécuter en prod, contient passwordHash** |
-| `clear.ts` | maintenance destructive | supprime les clés `auth.azureAd.*` / `auth.google.*` de `Config` — exige `CONFIRM_CLEAR=yes` |
-| `reset_password.js` | maintenance destructive | réinitialise le mot de passe de l'utilisateur `admin` — exige `CONFIRM_RESET=yes` + `ADMIN_NEW_PASSWORD` |
-| `parse-audit.js`, `show-jest-audit.js`, `show-jest-core-audit.js`, `show-minimatch.js`, `show-vuln-sources.js` | debug | parsing de l'ancien `audit.json` (qui n'est plus tracké) |
-| `test.js` | debug | scratchpad |
-| `walkthrough_fix.sh` | obsolète | `sed` sur un chemin Windows absolu (résidu personnel) |
-
-## Exécution
+From the repository root:
 
 ```bash
-# Depuis la racine du repo :
-node backend/scripts/admin/reset_password.js   # exige CONFIRM_RESET=yes
-npx tsx backend/scripts/admin/clear.ts         # exige CONFIRM_CLEAR=yes
+CONFIRM_RESET=yes ADMIN_NEW_PASSWORD='…' node backend/scripts/admin/reset_password.js
+CONFIRM_CLEAR=yes npx tsx backend/scripts/admin/clear.ts
 ```
 
-Privilégier `prisma studio` ou l'interface admin pour la plupart des opérations.
+For most operations, prefer the administration screens or `npx prisma studio`.

@@ -1,159 +1,58 @@
-# Cas d’usage métier et exemples de planification
+# Use cases and scheduling examples
 
-Ce document décrit des cas d’usage concrets de Taskmaster et donne des exemples de planification (périodicité, fenêtres horaires, assignations) pour vous en inspirer.
+Typical task definitions, to copy or adapt. The **Rule** column is the recurrence rule (RRULE) Taskmaster stores. In the task wizard you build it with the periodicity cards and the **Custom** option.
 
----
+| Use case | Periodicity | Rule | Options | Priority |
+| --- | --- | --- | --- | --- |
+| Daily safety walkthrough, working days | Daily | `FREQ=DAILY;BYDAY=MO,TU,WE,TH,FR` | Skip weekends and holidays | High |
+| Morning operations briefing, 7 days a week | Daily | `FREQ=DAILY` | | Medium |
+| Weekly quality audit, every Monday | Weekly | `FREQ=WEEKLY;BYDAY=MO` | Time window 08:00–12:00 | Critical |
+| Technical area cleaning, Tuesday and Friday | Weekly | `FREQ=WEEKLY;BYDAY=TU,FR` | | Low |
+| Monthly equipment inspection, the 1st | Monthly | `FREQ=MONTHLY;BYMONTHDAY=1` | | High |
+| Quarterly compliance review | Monthly, every 3 months | `FREQ=MONTHLY;INTERVAL=3;BYMONTHDAY=1` | Start date on January 1st | Critical |
+| Annual fire safety training | Yearly | `FREQ=YEARLY` | Repeats on the day of the start date | High |
 
-## 1. Ronde de sécurité quotidienne (jours ouvrés)
+## Details per case
 
-**Contexte** : Une équipe doit effectuer une ronde de sécurité chaque jour ouvré (lundi à vendredi), avec consultation d’une procédure PDF.
+**Daily safety walkthrough.**
+- Assign it to the security group and attach the walkthrough procedure (link or PDF).
+- Add a checklist: one checkbox per zone, and a photo step for the fire panel.
+- A failed walkthrough can open a corrective action straight away.
 
-**Paramétrage type :**
+**Weekly quality audit.**
+- A weekly occurrence can be validated at any time during its week.
+- The time window keeps it on the board only during the audit slot.
+- When the auditor is away, a **delegation** hands it to someone else for that week.
 
-- **Nom** : Ronde de sécurité quotidienne  
-- **Périodicité** : Quotidienne (daily)  
-- **Règle** : `FREQ=DAILY;BYDAY=MO,TU,WE,TH,FR`  
-- **Ignorer week-ends** : Oui  
-- **Ignorer jours fériés** : Oui (optionnel, selon la politique)  
-- **Priorité** : Haute  
-- **Assignation** : Groupe « Sécurité » ou utilisateurs dédiés  
-- **Procédure** : Lien ou fichier PDF de la checklist  
+**Monthly and quarterly checks.**
+- Use the analytics over 30 or 90 days to follow the completion rate and the delays.
+- With a start date on January 1st, the quarterly rule produces January 1st, April 1st, July 1st and October 1st.
 
-Les occurrences sont générées chaque jour ouvré. Les agents voient la tâche dans « Aujourd’hui » et la valident ou la signalent en échec à la fin de la ronde.
+**Recurrence from the last completion.**
+- Set the recurrence mode to **From Completion** when the next occurrence must follow the last success rather than the calendar. Example: a filter replaced every 30 days of use.
 
----
+## Several sites
 
-## 2. Contrôle qualité hebdomadaire (un jour fixe)
+- Every task and every user belongs to a site. Users only see the tasks of their sites.
+- Groups belong to a site and restrict assignments and delegations to it.
+- Guest TV links are created per site.
 
-**Contexte** : Audit qualité sur un échantillon de production, tous les lundis matin.
+Example: a walkthrough defined for the "North warehouse" site only appears to the users of that site.
 
-**Paramétrage type :**
+## Delegations
 
-- **Nom** : Contrôle qualité hebdomadaire  
-- **Périodicité** : Hebdomadaire (weekly)  
-- **Règle** : `FREQ=WEEKLY;BYDAY=MO`  
-- **Fenêtre horaire** : par exemple 08:00–12:00 (si l’application gère les créneaux)  
-- **Priorité** : Critique  
-- **Assignation** : Responsable qualité ou équipe qualité  
-- **Procédure** : Lien vers le protocole d’audit  
+**Leave or long absence.** On the task, create a delegation from the first to the last day of absence, to one or more colleagues, with the reason "Annual leave".
 
-Une occurrence par lundi. En cas d’absence, une **délégation** peut être créée vers un autre responsable pour la semaine concernée.
+**Temporary transfer.** The same mechanism hands a task to another team for a while.
 
----
+The task details list active and planned delegations. The audit log and the reports keep track of the validations made by delegates.
 
-## 3. Vérification mensuelle des équipements (jour du mois)
+## Notifications
 
-**Contexte** : Vérification des extincteurs et des alarmes le 1er de chaque mois.
+Step 4 of the task wizard sends alerts through the channels enabled in Settings → Notifications (email, Slack, Microsoft Teams, Telegram or web push):
 
-**Paramétrage type :**
+- **On failure**: when an occurrence is reported as failed;
+- **On missing**: when an occurrence is missed;
+- **Reminder**: before the due time.
 
-- **Nom** : Vérification mensuelle des équipements  
-- **Périodicité** : Mensuelle (monthly)  
-- **Règle** : `FREQ=MONTHLY;BYMONTHDAY=1`  
-- **Priorité** : Haute  
-- **Assignation** : Techniciens ou groupe « Maintenance »  
-- **Procédure** : Checklist ou document de traçabilité  
-
-Une occurrence le 1er de chaque mois. Les analytiques sur 30 ou 90 jours permettent de suivre le taux de réalisation et les éventuels retards.
-
----
-
-## 4. Revue trimestrielle de conformité
-
-**Contexte** : Revue formelle de conformité réglementaire tous les trois mois (début de trimestre).
-
-**Paramétrage type :**
-
-- **Nom** : Revue trimestrielle conformité  
-- **Périodicité** : Mensuelle avec intervalle (monthly, interval = 3)  
-- **Règle** : `FREQ=MONTHLY;INTERVAL=3;BYMONTHDAY=1`  
-- **Priorité** : Critique  
-- **Assignation** : Responsable conformité ou comité  
-- **Procédure** : Lien vers le référentiel et le compte-rendu type  
-
-Cela génère une occurrence le 1er janvier, 1er avril, 1er juillet, 1er octobre. Idéal pour les indicateurs de conformité et les rapports annuels.
-
----
-
-## 5. Nettoyage des zones techniques (plusieurs jours par semaine)
-
-**Contexte** : Nettoyage des locaux techniques le mardi et le vendredi.
-
-**Paramétrage type :**
-
-- **Nom** : Nettoyage des zones techniques  
-- **Périodicité** : Hebdomadaire (weekly)  
-- **Règle** : `FREQ=WEEKLY;BYDAY=TU,FR`  
-- **Priorité** : Basse ou Moyenne  
-- **Assignation** : Équipe d’entretien ou prestataire  
-
-Deux occurrences par semaine, toujours les mêmes jours. Les rapports analytiques « par tâche » permettent de vérifier la régularité sur le trimestre.
-
----
-
-## 6. Point quotidien opérations (tous les jours)
-
-**Contexte** : Point court avec l’équipe chaque jour, sans exclusion week-end (activité 7j/7).
-
-**Paramétrage type :**
-
-- **Nom** : Point quotidien opérations  
-- **Périodicité** : Quotidienne (daily)  
-- **Règle** : `FREQ=DAILY`  
-- **Ignorer week-ends** : Non  
-- **Priorité** : Moyenne  
-- **Assignation** : Manager de site ou équipe de permanence  
-
-Une occurrence par jour. Utile pour les tableaux de bord en temps réel et le suivi de présence/continuité.
-
----
-
-## 7. Tâche ponctuelle (une seule date)
-
-**Contexte** : Formation obligatoire ou audit exceptionnel à une date donnée.
-
-**Paramétrage type :**
-
-- **Nom** : Formation sécurité 2026  
-- **Périodicité** : Une fois (once)  
-- **Date de début** : date unique de l’événement  
-- **Priorité** : Haute ou Critique  
-- **Assignation** : Liste des participants ou groupe  
-
-Une seule occurrence à la date choisie. Après validation ou échec, la tâche reste dans l’historique et les exports.
-
----
-
-## 8. Multi-sites et hiérarchie
-
-Lorsque Taskmaster est configuré avec **plusieurs sites** (et éventuellement une hiérarchie parent/enfant) :
-
-- Les tâches peuvent être rattachées à un **site**.
-- Les utilisateurs sont affectés à un ou plusieurs sites ; le tableau de bord peut être filtré par site.
-- Les **groupes** peuvent être liés à un site pour restreindre les assignations et les délégations.
-
-Exemple : une « Ronde de sécurité » définie pour le site « Entrepôt Nord » n’apparaît qu’aux utilisateurs ayant ce site dans leur périmètre (et selon les filtres appliqués).
-
----
-
-## 9. Délégations : congés, absences, transfert de charge
-
-**Congés ou absence prolongée**  
-Le responsable crée une délégation sur la tâche « Ronde de sécurité quotidienne » (ou autre) : date de début = premier jour d’absence, date de fin = dernier jour. Bénéficiaires = un ou plusieurs collègues. Raison : « Congés » ou « Absence ».
-
-**Transfert temporaire de charge**  
-Même principe pour une réorganisation de courte durée : délégation vers une autre équipe ou un autre site sur une période donnée.
-
-Les délégations en cours sont visibles dans le panneau Délégations de la fiche tâche ; les rapports et l’audit gardent la trace des validations effectuées par les délégataires.
-
----
-
-## 10. Notifications et alertes
-
-Selon la configuration (paramètres, canaux email/web push) :
-
-- **Rappel** : notification avant la fin de la fenêtre de réalisation.  
-- **Échec / Manquée** : alerte envoyée aux responsables ou à une liste configurée.  
-- **Conformité** : les tableaux Analytics permettent de suivre les tendances et de réagir en cas de baisse de taux de réalisation.
-
-En combinant **définition de tâche** (périodicité, priorité, procédure), **assignations** (utilisateurs/groupes/sites) et **délégations**, Taskmaster couvre des besoins allant du simple contrôle quotidien à la conformité réglementaire et au pilotage multi-sites.
+Email alerts go to selected users, groups or addresses.

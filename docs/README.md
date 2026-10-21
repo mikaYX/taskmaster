@@ -1,56 +1,36 @@
-# Documentation Taskmaster
+# Taskmaster documentation
 
-Index de la documentation complémentaire du projet.
+## Use
 
----
+| Guide | Content |
+| --- | --- |
+| [User guide](user-guide.md) | Task board, validating and reporting tasks, checklists, corrective actions, delegations, Todo, analytics |
+| [Use cases](use-cases.md) | Example task definitions and schedules |
 
-## Utilisation et métier
+## Install and configure
 
-| Document | Description |
-|----------|-------------|
-| [Guide utilisateur](user-guide.md) | Utilisation quotidienne : tableau de bord, validation et échec des tâches, délégations, todos, analytiques |
-| [Cas d’usage et planification](use-cases.md) | Exemples concrets (rondes sécurité, contrôles qualité, mensuels, trimestriels) et règles de planification (RRULE) |
+| Guide | Content |
+| --- | --- |
+| [Getting started](getting-started.md) | Docker, development from source, first login |
+| [Configuration](configuration.md) | Every environment variable |
+| [Authentication](authentication.md) | Roles, LDAP, Azure AD, Google, OIDC, SAML, MFA, passkeys, sessions, brute-force protection |
+| [API keys](api-keys.md) | Machine-to-machine access and the incoming webhook |
+| [Windows Server](windows-server-2019-local.md) | MSI installation without Docker |
 
----
+## Operate
 
-## Technique et exploitation
+| Guide | Content |
+| --- | --- |
+| [Operations](operations.md) | Deployment, backups, restore, monitoring, privacy and retention |
+| [Version updates](version-updates.md) | Update checks and how to update each installation type |
+| [Troubleshooting](troubleshooting.md) | Common problems and their fixes |
+| [Docker build](docker-build.md) | Building, publishing and scanning the image |
+| [Windows release checklist](windows-release-checklist.md) | Validating a Windows MSI candidate |
 
-| Document | Description |
-|----------|-------------|
-| [Authentification](authentication.md) | Configuration SSO, LDAP, OIDC, SAML, MFA |
-| [Base locale](local-db.md) | PostgreSQL et Redis pour le développement |
-| [Mises à jour de version](version-updates.md) | Vérification et mise à jour en installation locale et Docker |
-| [Build Docker](DOCKER-BUILD.md) | Construction et publication des images |
-| [Exploitation](operations.md) | Références d’exploitation et administration |
-| [Dépannage](troubleshooting.md) | Résolution des problèmes courants |
-| [Runbook incident](incident_runbook.md) | Procédures en cas d’incident |
+## Screenshots
 
----
+[`screenshots/`](screenshots/) holds the README images:
+- light and dark captures of each page (`board-light.png`, `board-dark.png`…);
+- the GIFs `setup-wizard.gif`, `validate-task.gif` and `create-task.gif`.
 
-## Captures d’écran
-
-Le dossier [`screenshots/`](screenshots/) contient les captures utilisées dans le README principal et pour la doc :
-
-| Fichier | Contenu |
-|---------|--------|
-| `01-task-board.png` | Tableau de bord opérationnel |
-| `02-analytics.png` | Page Analytiques (tendances, conformité) |
-| `03-task-definitions.png` | Liste des définitions de tâches |
-| `04-settings.png` | Paramètres et intégrations |
-| `05-login.png` | Page de connexion |
-| `06-todos.png` | Liste des tâches à faire (todos) |
-| `07-profile.png` | Page profil utilisateur |
-| `wizard-01-definition.png` | Wizard création de tâche — étape 1 : Définition |
-| `wizard-02-scheduling.png` | Wizard — étape 2 : Planification |
-| `wizard-03-assignment.png` | Wizard — étape 3 : Assignation |
-| `wizard-04-notifications.png` | Wizard — étape 4 : Notifications |
-| `wizard-05-review.png` | Wizard — étape 5 : Synthèse et création |
-
-Pour régénérer les captures (app et base seedées) :
-
-```bash
-# Depuis la racine du projet
-npm run dev   # dans un terminal
-# Dans un autre terminal (backend seedé avec db:seed-test-tasks et db:seed-demo) :
-TASKMASTER_FRONTEND_URL=http://localhost:5173 node scripts/screenshots-for-docs.cjs
-```
+They are made by [`scripts/docs-screenshots.cjs`](../scripts/docs-screenshots.cjs) (`npm run docs:screenshots`) on fictional demo data. The script completes the setup wizard and seeds data, so run it against a throwaway instance only: its header lists the steps.
