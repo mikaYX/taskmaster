@@ -120,7 +120,7 @@
     "@types/jest": "^30.0.0",
     "@types/multer": "^2.0.0",
     "@types/node-fetch": "^2.6.13",
-    "@types/node": "^22.10.7",
+    "@types/node": "^26.6.5",
     "@types/nodemailer": "^7.0.9",
     "@types/opossum": "^8.1.9",
     "@types/passport-jwt": "^4.0.1",
