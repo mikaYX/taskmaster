@@ -2616,6 +2616,23 @@
         "profile": "Loading profile…"
     },
     "analytics": {
+        "status": {
+            "good": "Goal reached",
+            "warning": "Below goal",
+            "critical": "Critical"
+        },
+        "attention": {
+            "title": "Needs attention",
+            "description": "Tasks below the goal, weakest first",
+            "empty": "Every task meets the goal."
+        },
+        "distribution": "Execution breakdown",
+        "goal": "Goal: {{pct}}% or more",
+        "searchTask": "Search a task…",
+        "tv": {
+            "autoRefresh": "Refreshes automatically every 30 s",
+            "updatedAt": "updated at {{time}}"
+        },
         "title": "Analytics",
         "subtitle": "KPIs, compliance and operational reports.",
         "tvMode": "TV mode",

@@ -2616,6 +2616,23 @@
         "profile": "Chargement du profil…"
     },
     "analytics": {
+        "status": {
+            "good": "Objectif atteint",
+            "warning": "Sous l'objectif",
+            "critical": "Critique"
+        },
+        "attention": {
+            "title": "À surveiller",
+            "description": "Tâches sous l'objectif, les plus faibles d'abord",
+            "empty": "Toutes les tâches atteignent l'objectif."
+        },
+        "distribution": "Répartition des exécutions",
+        "goal": "Objectif : {{pct}} % ou plus",
+        "searchTask": "Rechercher une tâche…",
+        "tv": {
+            "autoRefresh": "Actualisation automatique toutes les 30 s",
+            "updatedAt": "mis à jour à {{time}}"
+        },
         "title": "Analytiques",
         "subtitle": "KPI, conformité et rapports opérationnels.",
         "tvMode": "Mode TV",

@@ -2,21 +2,14 @@ import { useState, useMemo, useCallback } from 'react';
 import {
     LayoutDashboard, ListChecks, Users, FileDown,
     CheckCircle2, XCircle, AlertTriangle, Activity, Download,
-    FileSpreadsheet, FileText, BarChart2, Copy, Package, ArrowUpDown, Settings2, Plus, Minus,
-    Monitor, X,
+    FileSpreadsheet, FileText, BarChart2, BarChart3, Copy, Package, ArrowUpDown, Settings2, Plus, Minus,
+    Monitor, Search, ChevronRight,
 } from 'lucide-react';
 import { useUIStore } from '@/stores/ui-store';
-import {
-    AreaChart, Area, XAxis, YAxis, CartesianGrid,
-    Tooltip as RechartsTooltip, ResponsiveContainer,
-} from 'recharts';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-    Card, CardContent, CardHeader, CardTitle, CardDescription,
-} from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,14 +23,12 @@ import {
     Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import {
-    Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from '@/components/ui/table';
-import {
     Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from '@/components/ui/dialog';
 import {
     Sheet, SheetContent, SheetHeader, SheetTitle,
 } from '@/components/ui/sheet';
+import { cn } from '@/lib/utils';
 
 import { useAuthStore } from '@/stores/auth-store';
 import {
@@ -48,6 +39,15 @@ import {
 } from '@/hooks/use-analytics';
 import { analyticsApi } from '@/api/analytics';
 import type { AnalyticsOverview, AnalyticsByTask } from '@/api/types';
+import {
+    AttentionList, ComplianceGauge, DistributionBar, EmptyState, StatusPill, TrendChart,
+} from './analytics-visuals';
+import {
+    DEFAULT_THRESHOLDS, LEVEL_STYLES, STATUS_COLORS, getComplianceLevel, type ComplianceThresholds,
+} from './analytics-levels';
+import { AnalyticsTv } from './analytics-tv';
+
+export type { ComplianceThresholds } from './analytics-levels';
 
 // ─────────────────────────────────────────────────────────
 // Types & constants
@@ -56,12 +56,6 @@ import type { AnalyticsOverview, AnalyticsByTask } from '@/api/types';
 type PeriodKey = '1' | '7' | '30' | '90';
 type KpiKey = 'success' | 'failed' | 'missing' | 'total';
 
-export interface ComplianceThresholds {
-    warningThreshold: number;
-    criticalThreshold: number;
-}
-
-const DEFAULT_THRESHOLDS: ComplianceThresholds = { warningThreshold: 70, criticalThreshold: 50 };
 const THRESHOLDS_KEY = 'analytics.thresholds';
 
 const PERIOD_VALUES: PeriodKey[] = ['1', '7', '30', '90'];
@@ -92,9 +86,8 @@ function useComplianceThresholds() {
 // ─────────────────────────────────────────────────────────
 
 function getComplianceColor(rate: number, t: ComplianceThresholds = DEFAULT_THRESHOLDS) {
-    if (rate >= t.warningThreshold) return { text: 'text-emerald-500', bg: 'bg-emerald-500/15', progress: '[&>[data-slot=progress-indicator]]:bg-emerald-500' };
-    if (rate >= t.criticalThreshold) return { text: 'text-amber-500', bg: 'bg-amber-500/15', progress: '[&>[data-slot=progress-indicator]]:bg-amber-500' };
-    return { text: 'text-red-500', bg: 'bg-red-500/15', progress: '[&>[data-slot=progress-indicator]]:bg-red-500' };
+    const style = LEVEL_STYLES[getComplianceLevel(rate, t)];
+    return { text: style.text, bg: style.soft, progress: style.progress };
 }
 
 function getInitials(fullname: string | null, username: string): string {
@@ -114,89 +107,50 @@ function useDateRange(period: PeriodKey) {
     }, [period]);
 }
 
+const panel = 'rounded-2xl border bg-card shadow-sm';
+
+function Panel({ title, description, action, children, className }: {
+    title?: string; description?: string; action?: React.ReactNode; children: React.ReactNode; className?: string;
+}) {
+    return (
+        <section className={cn(panel, 'p-5 sm:p-6', className)}>
+            {(title || action) && (
+                <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                        {title && <h2 className="text-base font-semibold">{title}</h2>}
+                        {description && <p className="mt-0.5 text-sm text-muted-foreground">{description}</p>}
+                    </div>
+                    {action}
+                </div>
+            )}
+            {children}
+        </section>
+    );
+}
+
 // ─────────────────────────────────────────────────────────
 // Skeletons
 // ─────────────────────────────────────────────────────────
 
-function KpiSkeleton() {
+function OverviewSkeleton() {
     return (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {Array.from({ length: 4 }).map((_, i) => (
-                <Card key={i} className="p-6 space-y-3">
-                    <div className="flex justify-between items-start">
-                        <Skeleton className="h-4 w-24" />
-                        <Skeleton className="h-9 w-9 rounded-full" />
-                    </div>
-                    <Skeleton className="h-10 w-20" />
-                    <Skeleton className="h-2 w-full rounded-full" />
-                </Card>
-            ))}
-        </div>
-    );
-}
-
-function ChartSkeleton() {
-    return (
-        <Card>
-            <CardHeader>
-                <Skeleton className="h-5 w-48" />
-                <Skeleton className="h-4 w-32 mt-1" />
-            </CardHeader>
-            <CardContent>
-                <Skeleton className="h-[280px] w-full rounded-lg" />
-            </CardContent>
-        </Card>
-    );
-}
-
-function TableSkeleton({ cols = 4 }: { cols?: number }) {
-    return (
-        <div className="space-y-2 p-4">
-            <div className="flex gap-4 pb-2 border-b">
-                {Array.from({ length: cols }).map((_, i) => (
-                    <Skeleton key={i} className="h-4 flex-1" />
-                ))}
+        <div className="space-y-6">
+            <div className="grid gap-4 lg:grid-cols-12">
+                <Skeleton className="h-[300px] rounded-2xl lg:col-span-5" />
+                <div className="grid grid-cols-2 gap-4 lg:col-span-7">
+                    {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-[142px] rounded-2xl" />)}
+                </div>
             </div>
-            {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="flex gap-4 py-2">
-                    {Array.from({ length: cols }).map((_, j) => (
-                        <Skeleton key={j} className="h-5 flex-1" />
-                    ))}
-                </div>
-            ))}
+            <Skeleton className="h-[360px] rounded-2xl" />
         </div>
     );
 }
 
-// ─────────────────────────────────────────────────────────
-// Custom Recharts Tooltip
-// ─────────────────────────────────────────────────────────
-
-interface TooltipPayloadItem {
-    name: string;
-    value: number;
-    color: string;
-}
-
-interface CustomTooltipProps {
-    active?: boolean;
-    payload?: TooltipPayloadItem[];
-    label?: string;
-}
-
-function CustomChartTooltip({ active, payload, label }: CustomTooltipProps) {
-    if (!active || !payload?.length) return null;
+function TableSkeleton({ rows = 6 }: { rows?: number }) {
     return (
-        <div className="bg-card border border-border rounded-lg shadow-lg px-4 py-3 text-sm min-w-[160px]">
-            <p className="font-semibold text-foreground mb-2">{label}</p>
-            {payload.map((entry) => (
-                <div key={entry.name} className="flex items-center justify-between gap-4 py-0.5">
-                    <span className="flex items-center gap-1.5 text-muted-foreground">
-                        <span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: entry.color }} />
-                        {entry.name}
-                    </span>
-                    <span className="font-medium text-foreground">{entry.value}</span>
-                </div>
+        <div className="space-y-3">
+            {Array.from({ length: rows }).map((_, i) => (
+                <Skeleton key={i} className="h-14 w-full rounded-xl" />
             ))}
         </div>
     );
@@ -210,34 +164,34 @@ const KPI_CONFIG = [
     {
         key: 'success' as const,
         icon: CheckCircle2,
-        iconBg: 'bg-emerald-500/15',
-        iconColor: 'text-emerald-500',
-        badgeClass: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400',
-        progressClass: '[&>[data-slot=progress-indicator]]:bg-emerald-500',
+        color: STATUS_COLORS.success,
+        iconBg: 'bg-emerald-500/12',
+        iconColor: 'text-emerald-600 dark:text-emerald-400',
+        badgeClass: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300',
     },
     {
         key: 'failed' as const,
         icon: XCircle,
-        iconBg: 'bg-red-500/15',
-        iconColor: 'text-red-500',
-        badgeClass: 'bg-red-500/15 text-red-600 dark:text-red-400',
-        progressClass: '[&>[data-slot=progress-indicator]]:bg-red-500',
+        color: STATUS_COLORS.failed,
+        iconBg: 'bg-red-500/12',
+        iconColor: 'text-red-600 dark:text-red-400',
+        badgeClass: 'bg-red-500/15 text-red-700 dark:text-red-300',
     },
     {
         key: 'missing' as const,
         icon: AlertTriangle,
-        iconBg: 'bg-amber-500/15',
-        iconColor: 'text-amber-500',
-        badgeClass: 'bg-amber-500/15 text-amber-600 dark:text-amber-400',
-        progressClass: '[&>[data-slot=progress-indicator]]:bg-amber-500',
+        color: STATUS_COLORS.missing,
+        iconBg: 'bg-amber-400/15',
+        iconColor: 'text-amber-600 dark:text-amber-400',
+        badgeClass: 'bg-amber-400/20 text-amber-800 dark:text-amber-300',
     },
     {
         key: 'total' as const,
         icon: Activity,
-        iconBg: 'bg-blue-500/15',
-        iconColor: 'text-blue-500',
-        badgeClass: 'bg-blue-500/15 text-blue-600 dark:text-blue-400',
-        progressClass: '[&>[data-slot=progress-indicator]]:bg-blue-500',
+        color: 'var(--primary)',
+        iconBg: 'bg-primary/10',
+        iconColor: 'text-primary',
+        badgeClass: 'bg-primary/10 text-primary',
     },
 ] as const;
 
@@ -362,25 +316,15 @@ function OverviewTab({ period, thresholds, onSwitchTab }: { period: PeriodKey; t
     const [selectedKpi, setSelectedKpi] = useState<KpiKey | null>(null);
     const dateRange = useDateRange(period);
     const groupBy: 'day' | 'week' = Number(period) > 14 ? 'week' : 'day';
-    const { isTvMode } = useUIStore();
-    const interval = isTvMode ? 30000 : undefined;
 
-    const { data: overview, isLoading: overviewLoading } = useAnalyticsOverview(dateRange, interval);
-    const { data: trend, isLoading: trendLoading } = useAnalyticsTrend({ ...dateRange, groupBy }, interval);
-    const { data: byTask } = useAnalyticsByTask({ ...dateRange, limit: 50 }, interval);
+    const { data: overview, isLoading: overviewLoading } = useAnalyticsOverview(dateRange);
+    const { data: trend, isLoading: trendLoading } = useAnalyticsTrend({ ...dateRange, groupBy });
+    const { data: byTask } = useAnalyticsByTask({ ...dateRange, limit: 50 });
 
-    const complianceColors = getComplianceColor(overview?.complianceRate ?? 0, thresholds);
-
-    if (overviewLoading) {
-        return (
-            <div className="space-y-6">
-                <KpiSkeleton />
-                <ChartSkeleton />
-            </div>
-        );
-    }
+    if (overviewLoading) return <OverviewSkeleton />;
 
     const total = overview?.total ?? 0;
+    const level = getComplianceLevel(overview?.complianceRate ?? 0, thresholds);
 
     return (
         <div className="space-y-6">
@@ -392,125 +336,148 @@ function OverviewTab({ period, thresholds, onSwitchTab }: { period: PeriodKey; t
                 onSwitchTab={onSwitchTab}
             />
 
-            {/* KPI grid + compliance */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
-                {KPI_CONFIG.map((cfg) => {
-                    const Icon = cfg.icon;
-                    const value = overview?.[cfg.key] ?? 0;
-                    const pct = total > 0 ? Math.round((value / total) * 100) : 0;
-                    return (
-                        <Card
-                            key={cfg.key}
-                            className="lg:col-span-1 col-span-1 cursor-pointer transition-shadow hover:ring-1 hover:ring-primary"
-                            onClick={() => setSelectedKpi(cfg.key)}
-                        >
-                            <CardHeader className="pb-2 flex flex-row items-start justify-between">
-                                <span className="text-sm font-medium text-muted-foreground">{t(`analytics.kpi.${cfg.key}`)}</span>
-                                <div className={`rounded-full p-2 ${cfg.iconBg} shrink-0`}>
-                                    <Icon className={`h-4 w-4 ${cfg.iconColor}`} />
-                                </div>
-                            </CardHeader>
-                            <CardContent className="space-y-3">
-                                <div className="text-4xl font-bold tracking-tight">{value}</div>
-                                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${cfg.badgeClass}`}>
-                                    {t('analytics.pctOfTotal', { pct })}
-                                </span>
-                                <Progress
-                                    value={pct}
-                                    className={`h-1.5 ${cfg.progressClass}`}
-                                />
-                            </CardContent>
-                        </Card>
-                    );
-                })}
-
-                {/* Compliance card — spans 2 cols */}
-                <Card className="lg:col-span-2 col-span-1 sm:col-span-2 flex flex-col justify-between">
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium text-muted-foreground">
-                            {t('analytics.complianceRate')}
-                        </CardTitle>
-                        <CardDescription className="text-xs">
-                            {t('analytics.complianceFormula')}
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div className={`text-6xl font-black tracking-tight transition-colors duration-500 ${complianceColors.text}`}>
-                            {overview?.complianceRate?.toFixed(1) ?? '—'}
-                            <span className="text-3xl font-bold">%</span>
+            <div className="grid gap-4 lg:grid-cols-12">
+                {/* Compliance hero */}
+                <section className={cn(panel, 'relative overflow-hidden p-6 lg:col-span-5')}>
+                    <div
+                        className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full opacity-[0.12] blur-2xl"
+                        style={{ backgroundColor: LEVEL_STYLES[level].color }}
+                        aria-hidden="true"
+                    />
+                    <div className="relative flex flex-col items-center gap-6 sm:flex-row sm:items-center">
+                        <ComplianceGauge rate={overview?.complianceRate} level={level} />
+                        <div className="flex flex-1 flex-col items-center gap-3 text-center sm:items-start sm:text-left">
+                            <div>
+                                <p className="text-sm font-medium text-muted-foreground">{t('analytics.complianceRate')}</p>
+                                <p className="mt-0.5 text-xs text-muted-foreground/80">{t('analytics.complianceFormula')}</p>
+                            </div>
+                            <StatusPill level={level} />
+                            <p className="text-xs text-muted-foreground">
+                                {t('analytics.goal', { pct: thresholds.warningThreshold })}
+                            </p>
                         </div>
-                        <Progress
-                            value={overview?.complianceRate ?? 0}
-                            className={`h-4 rounded-full ${complianceColors.progress}`}
+                    </div>
+                    <div className="relative mt-6 border-t pt-5">
+                        <p className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                            {t('analytics.distribution')}
+                        </p>
+                        <DistributionBar
+                            success={overview?.success ?? 0}
+                            failed={overview?.failed ?? 0}
+                            missing={overview?.missing ?? 0}
                         />
-                        <div className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${complianceColors.bg} ${complianceColors.text}`}>
-                            {(overview?.complianceRate ?? 0) >= thresholds.warningThreshold
-                                ? t('analytics.goalReached')
-                                : (overview?.complianceRate ?? 0) >= thresholds.criticalThreshold
-                                    ? t('analytics.belowGoal')
-                                    : t('analytics.critical')}
-                        </div>
-                    </CardContent>
-                </Card>
+                    </div>
+                </section>
+
+                {/* KPI tiles */}
+                <div className="grid grid-cols-2 gap-4 lg:col-span-7">
+                    {KPI_CONFIG.map((cfg) => {
+                        const Icon = cfg.icon;
+                        const value = overview?.[cfg.key] ?? 0;
+                        const pct = total > 0 ? Math.round((value / total) * 100) : 0;
+                        return (
+                            <button
+                                key={cfg.key}
+                                type="button"
+                                onClick={() => setSelectedKpi(cfg.key)}
+                                className={cn(
+                                    panel,
+                                    'group relative flex flex-col justify-between overflow-hidden p-5 text-left transition-all',
+                                    'hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                                )}
+                            >
+                                <span className="absolute inset-x-0 top-0 h-1" style={{ backgroundColor: cfg.color }} aria-hidden="true" />
+                                <div className="flex items-center justify-between">
+                                    <span className="text-sm font-medium text-muted-foreground">{t(`analytics.kpi.${cfg.key}`)}</span>
+                                    <span className={cn('flex h-9 w-9 items-center justify-center rounded-xl', cfg.iconBg)}>
+                                        <Icon className={cn('h-[18px] w-[18px]', cfg.iconColor)} />
+                                    </span>
+                                </div>
+                                <div className="mt-4 flex items-end justify-between gap-2">
+                                    <span className="text-3xl font-bold tabular-nums tracking-tight sm:text-4xl">{value}</span>
+                                    {cfg.key !== 'total' ? (
+                                        <span className="mb-1 text-xs font-medium text-muted-foreground">
+                                            {t('analytics.pctOfTotal', { pct })}
+                                        </span>
+                                    ) : (
+                                        <ChevronRight className="mb-1 h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+                                    )}
+                                </div>
+                            </button>
+                        );
+                    })}
+                </div>
             </div>
 
-            {/* Area chart */}
-            {trendLoading ? (
-                <ChartSkeleton />
-            ) : (
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="text-base">{t('analytics.trendTitle')}</CardTitle>
-                        <CardDescription>
-                            {groupBy === 'week' ? t('analytics.byWeek') : t('analytics.byDay')} — {dateRange.startDate} → {dateRange.endDate}
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        {trend && trend.length > 0 ? (
-                            <ResponsiveContainer width="100%" height={280}>
-                                <AreaChart data={trend} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
-                                    <defs>
-                                        <linearGradient id="gradSuccess" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="5%" stopColor="#22c55e" stopOpacity={0.25} />
-                                            <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
-                                        </linearGradient>
-                                        <linearGradient id="gradFailed" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="5%" stopColor="#ef4444" stopOpacity={0.25} />
-                                            <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
-                                        </linearGradient>
-                                        <linearGradient id="gradMissing" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.25} />
-                                            <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
-                                        </linearGradient>
-                                    </defs>
-                                    <CartesianGrid strokeDasharray="0" stroke="hsl(var(--border))" strokeOpacity={0.4} vertical={false} />
-                                    <XAxis
-                                        dataKey="date"
-                                        tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
-                                        axisLine={false}
-                                        tickLine={false}
-                                    />
-                                    <YAxis
-                                        tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
-                                        axisLine={false}
-                                        tickLine={false}
-                                    />
-                                    <RechartsTooltip content={<CustomChartTooltip />} />
-                                    <Area type="monotone" dataKey="success" name={t('analytics.kpi.success')} stroke="#22c55e" strokeWidth={2} fill="url(#gradSuccess)" />
-                                    <Area type="monotone" dataKey="failed" name={t('analytics.kpi.failed')} stroke="#ef4444" strokeWidth={2} fill="url(#gradFailed)" />
-                                    <Area type="monotone" dataKey="missing" name={t('analytics.kpi.missing')} stroke="#f59e0b" strokeWidth={2} fill="url(#gradMissing)" />
-                                </AreaChart>
-                            </ResponsiveContainer>
-                        ) : (
-                            <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-2">
-                                <Activity className="h-8 w-8 opacity-30" />
-                                <p className="text-sm">{t('analytics.noDataPeriod')}</p>
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
-            )}
+            <div className="grid gap-4 lg:grid-cols-12">
+                {/* Trend */}
+                <Panel
+                    className="lg:col-span-8"
+                    title={t('analytics.trendTitle')}
+                    description={`${groupBy === 'week' ? t('analytics.byWeek') : t('analytics.byDay')} · ${dateRange.startDate} → ${dateRange.endDate}`}
+                >
+                    {trendLoading ? (
+                        <Skeleton className="h-[280px] w-full rounded-xl" />
+                    ) : trend && trend.length > 0 ? (
+                        <TrendChart data={trend} />
+                    ) : (
+                        <EmptyState icon={Activity} text={t('analytics.noDataPeriod')} />
+                    )}
+                </Panel>
+
+                {/* Needs attention */}
+                <Panel
+                    className="lg:col-span-4"
+                    title={t('analytics.attention.title')}
+                    description={t('analytics.attention.description')}
+                >
+                    <AttentionList tasks={byTask} thresholds={thresholds} />
+                    {byTask && byTask.length > 0 && (
+                        <Button variant="ghost" size="sm" className="mt-4 w-full gap-1.5" onClick={onSwitchTab}>
+                            {t('analytics.viewAllTasks')}
+                            <ChevronRight className="h-4 w-4" />
+                        </Button>
+                    )}
+                </Panel>
+            </div>
         </div>
+    );
+}
+
+// ─────────────────────────────────────────────────────────
+// Ranking rows (by task / by user)
+// ─────────────────────────────────────────────────────────
+
+function RateCell({ rate, thresholds }: { rate: number; thresholds: ComplianceThresholds }) {
+    const { t } = useTranslation();
+    const level = getComplianceLevel(rate, thresholds);
+    const style = LEVEL_STYLES[level];
+    const Icon = style.icon;
+    return (
+        <div className="flex w-full items-center gap-3 sm:w-56">
+            <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
+                <div className="h-full rounded-full transition-[width] duration-700" style={{ width: `${Math.max(2, rate)}%`, backgroundColor: style.color }} />
+            </div>
+            <span className="flex w-16 shrink-0 items-center justify-end gap-1 text-sm font-semibold tabular-nums">
+                <Icon className={cn('h-3.5 w-3.5', style.text)} aria-label={t(`analytics.status.${level}`)} />
+                {rate.toFixed(1)}%
+            </span>
+        </div>
+    );
+}
+
+function CountChip({ value, tone }: { value: number; tone: 'failed' | 'success' | 'neutral' }) {
+    return (
+        <span
+            className={cn(
+                'inline-flex min-w-8 justify-center rounded-md px-2 py-0.5 text-xs font-semibold tabular-nums',
+                tone === 'failed' && value > 0 && 'bg-red-500/12 text-red-700 dark:text-red-300',
+                tone === 'success' && 'bg-emerald-500/12 text-emerald-700 dark:text-emerald-300',
+                (tone === 'neutral' || (tone === 'failed' && value === 0)) && 'bg-muted text-muted-foreground',
+            )}
+        >
+            {value}
+        </span>
     );
 }
 
@@ -522,76 +489,60 @@ function ByTaskTab({ period, thresholds }: { period: PeriodKey; thresholds: Comp
     const { t } = useTranslation();
     const dateRange = useDateRange(period);
     const { data, isLoading } = useAnalyticsByTask({ ...dateRange, limit: 50 });
+    const [query, setQuery] = useState('');
 
-    const sorted = useMemo(
-        () => (data ? [...data].sort((a, b) => a.complianceRate - b.complianceRate) : []),
-        [data],
-    );
+    const sorted = useMemo(() => {
+        const q = query.trim().toLowerCase();
+        return (data ?? [])
+            .filter((item) => !q || item.taskName.toLowerCase().includes(q))
+            .sort((a, b) => a.complianceRate - b.complianceRate);
+    }, [data, query]);
 
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle className="text-base">{t('analytics.byTask.title')}</CardTitle>
-                <CardDescription>{t('analytics.byTask.description')}</CardDescription>
-            </CardHeader>
-            <CardContent className="p-0">
-                {isLoading ? (
-                    <TableSkeleton cols={4} />
-                ) : sorted.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-2">
-                        <ListChecks className="h-8 w-8 opacity-30" />
-                        <p className="text-sm">{t('analytics.noDataPeriod')}</p>
+        <Panel
+            title={t('analytics.byTask.title')}
+            description={t('analytics.byTask.description')}
+            action={
+                <div className="relative w-full sm:w-64">
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                        value={query}
+                        onChange={(e) => setQuery(e.target.value)}
+                        placeholder={t('analytics.searchTask')}
+                        className="h-9 rounded-xl pl-9"
+                    />
+                </div>
+            }
+        >
+            {isLoading ? (
+                <TableSkeleton />
+            ) : sorted.length === 0 ? (
+                <EmptyState icon={ListChecks} text={t('analytics.noDataPeriod')} />
+            ) : (
+                <div className="overflow-hidden rounded-xl border">
+                    <div className="hidden grid-cols-[1fr_5rem_5rem_14rem] gap-4 border-b bg-muted/40 px-4 py-2.5 text-xs font-medium uppercase tracking-wide text-muted-foreground sm:grid">
+                        <span>{t('analytics.byTask.task')}</span>
+                        <span className="text-center">{t('analytics.kpi.total')}</span>
+                        <span className="text-center">{t('analytics.kpi.failed')}</span>
+                        <span className="text-right">{t('analytics.byTask.compliance')}</span>
                     </div>
-                ) : (
-                    <ScrollArea className="max-h-[500px]">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead className="pl-6">{t('analytics.byTask.task')}</TableHead>
-                                    <TableHead className="text-right">{t('analytics.kpi.total')}</TableHead>
-                                    <TableHead className="text-right">{t('analytics.kpi.failed')}</TableHead>
-                                    <TableHead className="text-right pr-6">{t('analytics.byTask.compliance')}</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {sorted.map((item) => {
-                                    const colors = getComplianceColor(item.complianceRate, thresholds);
-                                    return (
-                                        <TableRow key={item.taskId}>
-                                            <TableCell className="pl-6">
-                                                <div className="flex items-center gap-2 font-medium">
-                                                    <span className={`text-lg leading-none ${colors.text}`}>●</span>
-                                                    {item.taskName}
-                                                </div>
-                                            </TableCell>
-                                            <TableCell className="text-right text-muted-foreground">{item.total}</TableCell>
-                                            <TableCell className="text-right">
-                                                {item.failed > 0 ? (
-                                                    <Badge variant="destructive" className="ml-auto">{item.failed}</Badge>
-                                                ) : (
-                                                    <Badge variant="secondary" className="ml-auto">0</Badge>
-                                                )}
-                                            </TableCell>
-                                            <TableCell className="pr-6">
-                                                <div className="flex items-center justify-end gap-3">
-                                                    <Progress
-                                                        value={item.complianceRate}
-                                                        className={`h-1.5 w-20 shrink-0 ${colors.progress}`}
-                                                    />
-                                                    <span className={`text-sm font-semibold tabular-nums w-12 text-right ${colors.text}`}>
-                                                        {item.complianceRate.toFixed(1)}%
-                                                    </span>
-                                                </div>
-                                            </TableCell>
-                                        </TableRow>
-                                    );
-                                })}
-                            </TableBody>
-                        </Table>
+                    <ScrollArea className="max-h-[560px]">
+                        <ul className="divide-y">
+                            {sorted.map((item) => (
+                                <li key={item.taskId} className="grid gap-2 px-4 py-3 transition-colors hover:bg-muted/30 sm:grid-cols-[1fr_5rem_5rem_14rem] sm:items-center sm:gap-4">
+                                    <span className="truncate text-sm font-medium">{item.taskName}</span>
+                                    <span className="text-sm tabular-nums text-muted-foreground sm:text-center">
+                                        <span className="sm:hidden">{t('analytics.kpi.total')}: </span>{item.total}
+                                    </span>
+                                    <span className="sm:text-center"><CountChip value={item.failed} tone="failed" /></span>
+                                    <span className="sm:flex sm:justify-end"><RateCell rate={item.complianceRate} thresholds={thresholds} /></span>
+                                </li>
+                            ))}
+                        </ul>
                     </ScrollArea>
-                )}
-            </CardContent>
-        </Card>
+                </div>
+            )}
+        </Panel>
     );
 }
 
@@ -610,81 +561,51 @@ function ByUserTab({ period, thresholds }: { period: PeriodKey; thresholds: Comp
     );
 
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle className="text-base">{t('analytics.byUser.title')}</CardTitle>
-                <CardDescription>{t('analytics.byUser.description')}</CardDescription>
-            </CardHeader>
-            <CardContent className="p-0">
-                {isLoading ? (
-                    <TableSkeleton cols={5} />
-                ) : sorted.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-2">
-                        <Users className="h-8 w-8 opacity-30" />
-                        <p className="text-sm">{t('analytics.noDataPeriod')}</p>
+        <Panel title={t('analytics.byUser.title')} description={t('analytics.byUser.description')}>
+            {isLoading ? (
+                <TableSkeleton />
+            ) : sorted.length === 0 ? (
+                <EmptyState icon={Users} text={t('analytics.noDataPeriod')} />
+            ) : (
+                <div className="overflow-hidden rounded-xl border">
+                    <div className="hidden grid-cols-[1fr_4.5rem_4.5rem_4.5rem_14rem] gap-4 border-b bg-muted/40 px-4 py-2.5 text-xs font-medium uppercase tracking-wide text-muted-foreground md:grid">
+                        <span>{t('analytics.byUser.user')}</span>
+                        <span className="text-center">{t('analytics.kpi.total')}</span>
+                        <span className="text-center">{t('analytics.kpi.success')}</span>
+                        <span className="text-center">{t('analytics.kpi.failed')}</span>
+                        <span className="text-right">{t('analytics.byTask.compliance')}</span>
                     </div>
-                ) : (
-                    <ScrollArea className="max-h-[500px]">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead className="pl-6">{t('analytics.byUser.user')}</TableHead>
-                                    <TableHead className="text-right">{t('analytics.kpi.total')}</TableHead>
-                                    <TableHead className="text-right">{t('analytics.kpi.success')}</TableHead>
-                                    <TableHead className="text-right">{t('analytics.kpi.failed')}</TableHead>
-                                    <TableHead className="text-right pr-6">{t('analytics.byTask.compliance')}</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {sorted.map((item) => {
-                                    const colors = getComplianceColor(item.complianceRate, thresholds);
-                                    const initials = getInitials(item.fullname, item.username);
-                                    return (
-                                        <TableRow key={item.userId}>
-                                            <TableCell className="pl-6">
-                                                <div className="flex items-center gap-3">
-                                                    <Avatar size="sm">
-                                                        <AvatarFallback className={`text-xs font-semibold ${colors.bg} ${colors.text}`}>
-                                                            {initials}
-                                                        </AvatarFallback>
-                                                    </Avatar>
-                                                    <div>
-                                                        <div className="font-medium text-sm">{item.fullname || item.username}</div>
-                                                        {item.fullname && (
-                                                            <div className="text-xs text-muted-foreground">{item.username}</div>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            </TableCell>
-                                            <TableCell className="text-right text-muted-foreground">{item.total}</TableCell>
-                                            <TableCell className="text-right text-emerald-500 font-medium">{item.success}</TableCell>
-                                            <TableCell className="text-right">
-                                                {item.failed > 0 ? (
-                                                    <Badge variant="destructive">{item.failed}</Badge>
-                                                ) : (
-                                                    <Badge variant="secondary">0</Badge>
-                                                )}
-                                            </TableCell>
-                                            <TableCell className="pr-6">
-                                                <div className="flex items-center justify-end gap-3">
-                                                    <Progress
-                                                        value={item.complianceRate}
-                                                        className={`h-1.5 w-20 shrink-0 ${colors.progress}`}
-                                                    />
-                                                    <span className={`text-sm font-semibold tabular-nums w-12 text-right ${colors.text}`}>
-                                                        {item.complianceRate.toFixed(1)}%
-                                                    </span>
-                                                </div>
-                                            </TableCell>
-                                        </TableRow>
-                                    );
-                                })}
-                            </TableBody>
-                        </Table>
+                    <ScrollArea className="max-h-[560px]">
+                        <ul className="divide-y">
+                            {sorted.map((item) => {
+                                const colors = getComplianceColor(item.complianceRate, thresholds);
+                                return (
+                                    <li key={item.userId} className="grid gap-3 px-4 py-3 transition-colors hover:bg-muted/30 md:grid-cols-[1fr_4.5rem_4.5rem_4.5rem_14rem] md:items-center md:gap-4">
+                                        <div className="flex min-w-0 items-center gap-3">
+                                            <Avatar size="sm">
+                                                <AvatarFallback className={cn('text-xs font-semibold', colors.bg, colors.text)}>
+                                                    {getInitials(item.fullname, item.username)}
+                                                </AvatarFallback>
+                                            </Avatar>
+                                            <div className="min-w-0">
+                                                <div className="truncate text-sm font-medium">{item.fullname || item.username}</div>
+                                                {item.fullname && <div className="truncate text-xs text-muted-foreground">{item.username}</div>}
+                                            </div>
+                                        </div>
+                                        <div className="flex gap-2 md:contents">
+                                            <span className="text-center text-sm tabular-nums text-muted-foreground">{item.total}</span>
+                                            <span className="text-center"><CountChip value={item.success} tone="success" /></span>
+                                            <span className="text-center"><CountChip value={item.failed} tone="failed" /></span>
+                                        </div>
+                                        <span className="md:flex md:justify-end"><RateCell rate={item.complianceRate} thresholds={thresholds} /></span>
+                                    </li>
+                                );
+                            })}
+                        </ul>
                     </ScrollArea>
-                )}
-            </CardContent>
-        </Card>
+                </div>
+            )}
+        </Panel>
     );
 }
 
@@ -711,56 +632,47 @@ function ReportsTab({ period }: { period: PeriodKey }) {
         }
     };
 
-    return (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* CSV */}
-            <Card className="bg-muted/30">
-                <CardContent className="pt-8 pb-6 flex flex-col items-center text-center gap-4">
-                    <div className="rounded-full bg-emerald-500/15 p-4">
-                        <FileSpreadsheet className="h-12 w-12 text-emerald-500" />
-                    </div>
-                    <div>
-                        <p className="font-semibold text-lg">{t('analytics.reports.csvTitle')}</p>
-                        <p className="text-sm text-muted-foreground mt-1">
-                            {t('analytics.reports.csvDescription')}
-                        </p>
-                    </div>
-                    <Badge variant="outline" className="text-xs">{periodLabel}</Badge>
-                    <Button
-                        onClick={() => handleExport('csv')}
-                        disabled={isExporting !== null}
-                        className="w-full mt-2"
-                    >
-                        <Download className="h-4 w-4" />
-                        {isExporting === 'csv' ? t('analytics.reports.exporting') : t('analytics.reports.downloadCsv')}
-                    </Button>
-                </CardContent>
-            </Card>
+    const reports = [
+        {
+            type: 'csv' as const, icon: FileSpreadsheet, tile: 'bg-emerald-500/12 text-emerald-600 dark:text-emerald-400',
+            title: t('analytics.reports.csvTitle'), description: t('analytics.reports.csvDescription'), cta: t('analytics.reports.downloadCsv'),
+        },
+        {
+            type: 'pdf' as const, icon: FileText, tile: 'bg-red-500/12 text-red-600 dark:text-red-400',
+            title: t('analytics.reports.pdfTitle'), description: t('analytics.reports.pdfDescription'), cta: t('analytics.reports.downloadPdf'),
+        },
+    ];
 
-            {/* PDF */}
-            <Card className="bg-muted/30">
-                <CardContent className="pt-8 pb-6 flex flex-col items-center text-center gap-4">
-                    <div className="rounded-full bg-red-500/15 p-4">
-                        <FileText className="h-12 w-12 text-red-500" />
-                    </div>
-                    <div>
-                        <p className="font-semibold text-lg">{t('analytics.reports.pdfTitle')}</p>
-                        <p className="text-sm text-muted-foreground mt-1">
-                            {t('analytics.reports.pdfDescription')}
-                        </p>
-                    </div>
-                    <Badge variant="outline" className="text-xs">{periodLabel}</Badge>
-                    <Button
-                        variant="outline"
-                        onClick={() => handleExport('pdf')}
-                        disabled={isExporting !== null}
-                        className="w-full mt-2"
-                    >
-                        <Download className="h-4 w-4" />
-                        {isExporting === 'pdf' ? t('analytics.reports.exporting') : t('analytics.reports.downloadPdf')}
-                    </Button>
-                </CardContent>
-            </Card>
+    return (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            {reports.map((r) => {
+                const Icon = r.icon;
+                return (
+                    <section key={r.type} className={cn(panel, 'flex flex-col gap-5 p-6')}>
+                        <div className="flex items-start gap-4">
+                            <span className={cn('flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl', r.tile)}>
+                                <Icon className="h-7 w-7" />
+                            </span>
+                            <div>
+                                <h3 className="text-lg font-semibold">{r.title}</h3>
+                                <p className="mt-1 text-sm text-muted-foreground">{r.description}</p>
+                            </div>
+                        </div>
+                        <div className="mt-auto flex flex-wrap items-center justify-between gap-3 border-t pt-4">
+                            <Badge variant="outline" className="rounded-lg font-normal">{periodLabel}</Badge>
+                            <Button
+                                variant={r.type === 'csv' ? 'default' : 'outline'}
+                                onClick={() => handleExport(r.type)}
+                                disabled={isExporting !== null}
+                                className="gap-2"
+                            >
+                                <Download className="h-4 w-4" />
+                                {isExporting === r.type ? t('analytics.reports.exporting') : r.cta}
+                            </Button>
+                        </div>
+                    </section>
+                );
+            })}
         </div>
     );
 }
@@ -1145,8 +1057,6 @@ function ThresholdDialog({ open, onOpenChange, thresholds, onSave }: ThresholdDi
 // Main Page
 // ─────────────────────────────────────────────────────────
 
-import { cn } from '@/lib/utils';
-
 export function AnalyticsPage() {
     const { t } = useTranslation();
     const periodOptions = PERIOD_VALUES.map((value) => ({ value, label: t(`analytics.periods.${value}`) }));
@@ -1165,73 +1075,85 @@ export function AnalyticsPage() {
     const { data: overview } = useAnalyticsOverview(dateRange);
     const { data: byTask } = useAnalyticsByTask({ ...dateRange, limit: 50 });
 
+    const periodLabel = periodOptions.find((p) => p.value === period)?.label ?? '';
+
+    if (isTvMode) {
+        return (
+            <AnalyticsTv
+                dateRange={dateRange}
+                periodLabel={periodLabel}
+                groupBy={Number(period) > 14 ? 'week' : 'day'}
+                thresholds={thresholds}
+                canExit={!isGuest}
+                onExit={() => setIsTvMode(false)}
+            />
+        );
+    }
+
+    const tabs = [
+        { value: 'overview', icon: LayoutDashboard, label: t('analytics.tabs.overview'), show: true },
+        { value: 'by-task', icon: ListChecks, label: t('analytics.tabs.byTask'), show: true },
+        { value: 'by-user', icon: Users, label: t('analytics.tabs.byUser'), show: isManagerOrAbove },
+        // Reports offer exports and comparisons: not for a wall screen.
+        { value: 'reports', icon: FileDown, label: t('analytics.tabs.reports'), show: !isGuest },
+    ].filter((tab) => tab.show);
+
     return (
-        <div className="container mx-auto py-6 space-y-6 max-w-6xl">
+        <div className="mx-auto w-full max-w-[1200px] space-y-6 pb-24 pt-4 sm:pt-6">
             {/* Header */}
-            <div className={cn("flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4", isTvMode && "hidden")}>
+            <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                        <BarChart3 className="h-6 w-6" />
+                    </div>
                     <div>
                         <h1 className="text-2xl font-bold tracking-tight">{t('analytics.title')}</h1>
-                        <p className="text-muted-foreground text-sm mt-0.5">
-                            {t('analytics.subtitle')}
-                        </p>
+                        <p className="text-sm text-muted-foreground">{t('analytics.subtitle')}</p>
                     </div>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-8 gap-2 ml-4"
-                        onClick={() => setIsTvMode(true)}
-                    >
-                        <Monitor className="h-4 w-4" />
-                        {t('analytics.tvMode')}
-                    </Button>
                 </div>
 
-                <div className="flex items-center gap-2">
-                    {/* Pill period toggle */}
-                    <div className="flex items-center gap-1 p-1 rounded-lg bg-muted border border-border">
+                <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex items-center gap-0.5 rounded-xl border bg-card p-1 shadow-sm" role="radiogroup" aria-label={t('analytics.periodBadge', { period: '' })}>
                         {periodOptions.map((opt) => (
-                            <Button
+                            <button
                                 key={opt.value}
-                                size="sm"
-                                variant={period === opt.value ? 'default' : 'ghost'}
+                                type="button"
+                                role="radio"
+                                aria-checked={period === opt.value}
                                 onClick={() => setPeriod(opt.value)}
-                                className="h-7 px-3 text-xs rounded-md"
+                                className={cn(
+                                    'h-8 rounded-lg px-3 text-xs font-medium transition-colors',
+                                    period === opt.value
+                                        ? 'bg-primary text-primary-foreground shadow-sm'
+                                        : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+                                )}
                             >
                                 {opt.label}
-                            </Button>
+                            </button>
                         ))}
                     </div>
 
-                    <Button variant="outline" size="sm" onClick={() => setIsSummaryOpen(true)} className="gap-1.5">
+                    <Button variant="outline" size="sm" onClick={() => setIsSummaryOpen(true)} className="h-10 gap-2 rounded-xl">
                         <BarChart2 className="h-4 w-4" />
                         {t('analytics.summary')}
                     </Button>
-
+                    <Button variant="outline" size="sm" onClick={() => setIsTvMode(true)} className="h-10 gap-2 rounded-xl">
+                        <Monitor className="h-4 w-4" />
+                        {t('analytics.tvMode')}
+                    </Button>
                     {!isGuest && (
-                        <Button variant="ghost" size="icon" onClick={() => setIsThresholdOpen(true)}>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-10 w-10 rounded-xl"
+                            onClick={() => setIsThresholdOpen(true)}
+                            aria-label={t('analytics.thresholds.title')}
+                        >
                             <Settings2 className="h-4 w-4" />
                         </Button>
                     )}
                 </div>
             </div>
-
-            {isTvMode && (
-                <div className="flex items-center justify-between px-6 py-3 bg-muted/30 border rounded-lg">
-                    <div className="flex items-center gap-4">
-                        <span className="text-sm font-bold flex items-center gap-2 text-primary">
-                            <Monitor className="h-4 w-4" />
-                            {t('analytics.tvBanner')} {(isGuest) && t('analytics.readOnly')}
-                        </span>
-                        <Badge variant="outline" className="text-xs">{t('analytics.periodBadge', { period: periodOptions.find(p => p.value === period)?.label })}</Badge>
-                    </div>
-                    {!isGuest && (
-                        <Button variant="ghost" size="sm" onClick={() => setIsTvMode(false)} className="h-8 gap-2">
-                            <X className="h-4 w-4" /> {t('analytics.exit')}
-                        </Button>
-                    )}
-                </div>
-            )}
 
             <SummaryDialog
                 open={isSummaryOpen}
@@ -1248,32 +1170,19 @@ export function AnalyticsPage() {
                 onSave={setThresholds}
             />
 
-            <Separator />
-
             {/* Tabs */}
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-                <TabsList className="h-auto gap-1">
-                    <TabsTrigger value="overview" className="gap-2">
-                        <LayoutDashboard className="h-4 w-4" />
-                        {t('analytics.tabs.overview')}
-                    </TabsTrigger>
-                    <TabsTrigger value="by-task" className="gap-2">
-                        <ListChecks className="h-4 w-4" />
-                        {t('analytics.tabs.byTask')}
-                    </TabsTrigger>
-                    {isManagerOrAbove && (
-                        <TabsTrigger value="by-user" className="gap-2">
-                            <Users className="h-4 w-4" />
-                            {t('analytics.tabs.byUser')}
+                <TabsList className="h-auto w-full justify-start gap-1 overflow-x-auto rounded-xl border bg-card p-1 shadow-sm sm:w-fit">
+                    {tabs.map(({ value, icon: Icon, label }) => (
+                        <TabsTrigger
+                            key={value}
+                            value={value}
+                            className="flex-none gap-2 rounded-lg px-3.5 py-2 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none"
+                        >
+                            <Icon className="h-4 w-4" />
+                            {label}
                         </TabsTrigger>
-                    )}
-                    {/* Reports offer exports and comparisons: not for a wall screen. */}
-                    {!isGuest && (
-                        <TabsTrigger value="reports" className="gap-2">
-                            <FileDown className="h-4 w-4" />
-                            {t('analytics.tabs.reports')}
-                        </TabsTrigger>
-                    )}
+                    ))}
                 </TabsList>
 
                 <TabsContent value="overview">
