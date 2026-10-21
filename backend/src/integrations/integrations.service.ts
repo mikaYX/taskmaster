@@ -6,18 +6,21 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Permission } from '../auth/permissions.enum';
+import { ROLE_PERMISSIONS } from '../auth/role-permissions.config';
 import { PrismaService } from '../prisma/prisma.service';
 import { StatusService } from '../status/status.service';
 import { TasksService } from '../tasks/tasks.service';
 import { IncomingWebhookDto } from './dto/incoming-webhook.dto';
 
+/** Roles that may call the webhook with a regular sign-in, like the tasks API they mirror. */
+const WEBHOOK_ROLES = ['SUPER_ADMIN', 'MANAGER'];
+
 /**
  * Mapping of webhook actions to required Permission scopes.
  *
- * Each action can only be executed if the caller's permissions
- * include the mapped scope. For JWT users, role-based access
- * is assumed (scopes are resolved from the role). For API key users,
- * the scopes must be explicitly granted on the key.
+ * Each action can only be executed if the caller holds the mapped
+ * permission: granted by the role for a signed-in person, granted
+ * explicitly on the key for an API key.
  */
 const ACTION_SCOPE_MAP: Record<string, Permission> = {
   CREATE_TASK: Permission.TASK_CREATE,
@@ -56,9 +59,11 @@ export class IntegrationsService {
   }
 
   /**
-   * Validate that the user has the required scope for the given action.
-   * JWT users pass through (their permissions are resolved from their role).
-   * API key users must have the exact scope.
+   * Validate that the caller may perform the given action.
+   * API keys must hold the exact scope. People signed in with a JWT are held to
+   * the same rule the tasks API applies: only a super admin or a manager, and
+   * only with the permission their role grants for that action (a manager
+   * cannot delete, a plain user cannot use the webhook at all).
    */
   private validateActionScope(action: string, user: any): void {
     const requiredScope = ACTION_SCOPE_MAP[action];
@@ -66,8 +71,20 @@ export class IntegrationsService {
       return; // Unknown action will be caught by the switch/default
     }
 
-    // Only enforce scope check for API key users
     if (user?.role !== 'API_KEY') {
+      const granted = ROLE_PERMISSIONS[user?.role] ?? [];
+      if (
+        !WEBHOOK_ROLES.includes(user?.role) ||
+        !granted.includes(requiredScope)
+      ) {
+        this.logger.warn(
+          `[SECURITY] Webhook role denied — user: ${user?.sub ?? 'unknown'}, ` +
+            `role: ${user?.role ?? 'none'}, action: ${action}`,
+        );
+        throw new ForbiddenException(
+          `Your role is not allowed to perform '${action}' through the webhook.`,
+        );
+      }
       return;
     }
 

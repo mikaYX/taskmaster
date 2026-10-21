@@ -220,22 +220,74 @@ describe('IntegrationsService — scope & tenant validation', () => {
     expect(result.success).toBe(true);
   });
 
-  it('should allow all actions for JWT users (role-based) regardless of scopes', async () => {
-    const jwtUser = { role: 'SUPER_ADMIN', sub: 1, username: 'admin' };
-    const dto = {
+  // ── Signed-in people: held to the rule of the tasks API ─────────
+
+  describe('with a regular sign-in (JWT)', () => {
+    const createDto = {
       source: 'test',
       action: 'CREATE_TASK',
-      payload: {
-        name: 'Test',
-        periodicity: 'DAILY',
-        startDate: '2024-01-01',
-      },
+      payload: { name: 'Test', periodicity: 'DAILY', startDate: '2024-01-01' },
+    };
+    const deleteDto = {
+      source: 'test',
+      action: 'DELETE_TASK',
+      payload: { taskId: 1 },
+    };
+    const completeDto = {
+      source: 'test',
+      action: 'COMPLETE_TASK',
+      payload: { taskId: 1, instanceDate: '2024-01-01' },
     };
 
-    mockTasksService.create.mockResolvedValue({ id: 99 });
+    it('lets a super admin create, complete and delete', async () => {
+      const admin = { role: 'SUPER_ADMIN', sub: 1, username: 'admin' };
+      mockTasksService.create.mockResolvedValue({ id: 99 });
+      mockStatusService.upsert.mockResolvedValue({ id: 1 });
+      mockTasksService.softDelete.mockResolvedValue(undefined);
 
-    const result = await service.processIncomingWebhook(dto as any, jwtUser);
-    expect(result.success).toBe(true);
+      await expect(
+        service.processIncomingWebhook(createDto as any, admin),
+      ).resolves.toMatchObject({ success: true });
+      await expect(
+        service.processIncomingWebhook(completeDto as any, admin),
+      ).resolves.toMatchObject({ success: true });
+      await expect(
+        service.processIncomingWebhook(deleteDto as any, admin),
+      ).resolves.toMatchObject({ success: true });
+    });
+
+    it('lets a manager create and complete, but not delete', async () => {
+      const manager = { role: 'MANAGER', sub: 2, username: 'manager' };
+      mockTasksService.create.mockResolvedValue({ id: 99 });
+      mockStatusService.upsert.mockResolvedValue({ id: 1 });
+
+      await expect(
+        service.processIncomingWebhook(createDto as any, manager),
+      ).resolves.toMatchObject({ success: true });
+      await expect(
+        service.processIncomingWebhook(completeDto as any, manager),
+      ).resolves.toMatchObject({ success: true });
+      await expect(
+        service.processIncomingWebhook(deleteDto as any, manager),
+      ).rejects.toThrow(ForbiddenException);
+      expect(mockTasksService.softDelete).not.toHaveBeenCalled();
+    });
+
+    it.each(['USER', 'GUEST', undefined])(
+      'refuses every action to the role %s',
+      async (role) => {
+        const person = { role, sub: 3, username: 'someone' };
+
+        for (const dto of [createDto, completeDto, deleteDto]) {
+          await expect(
+            service.processIncomingWebhook(dto as any, person),
+          ).rejects.toThrow(ForbiddenException);
+        }
+        expect(mockTasksService.create).not.toHaveBeenCalled();
+        expect(mockStatusService.upsert).not.toHaveBeenCalled();
+        expect(mockTasksService.softDelete).not.toHaveBeenCalled();
+      },
+    );
   });
 
   // ── Tenant isolation ────────────────────────────────────────────
