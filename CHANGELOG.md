@@ -13,6 +13,12 @@ First stable release of 1.2.0: everything from 1.2.0-beta.1 to beta.5, plus the 
 
 - Docker: backups failed with `spawn pg_dump ENOENT` because the image had no PostgreSQL client. The image now ships `postgresql18-client` (`pg_dump`/`pg_restore`, matching the Postgres 18 of the compose stack) and the security workflow checks it is present.
 - `npm -w backend run start:prod` pointed to `dist/main`, which the build does not produce; it now starts `dist/src/main`.
+- Security: the incoming webhook (`POST /api/integrations/webhooks/incoming`) did not check the role of a signed-in person, so any account, including a plain user, could create, complete or delete tasks through it. It now follows the tasks API: super admins can do all three actions, managers can create and complete but not delete, other roles are refused. API keys are unchanged.
+- SSO: the Google, OIDC, Azure AD and SAML callback URLs were sent to the identity provider without the `/api` prefix, so the return from the provider did not reach the API. They are now `<BACKEND_URL>/api/auth/...`. If you registered the old form at your identity provider, replace it (see the authentication guide).
+- Task board: the **Edit** button that lets a super admin correct a finished status never appeared, because it tested a role that does not exist.
+- Setup wizard: the language and the time zone chosen in the first step were not saved. They now become the instance default language and the scheduler time zone.
+- `LOG_LEVEL` had no effect. It now sets the log level (default `info` in production, `debug` otherwise), and an unknown value stops the app at startup.
+- The unused `puppeteer` dependency and the `PUPPETEER_*` settings were removed.
 
 ### Changed
 
@@ -24,7 +30,7 @@ First stable release of 1.2.0: everything from 1.2.0-beta.1 to beta.5, plus the 
 - Session and passkey-policy checks read settings through the cache, which cuts database queries on every session cache miss.
 - An API key whose scopes cover a route is no longer also checked against the human role list; routes without a required permission still reject API keys.
 - New migration `task_delegation_indexes` adds indexes on `task_delegations`. It only adds indexes and is safe on existing data.
-- End-to-end tests run serially, since the suites share one database.
+- End-to-end tests run serially, since the suites share one database and no longer fail now and then: they wait for the audit rows written after a response, and a timing assertion allows for timer jitter.
 - The sidebar entry "Liste de tâches" / "Todo List" is now simply "Todo" (French and English), so it no longer reads like the core Taskmaster tasks. Only the label changes.
 - The setup wizard has a new design and scrolls on short screens, with the step buttons always visible.
 - The analytics page has a new design: compliance gauge with status, execution breakdown, KPI tiles, executions per period stacked by status, a "Needs attention" list, searchable per-task ranking and clearer per-user ranking. Status colors are colorblind-checked and always paired with an icon and a label.

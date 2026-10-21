@@ -26,10 +26,11 @@ Most functional settings (sign-in methods, email, notifications, backups, brandi
 
 | Variable | Default | Description |
 | --- | --- | --- |
-| `NODE_ENV` | `development` | `production` enables the strict checks above, the production security headers and `info` logs (`debug` otherwise). |
+| `NODE_ENV` | `development` | `production` enables the strict checks above and the production security headers. |
+| `LOG_LEVEL` | `info` in production, `debug` otherwise | Log level: `silent`, `fatal`, `error`, `warn`, `info`, `debug` or `trace`. An unknown value stops the app at startup. |
 | `PORT` | `3000` | HTTP port. |
 | `FRONTEND_URL` | | Public address of the web interface. Used in links sent by email and as the default passkey domain. |
-| `BACKEND_URL` | | Public address of the backend. Used to build the SSO callback URLs (see [Authentication](authentication.md)). |
+| `BACKEND_URL` | `http://localhost:3000` | Public address of the site, without `/api`. Used to build the SSO callback URLs (see [Authentication](authentication.md#public-urls)). |
 | `TRUST_PROXY` | `loopback` | Proxies to trust for `X-Forwarded-For`, using the Express `trust proxy` syntax. Set `1` behind a single reverse proxy, so rate limiting and the audit log see the real client IP. |
 | `TLS_CERT_FILE`, `TLS_KEY_FILE` | | Paths to a certificate and its key. When both are set, the server answers in HTTPS itself. |
 | `RP_ID` | Domain of `FRONTEND_URL` | Passkey (WebAuthn) relying party ID. A domain only: no scheme, port or path. |

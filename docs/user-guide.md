@@ -38,6 +38,10 @@ Click the green check (✓) on the row. Without a checklist, the occurrence beco
 
 Click the red cross (✕), describe the problem (required) and confirm. The occurrence becomes **Failed**. Managers and administrators see the reason in the reports and the audit log.
 
+### Change a finished status
+
+A super admin can correct an occurrence that is already validated, failed or missing. Hover over its row and click **Edit**, pick the new status and add a comment. Nobody else can change a finished status.
+
 ### TV mode
 
 **TV mode** shows the board full screen for a wall display. It refreshes by itself.

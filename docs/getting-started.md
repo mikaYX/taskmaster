@@ -47,7 +47,7 @@ Data is kept in named Docker volumes.
    The `app` container applies the database migrations itself, then starts.
 
 4. Open `http://localhost:3000` (or the `PORT` you set) and follow the setup wizard:
-   - pick the interface language;
+   - pick the interface language and the time zone: they become the instance defaults, and can be changed later in Settings;
    - choose whether the Todo module is enabled;
    - create the administrator account.
 

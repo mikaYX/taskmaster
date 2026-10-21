@@ -67,7 +67,7 @@ The browser opened a different address than the configured domain. See [Authenti
 
 ## SSO redirects fail
 
-Compare the callback URL registered at the provider with the one Taskmaster sends (see [Authentication → Public URLs](authentication.md#public-urls)). Both must match character for character, `http` versus `https` included.
+Compare the callback URL registered at the provider with the one Taskmaster sends (see [Authentication → Public URLs](authentication.md#public-urls)). Both must match character for character, `http` versus `https` included, and both include `/api`. A URL registered without it, as 1.1 sent it, ends on the web app instead of the API.
 
 ## A backup fails
 

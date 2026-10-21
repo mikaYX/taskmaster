@@ -64,6 +64,8 @@ A key is accepted by the endpoints of tasks (`/api/tasks`), schedules (`/api/sch
 
 `COMPLETE_TASK` marks the occurrence of that date as validated. The task must belong to the site given in `X-Site-Id`.
 
+The webhook also accepts a signed-in person, with the same rules as the tasks API: a super admin can do all three actions, a manager can create and complete but not delete, and every other role is refused.
+
 ## Good practice
 
 - One key per integration, so you can revoke one without breaking the others.

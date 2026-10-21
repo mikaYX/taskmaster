@@ -40,12 +40,17 @@ With the single Docker image, all three are the same address. Taskmaster sends t
 
 | Provider | Callback URL sent by Taskmaster |
 | --- | --- |
-| Google | `<BACKEND_URL>/auth/external/callback/google` |
-| Generic OIDC | `<BACKEND_URL>/auth/external/callback/generic` |
-| Azure AD | `<BACKEND_URL>/auth/azure/callback` |
-| SAML (ACS) | `<BACKEND_URL>/auth/saml/acs` |
+| Google | `<BACKEND_URL>/api/auth/external/callback/google` |
+| Generic OIDC | `<BACKEND_URL>/api/auth/external/callback/generic` |
+| Azure AD | `<BACKEND_URL>/api/auth/azure/callback` |
+| SAML (ACS) | `<BACKEND_URL>/api/auth/saml/acs` |
 
-The SAML service provider metadata is served at `/api/auth/saml/metadata`.
+`BACKEND_URL` is the site address, without `/api`: Taskmaster adds the prefix. A trailing slash or an `/api` suffix in the variable is tolerated.
+
+The SAML service provider metadata is served at `<BACKEND_URL>/api/auth/saml/metadata`.
+
+> [!NOTE]
+> Before 1.2.0 these URLs were sent without `/api`, which does not reach the API. If you registered the old form at your identity provider, replace it with the one above.
 
 ## Configure a provider
 
