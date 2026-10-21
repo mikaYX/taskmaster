@@ -351,3 +351,143 @@ describe('TasksService', () => {
     });
   });
 });
+
+describe('TasksService.getBoardItems', () => {
+  const client = {
+    task: { findMany: jest.fn() },
+    status: { findMany: jest.fn(), findFirst: jest.fn(), count: jest.fn() },
+  };
+  const prisma = { client, buildSiteFilter: jest.fn().mockReturnValue({}) };
+  const settings = { getRawValue: jest.fn().mockResolvedValue(undefined) };
+  const instances = { computeInstances: jest.fn() };
+  const service = new TasksService(
+    prisma as never,
+    {} as never,
+    settings as never,
+    instances as never,
+    {} as never,
+    {} as never,
+    {} as never,
+  );
+  const start = new Date('2026-01-05T00:00:00Z');
+  const end = new Date('2026-01-06T23:59:59Z');
+  const task = (id: number) => ({
+    id,
+    name: `Task ${id}`,
+    periodicity: 'DAILY',
+    timezone: 'UTC',
+    executionChecklist: [],
+    userAssignments: [],
+    groupAssignments: [],
+  });
+
+  beforeEach(() => {
+    client.task.findMany.mockReset();
+    client.status.findMany.mockReset();
+    instances.computeInstances.mockReset();
+  });
+
+  it('reads only the statuses of the tasks the caller can see', async () => {
+    client.task.findMany.mockResolvedValue([task(3), task(7)]);
+    client.status.findMany.mockResolvedValue([
+      {
+        taskId: 7,
+        instanceDate: new Date('2026-01-05T00:00:00Z'),
+        status: 'SUCCESS',
+        updatedByUserId: 2,
+        updatedByUsername: 'bob',
+        updatedBy: { username: 'bob', fullname: null },
+        updatedAt: new Date('2026-01-05T10:00:00Z'),
+        comment: null,
+        executionRecord: null,
+      },
+    ]);
+    instances.computeInstances.mockImplementation((t: { id: number }) =>
+      [
+        {
+          taskId: t.id,
+          date: new Date('2026-01-05T08:00:00Z'),
+          originalDate: new Date('2026-01-05T08:00:00Z'),
+          periodicity: 'rrule',
+          periodStart: new Date('2026-01-05T08:00:00Z'),
+          periodEnd: new Date('2026-01-05T18:00:00Z'),
+        },
+      ][Symbol.iterator](),
+    );
+
+    const result = await service.getBoardItems(start, end, 1, [], true);
+
+    expect(client.status.findMany).toHaveBeenCalledTimes(1);
+    expect(client.status.findMany.mock.calls[0][0].where.taskId).toEqual({
+      in: [3, 7],
+    });
+    expect(result.total).toBe(2);
+    expect(
+      result.items.map((i: { taskId: number; status: string }) => [
+        i.taskId,
+        i.status,
+      ]),
+    ).toEqual([
+      [3, 'RUNNING'],
+      [7, 'SUCCESS'],
+    ]);
+  });
+
+  it('skips the status query when no task is visible', async () => {
+    client.task.findMany.mockResolvedValue([]);
+    const result = await service.getBoardItems(start, end, 1, [], false);
+    expect(client.status.findMany).not.toHaveBeenCalled();
+    expect(result).toEqual({ items: [], total: 0 });
+  });
+});
+
+describe('TasksService.findOne site scope', () => {
+  const findFirst = jest.fn();
+  const isSuperAdmin = jest.fn();
+  const getUserSiteIds = jest.fn();
+  const service = new TasksService(
+    { client: { task: { findFirst } }, isSuperAdmin, getUserSiteIds } as never,
+    {} as never,
+    {} as never,
+    {} as never,
+    {} as never,
+    {} as never,
+    {} as never,
+  );
+
+  beforeEach(() => {
+    findFirst.mockReset();
+    isSuperAdmin.mockReset().mockReturnValue(false);
+    getUserSiteIds.mockReset();
+  });
+
+  it('reports a task outside the caller sites as not found', async () => {
+    getUserSiteIds.mockReturnValue([1, 2]);
+    findFirst.mockResolvedValue(null);
+
+    await expect(service.findOne(5)).rejects.toThrow(NotFoundException);
+    expect(findFirst.mock.calls[0][0].where).toEqual({
+      id: 5,
+      siteId: { in: [1, 2] },
+    });
+  });
+
+  it('scopes on every assigned site, not only the selected one', async () => {
+    // The selected site is not part of the lookup: a notification link to a task
+    // of the caller's other site keeps working.
+    getUserSiteIds.mockReturnValue([1, 2]);
+    findFirst.mockResolvedValue(null);
+
+    await service.findOne(5).catch(() => undefined);
+    expect(findFirst.mock.calls[0][0].where.siteId).toEqual({ in: [1, 2] });
+  });
+
+  it('does not scope a super admin', async () => {
+    isSuperAdmin.mockReturnValue(true);
+    getUserSiteIds.mockReturnValue([1]);
+    findFirst.mockResolvedValue(null);
+
+    await expect(service.findOne(5)).rejects.toThrow(NotFoundException);
+    expect(findFirst.mock.calls[0][0].where).toEqual({ id: 5 });
+  });
+});

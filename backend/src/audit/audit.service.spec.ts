@@ -35,6 +35,34 @@ describe('AuditService', () => {
     expect(service).toBeDefined();
   });
 
+  describe('log actor id', () => {
+    const lastData = () =>
+      (prismaService.client.auditLog.create as jest.Mock).mock.calls[0][0].data;
+
+    it('keeps a user id', async () => {
+      await service.log({
+        action: AuditAction.TASK_UPDATED,
+        category: AuditCategory.TASK,
+        actorId: 7,
+        actorName: 'alice',
+      });
+      expect(lastData()).toMatchObject({ actorId: 7, actorName: 'alice' });
+    });
+
+    it('records an API key action with an empty actor id and the key name', async () => {
+      await service.log({
+        action: AuditAction.TASK_UPDATED,
+        category: AuditCategory.TASK,
+        actorId: 'apikey:3' as unknown as number,
+        actorName: 'API Key (sk_abcde...)',
+      });
+      expect(lastData()).toMatchObject({
+        actorId: null,
+        actorName: 'API Key (sk_abcde...)',
+      });
+    });
+  });
+
   describe('logDiff', () => {
     it('should log nothing if no changes', async () => {
       const actor = { id: 1, username: 'admin' };

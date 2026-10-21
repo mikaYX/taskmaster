@@ -90,6 +90,67 @@ describe('RolesGuard', () => {
     });
   });
 
+  describe('API key principals', () => {
+    const apiKeyContext = (permissions: string[], method = 'GET') =>
+      ({
+        getHandler: jest.fn(),
+        getClass: jest.fn(),
+        switchToHttp: () => ({
+          getRequest: () => ({
+            method,
+            user: { role: 'API_KEY', isApiKey: true, permissions },
+          }),
+        }),
+      }) as any as ExecutionContext;
+
+    it('allows a route whose permission the key holds, whatever its roles', () => {
+      (reflector.getAllAndOverride as jest.Mock)
+        .mockReturnValueOnce([Permission.TASK_READ])
+        .mockReturnValueOnce([Role.SUPER_ADMIN, Role.MANAGER, Role.USER]);
+
+      expect(guard.canActivate(apiKeyContext([Permission.TASK_READ]))).toBe(
+        true,
+      );
+    });
+
+    it('denies a route whose permission the key lacks', () => {
+      (reflector.getAllAndOverride as jest.Mock)
+        .mockReturnValueOnce([Permission.TASK_DELETE])
+        .mockReturnValueOnce([Role.SUPER_ADMIN]);
+
+      expect(
+        guard.canActivate(apiKeyContext([Permission.TASK_READ], 'DELETE')),
+      ).toBe(false);
+    });
+
+    it('denies a role-only route (no @RequirePermission) to a key', () => {
+      (reflector.getAllAndOverride as jest.Mock)
+        .mockReturnValueOnce(undefined)
+        .mockReturnValueOnce([Role.SUPER_ADMIN]);
+
+      expect(guard.canActivate(apiKeyContext([Permission.TASK_READ]))).toBe(
+        false,
+      );
+    });
+
+    it('does not let a user object claim isApiKey without the API key role check', () => {
+      // A JWT user never carries isApiKey; with it set to anything but true the
+      // role check still applies.
+      (reflector.getAllAndOverride as jest.Mock)
+        .mockReturnValueOnce([Permission.TASK_READ])
+        .mockReturnValueOnce([Role.SUPER_ADMIN]);
+      const context = {
+        getHandler: jest.fn(),
+        getClass: jest.fn(),
+        switchToHttp: () => ({
+          getRequest: () => ({ user: { role: Role.USER, isApiKey: 'yes' } }),
+        }),
+      } as any as ExecutionContext;
+
+      expect(guard.canActivate(context)).toBe(false);
+    });
+  });
+
   describe('when using @Roles (Legacy Fallback)', () => {
     it('should use legacy check if no permissions required', () => {
       // Mock permissions check to return null

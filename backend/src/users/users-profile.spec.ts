@@ -1,6 +1,6 @@
 import { SettingsService } from '../settings/settings.service';
 import { Test } from '@nestjs/testing';
-import { INestApplication } from '@nestjs/common';
+import { ExecutionContext, INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { UsersMeController } from './users-me.controller';
 import { UsersService } from './users.service';
@@ -37,7 +37,7 @@ describe('self-service profile HTTP access and validation', () => {
     })
       .overrideGuard(JwtAuthGuard)
       .useValue({
-        canActivate: (context) => {
+        canActivate: (context: ExecutionContext) => {
           const req = context.switchToHttp().getRequest();
           req.user = { sub: 7, role: req.headers['x-test-role'] || 'USER' };
           return true;

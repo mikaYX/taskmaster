@@ -82,7 +82,7 @@ describe('Windows service backups', () => {
         }
       });
       return child;
-    }) as typeof spawn);
+    }) as unknown as typeof spawn);
   }
 
   it('resolves relative backup settings against the writable data root', async () => {

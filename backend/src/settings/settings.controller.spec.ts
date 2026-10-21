@@ -329,7 +329,9 @@ describe('SettingsController', () => {
       const crypto = jest.requireActual<typeof import('crypto')>('crypto');
       cryptoSpy = jest
         .spyOn(crypto, 'X509Certificate')
-        .mockImplementation(() => ({}));
+        .mockImplementation(
+          () => ({}) as InstanceType<typeof crypto.X509Certificate>,
+        );
     });
 
     afterEach(() => {

@@ -17,13 +17,17 @@ import { plainToInstance } from 'class-transformer';
 export class GlobalValidationPipe implements PipeTransform {
   async transform(
     value: unknown,
-    { metatype }: ArgumentMetadata,
+    { metatype, type }: ArgumentMetadata,
   ): Promise<unknown> {
     if (!metatype || !this.toValidate(metatype)) {
       return value;
     }
 
-    const object = plainToInstance(metatype, value);
+    // Express 5 leaves req.body undefined when a request has no body; validating
+    // undefined throws (500). An absent body is an empty object, as in Express 4:
+    // required fields then fail with 400, an all-optional DTO passes.
+    const input = type === 'body' && value === undefined ? {} : value;
+    const object = plainToInstance(metatype, input);
     const errors = await validate(object as object, {
       whitelist: true, // Strip properties not in DTO
       forbidNonWhitelisted: true, // Throw error for extra properties

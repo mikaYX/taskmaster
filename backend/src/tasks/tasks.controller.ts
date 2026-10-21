@@ -398,7 +398,11 @@ export class TasksController {
     @Param('id', ParseIntPipe) id: number,
     @CurrentUser() user: JwtPayload,
   ) {
-    await this.tasksService.softDelete(id, user.sub);
+    // An API key ("apikey:<id>") is not a user: nobody is recorded as the deleter.
+    await this.tasksService.softDelete(
+      id,
+      Number.isInteger(user.sub) ? user.sub : null,
+    );
     return { message: 'Task deleted successfully' };
   }
 

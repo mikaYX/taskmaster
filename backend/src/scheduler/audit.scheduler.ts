@@ -24,15 +24,37 @@ export class AuditScheduler {
     this.logger.log('Starting Audit of Missed Instances...');
 
     const now = new Date();
+    const startedAt = Date.now();
     const auditStart = subDays(startOfDay(now), 90); // Look back 90 days max
     // Inclure aujourd'hui pour que les tâches dont la fenêtre est dépassée (ex. 18h) passent en MISSING
     const auditEnd = endOfDay(now);
 
     const tasks = await this.prisma.client.task.findMany({
       where: {
+        deletedAt: null,
         OR: [{ activeUntil: null }, { activeUntil: { gte: auditStart } }],
       },
     });
+
+    if (tasks.length === 0) {
+      this.logger.log('Audit completed: no task to audit.');
+      return;
+    }
+
+    // Fetch every existing status of the window at once, keyed by task then YYYY-MM-DD.
+    const existingStatuses = await this.prisma.client.status.findMany({
+      where: {
+        taskId: { in: tasks.map((task) => task.id) },
+        instanceDate: { gte: auditStart, lte: auditEnd },
+      },
+      select: { taskId: true, instanceDate: true },
+    });
+    const statusDatesByTask = new Map<number, Set<string>>();
+    for (const s of existingStatuses) {
+      const dates = statusDatesByTask.get(s.taskId) ?? new Set<string>();
+      dates.add(format(s.instanceDate, 'yyyy-MM-dd'));
+      statusDatesByTask.set(s.taskId, dates);
+    }
 
     let missingCount = 0;
 
@@ -84,21 +106,7 @@ export class AuditScheduler {
         windowDefaults,
       );
 
-      // Fetch Real Statuses
-      const statuses = await this.prisma.client.status.findMany({
-        where: {
-          taskId: task.id,
-          instanceDate: {
-            gte: auditStart,
-            lte: auditEnd,
-          },
-        },
-      });
-
-      // Map statuses by date string YYYY-MM-DD
-      const statusMap = new Map(
-        statuses.map((s) => [format(s.instanceDate, 'yyyy-MM-dd'), s.status]),
-      );
+      const statusDates = statusDatesByTask.get(task.id) ?? new Set<string>();
 
       // Compare
       for (const v of virtuals) {
@@ -106,7 +114,7 @@ export class AuditScheduler {
         const periodEnd =
           v.periodEnd || new Date(new Date(v.date).setHours(23, 59, 59, 999));
 
-        if (!statusMap.has(dateKey) && now > periodEnd) {
+        if (!statusDates.has(dateKey) && now > periodEnd) {
           // Persist as MISSING
 
           try {
@@ -132,10 +140,9 @@ export class AuditScheduler {
       }
     }
 
-    if (missingCount > 0) {
-      this.logger.log(
-        `Audit completed. Marked ${missingCount} instances as MISSING.`,
-      );
-    }
+    // Always logged, so the cost of this 5-minute job can be followed over time.
+    this.logger.log(
+      `Audit completed in ${Date.now() - startedAt} ms: ${tasks.length} tasks, ${missingCount} instances marked MISSING.`,
+    );
   }
 }

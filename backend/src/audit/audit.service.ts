@@ -29,7 +29,9 @@ export class AuditService {
       await this.prisma.client.auditLog.create({
         data: {
           action: payload.action,
-          actorId: payload.actorId,
+          // An API key acts as "apikey:<id>", not a user id: keep the column empty
+          // (the key stays named in actorName) instead of failing the insert.
+          actorId: Number.isInteger(payload.actorId) ? payload.actorId : null,
           actorName: payload.actorName || 'System',
           target: payload.target,
           category: payload.category,

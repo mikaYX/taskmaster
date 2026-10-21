@@ -128,15 +128,12 @@ export class TasksService {
       const rangeStart = dto.startDate ? new Date(dto.startDate) : now;
       // Use an arbitrarily long enough period to get 10 instances (e.g. 5 years)
       const rangeEnd = addMonths(rangeStart, 60);
-      const country =
-        (await this.settings.getRawValue<string>('app.country')) || 'FR';
-
-      const wStart = await this.settings.getRawValue<string>(
-        'SCHEDULE_DEFAULT_START_TIME',
-      );
-      const wEnd = await this.settings.getRawValue<string>(
-        'SCHEDULE_DEFAULT_END_TIME',
-      );
+      const [defaultCountry, wStart, wEnd] = await Promise.all([
+        this.settings.getRawValue<string>('app.country'),
+        this.settings.getRawValue<string>('SCHEDULE_DEFAULT_START_TIME'),
+        this.settings.getRawValue<string>('SCHEDULE_DEFAULT_END_TIME'),
+      ]);
+      const country = defaultCountry || 'FR';
       const windowDefaults = { start: wStart || '08:00', end: wEnd || '18:00' };
 
       const iterator = this.instanceService.computeInstances(
@@ -189,8 +186,14 @@ export class TasksService {
       category?: string;
     },
   ): Promise<{ items: import('./dto').BoardItem[]; total: number }> {
-    const country =
-      (await this.settings.getRawValue<string>('app.country')) || 'FR';
+    const [defaultCountry, fcEnabled, wStart, wEnd] = await Promise.all([
+      this.settings.getRawValue<string>('app.country'),
+      this.settings.getRawValue<boolean>('FROM_COMPLETION_ENABLED'),
+      this.settings.getRawValue<string>('SCHEDULE_DEFAULT_START_TIME'),
+      this.settings.getRawValue<string>('SCHEDULE_DEFAULT_END_TIME'),
+    ]);
+    const country = defaultCountry || 'FR';
+    const windowDefaults = { start: wStart || '08:00', end: wEnd || '18:00' };
 
     // === Security & Logic Hardening ===
     // 1. Clamp Future: End date cannot be in the future
@@ -333,14 +336,19 @@ export class TasksService {
     const statusFetchStart = new Date(
       startDate.getTime() - 31 * 24 * 60 * 60 * 1000,
     );
-    const statuses = await this.prisma.client.status.findMany({
-      where: {
-        instanceDate: { gte: statusFetchStart, lte: endDate },
-      },
-      include: {
-        updatedBy: { select: { username: true, fullname: true } },
-      },
-    });
+    // Only the statuses of the tasks this caller can see.
+    const statuses =
+      tasks.length === 0
+        ? []
+        : await this.prisma.client.status.findMany({
+            where: {
+              taskId: { in: tasks.map((task) => task.id) },
+              instanceDate: { gte: statusFetchStart, lte: endDate },
+            },
+            include: {
+              updatedBy: { select: { username: true, fullname: true } },
+            },
+          });
 
     const statusMap = new Map<string, (typeof statuses)[0]>();
     statuses.forEach((s: any) => {
@@ -351,17 +359,6 @@ export class TasksService {
     });
 
     let boardItems: import('./dto').BoardItem[] = [];
-
-    const fcEnabled = await this.settings.getRawValue<boolean>(
-      'FROM_COMPLETION_ENABLED',
-    );
-    const wStart = await this.settings.getRawValue<string>(
-      'SCHEDULE_DEFAULT_START_TIME',
-    );
-    const wEnd = await this.settings.getRawValue<string>(
-      'SCHEDULE_DEFAULT_END_TIME',
-    );
-    const windowDefaults = { start: wStart || '08:00', end: wEnd || '18:00' };
 
     for (const task of tasks) {
       let fromCompletionCtx: FromCompletionContext | undefined;
@@ -692,8 +689,14 @@ export class TasksService {
   }
 
   async findOne(id: number): Promise<TaskResponseDto> {
-    const task = await this.prisma.client.task.findUnique({
-      where: { id },
+    // Any site the caller is assigned to, not only the selected one: a link from a
+    // notification must still open while another site is selected. A task outside
+    // the caller's sites is reported as not found.
+    const siteIds = this.prisma.isSuperAdmin()
+      ? []
+      : this.prisma.getUserSiteIds();
+    const task = await this.prisma.client.task.findFirst({
+      where: { id, ...(siteIds.length ? { siteId: { in: siteIds } } : {}) },
       include: this.includeRelations,
     });
     if (!task) throw new NotFoundException(`Task ${id} not found`);
@@ -936,7 +939,7 @@ export class TasksService {
   }
 
   /** Soft delete task. */
-  async softDelete(taskId: number, userId: number): Promise<void> {
+  async softDelete(taskId: number, userId: number | null): Promise<void> {
     const task = await this.prisma.client.task.findUnique({
       where: { id: taskId },
       include: {

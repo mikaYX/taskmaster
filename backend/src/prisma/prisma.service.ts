@@ -24,7 +24,17 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
     const safeUrl = connectionString?.replace(/:([^:@]+)@/, ':****@');
     this.logger.log(`Initializing Prisma with PG Adapter URL: ${safeUrl}`);
 
-    const pool = new Pool({ connectionString });
+    // Fail fast instead of waiting forever for a connection; 10 is node-postgres' own default size.
+    const pool = new Pool({
+      connectionString,
+      max: Number(configService.get('DATABASE_POOL_MAX') ?? 10),
+      connectionTimeoutMillis: 10_000,
+      idleTimeoutMillis: 30_000,
+      // Opt-in: unset or 0 keeps PostgreSQL's default (no limit).
+      statement_timeout:
+        Number(configService.get('DATABASE_STATEMENT_TIMEOUT_MS') ?? 0) ||
+        undefined,
+    });
     const adapter = new PrismaPg(pool);
 
     this._client = new PrismaClient({ adapter });

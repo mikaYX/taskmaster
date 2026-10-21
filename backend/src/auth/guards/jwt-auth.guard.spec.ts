@@ -100,7 +100,7 @@ describe('JwtAuthGuard Passkey Enforcement', () => {
     } as any);
     const context = mockExecutionContext({ sub: 1 });
     context.getHandler = () => AuthController.prototype.changePassword;
-    context.getClass = () => AuthController;
+    context.getClass = (() => AuthController) as typeof context.getClass;
     await expect(realGuard.canActivate(context)).resolves.toBe(true);
     expect(authService.getSession).not.toHaveBeenCalled();
   });

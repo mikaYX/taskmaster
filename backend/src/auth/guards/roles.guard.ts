@@ -50,6 +50,14 @@ export class RolesGuard implements CanActivate {
         // Strict V2 failure
         return false;
       }
+
+      // An API key is authorised by the scopes an admin granted it, not by a
+      // role: once they cover the route, the human role list does not apply.
+      // A route without @RequirePermission still goes through the role check
+      // below, which an API key (role API_KEY) never passes.
+      if (user.isApiKey === true) {
+        return true;
+      }
       // Continue to role check if permissions pass
     }
 

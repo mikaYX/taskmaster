@@ -38,9 +38,13 @@ export class MissingTasksNotificationJob implements SchedulerJob {
       const now = new Date();
       const deduplicationWindow = new Date(now.getTime() - 24 * 60 * 60 * 1000); // 24h
 
+      // Same 90-day look-back as the MISSING audit; archived tasks never alert.
+      const lookBack = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
       const runningStatuses = await this.prisma.client.status.findMany({
         where: {
           status: 'RUNNING',
+          instanceDate: { gte: lookBack },
+          task: { deletedAt: null },
         },
         include: {
           task: {
@@ -60,17 +64,24 @@ export class MissingTasksNotificationJob implements SchedulerJob {
         }
       }
 
-      // Deduplication Check
-      for (const taskId of overdueTaskIds) {
-        const recentNotif = await this.prisma.client.notification.findFirst({
-          where: {
-            taskId,
-            kind: 'OVERDUE',
-            sentAt: { gte: deduplicationWindow },
-          },
-        });
+      // Deduplication Check: one query for every overdue task
+      const recentlyNotified = new Set(
+        overdueTaskIds.size === 0
+          ? []
+          : (
+              await this.prisma.client.notification.findMany({
+                where: {
+                  taskId: { in: [...overdueTaskIds] },
+                  kind: 'OVERDUE',
+                  sentAt: { gte: deduplicationWindow },
+                },
+                select: { taskId: true },
+              })
+            ).map((n) => n.taskId),
+      );
 
-        if (recentNotif) {
+      for (const taskId of overdueTaskIds) {
+        if (recentlyNotified.has(taskId)) {
           continue; // Skip if already notified in window
         }
 

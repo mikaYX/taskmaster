@@ -55,6 +55,19 @@ class EnvironmentVariables {
   DATABASE_URL!: string;
 
   @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(1)
+  @Max(100)
+  DATABASE_POOL_MAX = 10;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  DATABASE_STATEMENT_TIMEOUT_MS = 0;
+
+  @IsOptional()
   @IsString()
   REDIS_URL?: string;
 

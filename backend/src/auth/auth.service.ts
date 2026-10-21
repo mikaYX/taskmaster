@@ -952,10 +952,11 @@ export class AuthService {
       }));
     }
 
-    const passkeysEnabledDto = await this.settingsService.get(
-      'auth.passkeys.enabled',
-    );
-    const passkeysEnabled = String(passkeysEnabledDto.value) === 'true';
+    // Cached reads (getRawValue): this runs on every session cache miss.
+    const passkeysEnabled =
+      String(
+        await this.settingsService.getRawValue('auth.passkeys.enabled'),
+      ) === 'true';
 
     let passkeyPolicy: 'disabled' | 'optional' | 'required' = 'disabled';
 
@@ -963,37 +964,25 @@ export class AuthService {
     // nor use a passkey, so no passkey policy ever applies to it.
     if (passkeysEnabled && user.role !== 'GUEST') {
       passkeyPolicy = 'optional';
-      let isRequired = false;
-      if (user.role === 'SUPER_ADMIN') {
-        const adminReq = await this.settingsService.get(
-          'auth.requirements.admin.passkeys',
-        );
-        const adminEnf = await this.settingsService.get(
-          'security.enforcement.passkeys.admin',
-        );
-        isRequired =
-          String(adminReq.value) === 'true' ||
-          String(adminEnf.value) === 'true';
-      } else if (user.role === 'MANAGER') {
-        const managerEnf = await this.settingsService.get(
-          'security.enforcement.passkeys.manager',
-        );
-        const userReq = await this.settingsService.get(
-          'auth.requirements.user.passkeys',
-        );
-        isRequired =
-          String(managerEnf.value) === 'true' ||
-          String(userReq.value) === 'true';
-      } else {
-        const userReq = await this.settingsService.get(
-          'auth.requirements.user.passkeys',
-        );
-        const userEnf = await this.settingsService.get(
-          'security.enforcement.passkeys.user',
-        );
-        isRequired =
-          String(userReq.value) === 'true' || String(userEnf.value) === 'true';
-      }
+      const policyKeys =
+        user.role === 'SUPER_ADMIN'
+          ? ([
+              'auth.requirements.admin.passkeys',
+              'security.enforcement.passkeys.admin',
+            ] as const)
+          : user.role === 'MANAGER'
+            ? ([
+                'security.enforcement.passkeys.manager',
+                'auth.requirements.user.passkeys',
+              ] as const)
+            : ([
+                'auth.requirements.user.passkeys',
+                'security.enforcement.passkeys.user',
+              ] as const);
+      const policyValues = await Promise.all(
+        policyKeys.map((key) => this.settingsService.getRawValue(key)),
+      );
+      const isRequired = policyValues.some((value) => String(value) === 'true');
 
       if (isRequired) {
         passkeyPolicy = 'required';

@@ -132,9 +132,28 @@ export class SettingsService {
 
     authKeys.forEach((key) => this.cache.delete(key));
 
-    const azureTenant = await this.getRawValue('auth.azureAd.tenantId');
-    const azureClient = await this.getRawValue('auth.azureAd.clientId');
-    const azureSecret = await this.getRawValue('auth.azureAd.clientSecret');
+    const [
+      azureTenant,
+      azureClient,
+      azureSecret,
+      azureEnabledRaw,
+      googleClient,
+      googleSecret,
+      googleEnabledRaw,
+      genericType,
+      genericEnabledRaw,
+      oidcIssuer,
+      oidcClient,
+      oidcSecret,
+      samlEntity,
+      samlSso,
+      samlCert,
+      ldapUrl,
+      ldapBindDn,
+      ldapBindPass,
+      ldapSearch,
+      ldapEnabledRaw,
+    ] = await Promise.all(authKeys.map((key) => this.getRawValue(key)));
 
     // Debug logging
     this.logger.debug(
@@ -149,11 +168,7 @@ export class SettingsService {
       isConfigured(azureSecret);
     this.logger.debug(`Azure configured: ${azureConfigured}`);
 
-    const azureEnabled =
-      String(await this.getRawValue('auth.azureAd.enabled')) === 'true';
-
-    const googleClient = await this.getRawValue('auth.google.clientId');
-    const googleSecret = await this.getRawValue('auth.google.clientSecret');
+    const azureEnabled = String(azureEnabledRaw) === 'true';
 
     // Debug logging
     this.logger.debug(
@@ -165,40 +180,26 @@ export class SettingsService {
       isConfigured(googleClient) && isConfigured(googleSecret);
     this.logger.debug(`Google configured: ${googleConfigured}`);
 
-    const googleEnabled =
-      String(await this.getRawValue('auth.google.enabled')) === 'true';
+    const googleEnabled = String(googleEnabledRaw) === 'true';
 
-    const genericType = await this.getRawValue('auth.generic.type');
-    const genericEnabled =
-      String(await this.getRawValue('auth.generic.enabled')) === 'true';
+    const genericEnabled = String(genericEnabledRaw) === 'true';
 
-    const oidcIssuer = await this.getRawValue('auth.generic.oidc.issuer');
-    const oidcClient = await this.getRawValue('auth.generic.oidc.clientId');
-    const oidcSecret = await this.getRawValue('auth.generic.oidc.clientSecret');
     const oidcConfigured =
       isConfigured(oidcIssuer) &&
       isConfigured(oidcClient) &&
       isConfigured(oidcSecret);
 
-    const samlEntity = await this.getRawValue('auth.generic.saml.entityId');
-    const samlSso = await this.getRawValue('auth.generic.saml.ssoUrl');
-    const samlCert = await this.getRawValue('auth.generic.saml.x509');
     const samlConfigured =
       isConfigured(samlEntity) &&
       isConfigured(samlSso) &&
       isConfigured(samlCert);
 
-    const ldapUrl = await this.getRawValue('auth.ldap.url');
-    const ldapBindDn = await this.getRawValue('auth.ldap.bindDn');
-    const ldapBindPass = await this.getRawValue('auth.ldap.bindPassword');
-    const ldapSearch = await this.getRawValue('auth.ldap.searchBase');
     const ldapConfigured =
       isConfigured(ldapUrl) &&
       isConfigured(ldapBindDn) &&
       isConfigured(ldapBindPass) &&
       isConfigured(ldapSearch);
-    const ldapEnabled =
-      String(await this.getRawValue('auth.ldap.enabled')) === 'true';
+    const ldapEnabled = String(ldapEnabledRaw) === 'true';
 
     return {
       oidc_generic: {

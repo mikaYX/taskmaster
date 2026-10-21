@@ -166,7 +166,7 @@ describe('private evidence and corrective actions', () => {
       ]),
     );
     expect(
-      args.where.AND.find((condition) =>
+      args.where.AND.find((condition: { OR?: Array<{ title?: unknown }> }) =>
         condition.OR?.some((item) => item.title),
       ),
     ).toBeDefined();

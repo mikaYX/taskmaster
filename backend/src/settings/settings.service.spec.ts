@@ -73,7 +73,7 @@ describe('SettingsService', () => {
       expect.arrayContaining(['app.showTitle', 'app.showSubtitle']),
     );
     expect(
-      keys.some((key) =>
+      keys.some((key: string) =>
         /secret|password|apiKey|database|privateKey/i.test(key),
       ),
     ).toBe(false);

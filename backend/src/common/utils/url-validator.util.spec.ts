@@ -7,7 +7,7 @@ jest.mock('dns', () => ({ ...jest.requireActual('dns'), lookup: jest.fn() }));
 
 describe('UrlValidator', () => {
   beforeEach(() => {
-    (dns.lookup as jest.Mock).mockImplementation(((
+    (dns.lookup as unknown as jest.Mock).mockImplementation(((
       hostname: string,
       callback: (error: Error | null, address: string, family: number) => void,
     ) => {
