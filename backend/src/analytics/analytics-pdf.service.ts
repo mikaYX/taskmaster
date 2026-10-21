@@ -1,5 +1,5 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
-import { existsSync } from 'fs';
+import { Injectable } from '@nestjs/common';
+import PDFDocument from 'pdfkit';
 import { AnalyticsService } from './analytics.service';
 import type { OverviewResponse, TaskComplianceItem } from './dto';
 
@@ -10,306 +10,340 @@ interface PdfGenerationData {
   endDate: string;
 }
 
-const WINDOWS_EDGE_PATHS = [
-  'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
-  'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe',
-];
+const PAGE_MARGIN = 40;
+const FOOTER_HEIGHT = 36;
+const ROW_HEIGHT = 26;
 
-const LINUX_CHROMIUM_PATH = '/usr/bin/chromium-browser';
+const COLORS = {
+  ink: '#0f172a',
+  text: '#1e293b',
+  muted: '#64748b',
+  faint: '#94a3b8',
+  line: '#e2e8f0',
+  rowAlt: '#f8fafc',
+  headerBg: '#1e40af',
+  tableHead: '#0f172a',
+  success: '#16a34a',
+  failed: '#dc2626',
+  missing: '#d97706',
+  total: '#2563eb',
+};
+
+// The built-in PDF fonts only cover Windows-1252; anything else would be
+// drawn as garbage, so it is replaced by "?" before being written.
+const WIN_ANSI_EXTRA = new Set(
+  [...'€‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”•–—˜™š›œžŸ'].map((c) => c.codePointAt(0)!),
+);
 
 @Injectable()
 export class AnalyticsPdfService {
   constructor(private readonly analyticsService: AnalyticsService) {}
 
-  /**
-   * Resolves a Puppeteer-launchable browser executable across platforms.
-   * PUPPETEER_EXECUTABLE_PATH always wins (lets an operator point at any
-   * browser explicitly). On Windows, we deliberately do not bundle a
-   * headless Chromium (installer size/maintenance) and instead detect the
-   * Microsoft Edge that ships with virtually every Windows Server 2019 host.
-   */
-  private resolveExecutablePath(): string | undefined {
-    const configured = process.env.PUPPETEER_EXECUTABLE_PATH;
-    if (configured && existsSync(configured)) {
-      return configured;
-    }
-
-    if (process.platform === 'win32') {
-      const edgePath = WINDOWS_EDGE_PATHS.find((p) => existsSync(p));
-      if (edgePath) {
-        return edgePath;
-      }
-      throw new InternalServerErrorException(
-        'PDF export requires Microsoft Edge or PUPPETEER_EXECUTABLE_PATH to ' +
-          'be set. Install Microsoft Edge, or set PUPPETEER_EXECUTABLE_PATH ' +
-          'in the Taskmaster .env to point at a compatible browser.',
-      );
-    }
-
-    if (existsSync(LINUX_CHROMIUM_PATH)) {
-      return LINUX_CHROMIUM_PATH;
-    }
-
-    // Fall back to Puppeteer's own bundled Chromium, if present.
-    return undefined;
-  }
-
   async generate(startDate: string, endDate: string): Promise<Buffer> {
-    const puppeteer = await import('puppeteer');
     const [overview, tasks] = await Promise.all([
       this.analyticsService.getOverview(startDate, endDate),
       this.analyticsService.getByTask(startDate, endDate, 9999),
     ]);
 
-    const html = this.buildHtml({ overview, tasks, startDate, endDate });
-
-    const browser = await puppeteer.launch({
-      executablePath: this.resolveExecutablePath(),
-      headless: true,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-      ],
-    });
-
-    const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: 'domcontentloaded' });
-    await page.waitForNetworkIdle();
-
-    const pdfBuffer = await page.pdf({
-      format: 'A4',
-      printBackground: true,
-      landscape: false,
-      margin: { top: '0', bottom: '0', left: '0', right: '0' },
-    });
-
-    await browser.close();
-
-    return Buffer.from(pdfBuffer);
+    return this.render({ overview, tasks, startDate, endDate });
   }
 
-  private escapeHtml(str: string): string {
-    return str
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#039;');
+  /** Keeps only characters the built-in Helvetica can draw. */
+  private safe(value: string): string {
+    return [...value.replace(/[\s\u00a0\u202f]+/g, ' ')]
+      .map((c) => {
+        const code = c.codePointAt(0)!;
+        const printable =
+          (code >= 0x20 && code <= 0x7e) ||
+          (code >= 0xa1 && code <= 0xff) ||
+          code === 0x20 ||
+          WIN_ANSI_EXTRA.has(code);
+        return printable ? c : '?';
+      })
+      .join('');
   }
 
-  private buildHtml(data: PdfGenerationData): string {
+  private rateColor(rate: number): string {
+    return rate >= 90 ? '#22c55e' : rate >= 70 ? '#f59e0b' : '#ef4444';
+  }
+
+  private badgeColors(rate: number): { bg: string; fg: string } {
+    if (rate >= 90) return { bg: '#dcfce7', fg: COLORS.success };
+    if (rate >= 70) return { bg: '#fff7ed', fg: COLORS.missing };
+    return { bg: '#fef2f2', fg: COLORS.failed };
+  }
+
+  private render(data: PdfGenerationData): Promise<Buffer> {
     const { overview, tasks, startDate, endDate } = data;
 
-    const rateColor =
-      overview.complianceRate >= 90
-        ? '#22c55e'
-        : overview.complianceRate >= 70
-          ? '#f59e0b'
-          : '#ef4444';
-    const rateColorLight =
-      overview.complianceRate >= 90
-        ? '#86efac'
-        : overview.complianceRate >= 70
-          ? '#fde68a'
-          : '#fca5a5';
+    const doc = new PDFDocument({
+      size: 'A4',
+      margin: PAGE_MARGIN,
+      bufferPages: true,
+      info: {
+        Title: this.safe(`Rapport de conformité ${startDate} - ${endDate}`),
+        Author: 'Taskmaster',
+      },
+    });
 
-    const tasksHtml =
-      tasks.length > 0
-        ? tasks
-            .map((t) => {
-              const badgeClass =
-                t.complianceRate >= 90
-                  ? 'badge-green'
-                  : t.complianceRate >= 70
-                    ? 'badge-orange'
-                    : 'badge-red';
-              return `<tr>
-          <td>${this.escapeHtml(t.taskName)}</td>
-          <td>${t.total}</td>
-          <td>${t.failed > 0 ? `<span style="color:#dc2626;font-weight:600">${t.failed}</span>` : '0'}</td>
-          <td><span class="badge ${badgeClass}">${t.complianceRate.toFixed(1)}%</span></td>
-        </tr>`;
-            })
-            .join('')
-        : `<tr><td colspan="4" style="text-align:center;color:#64748b;padding:24px;">Aucune tâche sur cette période</td></tr>`;
+    const chunks: Buffer[] = [];
+    const done = new Promise<Buffer>((resolve, reject) => {
+      doc.on('data', (chunk: Buffer) => chunks.push(chunk));
+      doc.on('end', () => resolve(Buffer.concat(chunks)));
+      doc.on('error', reject);
+    });
 
-    return `<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
-<style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1e293b; background: #ffffff; }
-  
-  .header {
-    background: linear-gradient(135deg, #1e40af 0%, #3b82f6 50%, #06b6d4 100%);
-    padding: 48px 60px 40px;
-    color: white;
-    position: relative;
-    overflow: hidden;
-  }
-  .header::before {
-    content: '';
-    position: absolute;
-    top: -40%; right: -10%;
-    width: 400px; height: 400px;
-    background: rgba(255,255,255,0.05);
-    border-radius: 50%;
-  }
-  .header h1 { font-size: 28px; font-weight: 800; letter-spacing: -0.5px; }
-  .header .subtitle { font-size: 13px; opacity: 0.85; margin-top: 6px; font-weight: 400; }
-  .header .period {
-    display: inline-block;
-    background: rgba(255,255,255,0.15);
-    backdrop-filter: blur(6px);
-    border: 1px solid rgba(255,255,255,0.2);
-    border-radius: 20px;
-    padding: 6px 18px;
-    font-size: 12px;
-    font-weight: 500;
-    margin-top: 14px;
-  }
-  .content { padding: 40px 60px; }
-  .kpi-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 20px;
-    margin-bottom: 40px;
-  }
-  .kpi-card {
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    border-radius: 16px;
-    padding: 24px;
-    text-align: center;
-    position: relative;
-    overflow: hidden;
-  }
-  .kpi-card::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 4px;
-  }
-  .kpi-card.success::before { background: linear-gradient(90deg, #22c55e, #4ade80); }
-  .kpi-card.failed::before { background: linear-gradient(90deg, #ef4444, #f87171); }
-  .kpi-card.missing::before { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
-  .kpi-card.total::before { background: linear-gradient(90deg, #3b82f6, #60a5fa); }
-  .kpi-value { font-size: 36px; font-weight: 800; letter-spacing: -1px; }
-  .kpi-label { font-size: 12px; color: #64748b; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 4px; }
-  .success .kpi-value { color: #16a34a; }
-  .failed .kpi-value { color: #dc2626; }
-  .missing .kpi-value { color: #d97706; }
-  .total .kpi-value { color: #2563eb; }
-  .compliance-section {
-    text-align: center;
-    padding: 36px;
-    margin-bottom: 40px;
-    background: linear-gradient(135deg, #f0f9ff 0%, #f8fafc 100%);
-    border-radius: 20px;
-    border: 1px solid #e0f2fe;
-  }
-  .compliance-label { font-size: 13px; color: #64748b; font-weight: 500; text-transform: uppercase; letter-spacing: 1px; }
-  .compliance-value { font-size: 64px; font-weight: 800; letter-spacing: -2px; margin-top: 8px; }
-  .compliance-bar { height: 8px; background: #e2e8f0; border-radius: 4px; margin-top: 16px; max-width: 400px; margin-left: auto; margin-right: auto; overflow: hidden; }
-  .compliance-bar-fill { height: 100%; border-radius: 4px; transition: width 0.3s; }
-  .section-title {
-    font-size: 18px;
-    font-weight: 700;
-    color: #0f172a;
-    margin-bottom: 16px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .section-title::before {
-    content: '';
-    width: 4px;
-    height: 24px;
-    background: linear-gradient(180deg, #3b82f6, #06b6d4);
-    border-radius: 2px;
-  }
-  table { width: 100%; border-collapse: separate; border-spacing: 0; border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0; }
-  thead th {
-    background: #0f172a;
-    color: white;
-    padding: 14px 16px;
-    font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    text-align: left;
-  }
-  thead th:last-child { text-align: right; }
-  thead th:nth-child(2), thead th:nth-child(3) { text-align: center; }
-  tbody td { padding: 12px 16px; font-size: 13px; border-bottom: 1px solid #f1f5f9; }
-  tbody tr:last-child td { border-bottom: none; }
-  tbody tr:nth-child(even) { background: #f8fafc; }
-  tbody td:last-child { text-align: right; font-weight: 600; }
-  tbody td:nth-child(2), tbody td:nth-child(3) { text-align: center; }
-  .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
-  .badge-green { background: #dcfce7; color: #16a34a; }
-  .badge-orange { background: #fff7ed; color: #d97706; }
-  .badge-red { background: #fef2f2; color: #dc2626; }
-  .footer {
-    text-align: center;
-    padding: 24px 60px;
-    font-size: 10px;
-    color: #94a3b8;
-    border-top: 1px solid #f1f5f9;
-  }
-  .footer .logo { font-weight: 700; color: #64748b; }
-  @page { margin: 0; }
-</style>
-</head>
-<body>
-<div class="header">
-  <h1>📊 Rapport de Conformité</h1>
-  <div class="subtitle">Analyse de performance des tâches</div>
-  <div class="period">📅 ${startDate} → ${endDate}</div>
-</div>
-<div class="content">
-  <div class="kpi-grid">
-    <div class="kpi-card success">
-      <div class="kpi-value">${overview.success}</div>
-      <div class="kpi-label">Succès</div>
-    </div>
-    <div class="kpi-card failed">
-      <div class="kpi-value">${overview.failed}</div>
-      <div class="kpi-label">Échecs</div>
-    </div>
-    <div class="kpi-card missing">
-      <div class="kpi-value">${overview.missing}</div>
-      <div class="kpi-label">Manquants</div>
-    </div>
-    <div class="kpi-card total">
-      <div class="kpi-value">${overview.total}</div>
-      <div class="kpi-label">Total</div>
-    </div>
-  </div>
-  <div class="compliance-section">
-    <div class="compliance-label">Taux de conformité global</div>
-    <div class="compliance-value" style="color: ${rateColor}">${overview.complianceRate.toFixed(1)}%</div>
-    <div class="compliance-bar">
-      <div class="compliance-bar-fill" style="width: ${Math.min(overview.complianceRate, 100)}%; background: linear-gradient(90deg, ${rateColor}, ${rateColorLight});"></div>
-    </div>
-  </div>
-  <!-- TABLE -->
-  <div class="section-title">Conformité par tâche</div>
-  <table>
-    <thead>
-      <tr><th>Tâche</th><th>Total</th><th>Échecs</th><th>Conformité</th></tr>
-    </thead>
-    <tbody>
-      ${tasksHtml}
-    </tbody>
-  </table>
-</div>
-<div class="footer">
-  Généré le ${new Date().toLocaleString('fr-FR', { dateStyle: 'long', timeStyle: 'short' })} — <span class="logo">Taskmaster</span>
-</div>
-</body>
-</html>`;
+    const pageWidth = doc.page.width;
+    const contentWidth = pageWidth - PAGE_MARGIN * 2;
+
+    // Header band
+    doc.rect(0, 0, pageWidth, 130).fill(COLORS.headerBg);
+    doc
+      .fillColor('#ffffff')
+      .font('Helvetica-Bold')
+      .fontSize(26)
+      .text(this.safe('Rapport de Conformité'), PAGE_MARGIN, 38, {
+        lineBreak: false,
+      });
+    doc
+      .font('Helvetica')
+      .fontSize(11)
+      .fillColor('#dbeafe')
+      .text(this.safe('Analyse de performance des tâches'), PAGE_MARGIN, 72, {
+        lineBreak: false,
+      });
+    const period = this.safe(`Période : ${startDate}  au  ${endDate}`);
+    const periodWidth = doc
+      .font('Helvetica-Bold')
+      .fontSize(10)
+      .widthOfString(period);
+    doc
+      .roundedRect(PAGE_MARGIN, 94, periodWidth + 28, 22, 11)
+      .fillAndStroke('#3b6fd8', '#6b93e6');
+    doc
+      .fillColor('#ffffff')
+      .text(period, PAGE_MARGIN + 14, 100, { lineBreak: false });
+
+    // KPI cards
+    const kpis = [
+      { label: 'SUCCÈS', value: overview.success, color: COLORS.success },
+      { label: 'ÉCHECS', value: overview.failed, color: COLORS.failed },
+      { label: 'MANQUANTS', value: overview.missing, color: COLORS.missing },
+      { label: 'TOTAL', value: overview.total, color: COLORS.total },
+    ];
+    const gap = 12;
+    const cardWidth = (contentWidth - gap * (kpis.length - 1)) / kpis.length;
+    const cardTop = 156;
+    kpis.forEach((kpi, i) => {
+      const x = PAGE_MARGIN + i * (cardWidth + gap);
+      doc
+        .roundedRect(x, cardTop, cardWidth, 74, 8)
+        .fillAndStroke(COLORS.rowAlt, COLORS.line);
+      doc.rect(x + 1, cardTop + 1, cardWidth - 2, 3).fill(kpi.color);
+      doc
+        .fillColor(kpi.color)
+        .font('Helvetica-Bold')
+        .fontSize(26)
+        .text(String(kpi.value), x, cardTop + 18, {
+          width: cardWidth,
+          align: 'center',
+          lineBreak: false,
+        });
+      doc
+        .fillColor(COLORS.muted)
+        .font('Helvetica-Bold')
+        .fontSize(8)
+        .text(this.safe(kpi.label), x, cardTop + 54, {
+          width: cardWidth,
+          align: 'center',
+          lineBreak: false,
+        });
+    });
+
+    // Global compliance
+    const rate = overview.complianceRate;
+    const rateColor = this.rateColor(rate);
+    const secTop = cardTop + 74 + 22;
+    doc
+      .roundedRect(PAGE_MARGIN, secTop, contentWidth, 104, 10)
+      .fillAndStroke('#f0f9ff', '#e0f2fe');
+    doc
+      .fillColor(COLORS.muted)
+      .font('Helvetica-Bold')
+      .fontSize(9)
+      .text(this.safe('TAUX DE CONFORMITÉ GLOBAL'), PAGE_MARGIN, secTop + 14, {
+        width: contentWidth,
+        align: 'center',
+        lineBreak: false,
+        characterSpacing: 1,
+      });
+    doc
+      .fillColor(rateColor)
+      .fontSize(40)
+      .text(`${rate.toFixed(1)}%`, PAGE_MARGIN, secTop + 32, {
+        width: contentWidth,
+        align: 'center',
+        lineBreak: false,
+      });
+    const barWidth = Math.min(280, contentWidth - 40);
+    const barX = PAGE_MARGIN + (contentWidth - barWidth) / 2;
+    const barY = secTop + 84;
+    doc.roundedRect(barX, barY, barWidth, 7, 3.5).fill(COLORS.line);
+    const filled = (barWidth * Math.max(0, Math.min(rate, 100))) / 100;
+    if (filled > 0) {
+      doc.roundedRect(barX, barY, Math.max(filled, 7), 7, 3.5).fill(rateColor);
+    }
+
+    // Per-task table
+    let y = secTop + 104 + 28;
+    doc.rect(PAGE_MARGIN, y, 4, 20).fill(COLORS.total);
+    doc
+      .fillColor(COLORS.ink)
+      .font('Helvetica-Bold')
+      .fontSize(14)
+      .text(this.safe('Conformité par tâche'), PAGE_MARGIN + 12, y + 3, {
+        lineBreak: false,
+      });
+    y += 34;
+
+    const cols = {
+      name: { x: PAGE_MARGIN + 12, w: contentWidth - 12 - 70 - 70 - 90 - 12 },
+      total: { x: 0, w: 70 },
+      failed: { x: 0, w: 70 },
+      rate: { x: 0, w: 90 },
+    };
+    cols.total.x = cols.name.x + cols.name.w;
+    cols.failed.x = cols.total.x + cols.total.w;
+    cols.rate.x = cols.failed.x + cols.failed.w;
+
+    const drawTableHead = (top: number): number => {
+      doc.rect(PAGE_MARGIN, top, contentWidth, 26).fill(COLORS.tableHead);
+      doc.fillColor('#ffffff').font('Helvetica-Bold').fontSize(8);
+      doc.text(this.safe('TÂCHE'), cols.name.x, top + 9, { lineBreak: false });
+      doc.text('TOTAL', cols.total.x, top + 9, {
+        width: cols.total.w,
+        align: 'center',
+        lineBreak: false,
+      });
+      doc.text(this.safe('ÉCHECS'), cols.failed.x, top + 9, {
+        width: cols.failed.w,
+        align: 'center',
+        lineBreak: false,
+      });
+      doc.text(this.safe('CONFORMITÉ'), cols.rate.x, top + 9, {
+        width: cols.rate.w,
+        align: 'right',
+        lineBreak: false,
+      });
+      return top + 26;
+    };
+
+    const bottomLimit = doc.page.height - PAGE_MARGIN - FOOTER_HEIGHT;
+    y = drawTableHead(y);
+
+    if (tasks.length === 0) {
+      doc
+        .fillColor(COLORS.muted)
+        .font('Helvetica')
+        .fontSize(10)
+        .text(
+          this.safe('Aucune tâche sur cette période'),
+          PAGE_MARGIN,
+          y + 18,
+          {
+            width: contentWidth,
+            align: 'center',
+            lineBreak: false,
+          },
+        );
+    }
+
+    tasks.forEach((task, index) => {
+      if (y + ROW_HEIGHT > bottomLimit) {
+        doc.addPage();
+        y = drawTableHead(PAGE_MARGIN);
+      }
+      if (index % 2 === 1) {
+        doc.rect(PAGE_MARGIN, y, contentWidth, ROW_HEIGHT).fill(COLORS.rowAlt);
+      }
+      doc
+        .moveTo(PAGE_MARGIN, y + ROW_HEIGHT)
+        .lineTo(PAGE_MARGIN + contentWidth, y + ROW_HEIGHT)
+        .lineWidth(0.5)
+        .strokeColor('#f1f5f9')
+        .stroke();
+
+      doc
+        .fillColor(COLORS.text)
+        .font('Helvetica')
+        .fontSize(9.5)
+        .text(this.safe(task.taskName), cols.name.x, y + 8, {
+          width: cols.name.w - 8,
+          height: 12,
+          ellipsis: true,
+          lineBreak: false,
+        });
+      doc.text(String(task.total), cols.total.x, y + 8, {
+        width: cols.total.w,
+        align: 'center',
+        lineBreak: false,
+      });
+      doc
+        .fillColor(task.failed > 0 ? COLORS.failed : COLORS.text)
+        .font(task.failed > 0 ? 'Helvetica-Bold' : 'Helvetica')
+        .text(String(task.failed), cols.failed.x, y + 8, {
+          width: cols.failed.w,
+          align: 'center',
+          lineBreak: false,
+        });
+
+      const label = `${task.complianceRate.toFixed(1)}%`;
+      const colors = this.badgeColors(task.complianceRate);
+      doc.font('Helvetica-Bold').fontSize(8.5);
+      const badgeW = doc.widthOfString(label) + 20;
+      const badgeX = cols.rate.x + cols.rate.w - badgeW;
+      doc.roundedRect(badgeX, y + 5, badgeW, 16, 8).fill(colors.bg);
+      doc.fillColor(colors.fg).text(label, badgeX, y + 9.5, {
+        width: badgeW,
+        align: 'center',
+        lineBreak: false,
+      });
+
+      y += ROW_HEIGHT;
+    });
+
+    // Footer + page numbers on every page
+    const generatedAt = this.safe(
+      new Date().toLocaleString('fr-FR', {
+        dateStyle: 'long',
+        timeStyle: 'short',
+      }),
+    );
+    const range = doc.bufferedPageRange();
+    for (let i = range.start; i < range.start + range.count; i++) {
+      doc.switchToPage(i);
+      const footerY = doc.page.height - PAGE_MARGIN - 10;
+      // Drawing below the bottom margin would otherwise trigger a new page.
+      doc.page.margins.bottom = 0;
+      doc
+        .fillColor(COLORS.faint)
+        .font('Helvetica')
+        .fontSize(8)
+        .text(
+          this.safe(`Généré le ${generatedAt} - Taskmaster`),
+          PAGE_MARGIN,
+          footerY,
+          { width: contentWidth - 60, lineBreak: false },
+        );
+      doc.text(
+        `${i - range.start + 1} / ${range.count}`,
+        PAGE_MARGIN + contentWidth - 60,
+        footerY,
+        { width: 60, align: 'right', lineBreak: false },
+      );
+    }
+
+    doc.end();
+    return done;
   }
 }

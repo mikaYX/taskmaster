@@ -188,12 +188,9 @@ délibérément jamais un composant MSI).
 
 ## Export PDF hors ligne
 
-`AnalyticsPdfService` détecte Microsoft Edge sur Windows (aucun Chromium
-embarqué par défaut — voir la décision documentée dans
-`backend/src/analytics/analytics-pdf.service.ts`) et n'importe plus aucune
-police externe (Google Fonts a été retiré du gabarit HTML au profit de la
-pile de polices système), ce qui permet l'export PDF sans connexion
-Internet.
+`AnalyticsPdfService` génère le PDF directement en JavaScript (pdfkit) : aucun
+navigateur (ni Edge, ni Chromium) n'est requis et aucune police ni ressource
+externe n'est chargée, ce qui permet l'export PDF sans connexion Internet.
 
 ## `OFFLINE_MODE`
 

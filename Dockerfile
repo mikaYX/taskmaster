@@ -12,7 +12,6 @@ WORKDIR /app
 
 ENV PUPPETEER_SKIP_DOWNLOAD=true \
     PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
-    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser \
     NPM_CONFIG_FUND=false \
     NPM_CONFIG_AUDIT=false \
     NPM_CONFIG_PREFER_OFFLINE=true \
@@ -102,18 +101,12 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 
-# Dépendances système minimales pour Chromium/Puppeteer + init PID 1.
-# Chromium peut tirer ffmpeg/libsndfile : appliquer les correctifs Alpine au build.
+# Dépendances système minimales : certificats + init PID 1.
+# L'export PDF est généré en JavaScript (pdfkit) : aucun navigateur dans l'image.
 # La CI reconstruit ce stage sans cache pour rechercher les mises à jour apk.
-# Les CVE restantes doivent être évaluées à partir du rapport Trivy de l'image.
 RUN apk upgrade --no-cache && \
     apk add --no-cache \
-    chromium \
-    nss \
-    freetype \
-    harfbuzz \
     ca-certificates \
-    ttf-freefont \
     tini && \
     rm -rf /var/cache/apk/*
 
