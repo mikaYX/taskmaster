@@ -6,16 +6,18 @@ Three ways to run Taskmaster:
 | --- | --- | --- |
 | Docker Compose | Production or a quick trial | [Run with Docker](#run-with-docker) |
 | Node.js from source | Development | [Run from source](#run-from-source) |
-| Windows MSI | Windows Server without Docker | [Windows Server guide](windows-server-2019-local.md) |
+| Windows MSI | Windows 11 or later, or Windows Server 2019 or later (x64), without Docker | [Windows installation guide](windows-server-2019-local.md) |
 
 Whichever path you choose, the first visit opens the setup wizard, which creates the first administrator. Taskmaster has no default account.
 
 ## Run with Docker
 
-The stack in [`docker-compose.yml`](../docker-compose.yml) has three services:
+The stack in [`docker-compose.yml`](../docker-compose.yml) has three long-running services:
 - `app`: the API and the web interface, in a single image;
 - `postgres`: PostgreSQL 18;
 - `redis`: Redis 8.
+
+An additional `app-storage` job initializes ownership of the persistent Todo attachment and export volumes, then exits. The app waits for it to complete before starting.
 
 Data is kept in named Docker volumes.
 

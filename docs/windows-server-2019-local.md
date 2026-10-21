@@ -1,10 +1,10 @@
-# Windows Server installation (without Docker)
+# Windows installation (without Docker)
 
-Taskmaster installs on Windows Server 2019 x64 or later as a Windows service, from `Taskmaster-<version>-x64.msi`. Docker, WSL, Git and a global Node.js are not needed: the MSI ships its own Node.js 24 runtime.
+Taskmaster installs on Windows 11 x64 or later, or Windows Server 2019 x64 or later, as a Windows service, from `Taskmaster-<version>-x64.msi`. Docker, WSL, Git and a global Node.js are not needed: the MSI ships its own Node.js 24 runtime.
 
 ## Prerequisites
 
-- Windows Server 2019 x64 or later, with administrator rights.
+- Windows 11 x64 or later, or Windows Server 2019 x64 or later, with administrator rights.
 - **PostgreSQL**, installed beforehand on this server or another one. Version 18 matches the Docker stack.
 - **A Redis-compatible server**, installed beforehand: Redis, or [Memurai](https://www.memurai.com) on Windows.
 - **The PostgreSQL client tools** (`pg_dump.exe`, `pg_restore.exe`) on this server, same major version as the database, for backups.
@@ -103,7 +103,7 @@ More in [Troubleshooting](troubleshooting.md#a-backup-fails).
 
 ## Offline mode
 
-The MSI writes `OFFLINE_MODE=true` by default: Taskmaster never calls GitHub to check for updates. SSO, SMTP and other integrations configured by an administrator still work.
+The application's default is `OFFLINE_MODE=false`: update checks are enabled. The MSI overrides this on a **fresh installation**, with **Offline mode checked by default**, and writes `OFFLINE_MODE=true`. This disables update checks against GitHub and Docker Hub; it does not block SSO, SMTP or other integrations configured by an administrator.
 
 To keep update checks, untick **Offline mode** in the dialog, or:
 
@@ -111,7 +111,7 @@ To keep update checks, untick **Offline mode** in the dialog, or:
 msiexec /i Taskmaster-<version>-x64.msi TASKMASTER_OFFLINE_MODE=""
 ```
 
-On an installed server, change `OFFLINE_MODE` in `.env` and restart the service. PDF export works offline: it needs no browser and no external resource.
+On an existing installation, set `OFFLINE_MODE=false` in `C:\ProgramData\Taskmaster\config\.env` and restart the **Taskmaster** service to enable update checks. An MSI update keeps the existing `.env`, including its offline setting. PDF export works offline: it needs no browser and no external resource.
 
 ## Uninstall
 

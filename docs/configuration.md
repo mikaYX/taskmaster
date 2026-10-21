@@ -34,7 +34,7 @@ Most functional settings (sign-in methods, email, notifications, backups, brandi
 | `TRUST_PROXY` | `loopback` | Proxies to trust for `X-Forwarded-For`, using the Express `trust proxy` syntax. Set `1` behind a single reverse proxy, so rate limiting and the audit log see the real client IP. |
 | `TLS_CERT_FILE`, `TLS_KEY_FILE` | | Paths to a certificate and its key. When both are set, the server answers in HTTPS itself. |
 | `RP_ID` | Domain of `FRONTEND_URL` | Passkey (WebAuthn) relying party ID. A domain only: no scheme, port or path. |
-| `OFFLINE_MODE` | `false` | `true` disables the update checks against GitHub and Docker Hub. |
+| `OFFLINE_MODE` | `false` | `true` disables the update checks against GitHub and Docker Hub. The Windows MSI overrides this to `true` on a fresh installation unless Offline mode is unticked; upgrades keep the existing `.env`. |
 
 ## Database and Redis
 

@@ -15,7 +15,7 @@
 | [Configuration](configuration.md) | Every environment variable |
 | [Authentication](authentication.md) | Roles, LDAP, Azure AD, Google, OIDC, SAML, MFA, passkeys, sessions, brute-force protection |
 | [API keys](api-keys.md) | Machine-to-machine access and the incoming webhook |
-| [Windows Server](windows-server-2019-local.md) | MSI installation without Docker |
+| [Windows](windows-server-2019-local.md) | MSI installation without Docker: Windows 11 or later and Windows Server 2019 or later (x64) |
 
 ## Operate
 

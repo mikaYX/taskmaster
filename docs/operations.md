@@ -2,13 +2,14 @@
 
 Running Taskmaster in production with [`docker-compose.yml`](../docker-compose.yml): deploy, update, back up, restore and monitor. Run the commands from the folder that holds `docker-compose.yml` and `.env`.
 
-The stack has three services:
+The stack has three long-running services and a storage initialization job:
 
 | Service | Default container | Role |
 | --- | --- | --- |
 | `app` | `taskmaster_app` | API and web interface; applies the migrations at startup |
 | `postgres` | `taskmaster_db` | PostgreSQL 18 |
 | `redis` | `taskmaster_redis` | Redis 8: cache, job queues, sign-in lockouts |
+| `app-storage` | Compose-generated | Runs once as root to give the app user ownership of the Todo attachment and export volumes, then exits |
 
 Data lives in named volumes:
 
@@ -20,11 +21,13 @@ Data lives in named volumes:
 | `app_uploads` | Uploaded images |
 | `app_procedures` | Procedure files |
 | `app_evidence` | Photo evidence |
+| `app_todo_attachments` | Todo attachments |
+| `app_exports` | Generated CSV/PDF exports at the default export path |
 
 ## Deploy
 
 ```bash
-docker compose pull app
+docker compose pull app app-storage
 docker compose up -d
 docker compose ps
 ```
@@ -86,7 +89,7 @@ docker start taskmaster_app
 | Resources | `docker stats` |
 
 Check after a deployment:
-- `docker compose ps` shows the three services as running (healthy);
+- `docker compose ps --all` shows the three long-running services as healthy. When started by `up`, `app-storage` exits successfully; the update script instead runs it with `run --rm`, which removes the completed job container;
 - `/api/health` answers `200`;
 - the app log shows no Prisma or Redis error at startup.
 

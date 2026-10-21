@@ -119,7 +119,7 @@ docker compose up -d
 
 Open `http://localhost:3000` and create the first administrator in the setup wizard.
 
-Running from source, on Windows Server without Docker, or behind a reverse proxy: see [Getting started](docs/getting-started.md).
+Running from source, on Windows 11 or later or Windows Server 2019 or later without Docker, or behind a reverse proxy: see [Getting started](docs/getting-started.md).
 
 ## Documentation
 
@@ -134,7 +134,7 @@ Running from source, on Windows Server without Docker, or behind a reverse proxy
 | [Operations](docs/operations.md) | Backups, monitoring, privacy |
 | [Version updates](docs/version-updates.md) | Updating an installation |
 | [Troubleshooting](docs/troubleshooting.md) | Common problems |
-| [Windows Server](docs/windows-server-2019-local.md) | MSI installation |
+| [Windows](docs/windows-server-2019-local.md) | MSI installation on Windows 11 or later and Windows Server 2019 or later (x64) |
 
 ## Tech stack
 

@@ -7,12 +7,13 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-taskmaster}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-taskmaster_dev}
       POSTGRES_DB: ${POSTGRES_DB:-taskmaster}
+      PGDATA: /var/lib/postgresql/data
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_local_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
       interval: 5s
       timeout: 5s
       retries: 5

@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- Windows installation documentation now includes Windows 11 or later alongside Windows Server 2019 or later (x64), and distinguishes the application's offline-mode default from the MSI's fresh-install default.
+- Docker update documentation explains automatic Prisma migrations, failure handling, volume preservation and the explicit image pull required for registry updates.
+
+### Fixed
+
+- Docker update script now pulls the app image (or builds it explicitly), requires a successful database backup, updates only the app and waits for it to become healthy. Compose reads `.env` without executing it as shell code.
+- Windows source update script now installs from the workspace lockfile, loads the database environment for Prisma 7, applies existing migrations with `prisma migrate deploy`, builds the application and stops on any failed step.
+- Windows source updates now require a validated PostgreSQL dump before Git/dependency changes, using a standalone helper and restricted backup permissions. Docker updates also preserve Todo attachments and exports when introducing their persistent volumes.
+- Production and local-build Compose stacks now persist Todo attachments and exports and initialize volume ownership for the non-root app. PostgreSQL health checks use the configured account; the development stack explicitly stores PostgreSQL 18 data in its named volume.
+
 ## [1.2.0] - 2026-10-21
 
 First stable release of 1.2.0, including the changes tested in 1.2.0-beta.1 through beta.5 and the fixes made since. The notes below cover the upgrade from 1.1.10.

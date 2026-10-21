@@ -2,6 +2,8 @@
 
 How to validate a Windows MSI candidate (`Taskmaster-<version>-x64.msi`) before shipping it. The MSI expects PostgreSQL and Redis (or Memurai) to be installed already.
 
+Target systems are Windows 11 x64 or later and Windows Server 2019 x64 or later. Run acceptance checks on the Windows version you intend to deploy; a passing build alone does not validate installation on every supported system.
+
 ## Build the candidate
 
 On a Windows build machine, run `installer/build.ps1`, or start the **Build Windows installer candidate** workflow manually on the revision to test. The workflow:
