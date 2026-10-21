@@ -5,7 +5,9 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.2.0] - 2026-10-21
+
+First stable release of 1.2.0: everything from 1.2.0-beta.1 to beta.5, plus the changes below.
 
 ### Fixed
 
@@ -13,6 +15,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- `DATABASE_POOL_MAX` (default 10) and `DATABASE_STATEMENT_TIMEOUT_MS` (default 0, no limit) tune the PostgreSQL connection pool; connections now time out after 10 s instead of waiting forever.
+- Redis reconnects with a delay capped at 5 s and logs a connection error once instead of on every attempt.
+- Session and passkey-policy checks read settings through the cache, which cuts database queries on every session cache miss.
+- An API key whose scopes cover a route is no longer also checked against the human role list; routes without a required permission still reject API keys.
+- New migration `task_delegation_indexes` adds indexes on `task_delegations`. It only adds indexes and is safe on existing data.
+- End-to-end tests run serially, since the suites share one database.
 - The sidebar entry "Liste de tâches" / "Todo List" is now simply "Todo" (French and English), so it no longer reads like the core Taskmaster tasks. Only the label changes.
 - The setup wizard has a new design and scrolls on short screens, with the step buttons always visible.
 - The analytics page has a new design: compliance gauge with status, execution breakdown, KPI tiles, executions per period stacked by status, a "Needs attention" list, searchable per-task ranking and clearer per-user ranking. Status colors are colorblind-checked and always paired with an icon and a label.
