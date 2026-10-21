@@ -11,7 +11,7 @@ export function canUserActOnTask(
     userGroups: number[],
     userRole: UserRole,
 ): boolean {
-    if (userRole === 'ADMIN') return true;
+    if (userRole === 'SUPER_ADMIN' || userRole === 'ADMIN') return true;
 
     const assignedUsers = task.assignedUsers ?? [];
     const assignedGroups = task.assignedGroups ?? [];

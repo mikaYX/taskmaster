@@ -92,7 +92,8 @@ export function TaskRow({ item, onStatusChange, onAdminAction, readonly, isUpdat
     const [executionStatus, setExecutionStatus] = useState<'SUCCESS' | 'FAILED' | 'REPORT' | null>(null);
     const { role } = useAuthStore();
     const isRunning = item.status === 'RUNNING';
-    const isAdmin = role === 'ADMIN';
+    // Only a super admin may change a finished status (the API refuses anyone else).
+    const isAdmin = role === 'SUPER_ADMIN' || role === 'ADMIN';
     const isTerminal = ['SUCCESS', 'FAILED', 'MISSING'].includes(item.status);
 
     const downloadMutation = useMutation({
