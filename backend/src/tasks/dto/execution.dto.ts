@@ -28,10 +28,7 @@ export class ChecklistStepDto {
   @MaxLength(255)
   label: string;
   @IsIn(['CHECK', 'TEXT', 'NUMBER', 'PHOTO']) kind:
-    | 'CHECK'
-    | 'TEXT'
-    | 'NUMBER'
-    | 'PHOTO';
+    'CHECK' | 'TEXT' | 'NUMBER' | 'PHOTO';
   @IsBoolean() required: boolean;
 }
 
