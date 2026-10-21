@@ -8,7 +8,7 @@ function Assert-Equal($Actual, $Expected) {
 
 Assert-Equal (Resolve-TaskmasterPublicUrl) 'http://localhost:3000'
 Assert-Equal (Resolve-TaskmasterPublicUrl -HostName 'serveur' -Port 8080) 'http://serveur:8080'
-Assert-Equal (Resolve-TaskmasterPublicUrl -PublicUrl 'https://taskmaster.itiz-cpt-eu.local/') 'https://taskmaster.itiz-cpt-eu.local'
+Assert-Equal (Resolve-TaskmasterPublicUrl -PublicUrl 'https://taskmaster.example.com/') 'https://taskmaster.example.com'
 Assert-Equal (Resolve-TaskmasterPublicUrl -PublicUrl 'https://tasks.example.org:8443') 'https://tasks.example.org:8443'
 Assert-Equal (Resolve-TaskmasterPublicUrl -PublicUrl 'http://serveur:3000') 'http://serveur:3000'
 

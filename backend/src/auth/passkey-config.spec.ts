@@ -7,7 +7,7 @@ describe('deployment passkey configuration', () => {
       expectedOrigin: ['http://localhost:5173', 'http://localhost:3000'],
     });
   });
-  it.each(['taskmaster.itiz-cpt-eu.local', 'tasks.example.org'])(
+  it.each(['taskmaster.example.com', 'tasks.example.org'])(
     'derives the RP domain per installation: %s',
     (domain) => {
       expect(

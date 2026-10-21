@@ -121,7 +121,7 @@ describe('CsrfTokenGuard', () => {
       expect(
         guard.canActivate(
           context({
-            origin: 'https://taskmaster.itiz-cpt-eu.local',
+            origin: 'https://taskmaster.example.com',
             host: 'localhost:3000',
             'sec-fetch-site': 'same-origin',
           }),
