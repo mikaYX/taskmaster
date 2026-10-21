@@ -101,12 +101,15 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 
-# Dépendances système minimales : certificats + init PID 1.
+# Dépendances système minimales : certificats, init PID 1 et client PostgreSQL.
 # L'export PDF est généré en JavaScript (pdfkit) : aucun navigateur dans l'image.
+# Les sauvegardes/restaurations appellent pg_dump/pg_restore : le client doit être
+# de la même version majeure que le Postgres du docker-compose (18).
 # La CI reconstruit ce stage sans cache pour rechercher les mises à jour apk.
 RUN apk upgrade --no-cache && \
     apk add --no-cache \
     ca-certificates \
+    postgresql18-client \
     tini && \
     rm -rf /var/cache/apk/*
 

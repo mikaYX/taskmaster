@@ -71,6 +71,12 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      # Backups shell out to pg_dump/pg_restore; the image must ship them.
+      - name: Check PostgreSQL client tools in the image
+        run: |
+          docker run --rm --entrypoint pg_dump taskmaster:ci --version
+          docker run --rm --entrypoint pg_restore taskmaster:ci --version
+
       - name: Build .trivyignore from security exceptions
         run: node scripts/validate-trivy-exceptions.js || true
 

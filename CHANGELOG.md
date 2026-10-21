@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Docker: backups failed with `spawn pg_dump ENOENT` because the image had no PostgreSQL client. The image now ships `postgresql18-client` (`pg_dump`/`pg_restore`, matching the Postgres 18 of the compose stack) and the security workflow checks it is present.
+
+### Changed
+
+- The setup wizard has a new design and scrolls on short screens, with the step buttons always visible.
+
 ## [1.2.0-beta.5] - 2026-10-21
 
 Beta of 1.2.0, for testing only: it is published as a pre-release and under the `beta` Docker tag, never as `latest`. Same features as 1.2.0-beta.4; this build removes Chromium from the Docker image.
