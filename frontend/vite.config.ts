@@ -3,6 +3,20 @@ import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
+// Backend the dev server and `vite preview` forward /api and /public to.
+const apiTarget = process.env.TASKMASTER_API_URL || 'http://localhost:3000'
+const proxy = {
+  '/api': {
+    target: apiTarget,
+    changeOrigin: true,
+    cookieDomainRewrite: 'localhost',
+  },
+  '/public': {
+    target: apiTarget,
+    changeOrigin: true,
+  },
+}
+
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), tailwindcss()],
@@ -53,17 +67,7 @@ export default defineConfig({
       },
     },
   },
-  server: {
-    proxy: {
-      '/api': {
-        target: 'http://localhost:3000',
-        changeOrigin: true,
-        cookieDomainRewrite: 'localhost',
-      },
-      '/public': {
-        target: 'http://localhost:3000',
-        changeOrigin: true,
-      },
-    },
-  },
+  server: { proxy },
+  // `vite preview` serves the production build with the same proxy (used for the docs screenshots).
+  preview: { proxy },
 })

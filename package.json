@@ -28,6 +28,7 @@
     "format": "npm -w backend run format",
     "db:push": "npm -w backend run db:push",
     "db:generate": "npm -w backend run db:generate",
+    "docs:screenshots": "node scripts/docs-screenshots.cjs",
     "postinstall": "npm -w backend run db:generate"
   },
   "devDependencies": {
