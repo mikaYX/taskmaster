@@ -76,7 +76,7 @@
     "helmet": "^8.1.0",
     "ioredis": "^5.9.3",
     "ldapts": "^8.1.6",
-    "mailgun.js": "^12.7.0",
+    "mailgun.js": "^14.1.0",
     "nestjs-cls": "^6.2.0",
     "nestjs-pino": "^4.6.0",
     "node-fetch": "^2.7.0",
