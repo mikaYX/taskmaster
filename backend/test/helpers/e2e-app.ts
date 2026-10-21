@@ -7,6 +7,9 @@ import { AppModule } from '../../src/app.module';
 import { AuthRateLimitGuard } from '../../src/auth/guards/auth-rate-limit.guard';
 import { GlobalExceptionFilter, GlobalValidationPipe } from '../../src/common';
 
+/** Time given to the audit rows still being written when a suite ends. */
+const AUDIT_SETTLE_MS = 500;
+
 /** An origin CsrfTokenGuard trusts outside production. */
 export const TRUSTED_ORIGIN = 'http://localhost:5173';
 
@@ -41,6 +44,15 @@ export async function createE2eApp(
   app.useGlobalFilters(new GlobalExceptionFilter());
   app.setGlobalPrefix('api');
   await app.init();
+
+  // The audit interceptor writes its row after the response has been sent.
+  // Closing right after the last request would end the database pool under
+  // that write, which then fails after the test environment is gone.
+  const close = app.close.bind(app);
+  app.close = async () => {
+    await new Promise((resolve) => setTimeout(resolve, AUDIT_SETTLE_MS));
+    return close();
+  };
   return app;
 }
 

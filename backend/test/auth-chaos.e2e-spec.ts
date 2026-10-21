@@ -109,7 +109,8 @@ describe('Auth Chaos Testing (E2E)', () => {
     const duration = Date.now() - start;
 
     // Le refresh doit réussir même s'il est très lent, pas de fail explicite
-    expect(duration).toBeGreaterThanOrEqual(2500);
+    // A timer can fire a millisecond or two before Date.now() says so.
+    expect(duration).toBeGreaterThanOrEqual(2400);
     expect(cookieNamed(cookiesOf(res), 'access_token')).toBeDefined();
     // Anti-fuite : aucun jeton dans le corps
     expect(res.body.accessToken).toBeUndefined();

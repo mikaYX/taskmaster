@@ -216,17 +216,24 @@ describe('ApiKeys (E2E)', () => {
       // No user did it: the deleting user stays empty rather than a fake id.
       expect(task?.deletedBy).toBeNull();
 
-      // Every write is traced, under the key's name (no user id).
-      const audit = await prisma.client.auditLog.findMany({
-        where: {
-          OR: [
-            { target: `Task:${taskId}` },
-            { target: { contains: `/tasks/${taskId}` } },
-            { target: { endsWith: '/tasks' } },
-          ],
-          actorName: { startsWith: 'API Key (' },
-        },
-      });
+      // Every write is traced, under the key's name (no user id). The audit
+      // row is written after the response is sent, so wait for the three.
+      const findAudit = () =>
+        prisma.client.auditLog.findMany({
+          where: {
+            OR: [
+              { target: `Task:${taskId}` },
+              { target: { contains: `/tasks/${taskId}` } },
+              { target: { endsWith: '/tasks' } },
+            ],
+            actorName: { startsWith: 'API Key (' },
+          },
+        });
+      let audit = await findAudit();
+      for (let attempt = 0; audit.length < 3 && attempt < 40; attempt++) {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        audit = await findAudit();
+      }
       expect(audit.length).toBeGreaterThanOrEqual(3);
       expect(audit.every((entry) => entry.actorId === null)).toBe(true);
     });
