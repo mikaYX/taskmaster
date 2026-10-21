@@ -7,34 +7,67 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.2.0] - 2026-10-21
 
-First stable release of 1.2.0: everything from 1.2.0-beta.1 to beta.5, plus the changes below.
+First stable release of 1.2.0, including the changes tested in 1.2.0-beta.1 through beta.5 and the fixes made since. The notes below cover the upgrade from 1.1.10.
 
-### Fixed
+Three database migrations (`todolist_v2`, `todo_reminder_email_opt_in`, `task_delegation_indexes`) run automatically on start. Existing tasks and todos are kept; todo email reminders are turned off until each person enables them in the Todo reminder preferences. Existing `.env` files are never rewritten on upgrade. This stable release publishes the Docker tags `1.2.0` and `latest`.
 
-- Docker: backups failed with `spawn pg_dump ENOENT` because the image had no PostgreSQL client. The image now ships `postgresql18-client` (`pg_dump`/`pg_restore`, matching the Postgres 18 of the compose stack) and the security workflow checks it is present.
-- `npm -w backend run start:prod` pointed to `dist/main`, which the build does not produce; it now starts `dist/src/main`.
-- Security: the incoming webhook (`POST /api/integrations/webhooks/incoming`) did not check the role of a signed-in person, so any account, including a plain user, could create, complete or delete tasks through it. It now follows the tasks API: super admins can do all three actions, managers can create and complete but not delete, other roles are refused. API keys are unchanged.
-- SSO: the Google, OIDC, Azure AD and SAML callback URLs were sent to the identity provider without the `/api` prefix, so the return from the provider did not reach the API. They are now `<BACKEND_URL>/api/auth/...`. If you registered the old form at your identity provider, replace it (see the authentication guide).
-- Task board: the **Edit** button that lets a super admin correct a finished status never appeared, because it tested a role that does not exist.
-- Setup wizard: the language and the time zone chosen in the first step were not saved. They now become the instance default language and the scheduler time zone.
-- `LOG_LEVEL` had no effect. It now sets the log level (default `info` in production, `debug` otherwise), and an unknown value stops the app at startup.
-- The unused `puppeteer` dependency and the `PUPPETEER_*` settings were removed.
+### Added
+
+- Optional native HTTPS: set `TLS_CERT_FILE` and `TLS_KEY_FILE` in `.env`. Installer health checks and `verify-installation.ps1` support both HTTP and HTTPS.
+- Todo v2: assignment of collective todos, taking or releasing a todo, an assigned-to-me filter, an optional due time and a reminder lead time from 15 minutes to one week.
+- Personal reminder preferences for browser pop-ups and email, with a choice of reminders for all collective todos or only assigned ones. Email is opt-in; reminders also require the Reminders add-on, and email requires email sending.
+- Notification center in the header for reminders, assignments, completions and comments, with an unread count and mark-all-as-read. Read notifications are purged after 30 days, all notifications after 90 days.
+- Persistent Web Push subscriptions and automatically generated VAPID keys, kept across restarts. `.env` VAPID keys still take precedence; browser pop-ups require HTTPS or localhost.
+- Todo quick add understands dates, times and priorities in English and French (`@tomorrow @14:30 !urgent`, `@demain @14h30 !urgente`), with an explanatory popover and more options at creation.
+- Searchable, paged history of completed todos. Each todo supports comments and attachments (PNG/JPEG/WebP and PDF, 5 MB per file, up to 10 files per todo).
+- Manual todo ordering within a priority by drag and drop or Alt + arrow keys, automatic refresh every 30 seconds, overdue/due-today badges and a reminder when opening the application.
 
 ### Changed
 
 - Documentation rewritten in English and checked against the code. It now has a getting-started guide, a reference of every environment variable, an API keys guide and a CONTRIBUTING guide, and new light and dark screenshots with demo GIFs. Outdated guides were removed or merged: `QUICKSTART.md`, `SETUP.md`, `SECURITY_AUDIT.md`, `notes-api-keys.md`, `docs/TIPS.md`, `docs/local-db.md` and the backend security notes.
 - The Vite dev server and `vite preview` forward `/api` to `TASKMASTER_API_URL` (default `http://localhost:3000`, unchanged).
-
 - `DATABASE_POOL_MAX` (default 10) and `DATABASE_STATEMENT_TIMEOUT_MS` (default 0, no limit) tune the PostgreSQL connection pool; connections now time out after 10 s instead of waiting forever.
 - Redis reconnects with a delay capped at 5 s and logs a connection error once instead of on every attempt.
 - Session and passkey-policy checks read settings through the cache, which cuts database queries on every session cache miss.
 - An API key whose scopes cover a route is no longer also checked against the human role list; routes without a required permission still reject API keys.
 - New migration `task_delegation_indexes` adds indexes on `task_delegations`. It only adds indexes and is safe on existing data.
 - End-to-end tests run serially, since the suites share one database and no longer fail now and then: they wait for the audit rows written after a response, and a timing assertion allows for timer jitter.
+- The task board, tasks, Todo page and floating panel, settings, profile, corrective actions, audit log, header and sidebar have updated layouts. Task pages fit narrow screens and the audit pagination stays reachable.
+- Screens, dialogs, validation messages, notifications and dates now follow the chosen language throughout the application (English and French).
 - The sidebar entry "Liste de tâches" / "Todo List" is now simply "Todo" (French and English), so it no longer reads like the core Taskmaster tasks. Only the label changes.
 - The setup wizard has a new design and scrolls on short screens, with the step buttons always visible.
 - The analytics page has a new design: compliance gauge with status, execution breakdown, KPI tiles, executions per period stacked by status, a "Needs attention" list, searchable per-task ranking and clearer per-user ranking. Status colors are colorblind-checked and always paired with an icon and a label.
 - Analytics TV mode is now a dedicated full-screen layout sized for a 1080p wall screen: large figures, live clock, auto-refresh every 30 seconds with the last update time.
+- Analytics PDF reports are generated in JavaScript with pdfkit. Docker no longer bundles Chromium, and Windows no longer needs Microsoft Edge for exports. DejaVu Sans supports Latin, Greek and Cyrillic; unsupported characters, including Chinese and Japanese, appear as `?`.
+- Failure emails include the occurrence date, priority, actor, failure comment, corrective action, description and task link, so they can feed a helpdesk mail collector. Multiple Email channels keep their own recipients.
+
+### Removed
+
+- Todo recurrence: repeating work belongs to the main application's tasks. Completing a todo no longer creates another one, and the API refuses `recurrence`. Existing stored recurrence values are kept and ignored.
+- The unused `puppeteer` dependency and the `PUPPETEER_*` settings.
+
+### Fixed
+
+- Docker: backups failed with `spawn pg_dump ENOENT` because the image had no PostgreSQL client. The image now ships `postgresql18-client` (`pg_dump`/`pg_restore`, matching the Postgres 18 of the compose stack) and the security workflow checks it is present. Builds also work when all backend dependencies are hoisted to the root `node_modules`.
+- `npm -w backend run start:prod` pointed to `dist/main`, which the build does not produce; it now starts `dist/src/main`.
+- SSO: the Google, OIDC, Azure AD and SAML callback URLs were sent to the identity provider without the `/api` prefix, so the return from the provider did not reach the API. They are now `<BACKEND_URL>/api/auth/...`. If you registered the old form at your identity provider, replace it (see the authentication guide).
+- Task board: the **Edit** button that lets a super admin correct a finished status never appeared, because it tested a role that does not exist. Reporting a task no longer shifts the dates in its row.
+- Setup wizard: the language and the time zone chosen in the first step were not saved. They now become the instance default language and the scheduler time zone.
+- `LOG_LEVEL` had no effect. It now sets the log level (default `info` in production, `debug` otherwise), and an unknown value stops the app at startup.
+- Marking an occurrence as failed from the board or execution dialog now notifies its configured channels once. Editing the same failed occurrence does not notify again, and a channel failure does not block the status change.
+- Plain HTTP installations no longer show a blank page: HTTPS upgrade directives and HSTS are only sent when the configured public URLs use HTTPS.
+- Windows upgrades find the previous custom installation folder, including installations made by 1.1.9 or older, through Windows Installer component registration.
+- Exports honor the configured directory, display its resolved path and generate manual downloads immediately. Files in the old export directory remain downloadable and subject to retention.
+- Saving masked settings keeps existing passwords and API keys. Email and connection tests report provider errors; unreadable stored credentials ask for re-entry.
+- Todo floating panel no longer lists subtasks as separate todos or offers collective deletion to members. Deleting completed todos keeps a completed parent with unfinished subtasks; quick add can set a time and reminder without an explicit date.
+- Task creation reports an unreachable server in the selected language instead of the browser's raw fetch error.
+
+### Security
+
+- The incoming webhook (`POST /api/integrations/webhooks/incoming`) now follows the tasks API role rules: super admins can create, complete and delete tasks, managers can create and complete, and other human roles are refused. API key behavior is unchanged.
+- Settings values, including SMTP passwords and API keys, are no longer logged in clear text. Failure email content is HTML-escaped.
+- Web Push unsubscribe accepts the expected request body and only removes the caller's subscriptions.
+- Dependencies and GitHub Actions were refreshed, including patched `follow-redirects`, `vite`, `react-router` and `fast-uri`. Docker follows `node:24-alpine` for base-image fixes; removing Chromium also removes its ffmpeg/libsndfile dependencies.
 
 ## [1.2.0-beta.5] - 2026-10-21
 
