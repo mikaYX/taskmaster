@@ -131,7 +131,7 @@ export function MfaSetupDialog({ open, onOpenChange, isEnforced, hasExistingMfa 
 
                         <Button
                             variant="outline"
-                            className="w-full justify-start"
+                            className="w-full justify-start h-auto whitespace-normal py-3"
                             onClick={handleGenerateTOTP}
                             disabled={isLoading}
                         >

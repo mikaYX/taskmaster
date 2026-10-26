@@ -11,6 +11,9 @@ import {
 } from './settings.registry';
 import { SettingResponseDto } from './dto';
 import parser from 'cron-parser';
+import * as fs from 'fs';
+import * as path from 'path';
+import { getUploadsDir } from '../config/app-paths';
 
 const SENSITIVE_PLACEHOLDER = '••••••••';
 
@@ -21,7 +24,8 @@ const SENSITIVE_PLACEHOLDER = '••••••••';
  * any anonymous visitor of the login page (AUDIT.md Finding #17). Strict
  * review required for additions.
  *
- * - `app.title`, `app.subtitle`, `app.logoUrl`, `app.faviconUrl`: branding
+ * - `app.title`, `app.subtitle`, `app.logoUrl`, `app.faviconUrl`,
+ *   `app.wallpaperUrl`: branding
  *   visible on the login screen.
  * - `ui.theme`: dark/light mode default — needed before login so the page
  *   matches subsequent in-app appearance.
@@ -43,12 +47,31 @@ export const PUBLIC_BRANDING_KEYS = [
   'app.showSubtitle',
   'app.logoUrl',
   'app.faviconUrl',
+  'app.wallpaperUrl',
+  'app.loginCardOpacity',
+  'app.logoDarkUrl',
+  'app.wallpaperBlur',
+  'app.wallpaperDim',
+  'app.loginWelcomeText',
+  'app.loginMessage',
+  'app.accentColor',
+  // Sidebar header layout, rendered for every role.
+  'app.logoAlign',
+  'app.textAlign',
   'ui.theme',
   'auth.generic.enabled',
   'auth.generic.oidc.providerName',
   'auth.passkeys.enabled',
   'addons.todolist.enabled',
 ] as const;
+
+const UPLOAD_URL_KEYS = new Set([
+  'app.logoUrl',
+  'app.logoDarkUrl',
+  'app.faviconUrl',
+  'app.wallpaperUrl',
+]);
+const UPLOADS_URL_PREFIX = '/public/uploads/';
 
 /**
  * Settings Service.
@@ -87,7 +110,12 @@ export class SettingsService {
       where: { key: { in: [...PUBLIC_BRANDING_KEYS] } },
     });
 
+    // Registry defaults first: a fresh install has no rows yet, and clients
+    // would otherwise see no value (e.g. no subtitle) until a setting is saved.
     const result: Record<string, unknown> = {};
+    for (const key of PUBLIC_BRANDING_KEYS) {
+      result[key] = SETTINGS_REGISTRY[key].default;
+    }
     for (const record of stored) {
       result[record.key] = this.parseValue(record.value);
     }
@@ -340,6 +368,31 @@ export class SettingsService {
   }
 
   /**
+   * Deletes the file an upload-backed setting (logo, favicon, wallpaper)
+   * pointed to, so replaced or removed images don't pile up on disk.
+   */
+  private removeUploadedFile(key: string, previous: unknown): void {
+    if (!UPLOAD_URL_KEYS.has(key)) return;
+    if (
+      typeof previous !== 'string' ||
+      !previous.startsWith(UPLOADS_URL_PREFIX)
+    )
+      return;
+
+    // basename() blocks any path traversal smuggled into the stored URL
+    const filename = path.basename(previous.slice(UPLOADS_URL_PREFIX.length));
+    try {
+      fs.unlinkSync(path.join(getUploadsDir(), filename));
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+        this.logger.warn(
+          `Failed to delete uploaded file ${filename}: ${error}`,
+        );
+      }
+    }
+  }
+
+  /**
    * Set a setting value.
    */
   async set(
@@ -390,6 +443,10 @@ export class SettingsService {
 
     this.invalidateCache(key);
 
+    if (before !== result.data) {
+      this.removeUploadedFile(key, before);
+    }
+
     const after = result.data;
 
     if (actor) {
@@ -431,6 +488,8 @@ export class SettingsService {
     await this.prisma.client.config.deleteMany({ where: { key } });
 
     this.invalidateCache();
+
+    this.removeUploadedFile(key, before);
 
     const config = SETTINGS_REGISTRY[key];
     const after = config.default; // Reset reverts to default

@@ -184,7 +184,7 @@ export function SitesSettingsPage() {
                                     </div>
                                 </div>
                                 {site.description && <p className="line-clamp-2 text-sm text-muted-foreground">{site.description}</p>}
-                                <div className="grid grid-cols-3 gap-2 border-t pt-3">
+                                <div className="mt-auto grid grid-cols-3 gap-2 border-t pt-3">
                                     {stats.map(({ icon: Icon, value, label }) => (
                                         <div key={label} className="rounded-lg bg-muted/40 px-3 py-2">
                                             <p className="flex items-center gap-1.5 text-[11px] text-muted-foreground">

@@ -65,12 +65,30 @@ export const settingsApi = {
     },
 
     /**
+     * Upload the logo used in dark mode.
+     */
+    uploadLogoDark: (file: File) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        return http.post<{ url: string }>('/settings/upload-logo-dark', formData);
+    },
+
+    /**
      * Upload favicon.
      */
     uploadFavicon: (file: File) => {
         const formData = new FormData();
         formData.append('file', file);
         return http.post<{ url: string }>('/settings/upload-favicon', formData);
+    },
+
+    /**
+     * Upload login screen wallpaper.
+     */
+    uploadWallpaper: (file: File) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        return http.post<{ url: string }>('/settings/upload-wallpaper', formData);
     },
 
     /**

@@ -502,6 +502,30 @@ export class SettingsController {
   }
 
   /**
+   * Upload application logo used in dark mode.
+   */
+  @Post('upload-logo-dark')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SUPER_ADMIN')
+  @RequirePermission(Permission.SETTINGS_WRITE)
+  @UseInterceptors(FileInterceptor('file'))
+  uploadLogoDark(
+    @UploadedFile(
+      new FileValidationPipe({
+        allowedMimeTypes: ['image/png', 'image/jpeg', 'image/webp'],
+        maxSizeBytes: 5 * 1024 * 1024,
+      }),
+    )
+    file: {
+      mimetype: string;
+      originalname: string;
+      buffer: Buffer;
+    },
+  ) {
+    return this.handleFileUpload(file, 'logodark');
+  }
+
+  /**
    * Upload application favicon.
    */
   @Post('upload-favicon')
@@ -528,6 +552,30 @@ export class SettingsController {
     },
   ) {
     return this.handleFileUpload(file, 'favicon');
+  }
+
+  /**
+   * Upload login screen wallpaper.
+   */
+  @Post('upload-wallpaper')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SUPER_ADMIN')
+  @RequirePermission(Permission.SETTINGS_WRITE)
+  @UseInterceptors(FileInterceptor('file'))
+  uploadWallpaper(
+    @UploadedFile(
+      new FileValidationPipe({
+        allowedMimeTypes: ['image/png', 'image/jpeg', 'image/webp'],
+        maxSizeBytes: 10 * 1024 * 1024,
+      }),
+    )
+    file: {
+      mimetype: string;
+      originalname: string;
+      buffer: Buffer;
+    },
+  ) {
+    return this.handleFileUpload(file, 'wallpaper');
   }
 
   /**
@@ -560,7 +608,8 @@ export class SettingsController {
 
   private handleFileUpload(
     file: { mimetype: string; originalname: string; buffer: Buffer },
-    type: 'logo' | 'favicon',
+    // 'logodark' must not start with 'logo-': the per-type cleanup matches `${type}-`
+    type: 'logo' | 'logodark' | 'favicon' | 'wallpaper',
   ) {
     if (!file) {
       throw new BadRequestException('No file uploaded');

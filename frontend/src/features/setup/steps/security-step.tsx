@@ -112,6 +112,11 @@ export function SecurityStep({ onNext, onBack }: SecurityStepProps) {
                     return;
                 }
 
+                if (err.status === 429) {
+                    setError(backendMessage || t('setup.steps.admin.errors.tooManyAttempts'));
+                    return;
+                }
+
                 if (err.status === 403 && !backendMessage) {
                     setError(t('setup.steps.admin.errors.bootstrapSecret'));
                     return;

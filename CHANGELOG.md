@@ -7,13 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- New **Personalization** settings tab (Settings > Application) that groups the appearance (display mode, accent colour) with the branding: application name and subtitle, logo, favicon, and the login screen.
+- Login screen customization: wallpaper (PNG, JPEG or WebP up to 10 MB) with adjustable blur and darkening, a frosted-glass form with adjustable transparency (40–100 %) and a live preview, a custom sub-heading and an optional notice shown under the form.
+- Optional dark-mode logo, used by the sidebar and the login screen when the interface is dark.
+- Left or centred alignment, chosen separately for the sidebar logo and for its title and subtitle.
+- Custom accent colour (any `#rrggbb`, with a contrast warning) next to the preset colours; it overrides the theme colour for every user. A "Restore defaults" button resets the branding form.
+
 ### Changed
 
+- Replaced or removed logo, favicon, wallpaper and dark-logo files are now deleted from the server instead of piling up in the uploads folder (removing an image used to leave the file behind).
+- The public branding endpoint now returns the registry defaults for settings that were never saved, so the title and subtitle show up on a fresh install.
+- The first-admin setup allows 3 attempts per 5 minutes per IP (was 1) and the rate-limit message says how long to wait.
+- The settings page header and the tab header stay pinned while scrolling, and the settings menu scrolls on its own on small screens.
+- Saving the branding or an auto-saved general setting now shows a single confirmation toast instead of two.
 - Windows installation documentation now includes Windows 11 or later alongside Windows Server 2019 or later (x64), and distinguishes the application's offline-mode default from the MSI's fresh-install default.
 - Docker update documentation explains automatic Prisma migrations, failure handling, volume preservation and the explicit image pull required for registry updates.
 
 ### Fixed
 
+- The MFA setup dialog no longer overflows (the authenticator option text now wraps), the group members panel has proper side padding, and site cards line up their statistics when only some have a description.
 - Docker update script now pulls the app image (or builds it explicitly), requires a successful database backup, updates only the app and waits for it to become healthy. Compose reads `.env` without executing it as shell code.
 - Windows source update script now installs from the workspace lockfile, loads the database environment for Prisma 7, applies existing migrations with `prisma migrate deploy`, builds the application and stops on any failed step.
 - Windows source updates now require a validated PostgreSQL dump before Git/dependency changes, using a standalone helper and restricted backup permissions. Docker updates also preserve Todo attachments and exports when introducing their persistent volumes.

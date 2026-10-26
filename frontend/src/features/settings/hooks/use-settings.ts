@@ -46,11 +46,12 @@ export function useSettings() {
 
     // Mutation to update a single setting
     const updateMutation = useMutation({
-        mutationFn: settingsApi.set,
-        onSuccess: () => {
+        mutationFn: ({ dto }: { dto: SetSettingDto; silent?: boolean }) => settingsApi.set(dto),
+        onSuccess: (_data, { silent }) => {
             queryClient.invalidateQueries({ queryKey: ['settings'] });
             queryClient.invalidateQueries({ queryKey: ['public-branding'] });
-            toast.success(t('common.saveSuccess'), { id: SETTINGS_SAVED_TOAST_ID });
+            // `silent` lets a page that shows its own confirmation avoid a second toast.
+            if (!silent) toast.success(t('common.saveSuccess'), { id: SETTINGS_SAVED_TOAST_ID });
         },
         onError: (error) => {
             console.error('Failed to update setting:', error);
@@ -116,8 +117,8 @@ export function useSettings() {
         return val === true || val === 'true';
     }, [getSetting]);
 
-    const updateSetting = (dto: SetSettingDto) => {
-        updateMutation.mutate(dto);
+    const updateSetting = (dto: SetSettingDto, options?: { silent?: boolean }) => {
+        updateMutation.mutate({ dto, silent: options?.silent });
     };
 
     const updateSettings = (settings: Record<string, unknown>, options?: { onSuccess?: () => void }) => {

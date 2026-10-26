@@ -14,7 +14,10 @@ import { SetupService } from './setup.service';
 
 describe('SetupGuard', () => {
   let guard: SetupGuard;
-  let redisSet: jest.Mock;
+  let redisIncr: jest.Mock;
+  let redisExpire: jest.Mock;
+  let redisTtl: jest.Mock;
+  let redisCount: number;
 
   const mockConfigService = {
     get: jest.fn(),
@@ -35,13 +38,19 @@ describe('SetupGuard', () => {
     mockConfigService.get.mockReset();
     // Default Redis SET NX behaviour: first call returns 'OK', subsequent
     // calls return null (key already exists in the rate-limit window).
-    redisSet = jest.fn().mockResolvedValueOnce('OK').mockResolvedValue(null);
+    redisCount = 0;
+    redisIncr = jest.fn().mockImplementation(async () => ++redisCount);
+    redisExpire = jest.fn().mockResolvedValue(1);
+    redisTtl = jest.fn().mockResolvedValue(240);
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         SetupGuard,
         { provide: ConfigService, useValue: mockConfigService },
-        { provide: REDIS_CLIENT, useValue: { set: redisSet } },
+        {
+          provide: REDIS_CLIENT,
+          useValue: { incr: redisIncr, expire: redisExpire, ttl: redisTtl },
+        },
       ],
     }).compile();
 
@@ -62,39 +71,40 @@ describe('SetupGuard', () => {
     await expect(guard.canActivate(context as any)).resolves.toBe(true);
   });
 
-  it('should rate-limit after first attempt (AUDIT #14 — distributed via Redis)', async () => {
+  it('should rate-limit after 3 attempts (AUDIT #14 — distributed via Redis)', async () => {
     mockConfigService.get.mockReturnValue('my-super-secret-key!');
     const context = createMockContext();
 
-    // First attempt passes (Redis SET NX returns 'OK')
-    await expect(guard.canActivate(context as any)).resolves.toBe(true);
+    for (let i = 0; i < 3; i++) {
+      await expect(guard.canActivate(context as any)).resolves.toBe(true);
+    }
 
-    // Second attempt blocked (Redis SET NX returns null → key existed)
+    // 4th attempt blocked, with an explicit message and the remaining wait
     await expect(guard.canActivate(context as any)).rejects.toThrow(
-      HttpException,
+      /Trop de tentatives.*4 minutes/,
     );
 
-    // Both attempts hit Redis with the SET NX EX 300 contract
-    expect(redisSet).toHaveBeenCalledTimes(2);
-    expect(redisSet).toHaveBeenLastCalledWith(
+    // The window is armed once, on the first attempt, for 5 minutes
+    expect(redisIncr).toHaveBeenCalledTimes(4);
+    expect(redisExpire).toHaveBeenCalledTimes(1);
+    expect(redisExpire).toHaveBeenCalledWith(
       expect.stringContaining('setup:rate:'),
-      expect.any(String),
-      'EX',
       300,
-      'NX',
     );
   });
 
   it('should fall back to the in-memory map when Redis throws', async () => {
     mockConfigService.get.mockReturnValue('my-super-secret-key!');
-    redisSet.mockReset();
-    redisSet.mockRejectedValue(new Error('ECONNREFUSED'));
+    redisIncr.mockRejectedValue(new Error('ECONNREFUSED'));
+    redisTtl.mockRejectedValue(new Error('ECONNREFUSED'));
     const context = createMockContext();
 
-    // First attempt passes (Redis failed → in-memory fallback grants the slot)
-    await expect(guard.canActivate(context as any)).resolves.toBe(true);
+    // 3 attempts pass (Redis failed → in-memory fallback grants the slots)
+    for (let i = 0; i < 3; i++) {
+      await expect(guard.canActivate(context as any)).resolves.toBe(true);
+    }
 
-    // Second attempt blocked by the in-memory map
+    // 4th attempt blocked by the in-memory map
     await expect(guard.canActivate(context as any)).rejects.toThrow(
       HttpException,
     );

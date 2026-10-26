@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { usePublicBranding } from '@/hooks/use-public-branding';
+import { accentForeground, isValidAccentColor } from '@/lib/accent-color';
 
 const THEMES: Record<string, { primary: string; ring: string }> = {
     blue: { primary: 'hsl(199 89% 48%)', ring: 'hsl(199 89% 48%)' },
@@ -24,6 +25,7 @@ export function DynamicBranding() {
     const faviconUrl = getSetting('app.faviconUrl');
     const appTitle = getSetting('app.title');
     const colorTheme = getSetting('ui.theme');
+    const accentColor = getSetting('app.accentColor');
     const defaultFavicon = useRef(document.querySelector("link[rel~='icon']")?.getAttribute('href') || '/vite.svg');
 
     useEffect(() => {
@@ -45,17 +47,33 @@ export function DynamicBranding() {
 
     useEffect(() => {
         const theme = (isSuccess ? colorTheme : readCache('ui.theme')) || 'default';
+        const accent = isSuccess ? accentColor : readCache('app.accentColor');
         const colors = THEMES[theme];
         const root = document.documentElement;
-        if (colors) {
-            root.style.setProperty('--primary', colors.primary);
-            root.style.setProperty('--ring', colors.ring);
+        // A custom accent wins over the named theme colour.
+        if (isValidAccentColor(accent)) {
+            root.style.setProperty('--primary', accent);
+            root.style.setProperty('--primary-foreground', accentForeground(accent));
+            root.style.setProperty('--ring', accent);
+            root.style.setProperty('--sidebar-primary', accent);
+            root.style.setProperty('--sidebar-primary-foreground', accentForeground(accent));
         } else {
-            root.style.removeProperty('--primary');
-            root.style.removeProperty('--ring');
+            root.style.removeProperty('--primary-foreground');
+            root.style.removeProperty('--sidebar-primary');
+            root.style.removeProperty('--sidebar-primary-foreground');
+            if (colors) {
+                root.style.setProperty('--primary', colors.primary);
+                root.style.setProperty('--ring', colors.ring);
+            } else {
+                root.style.removeProperty('--primary');
+                root.style.removeProperty('--ring');
+            }
         }
-        if (isSuccess) saveCache('ui.theme', colorTheme);
-    }, [colorTheme, isSuccess]);
+        if (isSuccess) {
+            saveCache('ui.theme', colorTheme);
+            saveCache('app.accentColor', accentColor);
+        }
+    }, [colorTheme, accentColor, isSuccess]);
 
     return null;
 }

@@ -1,4 +1,6 @@
 import { passkeyErrorMessage } from '@/lib/passkeys';
+import { loginCardStyle, parseLoginCardOpacity, parseWallpaperBlur, parseWallpaperDim, pickLogo, wallpaperLayerStyle } from './login-card-style';
+import { useIsDark } from '@/hooks/use-is-dark';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -77,7 +79,14 @@ export function LoginPage() {
         staleTime: 1000 * 60 * 5, // 5 minutes
     });
     const appTitle = (branding?.['app.title'] as string) || t('common.appName');
-    const appLogo = branding?.['app.logoUrl'] as string | undefined;
+    const isDark = useIsDark();
+    const appLogo = pickLogo(isDark, branding?.['app.logoUrl'] as string | undefined, branding?.['app.logoDarkUrl'] as string | undefined);
+    const welcomeText = (branding?.['app.loginWelcomeText'] as string | undefined)?.trim();
+    const loginMessage = (branding?.['app.loginMessage'] as string | undefined)?.trim();
+    const wallpaperBlur = parseWallpaperBlur(branding?.['app.wallpaperBlur'] as string | undefined);
+    const wallpaperDim = parseWallpaperDim(branding?.['app.wallpaperDim'] as string | undefined);
+    const appWallpaper = branding?.['app.wallpaperUrl'] as string | undefined;
+    const cardOpacity = parseLoginCardOpacity(branding?.['app.loginCardOpacity'] as string | undefined);
 
     const oidcEnabled = branding?.['auth.generic.enabled'] === 'true' || branding?.['auth.generic.enabled'] === true;
     const oidcProviderName = (branding?.['auth.generic.oidc.providerName'] as string) || 'SSO Provider';
@@ -136,8 +145,16 @@ export function LoginPage() {
     };
 
     return (
-        <div className="flex min-h-screen items-center justify-center bg-background p-4">
-            <Card className="w-full max-w-md">
+        <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background p-4">
+            {appWallpaper && (
+                <>
+                    <div className="absolute inset-0 bg-cover bg-center" style={wallpaperLayerStyle(appWallpaper, wallpaperBlur)} aria-hidden="true" />
+                    {wallpaperDim > 0 && (
+                        <div className="absolute inset-0 bg-black" style={{ opacity: wallpaperDim / 100 }} aria-hidden="true" />
+                    )}
+                </>
+            )}
+            <Card className="relative w-full max-w-md" style={appWallpaper ? loginCardStyle(cardOpacity) : undefined}>
                 <CardHeader className="text-center">
                     {appLogo ? (
                         <img
@@ -152,7 +169,7 @@ export function LoginPage() {
                     )}
                     <CardTitle className="text-2xl">{appTitle}</CardTitle>
                     <CardDescription>
-                        {requiresMfa ? 'Enter your 6-digit Authenticator code' : t('auth.signInToAccount')}
+                        {requiresMfa ? 'Enter your 6-digit Authenticator code' : (welcomeText || t('auth.signInToAccount'))}
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -254,6 +271,11 @@ export function LoginPage() {
                                 </Button>
                             </div>
                         </form>
+                    )}
+                    {loginMessage && !requiresMfa && (
+                        <p className="mt-6 whitespace-pre-line rounded-md border bg-muted/40 px-3 py-2 text-center text-xs text-muted-foreground">
+                            {loginMessage}
+                        </p>
                     )}
                 </CardContent>
             </Card>

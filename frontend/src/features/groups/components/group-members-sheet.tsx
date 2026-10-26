@@ -106,7 +106,7 @@ export function GroupMembersSheet({ group, open, onOpenChange }: GroupMembersShe
                 <Separator className="my-4" />
 
                 {/* ========== ADD MEMBER SECTION ========== */}
-                <div className="space-y-3">
+                <div className="space-y-3 px-4">
                     <h4 className="text-sm font-medium">{t('groupMgmt.members.addTitle')}</h4>
                     <div className="relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -163,7 +163,7 @@ export function GroupMembersSheet({ group, open, onOpenChange }: GroupMembersShe
                 <Separator className="my-4" />
 
                 {/* ========== MEMBERS LIST ========== */}
-                <div className="flex-1 overflow-hidden flex flex-col">
+                <div className="flex-1 overflow-hidden flex flex-col px-4 pb-4">
                     <div className="flex items-center justify-between mb-3">
                         <h4 className="text-sm font-medium">{t('groupMgmt.members.current')}</h4>
                         <span className="text-xs text-muted-foreground">

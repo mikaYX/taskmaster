@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -11,6 +11,7 @@ import {
     KeyRound,
     Mail,
     MapPin,
+    Palette,
     Settings2,
     ShieldCheck,
     SlidersHorizontal,
@@ -18,6 +19,7 @@ import {
 } from 'lucide-react';
 
 import { GeneralSettingsPage } from './pages/general-settings-page';
+import { PersonalizationSettingsPage } from './pages/personalization-settings-page';
 import { SecuritySettingsPage } from './pages/security-settings-page';
 import { AuthSettingsPage } from './pages/auth-settings-page';
 import { EmailSettingsPage } from './pages/email-settings-page';
@@ -48,6 +50,7 @@ const GROUPS: { labelKey: string; tabs: SettingsTab[] }[] = [
         labelKey: 'settingsShell.groups.application',
         tabs: [
             { value: 'general', labelKey: 'settings.general', descriptionKey: 'settingsShell.descriptions.general', icon: SlidersHorizontal, tone: 'bg-primary/10 text-primary', render: () => <GeneralSettingsPage />, visible: 'notManager' },
+            { value: 'personalization', labelKey: 'settings.personalization', descriptionKey: 'settingsShell.descriptions.personalization', icon: Palette, tone: 'bg-pink-500/10 text-pink-700 dark:text-pink-400', render: () => <PersonalizationSettingsPage />, visible: 'notManager' },
             { value: 'sites', labelKey: 'settings.sites', descriptionKey: 'settingsShell.descriptions.sites', icon: MapPin, tone: 'bg-teal-500/10 text-teal-700 dark:text-teal-400', render: () => <SitesSettingsPage />, visible: 'superAdmin' },
             { value: 'scheduler', labelKey: 'settings.scheduler', descriptionKey: 'settingsShell.descriptions.scheduler', icon: CalendarClock, tone: 'bg-sky-500/10 text-sky-700 dark:text-sky-400', render: () => <SchedulerSettingsPage />, visible: 'notManager' },
         ],
@@ -91,15 +94,30 @@ export function SettingsPage() {
     const isManager = role === 'MANAGER';
     const [activeTab, setActiveTab] = useState(isManager ? 'security' : 'general');
 
+    // The sticky tab header and the menu sit right under the page header: use its real height, not a guess.
+    const rootRef = useRef<HTMLDivElement>(null);
+    const headerRef = useRef<HTMLDivElement>(null);
+    useLayoutEffect(() => {
+        const root = rootRef.current;
+        const header = headerRef.current;
+        if (!root || !header) return;
+        const update = () => root.style.setProperty('--settings-header-h', `${header.offsetHeight}px`);
+        update();
+        if (typeof ResizeObserver === 'undefined') return;
+        const observer = new ResizeObserver(update);
+        observer.observe(header);
+        return () => observer.disconnect();
+    }, []);
+
     const canSee = (tab: SettingsTab) =>
         tab.visible === 'all' || (tab.visible === 'notManager' && !isManager) || (tab.visible === 'superAdmin' && isSuperAdmin);
     const groups = GROUPS.map((group) => ({ ...group, tabs: group.tabs.filter(canSee) })).filter((group) => group.tabs.length > 0);
     const showMenu = groups.reduce((n, group) => n + group.tabs.length, 0) > 1;
 
     return (
-        <div className="mx-auto w-full max-w-7xl space-y-6 pb-24 pt-4 sm:pt-6">
-            {/* Header */}
-            <div className="flex items-center gap-4">
+        <div ref={rootRef} className="mx-auto w-full max-w-7xl pb-24">
+            {/* Header: stays visible while the page scrolls. -mt-4 cancels the layout's p-4 so it starts where it pins; no gap below it, so the tab header and the menu also start exactly where they pin. */}
+            <div ref={headerRef} className="sticky top-0 z-20 -mt-4 flex items-center gap-4 bg-background pb-4 pt-4 sm:pt-6">
                 <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
                     <Settings2 className="h-6 w-6" />
                 </div>
@@ -115,7 +133,7 @@ export function SettingsPage() {
                     aria-label={t('settings.title')}
                     className={
                         showMenu
-                            ? 'h-auto group-data-[orientation=horizontal]/tabs:h-auto w-full shrink-0 flex-row items-stretch justify-start gap-1 overflow-x-auto rounded-xl border bg-card p-2 shadow-sm lg:sticky lg:top-4 lg:w-60 lg:flex-col lg:overflow-visible'
+                            ? 'h-auto group-data-[orientation=horizontal]/tabs:h-auto w-full shrink-0 flex-row items-stretch justify-start gap-1 overflow-x-auto rounded-xl border bg-card p-2 shadow-sm lg:sticky lg:top-[var(--settings-header-h,5.5rem)] lg:w-60 lg:flex-col lg:overflow-y-auto lg:overscroll-contain lg:max-h-[calc(100dvh-var(--settings-header-h,5.5rem)-5rem)] lg:[scrollbar-width:thin] lg:[scrollbar-color:transparent_transparent] lg:hover:[scrollbar-color:color-mix(in_srgb,var(--muted-foreground)_45%,transparent)_transparent]'
                             : 'sr-only'
                     }
                 >
@@ -142,7 +160,8 @@ export function SettingsPage() {
 
                 {groups.flatMap((group) => group.tabs).map(({ value, labelKey, descriptionKey, icon: Icon, tone, render }) => (
                     <TabsContent key={value} value={value} className="mt-0 min-w-0 flex-1 space-y-6">
-                        <div className="flex items-center gap-3">
+                        {/* Pinned right under the page header (its measured height) so the tab name stays visible while its content scrolls. */}
+                        <div className="sticky top-[var(--settings-header-h,5.5rem)] z-10 flex items-center gap-3 bg-background py-2">
                             <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${tone}`}>
                                 <Icon className="h-5 w-5" />
                             </span>

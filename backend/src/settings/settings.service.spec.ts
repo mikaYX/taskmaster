@@ -64,7 +64,7 @@ describe('SettingsService', () => {
       { key: 'app.showTitle', value: '"false"' },
       { key: 'app.showSubtitle', value: '"true"' },
     ]);
-    expect(await service.getPublicBranding()).toEqual({
+    expect(await service.getPublicBranding()).toMatchObject({
       'app.showTitle': 'false',
       'app.showSubtitle': 'true',
     });
@@ -77,6 +77,26 @@ describe('SettingsService', () => {
         /secret|password|apiKey|database|privateKey/i.test(key),
       ),
     ).toBe(false);
+  });
+
+  it('falls back to registry defaults on a fresh install', async () => {
+    prisma.client.config.findMany.mockResolvedValue([]);
+    expect(await service.getPublicBranding()).toMatchObject({
+      'app.title': 'Taskmaster',
+      'app.subtitle': 'Task Management System',
+      'app.showSubtitle': 'true',
+    });
+  });
+
+  it.each([
+    ['app.accentColor', 'red'],
+    ['app.accentColor', '#fff'],
+    ['app.wallpaperBlur', '50'],
+    ['app.wallpaperDim', '90'],
+    ['app.loginCardOpacity', '10'],
+    ['app.loginMessage', 'x'.repeat(301)],
+  ])('rejects an out-of-range value for %s (%s)', async (key, value) => {
+    await expect(service.set(key, value)).rejects.toThrow('Invalid value for');
   });
 
   describe('sensitive values sent back as the mask', () => {

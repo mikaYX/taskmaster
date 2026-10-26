@@ -593,6 +593,78 @@ export const SETTINGS_REGISTRY = {
     default: '',
     description: 'Application Favicon URL',
   },
+  'app.logoAlign': {
+    schema: z.enum(['left', 'center']),
+    sensitive: false,
+    default: 'left',
+    description: 'Sidebar logo alignment',
+  },
+  'app.textAlign': {
+    schema: z.enum(['left', 'center']),
+    sensitive: false,
+    default: 'left',
+    description: 'Sidebar title and subtitle alignment',
+  },
+  'app.logoDarkUrl': {
+    schema: z.string().or(z.literal('')),
+    sensitive: false,
+    default: '',
+    description: 'Application logo URL used in dark mode',
+  },
+  'app.wallpaperBlur': {
+    schema: z.string().refine((v) => {
+      const n = Number(v);
+      return Number.isInteger(n) && n >= 0 && n <= 20;
+    }, 'Must be an integer between 0 and 20'),
+    sensitive: false,
+    default: '0',
+    description: 'Login wallpaper blur (pixels)',
+  },
+  'app.wallpaperDim': {
+    schema: z.string().refine((v) => {
+      const n = Number(v);
+      return Number.isInteger(n) && n >= 0 && n <= 80;
+    }, 'Must be an integer between 0 and 80'),
+    sensitive: false,
+    default: '0',
+    description: 'Login wallpaper darkening (percent)',
+  },
+  'app.loginWelcomeText': {
+    schema: z.string().max(100),
+    sensitive: false,
+    default: '',
+    description: 'Login screen sub-heading (empty = translated default)',
+  },
+  'app.loginMessage': {
+    schema: z.string().max(300),
+    sensitive: false,
+    default: '',
+    description: 'Notice shown on the login screen',
+  },
+  'app.accentColor': {
+    schema: z
+      .string()
+      .regex(/^(#[0-9a-fA-F]{6})?$/, 'Must be #rrggbb or empty'),
+    sensitive: false,
+    default: '',
+    description: 'Custom accent colour (overrides the theme colour)',
+  },
+  'app.loginCardOpacity': {
+    // Percentage as a string like the other UI flags; 40 keeps the form readable.
+    schema: z.string().refine((v) => {
+      const n = Number(v);
+      return Number.isInteger(n) && n >= 40 && n <= 100;
+    }, 'Must be an integer between 40 and 100'),
+    sensitive: false,
+    default: '100',
+    description: 'Login card opacity (percent)',
+  },
+  'app.wallpaperUrl': {
+    schema: z.string().or(z.literal('')),
+    sensitive: false,
+    default: '',
+    description: 'Login screen wallpaper URL',
+  },
 
   // === UI Settings ===
   'ui.language': {

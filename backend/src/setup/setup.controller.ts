@@ -20,7 +20,7 @@ import { SetupGuard } from './setup.guard';
  * Public endpoints for first-time setup.
  * No authentication required, but protected by:
  * - Bootstrap secret (SetupGuard)
- * - Rate limiting (1 attempt / 5 min / IP via guard + Throttle fallback)
+ * - Rate limiting (3 attempts / 5 min / IP via guard + Throttle fallback)
  * - Transactional lock (service layer)
  */
 @Controller('setup')
@@ -43,7 +43,7 @@ export class SetupController {
    */
   @Post('initialize')
   @UseGuards(SetupGuard)
-  @Throttle({ default: { limit: 1, ttl: 300000 } }) // 1 attempt per 5 minutes (fallback)
+  @Throttle({ default: { limit: 3, ttl: 300000 } }) // 3 attempts per 5 minutes (fallback)
   @HttpCode(HttpStatus.OK)
   async initialize(@Body() dto: InitializeAdminDto, @Req() req: Request) {
     const ip = req.ip || req.socket?.remoteAddress || 'unknown';

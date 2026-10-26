@@ -15,6 +15,8 @@ import {
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useLogout } from '@/hooks/use-auth';
+import { useIsDark } from '@/hooks/use-is-dark';
+import { pickLogo } from '@/features/auth/login-card-style';
 import { useAuthStore } from '@/stores';
 import { useOwnProfile } from '@/hooks/use-users';
 import { usePublicBranding } from '@/hooks/use-public-branding';
@@ -97,7 +99,10 @@ export function AppSidebar() {
     const { getSetting, getSettingAsBool } = usePublicBranding();
     const appTitle = getSetting('app.title') || t('common.appName');
     const appSubtitle = getSetting('app.subtitle');
-    const appLogo = getSetting('app.logoUrl');
+    const isDark = useIsDark();
+    const appLogo = pickLogo(isDark, getSetting('app.logoUrl'), getSetting('app.logoDarkUrl'));
+    const logoCentered = getSetting('app.logoAlign') === 'center';
+    const textCentered = getSetting('app.textAlign') === 'center';
 
     // Default to true if setting is missing (undefined)
     const showTitleStr = getSetting('app.showTitle');
@@ -140,20 +145,20 @@ export function AppSidebar() {
     return (
         <Sidebar collapsible="icon">
             <SidebarHeader className="border-b border-sidebar-border px-3 py-4">
-                <Link to="/" className="flex items-center gap-3 rounded-lg px-1 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
+                <Link to="/" className="flex flex-col gap-2 rounded-lg px-1 group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:px-0">
                     {appLogo ? (
                         <img
                             src={appLogo}
                             alt={t('common.logo')}
-                            className="h-10 w-10 shrink-0 rounded-xl object-contain group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:w-8"
+                            className={`h-12 w-auto max-w-full shrink-0 rounded-xl object-contain group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:w-8 ${logoCentered ? 'self-center object-center' : 'self-start object-left'}`}
                         />
                     ) : (
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm shadow-primary/30 group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:w-8">
+                        <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm shadow-primary/30 group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:w-8 ${logoCentered ? 'self-center' : 'self-start'}`}>
                             <ClipboardCheck className="h-5 w-5 group-data-[collapsible=icon]:h-4 group-data-[collapsible=icon]:w-4" />
                         </div>
                     )}
                     {(showTitle || (showSubtitle && appSubtitle)) && (
-                        <div className="flex min-w-0 flex-col leading-tight group-data-[collapsible=icon]:hidden">
+                        <div className={`flex w-full min-w-0 flex-col leading-tight group-data-[collapsible=icon]:hidden ${textCentered ? 'text-center' : 'text-left'}`}>
                             {showTitle && (
                                 <span className="truncate text-base font-bold tracking-tight text-sidebar-foreground">{appTitle}</span>
                             )}

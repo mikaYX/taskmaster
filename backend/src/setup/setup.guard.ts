@@ -34,8 +34,11 @@ import { REDIS_CLIENT } from '../common/redis/redis.module';
 export class SetupGuard implements CanActivate {
   private readonly logger = new Logger('SetupGuard');
 
-  /** In-memory rate limit store: IP → last attempt timestamp (fallback). */
-  private readonly attemptMap = new Map<string, number>();
+  /** In-memory rate limit store: IP → attempt timestamps in the window (fallback). */
+  private readonly attemptMap = new Map<string, number[]>();
+
+  /** Attempts allowed per IP within the window. */
+  private static readonly MAX_ATTEMPTS = 3;
 
   /** Rate limit window in milliseconds (5 minutes) */
   private static readonly RATE_LIMIT_WINDOW_MS = 5 * 60 * 1000;
@@ -58,10 +61,11 @@ export class SetupGuard implements CanActivate {
     const ip = request.ip || request.socket?.remoteAddress || 'unknown';
     const userAgent = request.headers['user-agent'] || 'unknown';
 
-    // 1. Rate limiting — 1 attempt per 5 minutes per IP, distributed via Redis
+    // 1. Rate limiting — 3 attempts per 5 minutes per IP, distributed via Redis
     const rateLimited = await this.isRateLimited(ip);
     if (rateLimited) {
-      const retryAfterSec = SetupGuard.RATE_LIMIT_WINDOW_SEC;
+      const retryAfterSec = await this.getRetryAfterSeconds(ip);
+      const retryAfterMin = Math.ceil(retryAfterSec / 60);
 
       this.logger.warn(
         `[SECURITY] Setup rate limited — IP: ${ip}, UA: ${userAgent}, retryAfter: ${retryAfterSec}s`,
@@ -70,7 +74,7 @@ export class SetupGuard implements CanActivate {
       throw new HttpException(
         {
           statusCode: HttpStatus.TOO_MANY_REQUESTS,
-          message: `Too many setup attempts. Retry after ${retryAfterSec} seconds.`,
+          message: `Trop de tentatives de configuration (${SetupGuard.MAX_ATTEMPTS} maximum toutes les 5 minutes). Réessayez dans ${retryAfterMin} minute${retryAfterMin > 1 ? 's' : ''}.`,
           retryAfter: retryAfterSec,
         },
         HttpStatus.TOO_MANY_REQUESTS,
@@ -97,25 +101,20 @@ export class SetupGuard implements CanActivate {
   }
 
   /**
-   * Atomically test-and-set the rate-limit token for this IP.
-   * Returns `true` when the IP is currently rate-limited (key already
-   * existed, SET NX returned null), `false` when the attempt is allowed
-   * (key was created and now expires in RATE_LIMIT_WINDOW_SEC).
+   * Counts this attempt for the IP. Returns `true` when the IP already used
+   * MAX_ATTEMPTS attempts in the current window (the window starts at the
+   * first attempt and expires after RATE_LIMIT_WINDOW_SEC).
    */
   private async isRateLimited(ip: string): Promise<boolean> {
     // Prefer Redis (distributed, survives multi-replica).
     if (this.redis) {
       try {
-        const result = await this.redis.set(
-          `${SetupGuard.REDIS_KEY_PREFIX}${ip}`,
-          Date.now().toString(),
-          'EX',
-          SetupGuard.RATE_LIMIT_WINDOW_SEC,
-          'NX',
-        );
-        // `set ... NX` returns 'OK' when the key was set, `null` when the
-        // key already existed → an attempt happened in the last window.
-        return result === null;
+        const key = `${SetupGuard.REDIS_KEY_PREFIX}${ip}`;
+        const count = await this.redis.incr(key);
+        if (count === 1) {
+          await this.redis.expire(key, SetupGuard.RATE_LIMIT_WINDOW_SEC);
+        }
+        return count > SetupGuard.MAX_ATTEMPTS;
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         this.logger.warn(
@@ -127,20 +126,42 @@ export class SetupGuard implements CanActivate {
 
     // Fallback: in-memory map (single-process only).
     const now = Date.now();
-    const lastAttempt = this.attemptMap.get(ip);
-    if (lastAttempt && now - lastAttempt < SetupGuard.RATE_LIMIT_WINDOW_MS) {
+    const cutoff = now - SetupGuard.RATE_LIMIT_WINDOW_MS;
+    const recent = (this.attemptMap.get(ip) ?? []).filter((ts) => ts > cutoff);
+    if (recent.length >= SetupGuard.MAX_ATTEMPTS) {
+      this.attemptMap.set(ip, recent);
       return true;
     }
-    this.attemptMap.set(ip, now);
+    recent.push(now);
+    this.attemptMap.set(ip, recent);
 
     // Periodically reap stale entries to bound memory.
     if (this.attemptMap.size > 1000) {
-      const cutoff = now - SetupGuard.RATE_LIMIT_WINDOW_MS;
-      for (const [key, ts] of this.attemptMap) {
-        if (ts < cutoff) this.attemptMap.delete(key);
+      for (const [key, stamps] of this.attemptMap) {
+        if (stamps.every((ts) => ts <= cutoff)) this.attemptMap.delete(key);
       }
     }
 
     return false;
+  }
+
+  /** Seconds left before the IP's window expires (full window if unknown). */
+  private async getRetryAfterSeconds(ip: string): Promise<number> {
+    if (this.redis) {
+      try {
+        const ttl = await this.redis.ttl(`${SetupGuard.REDIS_KEY_PREFIX}${ip}`);
+        if (ttl > 0) return ttl;
+      } catch {
+        // fall through to the in-memory estimate
+      }
+    }
+    const oldest = this.attemptMap.get(ip)?.[0];
+    if (oldest) {
+      const left = Math.ceil(
+        (oldest + SetupGuard.RATE_LIMIT_WINDOW_MS - Date.now()) / 1000,
+      );
+      if (left > 0) return left;
+    }
+    return SetupGuard.RATE_LIMIT_WINDOW_SEC;
   }
 }
