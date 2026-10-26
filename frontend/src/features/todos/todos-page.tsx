@@ -35,6 +35,7 @@ import {
     Plus,
     Search,
     SlidersHorizontal,
+    Trash2,
     User,
     X,
     Users,
@@ -596,26 +597,37 @@ function TodosPageContent() {
                 )}
 
                 {visible.completed.length > 0 && (
-                    <Collapsible className="rounded-xl border bg-muted/20">
-                        <div className="flex items-center justify-between gap-2 px-4 py-2.5">
-                            <CollapsibleTrigger className="group/completed flex flex-1 items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
-                                <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                                {t('todos.completedSection', { n: visible.completed.length })}
-                                <ChevronDown className="h-4 w-4 transition-transform group-data-[state=open]/completed:rotate-180" />
+                    <Collapsible className="overflow-hidden rounded-2xl border border-border/60 bg-card/50 transition-colors data-[state=open]:bg-muted/20">
+                        <div className="flex items-center justify-between gap-2 pr-2">
+                            <CollapsibleTrigger className="group/completed flex min-w-0 flex-1 items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                                    <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
+                                </span>
+                                <span className="min-w-0">
+                                    <span className="flex items-center gap-2 text-sm font-semibold">
+                                        {t('todos.completedTitle')}
+                                        <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[11px] font-semibold tabular-nums text-emerald-700 dark:text-emerald-300">
+                                            {visible.completed.length}
+                                        </span>
+                                    </span>
+                                    <span className="block truncate text-xs text-muted-foreground">{t('todos.completedHint')}</span>
+                                </span>
+                                <ChevronDown className="ml-auto h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 group-data-[state=open]/completed:rotate-180" />
                             </CollapsibleTrigger>
                             {canManage && (
                                 <Button
                                     variant="ghost"
                                     size="sm"
-                                    className="h-8 text-xs text-muted-foreground hover:text-destructive"
+                                    className="h-8 gap-1.5 text-xs text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                                     disabled={clearCompleted.isPending}
                                     onClick={handleClearCompleted}
                                 >
+                                    <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
                                     {t('todos.clearCompleted')}
                                 </Button>
                             )}
                         </div>
-                        <CollapsibleContent className="space-y-2 px-3 pb-3">{visible.completed.map(renderItem)}</CollapsibleContent>
+                        <CollapsibleContent className="space-y-2 border-t border-border/60 px-3 py-3">{visible.completed.map(renderItem)}</CollapsibleContent>
                     </Collapsible>
                 )}
             </div>
