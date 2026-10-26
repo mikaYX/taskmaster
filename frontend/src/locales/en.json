@@ -1594,6 +1594,7 @@
             "noChannelsTitle": "No Active Channels",
             "noChannelsBody": "You don't have any active notification channels configured.",
             "noChannelsHelp": "To set up alerts, please visit <settings>Settings > Notifications</settings> and enable at least one channel.",
+            "noChannelsHelpContactAdmin": "Only an administrator can configure notification channels. Contact an administrator to enable one.",
             "intro": "Select the channels you want to use for this task, and configure when alerts should be sent.",
             "onFailure": "On Failure",
             "onFailureDesc": "Notify when task fails",

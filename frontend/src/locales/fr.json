@@ -1594,6 +1594,7 @@
             "noChannelsTitle": "Aucun canal actif",
             "noChannelsBody": "Aucun canal de notification actif n'est configuré.",
             "noChannelsHelp": "Pour configurer des alertes, rendez-vous dans <settings>Paramètres > Notifications</settings> et activez au moins un canal.",
+            "noChannelsHelpContactAdmin": "Seul un administrateur peut configurer les canaux de notification. Contactez un administrateur pour en activer un.",
             "intro": "Sélectionnez les canaux à utiliser pour cette tâche et configurez le moment d'envoi des alertes.",
             "onFailure": "En cas d'échec",
             "onFailureDesc": "Notifier lorsque la tâche échoue",

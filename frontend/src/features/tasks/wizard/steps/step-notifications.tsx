@@ -1,6 +1,7 @@
 import { useFormContext, useFieldArray } from "react-hook-form";
 import type { CreateTaskFormValues } from "../../schemas/task-creation.schema";
 import { useChannels } from "@/hooks/use-notifications";
+import { useIsSuperAdmin } from "@/stores/auth-store";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -28,6 +29,7 @@ const TypeIcon = ({ type }: { type: string }) => {
 
 export function StepNotifications() {
     const { t } = useTranslation();
+    const isSuperAdmin = useIsSuperAdmin();
     const { control, watch } = useFormContext<CreateTaskFormValues>();
     const { append, remove } = useFieldArray({
         control,
@@ -71,10 +73,14 @@ export function StepNotifications() {
                 <AlertDescription>
                     {t('taskWizard.notifications.noChannelsBody')}
                     <br className="my-1" />
-                    <Trans
-                        i18nKey="taskWizard.notifications.noChannelsHelp"
-                        components={{ settings: <Link to="/settings" className="underline font-bold" /> }}
-                    />
+                    {isSuperAdmin ? (
+                        <Trans
+                            i18nKey="taskWizard.notifications.noChannelsHelp"
+                            components={{ settings: <Link to="/settings" className="underline font-bold" /> }}
+                        />
+                    ) : (
+                        t('taskWizard.notifications.noChannelsHelpContactAdmin')
+                    )}
                 </AlertDescription>
             </Alert>
         );
