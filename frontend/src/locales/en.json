@@ -1859,6 +1859,10 @@
         "badge": "{{overdue}} overdue, {{today}} due today",
         "options": {
             "toggle": "More options",
+            "subtasks": "Subtasks",
+            "subtaskPlaceholder": "Add a subtask and press Enter",
+            "addSubtask": "Add the subtask",
+            "removeSubtask": "Remove subtask {{title}}",
             "noDateHint": "No due date chosen: the task will be due today."
         },
         "errors": {

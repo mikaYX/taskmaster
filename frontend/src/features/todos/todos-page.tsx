@@ -34,6 +34,7 @@ import {
     Search,
     SlidersHorizontal,
     User,
+    X,
     Users,
 } from 'lucide-react';
 import type { Todo, TodoPriority } from '@/api/todos';
@@ -88,6 +89,9 @@ function TodosPageContent() {
     const [newDueTime, setNewDueTime] = useState('');
     const [newRemind, setNewRemind] = useState('default');
     const [newAssignee, setNewAssignee] = useState('none');
+    // Subtasks typed in the composer, created right after their parent.
+    const [newSubtasks, setNewSubtasks] = useState<string[]>([]);
+    const [newSubtaskTitle, setNewSubtaskTitle] = useState('');
     const [search, setSearch] = useState('');
     const [dueFilter, setDueFilter] = useState<DueFilter>('all');
     const [mineOnly, setMineOnly] = useState(false);
@@ -140,6 +144,15 @@ function TodosPageContent() {
         setNewDueTime('');
         setNewRemind('default');
         setNewAssignee('none');
+        setNewSubtasks([]);
+        setNewSubtaskTitle('');
+    };
+
+    const addPendingSubtask = () => {
+        const title = newSubtaskTitle.trim();
+        if (!title) return;
+        setNewSubtasks((list) => [...list, title]);
+        setNewSubtaskTitle('');
     };
 
     const handleAddTodo = (e: React.FormEvent) => {
@@ -154,6 +167,9 @@ function TodosPageContent() {
         const dueDate = quick.dueDate ?? (newDueDate || (time || remind !== null ? todayInput() : undefined));
         const dueTime = dueDate ? time : undefined;
 
+        // A subtask still being typed when the form is sent is kept, not lost.
+        const pendingSubtasks = [...newSubtasks, newSubtaskTitle.trim()].filter(Boolean);
+
         createTodo.mutate(
             {
                 title: quick.title,
@@ -166,7 +182,21 @@ function TodosPageContent() {
                 assigneeId: activeTab === 'COLLECTIVE' && newAssignee !== 'none' ? Number(newAssignee) : undefined,
                 groupId: activeTab === 'COLLECTIVE' && selectedGroupId !== 'all' ? Number(selectedGroupId) : undefined,
             },
-            { onSuccess: resetForm, onError: fail('todos.errors.create') },
+            {
+                onSuccess: async (created) => {
+                    resetForm();
+                    // Sequential, so the subtasks keep the order they were typed in.
+                    for (const title of pendingSubtasks) {
+                        try {
+                            await createTodo.mutateAsync({ title, parentId: created.id });
+                        } catch (error) {
+                            fail('todos.errors.create')(error);
+                            break;
+                        }
+                    }
+                },
+                onError: fail('todos.errors.create'),
+            },
         );
     };
 
@@ -393,6 +423,47 @@ function TodosPageContent() {
                             </Select>
                         </div>
                     )}
+                    <div className="space-y-1.5 sm:col-span-2">
+                        <Label htmlFor="todo-new-subtask" className="text-xs">{t('todos.options.subtasks')}</Label>
+                        {newSubtasks.length > 0 && (
+                            <ul className="space-y-1">
+                                {newSubtasks.map((title, index) => (
+                                    <li key={`${index}-${title}`} className="flex items-center gap-2 rounded-md bg-background px-2 py-1 text-sm">
+                                        <span className="min-w-0 flex-1 truncate">{title}</span>
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-6 w-6 text-muted-foreground"
+                                            aria-label={t('todos.options.removeSubtask', { title })}
+                                            onClick={() => setNewSubtasks((list) => list.filter((_, i) => i !== index))}
+                                        >
+                                            <X className="h-3.5 w-3.5" />
+                                        </Button>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+                        <div className="flex gap-2">
+                            <Input
+                                id="todo-new-subtask"
+                                value={newSubtaskTitle}
+                                maxLength={255}
+                                placeholder={t('todos.options.subtaskPlaceholder')}
+                                onChange={(e) => setNewSubtaskTitle(e.target.value)}
+                                onKeyDown={(e) => {
+                                    // Enter adds the subtask instead of sending the whole form.
+                                    if (e.key === 'Enter') {
+                                        e.preventDefault();
+                                        addPendingSubtask();
+                                    }
+                                }}
+                            />
+                            <Button type="button" variant="outline" size="icon" aria-label={t('todos.options.addSubtask')} disabled={!newSubtaskTitle.trim()} onClick={addPendingSubtask}>
+                                <Plus className="h-4 w-4" />
+                            </Button>
+                        </div>
+                    </div>
                     <div className="space-y-1.5 sm:col-span-2">
                         <Label htmlFor="todo-new-notes" className="text-xs">{t('todos.dialog.notes')}</Label>
                         <Textarea

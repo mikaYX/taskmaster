@@ -1,11 +1,11 @@
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { TodosPage } from './todos-page';
 
-const create = vi.hoisted(() => ({ mutate: vi.fn(), isPending: false }));
+const create = vi.hoisted(() => ({ mutate: vi.fn(), mutateAsync: vi.fn(), isPending: false }));
 const idle = vi.hoisted(() => () => ({ mutate: vi.fn(), isPending: false }));
 
 vi.mock('@/hooks/use-todos', () => ({
@@ -52,7 +52,10 @@ async function setup() {
 }
 
 describe('TodosPage creation options', () => {
-    beforeEach(() => create.mutate.mockReset());
+    beforeEach(() => {
+        create.mutate.mockReset();
+        create.mutateAsync.mockReset().mockResolvedValue({});
+    });
 
     it('lets the time be set without a date, and then the task is due today', async () => {
         const user = await setup();
@@ -77,5 +80,26 @@ describe('TodosPage creation options', () => {
         await user.click(screen.getByRole('button', { name: 'Add' }));
 
         expect(create.mutate.mock.calls[0][0]).toMatchObject({ title: 'Someday', dueDate: undefined, dueTime: undefined });
+    });
+
+    it('creates the subtasks typed in the form once their parent exists', async () => {
+        const user = await setup();
+
+        await user.type(screen.getByLabelText('New task'), 'Move out');
+        await user.type(screen.getByLabelText('Subtasks'), 'Pack boxes{Enter}');
+        await user.type(screen.getByLabelText('Subtasks'), 'Book van');
+        // Enter on the subtask field adds it without sending the task.
+        expect(create.mutate).not.toHaveBeenCalled();
+        await user.click(screen.getByRole('button', { name: 'Add' }));
+
+        expect(create.mutate.mock.calls[0][0]).toMatchObject({ title: 'Move out' });
+        const { onSuccess } = create.mutate.mock.calls[0][1];
+        await act(async () => onSuccess({ id: 7 }));
+
+        // The title still sitting in the field when the form is sent is kept too.
+        expect(create.mutateAsync.mock.calls).toEqual([
+            [{ title: 'Pack boxes', parentId: 7 }],
+            [{ title: 'Book van', parentId: 7 }],
+        ]);
     });
 });

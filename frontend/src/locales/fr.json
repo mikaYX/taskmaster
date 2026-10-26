@@ -1859,6 +1859,10 @@
         "badge": "{{overdue}} en retard, {{today}} pour aujourd'hui",
         "options": {
             "toggle": "Plus d'options",
+            "subtasks": "Sous-tâches",
+            "subtaskPlaceholder": "Ajouter une sous-tâche puis Entrée",
+            "addSubtask": "Ajouter la sous-tâche",
+            "removeSubtask": "Retirer la sous-tâche {{title}}",
             "noDateHint": "Aucune date choisie : la tâche sera pour aujourd'hui."
         },
         "errors": {
