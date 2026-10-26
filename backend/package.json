@@ -30,7 +30,7 @@
     "test:upgrade:postgres": "npx jest --config ./test/jest-upgrade-postgres.json --runInBand"
   },
   "dependencies": {
-    "@azure/msal-node": "^5.1.5",
+    "@azure/msal-node": "^7.1.1",
     "@nestjs/axios": "^4.0.1",
     "@nestjs/bullmq": "^11.0.4",
     "@nestjs/common": "^11.2.7",
@@ -82,7 +82,7 @@
     "nestjs-pino": "^4.6.0",
     "node-fetch": "^2.7.0",
     "node-mailjet": "^6.0.11",
-    "nodemailer": "^10.1.2",
+    "nodemailer": "^10.2.1",
     "openid-client": "^5.7.1",
     "opossum": "^9.0.0",
     "otplib": "^13.5.0",

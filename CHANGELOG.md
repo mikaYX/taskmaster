@@ -33,6 +33,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Windows source updates now require a validated PostgreSQL dump before Git/dependency changes, using a standalone helper and restricted backup permissions. Docker updates also preserve Todo attachments and exports when introducing their persistent volumes.
 - Production and local-build Compose stacks now persist Todo attachments and exports and initialize volume ownership for the non-root app. PostgreSQL health checks use the configured account; the development stack explicitly stores PostgreSQL 18 data in its named volume.
 
+### Security
+
+- Dependency audit: `npm audit` reports 0 vulnerabilities. Upgraded `@azure/msal-node` to 7.1.1 (Entra ID login no longer risks disclosing authorization-code parameters to an attacker-controlled endpoint) and `nodemailer` to 10.2.1; pinned patched `body-parser`, `multer` and `fast-uri` versions via overrides.
+
 ## [1.2.0] - 2026-10-21
 
 First stable release of 1.2.0, including the changes tested in 1.2.0-beta.1 through beta.5 and the fixes made since. The notes below cover the upgrade from 1.1.10.
