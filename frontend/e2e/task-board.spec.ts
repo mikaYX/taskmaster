@@ -160,9 +160,12 @@ test('exige la checklist puis affiche le compte rendu de l’occurrence', async 
 
 test('crée une action corrective avec un contrôle échoué', async ({ page }) => {
     const item = boardItem(1);
+    // The due date is a picker that opens on the current month: pick the 20th of that month.
+    const now = new Date();
+    const expectedDueDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-20`;
     await page.route('**/api/tasks/board?*', route => route.fulfill({ json: { items: [item], total: 1 } }));
     await page.route('**/api/tasks/1/status', async route => {
-        expect(route.request().postDataJSON().correctiveAction).toEqual({ title: 'Remplacer le panneau', dueDate: '2026-10-20' });
+        expect(route.request().postDataJSON().correctiveAction).toEqual({ title: 'Remplacer le panneau', dueDate: expectedDueDate });
         item.status = 'FAILED';
         await route.fulfill({ status: 200, json: {} });
     });
@@ -170,7 +173,9 @@ test('crée une action corrective avec un contrôle échoué', async ({ page }) 
     await page.getByRole('button', { name: 'Signaler un échec pour Contrôle 1', exact: true }).click();
     await page.getByRole('checkbox', { name: 'Créer une action corrective' }).check();
     await page.getByRole('textbox', { name: 'Action à réaliser' }).fill('Remplacer le panneau');
-    await page.getByLabel('Échéance (facultative)', { exact: true }).fill('2026-10-20');
+    await page.getByLabel('Échéance (facultative)', { exact: true }).click();
+    // Day buttons are named "mardi 20 octobre 2026"; the 20th never appears as an outside day.
+    await page.getByRole('button', { name: /^\S+ 20 \S+ \d{4}$/ }).click();
     await page.getByRole('button', { name: "Confirmer l'échec", exact: true }).click();
     await expect(page.getByRole('dialog')).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Valider Contrôle 1', exact: true })).toHaveCount(0);
