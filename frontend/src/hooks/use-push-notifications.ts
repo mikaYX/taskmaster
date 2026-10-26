@@ -1,6 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { pushApi } from '@/api/notifications';
 import i18n from '@/lib/i18n';
+import { useIsAuthenticated } from '@/stores/auth-store';
+
+// Endpoints already re-sent to the server in this page session (the hook is mounted in several places).
+const syncedEndpoints = new Set<string>();
 
 export type PushPermission = 'default' | 'granted' | 'denied' | 'unsupported';
 
@@ -73,6 +77,7 @@ export function usePushNotifications(): UsePushNotificationsReturn {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [registration, setRegistration] = useState<ServiceWorkerRegistration | null>(null);
+  const isAuthenticated = useIsAuthenticated();
 
   // Enregistre le SW et vérifie l'abonnement existant
   useEffect(() => {
@@ -84,12 +89,18 @@ export function usePushNotifications(): UsePushNotificationsReturn {
         setRegistration(reg);
         const existing = await reg.pushManager.getSubscription();
         setIsSubscribed(!!existing);
+        // The browser may hold a subscription the server never stored (the registration
+        // used to be refused): send it again. The server upserts, so this is harmless.
+        if (existing && isAuthenticated && !syncedEndpoints.has(existing.endpoint)) {
+          syncedEndpoints.add(existing.endpoint);
+          await pushApi.subscribe(existing.toJSON()).catch(() => syncedEndpoints.delete(existing.endpoint));
+        }
       })
       .catch((err) => {
         console.error('[Push] SW registration failed:', err);
         setError(i18n.t('push.serviceWorkerFailed', { reason: err instanceof Error ? err.message : String(err) }));
       });
-  }, [isSupported]);
+  }, [isSupported, isAuthenticated]);
 
   const subscribe = useCallback(async () => {
     if (!isSupported) return;
@@ -133,7 +144,16 @@ export function usePushNotifications(): UsePushNotificationsReturn {
     } catch (err) {
       const msg = err instanceof Error ? err.message : i18n.t('common.unknownError');
       console.error('[Push] subscribe error:', msg);
-      setError(msg);
+      // "Registration failed - push service error": the browser could not reach its push
+      // service. Brave ships with Google's push messaging switched off, so say how to fix it.
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        const isBrave = await (navigator as Navigator & { brave?: { isBrave: () => Promise<boolean> } }).brave
+          ?.isBrave()
+          .catch(() => false);
+        setError(i18n.t(isBrave ? 'push.braveDisabled' : 'push.pushServiceError'));
+      } else {
+        setError(msg);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -151,9 +171,14 @@ export function usePushNotifications(): UsePushNotificationsReturn {
         return;
       }
 
-      // Informe le backend avant de supprimer côté navigateur
-      await pushApi.unsubscribe(subscription.endpoint);
+      // Informe le backend, mais une erreur serveur ne doit pas empêcher de couper
+      // l'appareil : l'abonnement du navigateur est supprimé dans tous les cas (le
+      // serveur retire de lui-même un endpoint expiré à l'envoi suivant).
+      await pushApi.unsubscribe(subscription.endpoint).catch((err) => {
+        console.error('[Push] server unsubscribe failed:', err);
+      });
       await subscription.unsubscribe();
+      syncedEndpoints.delete(subscription.endpoint);
       setIsSubscribed(false);
     } catch (err) {
       const msg = err instanceof Error ? err.message : i18n.t('common.unknownError');

@@ -2785,6 +2785,8 @@
         }
     },
     "push": {
+        "braveDisabled": "Brave bloque les notifications push par défaut. Ouvrez brave://settings/privacy, activez « Utiliser les services Google pour la messagerie push », redémarrez Brave puis réessayez.",
+        "pushServiceError": "Le navigateur n'a pas pu s'inscrire auprès de son service push. Vérifiez que cet ordinateur peut joindre fcm.googleapis.com sur le port 443 (proxy ou pare-feu) et que le navigateur est à jour, puis réessayez.",
         "permissionDenied": "Autorisation refusée par l'utilisateur.",
         "notConfigured": "Les notifications push ne sont pas configurées sur le serveur.",
         "serviceWorkerFailed": "Le navigateur n'a pas pu démarrer le service de notifications ({{reason}}). Avec un certificat auto-signé, installez le certificat comme approuvé sur cet ordinateur, puis rechargez la page.",

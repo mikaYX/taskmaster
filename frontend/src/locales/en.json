@@ -2785,6 +2785,8 @@
         }
     },
     "push": {
+        "braveDisabled": "Brave blocks push notifications by default. Open brave://settings/privacy, turn on \"Use Google services for push messaging\", restart Brave, then try again.",
+        "pushServiceError": "The browser could not register with its push service. Check that this computer can reach fcm.googleapis.com on port 443 (proxy or firewall), that the browser is up to date, then try again.",
         "permissionDenied": "Permission denied by the user.",
         "notConfigured": "Push is not configured on the server.",
         "serviceWorkerFailed": "The browser could not start the notification service ({{reason}}). With a self-signed certificate, install the certificate as trusted on this computer, then reload the page.",
