@@ -27,6 +27,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Dates in the Todo pages, the API key expiry and the corrective action due date now follow the language chosen in the app (dd/MM/yyyy in French) instead of the browser's locale.
+- A tab left open across a server restart, a sleep or an update no longer stays stuck on "Failed to fetch dynamically imported module": the page reloads itself once.
 - The MFA setup dialog no longer overflows (the authenticator option text now wraps), the group members panel has proper side padding, and site cards line up their statistics when only some have a description.
 - Docker update script now pulls the app image (or builds it explicitly), requires a successful database backup, updates only the app and waits for it to become healthy. Compose reads `.env` without executing it as shell code.
 - Windows source update script now installs from the workspace lockfile, loads the database environment for Prisma 7, applies existing migrations with `prisma migrate deploy`, builds the application and stops on any failed step.

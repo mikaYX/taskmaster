@@ -16,6 +16,7 @@ import { parseQuickAdd } from '@/features/todos/todo-quick-add';
 import { TodoQuickAddHelp } from '@/features/todos/todo-quick-add-help';
 import { TodoAttentionBadge } from '@/features/todos/todo-attention-badge';
 import { useUndoableDelete } from '@/features/todos/use-undoable-delete';
+import { DateInput } from '@/components/ui/date-input';
 
 type Section = 'overdue' | 'today' | 'upcoming' | 'noDate';
 const SECTIONS: Section[] = ['overdue', 'today', 'upcoming', 'noDate'];
@@ -128,16 +129,12 @@ export function TodoFab() {
                             <TodoQuickAddHelp />
                         </div>
                         <div className="flex items-center gap-2 border-t bg-muted/30 px-2 py-1.5">
-                            <div className="relative">
-                                <CalendarDays className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-                                <Input
-                                    type="date"
-                                    aria-label={t('todos.dueDate')}
-                                    value={newDueDate}
-                                    className="h-7 w-[9.5rem] bg-background pl-7 text-xs"
-                                    onChange={(e) => setNewDueDate(e.target.value)}
-                                />
-                            </div>
+                            <DateInput
+                                aria-label={t('todos.dueDate')}
+                                value={newDueDate}
+                                className="h-7 w-[9.5rem] gap-1.5 bg-background px-2 text-xs"
+                                onChange={setNewDueDate}
+                            />
                             <Button
                                 type="submit"
                                 size="sm"

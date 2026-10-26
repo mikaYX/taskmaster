@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/select";
 import { cn } from '@/lib/utils';
 import { getErrorMessage } from '@/api/http';
+import { DateInput } from '@/components/ui/date-input';
 
 /** Labels live in the locale files under `apiKeys.scopes.<scope with ":" replaced by "_">`. */
 const AVAILABLE_SCOPES = [
@@ -212,11 +213,10 @@ export function ApiKeysSettingsPage() {
                                     </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="key-expiry">{t('apiKeys.expiry')}</Label>
-                                        <Input
+                                        <DateInput
                                             id="key-expiry"
-                                            type="date"
-                                            value={form.expiresAt}
-                                            onChange={e => setForm(f => ({ ...f, expiresAt: e.target.value }))}
+                                            value={form.expiresAt ?? ''}
+                                            onChange={expiresAt => setForm(f => ({ ...f, expiresAt }))}
                                         />
                                     </div>
                                 </div>

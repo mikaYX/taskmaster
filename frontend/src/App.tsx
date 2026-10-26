@@ -18,24 +18,25 @@ import {
     ProfileSkeleton,
     PageSkeleton,
 } from '@/components/ui/page-skeleton';
-import { lazy, Suspense } from 'react';
+import { Suspense } from 'react';
+import { lazyWithRetry } from '@/lib/lazy-with-retry';
 
-const TaskBoardPage = lazy(() => import('@/features/task-board').then(m => ({ default: m.TaskBoardPage })));
-const CorrectiveActionsPage = lazy(() => import('@/features/corrective-actions/corrective-actions-page'));
-const TodosPage = lazy(() => import('@/features/todos/todos-page').then(m => ({ default: m.TodosPage })));
-const AnalyticsPage = lazy(() => import('@/features/analytics').then(m => ({ default: m.AnalyticsPage })));
+const TaskBoardPage = lazyWithRetry(() => import('@/features/task-board').then(m => ({ default: m.TaskBoardPage })));
+const CorrectiveActionsPage = lazyWithRetry(() => import('@/features/corrective-actions/corrective-actions-page'));
+const TodosPage = lazyWithRetry(() => import('@/features/todos/todos-page').then(m => ({ default: m.TodosPage })));
+const AnalyticsPage = lazyWithRetry(() => import('@/features/analytics').then(m => ({ default: m.AnalyticsPage })));
 
-const TasksPage = lazy(() => import('@/features/tasks').then(m => ({ default: m.TasksPage })));
-const WizardPage = lazy(() => import('@/features/tasks/wizard/wizard-page'));
-const TaskDetailsPage = lazy(() => import('@/features/tasks/task-details-page').then(m => ({ default: m.TaskDetailsPage })));
-const EditTaskPage = lazy(() => import('@/features/tasks/edit-task-page').then(m => ({ default: m.EditTaskPage })));
-const TasksArchivePage = lazy(() => import('@/features/tasks/pages/tasks-archive-page').then(m => ({ default: m.TasksArchivePage })));
-const SettingsPage = lazy(() => import('@/features/settings').then(m => ({ default: m.SettingsPage })));
-const ExportSettingsPage = lazy(() => import('@/features/settings/pages/export-settings-page').then(m => ({ default: m.ExportSettingsPage })));
-const BackupSettingsPage = lazy(() => import('@/features/settings/pages/backup-settings-page').then(m => ({ default: m.BackupSettingsPage })));
-const ProfilePage = lazy(() => import('@/features/profile').then(m => ({ default: m.ProfilePage })));
-const AdminLayout = lazy(() => import('@/features/admin/layouts/admin-layout').then(m => ({ default: m.AdminLayout })));
-const AuditLogPage = lazy(() => import('@/features/admin/pages/audit-log-page').then(m => ({ default: m.AuditLogPage })));
+const TasksPage = lazyWithRetry(() => import('@/features/tasks').then(m => ({ default: m.TasksPage })));
+const WizardPage = lazyWithRetry(() => import('@/features/tasks/wizard/wizard-page'));
+const TaskDetailsPage = lazyWithRetry(() => import('@/features/tasks/task-details-page').then(m => ({ default: m.TaskDetailsPage })));
+const EditTaskPage = lazyWithRetry(() => import('@/features/tasks/edit-task-page').then(m => ({ default: m.EditTaskPage })));
+const TasksArchivePage = lazyWithRetry(() => import('@/features/tasks/pages/tasks-archive-page').then(m => ({ default: m.TasksArchivePage })));
+const SettingsPage = lazyWithRetry(() => import('@/features/settings').then(m => ({ default: m.SettingsPage })));
+const ExportSettingsPage = lazyWithRetry(() => import('@/features/settings/pages/export-settings-page').then(m => ({ default: m.ExportSettingsPage })));
+const BackupSettingsPage = lazyWithRetry(() => import('@/features/settings/pages/backup-settings-page').then(m => ({ default: m.BackupSettingsPage })));
+const ProfilePage = lazyWithRetry(() => import('@/features/profile').then(m => ({ default: m.ProfilePage })));
+const AdminLayout = lazyWithRetry(() => import('@/features/admin/layouts/admin-layout').then(m => ({ default: m.AdminLayout })));
+const AuditLogPage = lazyWithRetry(() => import('@/features/admin/pages/audit-log-page').then(m => ({ default: m.AuditLogPage })));
 
 import { DynamicBranding } from '@/components/dynamic-branding';
 import { useSystemHealth } from '@/hooks/use-system-health';

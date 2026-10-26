@@ -17,6 +17,7 @@ import type { Todo, TodoPriority, UpdateTodoDto } from '@/api/todos';
 import { buildTodoUpdate, formFromTodo } from './todo-update';
 import { PRIORITY_VALUES } from './todo-priority';
 import { REMIND_OPTIONS, remindToSelect } from './todo-schedule';
+import { DateInput } from '@/components/ui/date-input';
 
 interface TodoEditDialogProps {
     todo: Todo | null;
@@ -94,11 +95,11 @@ function TodoEditForm({
                     <div className="space-y-2">
                         <Label htmlFor="todo-edit-due">{t('todos.dialog.dueDate')}</Label>
                         <div className="flex gap-2">
-                            <Input
+                            <DateInput
                                 id="todo-edit-due"
-                                type="date"
                                 value={form.dueDate}
-                                onChange={(e) => set({ dueDate: e.target.value })}
+                                clearable={false}
+                                onChange={(dueDate) => set({ dueDate })}
                             />
                             {form.dueDate && (
                                 <Button type="button" variant="outline" onClick={() => set({ dueDate: '' })}>

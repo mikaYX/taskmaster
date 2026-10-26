@@ -43,7 +43,8 @@ describe('TodoEditDialog', () => {
         setup();
 
         expect((screen.getByLabelText('Titre') as HTMLInputElement).value).toBe('Appeler le prestataire');
-        expect((screen.getByLabelText('Échéance') as HTMLInputElement).value).toBe('2026-11-02');
+        // The date picker shows the date in the app language (dd/MM/yyyy in French), not as ISO text.
+        expect(screen.getByLabelText('Échéance').textContent).toBe('02/11/2026');
     });
 
     it('saves only the changed title, trimmed', async () => {

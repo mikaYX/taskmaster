@@ -12,6 +12,7 @@ import { tasksApi } from '@/api/tasks';
 import { getErrorMessage } from '@/api/http';
 import { useAuthStore } from '@/stores/auth-store';
 import type { BoardItem, ExecutionSubmission } from '@/api/types';
+import { DateInput } from '@/components/ui/date-input';
 
 export function ExecutionDialog({ item, status, onClose, readOnly = false }: {
     item: BoardItem; status: 'SUCCESS' | 'FAILED'; onClose: () => void; readOnly?: boolean;
@@ -91,7 +92,7 @@ export function ExecutionDialog({ item, status, onClose, readOnly = false }: {
                             <Label htmlFor="action-title">{t('execution.actionTitle')}</Label>
                             <Input id="action-title" maxLength={255} disabled={busy} value={actionTitle} onChange={event => setActionTitle(event.target.value)} />
                             <Label htmlFor="action-due">{t('execution.dueDate')}</Label>
-                            <Input id="action-due" type="date" disabled={busy} value={dueDate} onChange={event => setDueDate(event.target.value)} />
+                            <DateInput id="action-due" disabled={busy} value={dueDate} onChange={setDueDate} />
                             {canAssign && <><Label htmlFor="action-assignee">{t('execution.assignee')}</Label><select id="action-assignee" className="w-full rounded-md border bg-background p-2 text-sm" disabled={busy || assignees.isLoading} value={assignee} onChange={event => setAssignee(event.target.value)}><option value="self">{t('execution.myself')}</option>{assignees.data?.map(user => <option key={user.id} value={user.id}>{user.fullname || user.username}</option>)}</select></>}
                         </>}
                     </div>}

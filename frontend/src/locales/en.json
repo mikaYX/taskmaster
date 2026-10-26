@@ -1,4 +1,8 @@
 {
+    "dateInput": {
+        "placeholder": "mm/dd/yyyy",
+        "clear": "Clear"
+    },
     "common": {
         "appName": "Taskmaster",
         "loading": "Loading...",

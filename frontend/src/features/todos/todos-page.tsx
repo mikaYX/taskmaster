@@ -23,7 +23,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import {
     AlertTriangle,
     CalendarClock,
-    CalendarDays,
     CheckCircle2,
     ChevronDown,
     CircleDot,
@@ -53,6 +52,7 @@ import { TodoHistoryDialog } from './todo-history-dialog';
 import { TodoReminderSettings } from './todo-reminder-settings';
 import { useUndoableDelete } from './use-undoable-delete';
 import { toast } from 'sonner';
+import { DateInput } from '@/components/ui/date-input';
 
 type TodoScope = 'PRIVATE' | 'COLLECTIVE';
 type DueFilter = 'all' | 'overdue' | 'today' | 'week';
@@ -308,16 +308,12 @@ function TodosPageContent() {
                 <TodoQuickAddHelp />
             </div>
             <div className="flex flex-wrap items-center gap-2 border-t bg-muted/30 px-3 py-2">
-                <div className="relative">
-                    <CalendarDays className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                        type="date"
-                        aria-label={t('todos.dueDate')}
-                        value={newDueDate}
-                        className="h-8 w-[10.5rem] bg-background pl-8 text-xs"
-                        onChange={(e) => setNewDueDate(e.target.value)}
-                    />
-                </div>
+                <DateInput
+                    aria-label={t('todos.dueDate')}
+                    value={newDueDate}
+                    className="h-8 w-[10.5rem] gap-1.5 bg-background px-2.5 text-xs"
+                    onChange={setNewDueDate}
+                />
                 <Select value={newPriority} onValueChange={(v) => setNewPriority(v as TodoPriority)}>
                     <SelectTrigger size="sm" aria-label={t('todos.priority')} className="h-8 w-[8.5rem] bg-background text-xs">
                         <SelectValue />
