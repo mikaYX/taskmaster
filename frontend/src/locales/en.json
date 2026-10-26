@@ -1780,9 +1780,17 @@
             "all": "All due dates",
             "overdue": "Overdue",
             "today": "Today",
+            "allPriorities": "All priorities",
             "week": "This week",
             "mine": "Assigned to me"
         },
+        "legend": {
+            "button": "Legend",
+            "priorityTitle": "Priority (bar on the left of a todo)",
+            "noBar": "no bar",
+            "scopeTitle": "List"
+        },
+        "priorityFilterLabel": "Filter by priority",
         "emptyTitle": "No tasks",
         "emptyCanAdd": "Add one above to get started.",
         "emptyReadOnly": "Nothing to do right now.",
@@ -1810,6 +1818,8 @@
             "lateByDays": "Late by {{n}} d"
         },
         "item": {
+            "scopePrivate": "Private todo",
+            "scopeCollective": "Collective todo",
             "complete": "Complete “{{title}}”",
             "renameHint": "Double-click to rename",
             "titleLabel": "Task title",

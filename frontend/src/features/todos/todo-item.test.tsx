@@ -190,3 +190,20 @@ describe('TodoItem', () => {
         expect(screen.getByText('par Marie Dupont')).toBeTruthy();
     });
 });
+
+describe('TodoItem scope marker', () => {
+    it('marks a private todo with P', () => {
+        setup();
+        expect(screen.getByRole('img', { name: 'Tâche privée' }).textContent).toBe('P');
+    });
+
+    it('marks a collective todo with C', () => {
+        setup({ todo: collective });
+        expect(screen.getByRole('img', { name: 'Tâche collective' }).textContent).toBe('C');
+    });
+
+    it('does not mark subtasks', () => {
+        setup({ todo: subtask(2, false) });
+        expect(screen.queryByRole('img', { name: 'Tâche privée' })).toBeNull();
+    });
+});

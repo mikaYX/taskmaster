@@ -1780,9 +1780,17 @@
             "all": "Toutes les échéances",
             "overdue": "En retard",
             "today": "Aujourd'hui",
+            "allPriorities": "Toutes les priorités",
             "week": "Cette semaine",
             "mine": "Qui me sont assignées"
         },
+        "legend": {
+            "button": "Légende",
+            "priorityTitle": "Urgence (barre à gauche d'une tâche)",
+            "noBar": "pas de barre",
+            "scopeTitle": "Liste"
+        },
+        "priorityFilterLabel": "Filtrer par priorité",
         "emptyTitle": "Aucune tâche",
         "emptyCanAdd": "Ajoutez-en une ci-dessus pour commencer.",
         "emptyReadOnly": "Rien à faire pour le moment.",
@@ -1810,6 +1818,8 @@
             "lateByDays": "En retard de {{n}} j"
         },
         "item": {
+            "scopePrivate": "Tâche privée",
+            "scopeCollective": "Tâche collective",
             "complete": "Terminer « {{title}} »",
             "renameHint": "Double-clic pour renommer",
             "titleLabel": "Titre de la tâche",

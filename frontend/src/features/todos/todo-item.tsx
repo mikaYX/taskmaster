@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import {
     CalendarDays,
     ChevronRight,
@@ -55,6 +54,9 @@ interface TodoItemProps extends TodoItemActions {
     drag?: TodoDragProps;
 }
 
+/** Small rounded chip used for the due date, assignee and subtask progress. */
+const CHIP = 'inline-flex h-5 items-center gap-1 rounded-full px-2 text-[11px] font-medium';
+
 const ACTION_BUTTON =
     'sm:opacity-0 sm:group-hover:opacity-100 focus-visible:opacity-100 transition-opacity h-8 w-8 text-muted-foreground';
 
@@ -75,6 +77,8 @@ export function TodoItem({ todo, subtasks = [], canManage, currentUserId = null,
     const priorityText = t('todos.priorityAria', { priority: t(`todos.priorities.${todo.priority}`).toLowerCase() });
     const showSubtasks = !isSubtask && expanded;
     const completer = todo.completedBy?.fullname || todo.completedBy?.username;
+    const overdue = !!due?.overdue && !todo.isCompleted;
+    const scopeLabel = t(todo.scope === 'COLLECTIVE' ? 'todos.item.scopeCollective' : 'todos.item.scopePrivate');
 
     const startRename = () => {
         if (!canManage) return;
@@ -101,8 +105,9 @@ export function TodoItem({ todo, subtasks = [], canManage, currentUserId = null,
             data-todo-row
             className={cn(
                 !isSubtask &&
-                    'relative overflow-hidden rounded-xl border bg-card text-card-foreground shadow-xs transition-all hover:border-primary/25 hover:shadow-md',
-                !isSubtask && todo.isCompleted && 'bg-muted/30 shadow-none',
+                    'relative overflow-hidden rounded-2xl border border-border/60 bg-card text-card-foreground shadow-xs transition-all duration-200 hover:-translate-y-px hover:border-primary/30 hover:shadow-md',
+                !isSubtask && todo.isCompleted && 'bg-muted/20 opacity-75 shadow-none hover:translate-y-0',
+                !isSubtask && overdue && 'border-red-500/30',
                 drag?.dragging && 'opacity-40',
                 drag?.over && 'ring-2 ring-primary',
             )}
@@ -114,13 +119,13 @@ export function TodoItem({ todo, subtasks = [], canManage, currentUserId = null,
                     role="img"
                     aria-label={priorityText}
                     title={priorityText}
-                    className={cn('absolute inset-y-0 left-0 w-1', PRIORITY_DOT[todo.priority])}
+                    className={cn('absolute inset-y-2.5 left-0 w-1 rounded-r-full', PRIORITY_DOT[todo.priority])}
                 />
             )}
             <div
                 className={cn(
                     'group flex items-center justify-between gap-3 transition-colors',
-                    isSubtask ? 'rounded-md px-2 py-1.5 hover:bg-accent/50' : 'px-4 py-3',
+                    isSubtask ? 'rounded-lg px-2 py-1.5 hover:bg-accent/50' : 'px-4 py-3.5',
                 )}
             >
                 <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -143,8 +148,26 @@ export function TodoItem({ todo, subtasks = [], canManage, currentUserId = null,
                             <GripVertical className="h-4 w-4" />
                         </button>
                     )}
+                    {!isSubtask && (
+                        <span
+                            role="img"
+                            aria-label={scopeLabel}
+                            title={scopeLabel}
+                            className={cn(
+                                'inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-[10px] font-bold',
+                                todo.scope === 'COLLECTIVE'
+                                    ? 'bg-violet-500/15 text-violet-600 dark:text-violet-300'
+                                    : 'bg-sky-500/15 text-sky-600 dark:text-sky-300',
+                            )}
+                        >
+                            {todo.scope === 'COLLECTIVE' ? 'C' : 'P'}
+                        </span>
+                    )}
                     <Checkbox
-                        className={cn('rounded-full', isSubtask ? 'h-4 w-4' : 'h-5 w-5')}
+                        className={cn(
+                            'rounded-full transition-colors hover:border-primary data-[state=checked]:border-emerald-500 data-[state=checked]:bg-emerald-500',
+                            isSubtask ? 'h-4 w-4' : 'h-5 w-5',
+                        )}
                         checked={todo.isCompleted}
                         aria-label={t('todos.item.complete', { title: todo.title })}
                         onCheckedChange={(checked) => actions.onToggle(todo, checked === true)}
@@ -195,27 +218,39 @@ export function TodoItem({ todo, subtasks = [], canManage, currentUserId = null,
                         {(due || assigneeName || subtasks.length > 0 || (todo.isCompleted && completer)) && (
                             <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                                 {due && (
-                                    <Badge
-                                        variant={due.overdue && !todo.isCompleted ? 'destructive' : 'secondary'}
-                                        className="h-5 gap-1 px-1.5 py-0 text-[11px] font-normal"
+                                    <span
+                                        className={cn(
+                                            CHIP,
+                                            overdue
+                                                ? 'bg-red-500/10 text-red-600 dark:text-red-400'
+                                                : 'bg-muted text-muted-foreground',
+                                        )}
                                     >
                                         <CalendarDays className="h-3 w-3" aria-hidden="true" />
                                         {due.label}
-                                    </Badge>
+                                    </span>
                                 )}
                                 {assigneeName && (
-                                    <Badge
-                                        variant={mine ? 'default' : 'outline'}
-                                        className="h-5 gap-1 px-1.5 py-0 text-[11px] font-normal"
+                                    <span
+                                        className={cn(
+                                            CHIP,
+                                            mine ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground',
+                                        )}
                                     >
                                         <User className="h-3 w-3" aria-hidden="true" />
                                         {mine ? t('todos.item.assignedToYou') : assigneeName}
-                                    </Badge>
+                                    </span>
                                 )}
                                 {subtasks.length > 0 && (
-                                    <Badge variant="outline" className="h-5 px-1.5 py-0 text-[11px] font-normal tabular-nums">
+                                    <span className={cn(CHIP, 'bg-muted text-muted-foreground tabular-nums')}>
+                                        <span className="h-1 w-8 overflow-hidden rounded-full bg-foreground/10" aria-hidden="true">
+                                            <span
+                                                className="block h-full rounded-full bg-emerald-500 transition-all"
+                                                style={{ width: `${(done / subtasks.length) * 100}%` }}
+                                            />
+                                        </span>
                                         {done}/{subtasks.length}
-                                    </Badge>
+                                    </span>
                                 )}
                                 {todo.isCompleted && completer && (
                                     <span className="text-[11px] text-muted-foreground">{t('todos.item.completedBy', { name: completer })}</span>
@@ -304,7 +339,7 @@ export function TodoItem({ todo, subtasks = [], canManage, currentUserId = null,
             </div>
 
             {showSubtasks && (
-                <div className="space-y-0.5 border-t bg-muted/20 px-3 py-2 pl-12">
+                <div className="ml-12 mr-3 mb-3 space-y-0.5 rounded-xl border-l-2 border-primary/20 bg-muted/30 px-2 py-2">
                     {subtasks.map((subtask) => (
                         <TodoItem key={subtask.id} todo={subtask} canManage={canManage} currentUserId={currentUserId} {...actions} />
                     ))}

@@ -47,6 +47,9 @@ async function setup() {
             </MemoryRouter>
         </QueryClientProvider>,
     );
+    // The composer toolbar only shows once the field is used.
+    expect(screen.queryByRole('button', { name: 'More options' })).toBeNull();
+    await user.click(screen.getByLabelText('New task'));
     await user.click(screen.getByRole('button', { name: 'More options' }));
     return user;
 }

@@ -20,6 +20,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
     AlertTriangle,
     CalendarClock,
@@ -27,6 +28,7 @@ import {
     ChevronDown,
     CircleDot,
     History,
+    Info,
     ListTodo,
     Loader2,
     Lock,
@@ -92,9 +94,12 @@ function TodosPageContent() {
     // Subtasks typed in the composer, created right after their parent.
     const [newSubtasks, setNewSubtasks] = useState<string[]>([]);
     const [newSubtaskTitle, setNewSubtaskTitle] = useState('');
+    // The composer stays one line until it is used, so the list keeps the room.
+    const [composerFocused, setComposerFocused] = useState(false);
     const [search, setSearch] = useState('');
     const [dueFilter, setDueFilter] = useState<DueFilter>('all');
     const [mineOnly, setMineOnly] = useState(false);
+    const [priorityFilter, setPriorityFilter] = useState<'all' | TodoPriority>('all');
     const [historyOpen, setHistoryOpen] = useState(false);
     const [detailsId, setDetailsId] = useState<number | null>(null);
     const [dragId, setDragId] = useState<number | null>(null);
@@ -206,7 +211,7 @@ function TodosPageContent() {
         });
     };
 
-    const filtersActive = search.trim() !== '' || dueFilter !== 'all' || mineOnly || (activeTab === 'COLLECTIVE' && selectedGroupId !== 'all');
+    const filtersActive = search.trim() !== '' || dueFilter !== 'all' || priorityFilter !== 'all' || mineOnly || (activeTab === 'COLLECTIVE' && selectedGroupId !== 'all');
 
     const visible = useMemo(() => {
         const all = (todos ?? []).filter((t) => !pendingIds.includes(t.id));
@@ -221,6 +226,7 @@ function TodosPageContent() {
                 return false;
             }
             if (mineOnly && t.assigneeId !== userId) return false;
+            if (priorityFilter !== 'all' && t.priority !== priorityFilter) return false;
             if (!matchesDueFilter(t.dueDate, dueFilter)) return false;
             // A match on a subtask keeps its parent in the list.
             return (
@@ -234,7 +240,7 @@ function TodosPageContent() {
             active: topLevel.filter((t) => !t.isCompleted),
             completed: topLevel.filter((t) => t.isCompleted),
         };
-    }, [todos, pendingIds, search, dueFilter, mineOnly, userId, activeTab, selectedGroupId]);
+    }, [todos, pendingIds, search, dueFilter, priorityFilter, mineOnly, userId, activeTab, selectedGroupId]);
 
     const openCount = (list?: Todo[]) => (list ?? []).filter((t) => t.parentId === null && !t.isCompleted).length;
 
@@ -320,10 +326,25 @@ function TodosPageContent() {
         />
     );
 
+    const composerOpen =
+        composerFocused ||
+        showOptions ||
+        newTitle.trim() !== '' ||
+        newDueDate !== '' ||
+        newPriority !== 'NORMAL' ||
+        newSubtasks.length > 0;
+
     const renderComposer = () => (
         <form
             onSubmit={handleAddTodo}
-            className="rounded-xl border bg-card shadow-sm transition-shadow focus-within:border-primary/40 focus-within:shadow-md"
+            onFocus={() => setComposerFocused(true)}
+            onBlur={(e) => {
+                // Select and date pickers open in a portal: moving focus there is still "inside".
+                const next = e.relatedTarget as HTMLElement | null;
+                if (next && (e.currentTarget.contains(next) || next.closest('[data-radix-popper-content-wrapper]'))) return;
+                setComposerFocused(false);
+            }}
+            className="overflow-hidden rounded-2xl border border-border/60 bg-card shadow-xs transition-all duration-200 focus-within:border-primary/40 focus-within:shadow-md"
         >
             <div className="flex items-center gap-2 px-3">
                 <Plus className="h-5 w-5 shrink-0 text-muted-foreground" aria-hidden="true" />
@@ -337,44 +358,46 @@ function TodosPageContent() {
                 />
                 <TodoQuickAddHelp />
             </div>
-            <div className="flex flex-wrap items-center gap-2 border-t bg-muted/30 px-3 py-2">
-                <DateInput
-                    aria-label={t('todos.dueDate')}
-                    value={newDueDate}
-                    className="h-8 w-[10.5rem] gap-1.5 bg-background px-2.5 text-xs"
-                    onChange={setNewDueDate}
-                />
-                <Select value={newPriority} onValueChange={(v) => setNewPriority(v as TodoPriority)}>
-                    <SelectTrigger size="sm" aria-label={t('todos.priority')} className="h-8 w-[8.5rem] bg-background text-xs">
-                        <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {PRIORITY_VALUES.map((value) => (
-                            <SelectItem key={value} value={value}>
-                                <span className="flex items-center gap-2">
-                                    <span className={cn('h-2 w-2 rounded-full', PRIORITY_DOT[value] ?? 'bg-muted-foreground/40')} />
-                                    {t(`todos.priorities.${value}`)}
-                                </span>
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-                <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    aria-expanded={showOptions}
-                    className={cn('h-8 gap-1.5 text-xs text-muted-foreground', showOptions && 'bg-accent text-foreground')}
-                    onClick={() => setShowOptions((v) => !v)}
-                >
-                    <SlidersHorizontal className="h-3.5 w-3.5" />
-                    {t('todos.options.toggle')}
-                </Button>
-                <Button type="submit" size="sm" className="ml-auto h-8 gap-1.5" disabled={createTodo.isPending || !newTitle.trim()}>
-                    {createTodo.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
-                    {t('todos.add')}
-                </Button>
-            </div>
+            {composerOpen && (
+                <div className="flex flex-wrap items-center gap-2 border-t bg-muted/30 px-3 py-2">
+                    <DateInput
+                        aria-label={t('todos.dueDate')}
+                        value={newDueDate}
+                        className="h-8 w-[10.5rem] gap-1.5 bg-background px-2.5 text-xs"
+                        onChange={setNewDueDate}
+                    />
+                    <Select value={newPriority} onValueChange={(v) => setNewPriority(v as TodoPriority)}>
+                        <SelectTrigger size="sm" aria-label={t('todos.priority')} className="h-8 w-[8.5rem] bg-background text-xs">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {PRIORITY_VALUES.map((value) => (
+                                <SelectItem key={value} value={value}>
+                                    <span className="flex items-center gap-2">
+                                        <span className={cn('h-2 w-2 rounded-full', PRIORITY_DOT[value] ?? 'bg-muted-foreground/40')} />
+                                        {t(`todos.priorities.${value}`)}
+                                    </span>
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        aria-expanded={showOptions}
+                        className={cn('h-8 gap-1.5 text-xs text-muted-foreground', showOptions && 'bg-accent text-foreground')}
+                        onClick={() => setShowOptions((v) => !v)}
+                    >
+                        <SlidersHorizontal className="h-3.5 w-3.5" />
+                        {t('todos.options.toggle')}
+                    </Button>
+                    <Button type="submit" size="sm" className="ml-auto h-8 gap-1.5" disabled={createTodo.isPending || !newTitle.trim()}>
+                        {createTodo.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+                        {t('todos.add')}
+                    </Button>
+                </div>
+            )}
 
             {showOptions && (
                 <div className="grid gap-3 border-t p-3 sm:grid-cols-2">
@@ -503,6 +526,22 @@ function TodosPageContent() {
                     <SelectItem value="week">{t('todos.filters.week')}</SelectItem>
                 </SelectContent>
             </Select>
+            <Select value={priorityFilter} onValueChange={(v) => setPriorityFilter(v as 'all' | TodoPriority)}>
+                <SelectTrigger aria-label={t('todos.priorityFilterLabel')} className="w-full sm:w-44">
+                    <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="all">{t('todos.filters.allPriorities')}</SelectItem>
+                    {[...PRIORITY_VALUES].reverse().map((value) => (
+                        <SelectItem key={value} value={value}>
+                            <span className="flex items-center gap-2">
+                                <span className={cn('h-2 w-2 rounded-full', PRIORITY_DOT[value] ?? 'bg-muted-foreground/40')} />
+                                {t(`todos.priorities.${value}`)}
+                            </span>
+                        </SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
             {activeTab === 'COLLECTIVE' && isManager && (
                 <Select value={selectedGroupId} onValueChange={setSelectedGroupId}>
                     <SelectTrigger aria-label={t('todos.selectGroup')} className="w-full sm:w-44">
@@ -584,7 +623,6 @@ function TodosPageContent() {
 
     const renderTabContent = () => (
         <div className="space-y-4">
-            {canManage && renderComposer()}
             {renderFilters()}
             {renderList()}
         </div>
@@ -668,6 +706,40 @@ function TodosPageContent() {
                         <History className="h-4 w-4" />
                         {t('todos.history.button')}
                     </Button>
+                    <Popover>
+                        <PopoverTrigger asChild>
+                            <Button variant="outline" size="icon" className="h-8 w-8" aria-label={t('todos.legend.button')} title={t('todos.legend.button')}>
+                                <Info className="h-4 w-4" />
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent align="end" className="w-72 space-y-3 text-sm">
+                            <div>
+                                <p className="mb-2 font-semibold">{t('todos.legend.priorityTitle')}</p>
+                                <ul className="space-y-1.5">
+                                    {[...PRIORITY_VALUES].reverse().map((value) => (
+                                        <li key={value} className="flex items-center gap-2.5">
+                                            <span className={cn('h-4 w-1 rounded-full', PRIORITY_DOT[value] ?? 'bg-muted-foreground/30')} aria-hidden="true" />
+                                            <span className="font-medium">{t(`todos.priorities.${value}`)}</span>
+                                            {value === 'NORMAL' && <span className="text-xs text-muted-foreground">{t('todos.legend.noBar')}</span>}
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                            <div className="border-t pt-3">
+                                <p className="mb-2 font-semibold">{t('todos.legend.scopeTitle')}</p>
+                                <ul className="space-y-1.5">
+                                    <li className="flex items-center gap-2.5">
+                                        <span className="inline-flex h-5 w-5 items-center justify-center rounded-md bg-sky-500/15 text-[10px] font-bold text-sky-600 dark:text-sky-300">P</span>
+                                        {t('todos.item.scopePrivate')}
+                                    </li>
+                                    <li className="flex items-center gap-2.5">
+                                        <span className="inline-flex h-5 w-5 items-center justify-center rounded-md bg-violet-500/15 text-[10px] font-bold text-violet-600 dark:text-violet-300">C</span>
+                                        {t('todos.item.scopeCollective')}
+                                    </li>
+                                </ul>
+                            </div>
+                        </PopoverContent>
+                    </Popover>
                     <TodoReminderSettings />
                 </div>
             </div>
@@ -695,22 +767,42 @@ function TodosPageContent() {
                 ))}
             </div>
 
+            {/* Above the tabs: it creates in the tab that is open (private, or collective for managers). */}
+            {canManage && renderComposer()}
+
             <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as TodoScope)} className="gap-4">
-                <TabsList className="h-10 w-full sm:w-auto">
-                    <TabsTrigger value="PRIVATE" className="gap-2 px-4">
-                        <Lock className="h-3.5 w-3.5" />
-                        {t('todos.tabs.private')}
-                        <span className="rounded-full bg-muted-foreground/15 px-1.5 text-[11px] font-semibold tabular-nums">
-                            {openCount(privateTodos)}
-                        </span>
-                    </TabsTrigger>
-                    <TabsTrigger value="COLLECTIVE" className="gap-2 px-4">
-                        <Users className="h-3.5 w-3.5" />
-                        {t('todos.tabs.collective')}
-                        <span className="rounded-full bg-muted-foreground/15 px-1.5 text-[11px] font-semibold tabular-nums">
-                            {openCount(collectiveTodos)}
-                        </span>
-                    </TabsTrigger>
+                <TabsList className="h-auto w-full gap-1 rounded-2xl border border-border/60 bg-muted/40 p-1.5 backdrop-blur">
+                    {([
+                        // Same colors as the P / C marker on each todo.
+                        {
+                            value: 'PRIVATE',
+                            icon: Lock,
+                            label: t('todos.tabs.private'),
+                            count: openCount(privateTodos),
+                            tone: 'group-data-[state=active]/tab:bg-sky-500/15 group-data-[state=active]/tab:text-sky-600 dark:group-data-[state=active]/tab:text-sky-300',
+                        },
+                        {
+                            value: 'COLLECTIVE',
+                            icon: Users,
+                            label: t('todos.tabs.collective'),
+                            count: openCount(collectiveTodos),
+                            tone: 'group-data-[state=active]/tab:bg-violet-500/15 group-data-[state=active]/tab:text-violet-600 dark:group-data-[state=active]/tab:text-violet-300',
+                        },
+                    ] as const).map(({ value, icon: Icon, label, count, tone }) => (
+                        <TabsTrigger
+                            key={value}
+                            value={value}
+                            className="group/tab h-11 gap-2.5 rounded-xl px-4 text-sm transition-all duration-200 data-[state=active]:bg-card data-[state=active]:shadow-md dark:data-[state=active]:border-border/60 dark:data-[state=active]:bg-card"
+                        >
+                            <span className={cn('flex h-7 w-7 items-center justify-center rounded-lg transition-colors', tone)}>
+                                <Icon className="h-4 w-4" />
+                            </span>
+                            {label}
+                            <span className="min-w-6 rounded-full bg-muted-foreground/15 px-2 py-0.5 text-[11px] font-semibold tabular-nums transition-colors group-data-[state=active]/tab:bg-primary group-data-[state=active]/tab:text-primary-foreground">
+                                {count}
+                            </span>
+                        </TabsTrigger>
+                    ))}
                 </TabsList>
 
                 <TabsContent value="PRIVATE">{renderTabContent()}</TabsContent>
