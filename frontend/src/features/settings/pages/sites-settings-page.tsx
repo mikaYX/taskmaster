@@ -7,6 +7,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
+import {
     Dialog,
     DialogContent,
     DialogDescription,
@@ -26,16 +33,25 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { Plus, Pencil, Trash2, Building2, Users, ListTodo, Layers, MapPin } from 'lucide-react';
+import { Plus, Pencil, Trash2, Building2, Users, ListTodo, Layers, MapPin, Globe } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { COMMON_TIMEZONES } from '@/lib/timezones';
 import { SettingsSection } from '../components/settings-section';
+import { useSettings } from '../hooks/use-settings';
 import { toast } from 'sonner';
+
+const SITE_COUNTRIES = ['FR', 'US', 'GB', 'DE', 'ES'] as const;
+// Radix Select forbids an empty value, so "inherit the global country" needs a sentinel.
+const GLOBAL_COUNTRY = '__global__';
+const GLOBAL_TIMEZONE = '__global__';
 
 export function SitesSettingsPage() {
     const { t } = useTranslation();
     const queryClient = useQueryClient();
     const [createOpen, setCreateOpen] = useState(false);
     const [editSite, setEditSite] = useState<Site | null>(null);
+    const { getSetting } = useSettings();
+    const globalCountry = getSetting('app.country') || 'FR';
 
     const { data: sites = [], isLoading } = useQuery({
         queryKey: ['sites'],
@@ -129,7 +145,18 @@ export function SitesSettingsPage() {
                                                 <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">{t('sites.defaultBadge')}</span>
                                             )}
                                         </div>
-                                        <code className="text-xs text-muted-foreground">{site.code}</code>
+                                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                            <code>{site.code}</code>
+                                            <span
+                                                className="inline-flex items-center gap-1"
+                                                title={site.country ? undefined : t('sites.countryGlobalHint')}
+                                            >
+                                                <Globe className="h-3 w-3" />
+                                                {site.country
+                                                    ? t(`generalSettings.countries.${site.country}`)
+                                                    : t('sites.countryInherited', { country: t(`generalSettings.countries.${globalCountry}`) })}
+                                            </span>
+                                        </div>
                                     </div>
                                     <div className="flex gap-1">
                                         <Button
@@ -234,10 +261,20 @@ function SiteForm({
     const [name, setName] = useState(initialValues?.name ?? '');
     const [code, setCode] = useState(initialValues?.code ?? '');
     const [description, setDescription] = useState(initialValues?.description ?? '');
+    const [country, setCountry] = useState(initialValues?.country ?? GLOBAL_COUNTRY);
+    const [timezone, setTimezone] = useState(initialValues?.timezone ?? GLOBAL_TIMEZONE);
+    const { getSetting } = useSettings();
+    const globalCountry = getSetting('app.country') || 'FR';
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        onSubmit({ name, code: code.toUpperCase(), description: description || undefined });
+        onSubmit({
+            name,
+            code: code.toUpperCase(),
+            description: description || undefined,
+            country: country === GLOBAL_COUNTRY ? null : country,
+            timezone: timezone === GLOBAL_TIMEZONE ? null : timezone,
+        });
     };
 
     return (
@@ -283,6 +320,39 @@ function SiteForm({
                         placeholder={t('sites.descriptionPlaceholder')}
                         rows={3}
                     />
+                </div>
+                <div className="grid gap-2">
+                    <Label htmlFor="site-country">{t('sites.country')}</Label>
+                    <Select value={country} onValueChange={setCountry}>
+                        <SelectTrigger id="site-country">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value={GLOBAL_COUNTRY}>
+                                {t('sites.countryGlobal', { country: t(`generalSettings.countries.${globalCountry}`) })}
+                            </SelectItem>
+                            {SITE_COUNTRIES.map((c) => (
+                                <SelectItem key={c} value={c}>{t(`generalSettings.countries.${c}`)}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">{t('sites.countryHelp')}</p>
+                </div>
+                <div className="grid gap-2">
+                    <Label htmlFor="site-timezone">{t('sites.timezone')}</Label>
+                    <Select value={timezone} onValueChange={setTimezone}>
+                        <SelectTrigger id="site-timezone">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value={GLOBAL_TIMEZONE}>{t('sites.timezoneGlobal')}</SelectItem>
+                            {/* keep a previously saved zone selectable even if it is not in the common list */}
+                            {[...new Set([...(initialValues?.timezone ? [initialValues.timezone] : []), ...COMMON_TIMEZONES])].map((tz) => (
+                                <SelectItem key={tz} value={tz}>{tz}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">{t('sites.timezoneHelp')}</p>
                 </div>
             </div>
             <DialogFooter>

@@ -72,6 +72,28 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
     return defaultSite?.siteId || user.sites?.[0]?.siteId;
   }
 
+  /**
+   * Site on which new records are created: the site selected in the UI
+   * (X-Site-Id) when the user may use it, otherwise their default site.
+   */
+  getCurrentSiteId(): number | undefined {
+    const user = this.getCurrentUser();
+    if (!user) return undefined;
+    let selected: number | undefined;
+    try {
+      selected = this.cls.get<number>('selectedSiteId');
+    } catch {
+      selected = undefined;
+    }
+    if (
+      selected != null &&
+      (user.role === 'SUPER_ADMIN' || this.getUserSiteIds().includes(selected))
+    ) {
+      return selected;
+    }
+    return this.getDefaultSiteId();
+  }
+
   buildSiteFilter(): { siteId?: number | { in: number[] } } {
     const user = this.getCurrentUser();
 

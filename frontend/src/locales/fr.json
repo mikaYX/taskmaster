@@ -533,6 +533,12 @@
             "ES": "Espagne (ES - jours fériés nationaux)"
         },
         "derivedRulesDescription": "Ces paramètres sont déterminés automatiquement selon le pays sélectionné",
+        "countryChangeTitle": "Changer le pays global ?",
+        "countryChangeDescription": "Passer de {{from}} à {{to}} modifie les jours fériés et jours ouvrés de tous les sites qui utilisent le paramètre global :",
+        "countryChangeHint": "Les tâches récurrentes qui évitent les jours fériés seront replanifiées, et l'audit des occurrences manquées (90 derniers jours) utilisera le nouveau calendrier. Les sites ayant leur propre pays ne sont pas concernés.",
+        "countryChangeConfirm": "Changer le pays",
+        "holidaysSite": "Calendrier du site",
+        "holidaysGlobal": "Paramètre global ({{country}})",
         "publicHolidaysPreview": "Aperçu des jours fériés",
         "publicHolidaysPreviewDescription": "Ces jours fériés sont utilisés pour décaler les tâches lorsque \"Ignorer les jours fériés\" est activé",
         "showHolidays": "Afficher les jours fériés",
@@ -1365,7 +1371,15 @@
         "formDescription": "Configurer les détails du site",
         "descriptionLabel": "Description",
         "descriptionPlaceholder": "Description facultative...",
-        "defaultBadge": "Par défaut"
+        "defaultBadge": "Par défaut",
+        "country": "Pays / Région",
+        "countryGlobal": "Utiliser le paramètre global ({{country}})",
+        "countryInherited": "{{country}} (global)",
+        "countryGlobalHint": "Ce site utilise le pays des paramètres généraux",
+        "countryHelp": "Utilisé pour les jours fériés et jours ouvrés des tâches de ce site. Laissez le paramètre global si le site est dans le même pays.",
+        "timezone": "Fuseau horaire par défaut",
+        "timezoneGlobal": "Utiliser le paramètre global",
+        "timezoneHelp": "Présélectionné à la création d'une tâche récurrente sur ce site. Les tâches existantes gardent leur propre fuseau."
     },
     "network": {
         "offline": "Vous êtes hors ligne. Certaines fonctionnalités peuvent être indisponibles.",

@@ -2,10 +2,14 @@ import {
   IsString,
   IsOptional,
   IsInt,
+  IsIn,
+  ValidateIf,
   MinLength,
   MaxLength,
   Matches,
 } from 'class-validator';
+import { SUPPORTED_COUNTRIES } from '../site-country';
+import { IsTimezone } from '../../tasks/dto/task.validators';
 
 export class CreateSiteDto {
   @IsString()
@@ -24,6 +28,16 @@ export class CreateSiteDto {
   @IsOptional()
   @IsString()
   description?: string;
+
+  /** Holiday country for this site; null/omitted = global `app.country`. */
+  @IsOptional()
+  @IsIn(SUPPORTED_COUNTRIES)
+  country?: string | null;
+
+  /** Default timezone for tasks created on this site; null/omitted = global default. */
+  @ValidateIf((_, v) => v != null)
+  @IsTimezone()
+  timezone?: string | null;
 
   @IsOptional()
   @IsInt()

@@ -73,6 +73,10 @@ model Site {
   name                 String                @db.VarChar(255)
   code                 String                @unique @db.VarChar(50)
   description          String?
+  /// Holiday country (ISO code). Null = use the global `app.country` setting.
+  country              String?               @db.VarChar(10)
+  /// Default IANA timezone for new tasks. Null = use the global default.
+  timezone             String?               @db.VarChar(64)
   parentId             Int?                  @map("parent_id")
   isActive             Boolean               @default(true) @map("is_active")
   createdAt            DateTime              @default(now()) @map("created_at")

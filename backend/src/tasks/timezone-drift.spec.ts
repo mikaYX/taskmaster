@@ -21,6 +21,7 @@ describe('TasksService Timezone Drift (Non-Regression)', () => {
         task: {
           findMany: jest.fn(),
         },
+        site: { findMany: jest.fn().mockResolvedValue([]) },
         status: {
           findMany: jest.fn(),
           findFirst: jest.fn(),

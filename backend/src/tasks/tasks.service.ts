@@ -36,6 +36,7 @@ import { AuditAction, AuditCategory } from '../audit/audit.constants';
 import { ProcedureStorageService } from './procedure-storage.service';
 import { BeneficiaryResolverService } from '../modules/delegations/beneficiary-resolver.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { loadSiteCountryResolver } from '../sites/site-country';
 
 /**
  * Tasks Service.
@@ -133,7 +134,11 @@ export class TasksService {
         this.settings.getRawValue<string>('SCHEDULE_DEFAULT_START_TIME'),
         this.settings.getRawValue<string>('SCHEDULE_DEFAULT_END_TIME'),
       ]);
-      const country = defaultCountry || 'FR';
+      const countryForSite = await loadSiteCountryResolver(
+        this.prisma.client,
+        defaultCountry || 'FR',
+      );
+      const country = countryForSite(this.prisma.getCurrentSiteId());
       const windowDefaults = { start: wStart || '08:00', end: wEnd || '18:00' };
 
       const iterator = this.instanceService.computeInstances(
@@ -192,7 +197,10 @@ export class TasksService {
       this.settings.getRawValue<string>('SCHEDULE_DEFAULT_START_TIME'),
       this.settings.getRawValue<string>('SCHEDULE_DEFAULT_END_TIME'),
     ]);
-    const country = defaultCountry || 'FR';
+    const countryForSite = await loadSiteCountryResolver(
+      this.prisma.client,
+      defaultCountry || 'FR',
+    );
     const windowDefaults = { start: wStart || '08:00', end: wEnd || '18:00' };
 
     // === Security & Logic Hardening ===
@@ -401,7 +409,7 @@ export class TasksService {
         task as unknown as Parameters<InstanceService['computeInstances']>[0],
         generationStart,
         endDate,
-        country,
+        countryForSite(task.siteId),
         fromCompletionCtx,
         windowDefaults,
       );
@@ -744,7 +752,7 @@ export class TasksService {
         skipWeekends: dto.skipWeekends ?? true,
         skipHolidays: dto.skipHolidays ?? true,
         siteId: (() => {
-          const resolved = this.prisma.getDefaultSiteId();
+          const resolved = this.prisma.getCurrentSiteId();
           if (!resolved) {
             throw new BadRequestException(
               'Cannot create task: no default site found for the current user. Ensure a valid X-Site-Id header is provided.',
@@ -1302,8 +1310,10 @@ export class TasksService {
     }
 
     if (task) {
-      const defaultCountry =
-        (await this.settings.getRawValue<string>('app.country')) || 'FR';
+      const countryForSite = await loadSiteCountryResolver(
+        this.prisma.client,
+        (await this.settings.getRawValue<string>('app.country')) || 'FR',
+      );
       const wStart = await this.settings.getRawValue<string>(
         'SCHEDULE_DEFAULT_START_TIME',
       );
@@ -1317,7 +1327,7 @@ export class TasksService {
           task as unknown as Prisma.TaskGetPayload<object>,
           date,
           date,
-          defaultCountry,
+          countryForSite(task.siteId),
           undefined,
           windowDefaults,
         ),

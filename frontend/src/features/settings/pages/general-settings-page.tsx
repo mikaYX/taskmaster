@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSettings, SETTINGS_SAVED_TOAST_ID } from '../hooks/use-settings';
 import { useHolidays } from '@/hooks/use-holidays';
+import { useSites } from '@/hooks/use-sites';
 import {
     Select,
     SelectContent,
@@ -9,6 +10,16 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -54,7 +65,12 @@ export function GeneralSettingsPage() {
     // Holidays preview
     const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
     const [showHolidays, setShowHolidays] = useState(false);
-    const { data: holidaysData, isLoading: holidaysLoading, error: holidaysError } = useHolidays(country, selectedYear, showHolidays);
+    // The preview can show a site's own calendar; the global country stays the default.
+    const { data: sites = [] } = useSites();
+    const sitesWithCountry = sites.filter((s) => s.country);
+    const [previewSiteId, setPreviewSiteId] = useState<string>('global');
+    const previewCountry = sitesWithCountry.find((s) => String(s.id) === previewSiteId)?.country ?? country;
+    const { data: holidaysData, isLoading: holidaysLoading, error: holidaysError } = useHolidays(previewCountry, selectedYear, showHolidays);
 
     const isInitialized = useRef(false);
     const calendarLocale = i18n.resolvedLanguage?.startsWith('fr') ? 'fr-FR' : 'en-GB';
@@ -89,10 +105,24 @@ export function GeneralSettingsPage() {
         toast.success(t('generalSettings.languageUpdated'), { id: SETTINGS_SAVED_TOAST_ID });
     };
 
-    const handleCountryChange = (newCountry: string) => {
+    // Sites without their own country follow this setting, so changing it moves
+    // their holidays: ask for confirmation before saving.
+    const inheritingSites = sites.filter((s) => !s.country);
+    const [pendingCountry, setPendingCountry] = useState<string | null>(null);
+
+    const applyCountry = (newCountry: string) => {
         setCountry(newCountry);
         updateSetting({ key: 'app.country', value: newCountry }, { silent: true });
         toast.success(t('generalSettings.countryUpdated'), { id: SETTINGS_SAVED_TOAST_ID });
+    };
+
+    const handleCountryChange = (newCountry: string) => {
+        if (newCountry === country) return;
+        if (inheritingSites.length > 0) {
+            setPendingCountry(newCountry);
+        } else {
+            applyCountry(newCountry);
+        }
     };
 
     const handleDefaultStartTimeChange = (time: string) => {
@@ -124,6 +154,41 @@ export function GeneralSettingsPage() {
 
     return (
         <div className="space-y-6">
+            <AlertDialog open={pendingCountry !== null} onOpenChange={(open) => { if (!open) setPendingCountry(null); }}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>{t('generalSettings.countryChangeTitle')}</AlertDialogTitle>
+                        <AlertDialogDescription asChild>
+                            <div className="space-y-3">
+                                <p>
+                                    {t('generalSettings.countryChangeDescription', {
+                                        from: getCountryLabel(country),
+                                        to: pendingCountry ? getCountryLabel(pendingCountry) : '',
+                                    })}
+                                </p>
+                                <ul className="list-disc pl-5">
+                                    {inheritingSites.map((s) => (
+                                        <li key={s.id}>{s.name}</li>
+                                    ))}
+                                </ul>
+                                <p>{t('generalSettings.countryChangeHint')}</p>
+                            </div>
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={() => {
+                                if (pendingCountry) applyCountry(pendingCountry);
+                                setPendingCountry(null);
+                            }}
+                        >
+                            {t('generalSettings.countryChangeConfirm')}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
             {/* LANGUAGE & REGION */}
             <SettingsSection title={t('generalSettings.languageAndRegion')} description={t('generalSettings.languageAndRegionDescription')} icon={Globe}>
 
@@ -212,6 +277,23 @@ export function GeneralSettingsPage() {
                     <CollapsibleContent className="space-y-4">
                         {/* Year Selector */}
                         <div className="flex items-center gap-2 justify-end">
+                            {sitesWithCountry.length > 0 && (
+                                <Select value={previewSiteId} onValueChange={setPreviewSiteId}>
+                                    <SelectTrigger className="mr-auto w-auto min-w-[200px]" aria-label={t('generalSettings.holidaysSite')}>
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="global">
+                                            {t('generalSettings.holidaysGlobal', { country: getCountryLabel(country) })}
+                                        </SelectItem>
+                                        {sitesWithCountry.map((s) => (
+                                            <SelectItem key={s.id} value={String(s.id)}>
+                                                {s.name} ({getCountryLabel(s.country as string)})
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            )}
                             <Button
                                 size="icon"
                                 variant="outline"
@@ -273,7 +355,7 @@ export function GeneralSettingsPage() {
                             <div className="text-center p-8 border rounded-lg bg-muted/50">
                                 <Calendar className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
                                 <p className="text-sm text-muted-foreground">
-                                    {t('generalSettings.noHolidaysData', { country: getCountryLabel(country), year: selectedYear })}
+                                    {t('generalSettings.noHolidaysData', { country: getCountryLabel(previewCountry), year: selectedYear })}
                                 </p>
                             </div>
                         )}

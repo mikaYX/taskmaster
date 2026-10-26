@@ -533,6 +533,12 @@
             "ES": "Spain (ES - national holidays)"
         },
         "derivedRulesDescription": "These settings are automatically determined by your selected country",
+        "countryChangeTitle": "Change the global country?",
+        "countryChangeDescription": "Switching from {{from}} to {{to}} changes the public holidays and business days of every site that uses the global setting:",
+        "countryChangeHint": "Recurring tasks that skip holidays will be rescheduled, and the missed-instance audit (last 90 days) will use the new calendar. Sites with their own country are not affected.",
+        "countryChangeConfirm": "Change country",
+        "holidaysSite": "Site calendar",
+        "holidaysGlobal": "Global setting ({{country}})",
         "publicHolidaysPreview": "Public Holidays Preview",
         "publicHolidaysPreviewDescription": "These holidays are used to shift tasks when \"Skip Holidays\" is enabled",
         "showHolidays": "Show Holidays",
@@ -1365,7 +1371,15 @@
         "formDescription": "Configure site details",
         "descriptionLabel": "Description",
         "descriptionPlaceholder": "Optional description...",
-        "defaultBadge": "Default"
+        "defaultBadge": "Default",
+        "country": "Country / Region",
+        "countryGlobal": "Use global setting ({{country}})",
+        "countryInherited": "{{country}} (global)",
+        "countryGlobalHint": "This site uses the country from the general settings",
+        "countryHelp": "Used for public holidays and business days of this site's tasks. Leave on the global setting if the site is in the same country.",
+        "timezone": "Default timezone",
+        "timezoneGlobal": "Use global setting",
+        "timezoneHelp": "Pre-selected when creating a recurring task on this site. Existing tasks keep their own timezone."
     },
     "network": {
         "offline": "You are offline. Some features may be unavailable.",

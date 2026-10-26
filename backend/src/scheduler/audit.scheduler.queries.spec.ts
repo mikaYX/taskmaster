@@ -14,6 +14,7 @@ describe('AuditScheduler.auditMissedInstances queries', () => {
 
   const client = {
     task: { findMany: jest.fn() },
+    site: { findMany: jest.fn() },
     status: {
       findMany: jest.fn(),
       findFirst: jest.fn(),
@@ -35,6 +36,7 @@ describe('AuditScheduler.auditMissedInstances queries', () => {
     jest.resetAllMocks();
     settings.getRawValue.mockResolvedValue(undefined);
     client.status.create.mockResolvedValue({});
+    client.site.findMany.mockResolvedValue([]);
   });
 
   it('only audits tasks that are not archived', async () => {

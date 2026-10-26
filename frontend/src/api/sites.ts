@@ -5,6 +5,10 @@ export interface Site {
     name: string;
     code: string;
     description: string | null;
+    /** Holiday country; null = global `app.country`. */
+    country: string | null;
+    /** Default task timezone; null = global default. */
+    timezone: string | null;
     parentId: number | null;
     isActive: boolean;
     parent?: { id: number; name: string; code: string } | null;
@@ -22,6 +26,8 @@ export interface CreateSiteDto {
     name: string;
     code: string;
     description?: string;
+    country?: string | null;
+    timezone?: string | null;
     parentId?: number;
 }
 
@@ -29,6 +35,7 @@ export interface UpdateSiteDto {
     name?: string;
     code?: string;
     description?: string;
+    country?: string | null;
     parentId?: number;
 }
 

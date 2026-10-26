@@ -51,7 +51,7 @@ describe('TasksService', () => {
         taskDelegation: { deleteMany: jest.fn() },
         $transaction: jest.fn(),
       },
-      getDefaultSiteId: jest.fn().mockReturnValue(1),
+      getCurrentSiteId: jest.fn().mockReturnValue(1),
     };
 
     mockProcedureStorage = {
@@ -355,6 +355,7 @@ describe('TasksService', () => {
 describe('TasksService.getBoardItems', () => {
   const client = {
     task: { findMany: jest.fn() },
+    site: { findMany: jest.fn().mockResolvedValue([]) },
     status: { findMany: jest.fn(), findFirst: jest.fn(), count: jest.fn() },
   };
   const prisma = { client, buildSiteFilter: jest.fn().mockReturnValue({}) };

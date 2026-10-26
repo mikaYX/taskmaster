@@ -15,6 +15,10 @@ import { Button } from "@/components/ui/button";
 import { Clock, RotateCcw, Info } from "lucide-react";
 import { Trans, useTranslation } from "react-i18next";
 import { useSettings } from "@/features/settings/hooks/use-settings";
+import { useSites } from "@/hooks/use-sites";
+import { useAuthStore } from "@/stores/auth-store";
+import { useSiteStore } from "@/stores/site-store";
+import { COMMON_TIMEZONES } from "@/lib/timezones";
 import {
     Select,
     SelectContent,
@@ -29,24 +33,6 @@ import {
     PopoverTrigger,
 } from "@/components/ui/popover";
 
-// We'll use a hardcoded list of common timezones for the prototype, or Intl
-const COMMON_TIMEZONES = [
-    "UTC",
-    "Europe/Paris",
-    "Europe/London",
-    "America/New_York",
-    "America/Los_Angeles",
-    "Asia/Tokyo",
-    "Australia/Sydney",
-    "Asia/Hong_Kong",
-    "Asia/Singapore",
-    "Asia/Dubai",
-    "Africa/Cairo",
-    "Africa/Johannesburg",
-    "America/Sao_Paulo",
-    "Pacific/Auckland",
-];
-
 interface RecurrenceSelectorProps {
     fcEnabled: boolean; // prop for FROM_COMPLETION flag
 }
@@ -60,16 +46,28 @@ export function RecurrenceSelector({ fcEnabled }: RecurrenceSelectorProps) {
     // Default global window settings
     const defaultStart = getSetting('SCHEDULE_DEFAULT_START_TIME') || '08:00';
     const defaultEnd = getSetting('SCHEDULE_DEFAULT_END_TIME') || '18:00';
-    const defaultTimezone = getSetting('SCHEDULE_DEFAULT_TIMEZONE') || getSetting('system.timezone') || Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Paris';
+    const globalTimezone = getSetting('SCHEDULE_DEFAULT_TIMEZONE') || getSetting('system.timezone') || Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Paris';
+
+    // A new task is created on the selected site, or the user's default site when
+    // none is selected (same rule as the backend), so that site's timezone, when
+    // set, takes precedence over the global default.
+    const userSites = useAuthStore((s) => s.sites);
+    const selectedSiteId = useSiteStore((s) => s.currentSiteId);
+    const { data: sites, isLoading: sitesLoading } = useSites();
+    const defaultSiteId = selectedSiteId ?? (userSites?.find((s) => s.isDefault) ?? userSites?.[0])?.siteId;
+    const siteTimezone = sites?.find((s) => s.id === defaultSiteId)?.timezone;
+    const defaultTimezone = siteTimezone || globalTimezone;
+    const timezoneOptions = COMMON_TIMEZONES.includes(defaultTimezone) ? COMMON_TIMEZONES : [defaultTimezone, ...COMMON_TIMEZONES];
 
     // Show recurrence fields only if periodicity is applicable
     const showRecurrenceFields = ["daily", "weekly", "monthly", "yearly", "custom"].includes(periodicity);
 
     useEffect(() => {
-        if (showRecurrenceFields && !getValues("timezone")) {
+        // Wait for the sites so a site default is not overwritten by the global one.
+        if (showRecurrenceFields && !sitesLoading && !getValues("timezone")) {
             setValue("timezone", defaultTimezone, { shouldValidate: true });
         }
-    }, [showRecurrenceFields, defaultTimezone, setValue, getValues]);
+    }, [showRecurrenceFields, sitesLoading, defaultTimezone, setValue, getValues]);
 
     if (!showRecurrenceFields) return null;
 
@@ -119,7 +117,7 @@ export function RecurrenceSelector({ fcEnabled }: RecurrenceSelectorProps) {
                                     </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                    {COMMON_TIMEZONES.map((tz) => (
+                                    {timezoneOptions.map((tz) => (
                                         <SelectItem key={tz} value={tz}>
                                             {tz}
                                         </SelectItem>

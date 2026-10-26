@@ -81,6 +81,8 @@ export class SitesService {
         name: dto.name,
         code: dto.code,
         description: dto.description,
+        country: dto.country ?? null,
+        timezone: dto.timezone ?? null,
         parentId: dto.parentId,
       },
       include: {
@@ -146,6 +148,8 @@ export class SitesService {
             name: true,
             code: true,
             description: true,
+            country: true,
+            timezone: true,
           },
         },
       },

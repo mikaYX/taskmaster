@@ -36,9 +36,10 @@ describe('TasksService Recurrence Validation', () => {
           update: jest.fn(),
         },
         taskDelegation: { deleteMany: jest.fn() },
+        site: { findMany: jest.fn().mockResolvedValue([]) },
         $transaction: jest.fn(),
       },
-      getDefaultSiteId: jest.fn().mockReturnValue(1),
+      getCurrentSiteId: jest.fn().mockReturnValue(1),
     };
 
     settings = {

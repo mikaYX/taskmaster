@@ -6,6 +6,7 @@ import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma';
 import { SettingsService } from '../settings/settings.service';
 import { InstanceService } from '../tasks/instance.service';
+import { loadSiteCountryResolver } from '../sites/site-country';
 
 @Injectable()
 export class AuditScheduler {
@@ -65,7 +66,10 @@ export class AuditScheduler {
       this.settings.getRawValue<string>('SCHEDULE_DEFAULT_START_TIME'),
       this.settings.getRawValue<string>('SCHEDULE_DEFAULT_END_TIME'),
     ]);
-    const country = defaultCountry || 'FR';
+    const countryForSite = await loadSiteCountryResolver(
+      this.prisma.client,
+      defaultCountry || 'FR',
+    );
     const windowDefaults = { start: wStart || '08:00', end: wEnd || '18:00' };
 
     for (const task of tasks) {
@@ -101,7 +105,7 @@ export class AuditScheduler {
         task,
         auditStart,
         auditEnd,
-        country,
+        countryForSite(task.siteId),
         fromCompletionCtx,
         windowDefaults,
       );

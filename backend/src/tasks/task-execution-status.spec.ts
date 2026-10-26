@@ -20,6 +20,7 @@ function fixture(notifications?: { dispatchTaskNotifications: jest.Mock }) {
   };
   const client = {
     task: { findUnique: jest.fn().mockResolvedValue(task) },
+    site: { findMany: jest.fn().mockResolvedValue([]) },
     status: {
       findUnique: jest.fn().mockResolvedValue(null),
       upsert: jest.fn().mockResolvedValue({ id: 9 }),
