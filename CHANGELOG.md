@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.1] - 2026-10-26
+
+Two database migrations (`site_country`, `site_timezone`) run automatically on start; they only add an optional column to the sites table, so existing data is untouched. If you run the backend by hand, apply them with `prisma migrate deploy` before starting. Browser pop-up notifications now work: devices that were "active" in the browser but unknown to the server register themselves again on the next visit.
+
 ### Added
 
 - New **Personalization** settings tab (Settings > Application) that groups the appearance (display mode, accent colour) with the branding: application name and subtitle, logo, favicon, and the login screen.
@@ -14,6 +18,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Optional dark-mode logo, used by the sidebar and the login screen when the interface is dark.
 - Left or centred alignment, chosen separately for the sidebar logo and for its title and subtitle.
 - Custom accent colour (any `#rrggbb`, with a contrast warning) next to the preset colours; it overrides the theme colour for every user. A "Restore defaults" button resets the branding form.
+- **Per-site country and default timezone.** A site can use its own country (public holidays and business days) instead of the global one, and its own default timezone for new tasks. Both are optional: a site left on "global setting" keeps following Settings > General, and its card shows the country it uses. Existing sites and tasks are unchanged.
+- Subtasks can be added while creating a todo (More options > Subtasks); they are created right after their parent, in the order typed.
+- Todo list: a **P** (private) / **C** (collective) marker before each todo, a priority filter next to the due-date filter, and an info button next to History that explains the priority colours and the markers.
 
 ### Changed
 
@@ -24,6 +31,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Saving the branding or an auto-saved general setting now shows a single confirmation toast instead of two.
 - Windows installation documentation now includes Windows 11 or later alongside Windows Server 2019 or later (x64), and distinguishes the application's offline-mode default from the MSI's fresh-install default.
 - Docker update documentation explains automatic Prisma migrations, failure handling, volume preservation and the explicit image pull required for registry updates.
+- Holidays, business days and the missed-instance audit now use the country of each task's site, falling back to the global country. Changing the global country asks for confirmation and lists the sites that follow it; the holidays preview in Settings > General can show a given site's calendar.
+- A task is now created on the site selected in the header (when the user belongs to it), not always on the user's default site. The creation preview and the wizard's default timezone follow the same site.
+- Todo list redesign: softer cards with chip-style date, assignee and subtask progress, a segmented Private / Collective switch, a compact creation field that sits above the tabs and expands when used, and a clearer "completed in the last 24 hours" section.
 
 ### Fixed
 
@@ -34,6 +44,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Windows source update script now installs from the workspace lockfile, loads the database environment for Prisma 7, applies existing migrations with `prisma migrate deploy`, builds the application and stops on any failed step.
 - Windows source updates now require a validated PostgreSQL dump before Git/dependency changes, using a standalone helper and restricted backup permissions. Docker updates also preserve Todo attachments and exports when introducing their persistent volumes.
 - Production and local-build Compose stacks now persist Todo attachments and exports and initialize volume ownership for the non-root app. PostgreSQL health checks use the configured account; the development stack explicitly stores PostgreSQL 18 data in its named volume.
+- Browser pop-up notifications could never be activated: the subscribe and unsubscribe requests were refused with a 400 error, so no device was stored on the server and disabling a device left it stuck on "active". Subscriptions are now validated and stored, a device registered while the bug existed repairs itself on the next page load, and disabling always removes the browser subscription. The "push service error" shown by Brave now explains how to enable Google push messaging.
+- On the Todo page, the "Open", "Overdue" and "Due today" counters add up both tabs but only displayed the current one; clicking one now opens the tab that holds the todos it counts.
 
 ### Security
 
