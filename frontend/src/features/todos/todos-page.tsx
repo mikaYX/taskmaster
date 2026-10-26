@@ -590,6 +590,17 @@ function TodosPageContent() {
         </div>
     );
 
+    // The counters add up both tabs, so a tile must open the tab that holds what it counts.
+    const dueOpenCount = (list: Todo[] | undefined, filter: DueFilter) =>
+        (list ?? []).filter((todo) => !todo.isCompleted && todo.parentId === null && matchesDueFilter(todo.dueDate, filter)).length;
+    const showTabHolding = (filter: DueFilter) => {
+        const current = activeTab === 'PRIVATE' ? privateTodos : collectiveTodos;
+        const other = activeTab === 'PRIVATE' ? collectiveTodos : privateTodos;
+        if (dueOpenCount(current, filter) === 0 && dueOpenCount(other, filter) > 0) {
+            setActiveTab(activeTab === 'PRIVATE' ? 'COLLECTIVE' : 'PRIVATE');
+        }
+    };
+
     const statCards: { key: string; icon: typeof AlertTriangle; value: number; tone: string; active: boolean; onClick: () => void }[] = [
         {
             key: 'overdue',
@@ -597,7 +608,10 @@ function TodosPageContent() {
             value: summary?.overdue ?? 0,
             tone: 'text-red-600 bg-red-500/10 dark:text-red-400',
             active: dueFilter === 'overdue',
-            onClick: () => setDueFilter((f) => (f === 'overdue' ? 'all' : 'overdue')),
+            onClick: () => {
+                if (dueFilter !== 'overdue') showTabHolding('overdue');
+                setDueFilter((f) => (f === 'overdue' ? 'all' : 'overdue'));
+            },
         },
         {
             key: 'today',
@@ -605,7 +619,10 @@ function TodosPageContent() {
             value: summary?.dueToday ?? 0,
             tone: 'text-amber-600 bg-amber-500/10 dark:text-amber-400',
             active: dueFilter === 'today',
-            onClick: () => setDueFilter((f) => (f === 'today' ? 'all' : 'today')),
+            onClick: () => {
+                if (dueFilter !== 'today') showTabHolding('today');
+                setDueFilter((f) => (f === 'today' ? 'all' : 'today'));
+            },
         },
         {
             key: 'open',
@@ -614,9 +631,11 @@ function TodosPageContent() {
             tone: 'text-primary bg-primary/10',
             active: false,
             onClick: () => {
+                showTabHolding('all');
                 setDueFilter('all');
                 setMineOnly(false);
                 setSearch('');
+                setSelectedGroupId('all');
             },
         },
         {
