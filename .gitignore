@@ -92,8 +92,6 @@ certs/
 /client/
 dist-installer/
 installer/staging/
-installer/wix/AppFiles.wxs
-installer/wix/NodeRuntimeFiles.wxs
 installer/payloads/*.msi
 installer/payloads/*.exe
 

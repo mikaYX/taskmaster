@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  The Taskmaster app (backend + client + production node_modules) as ONE
+  Component wrapping staging\app.zip, built by installer/build.ps1. A full
+  node_modules tree is 70k+ files, past the MSI limit of 65536 Components, so
+  the zip is expanded into APPFOLDER at install time by the deferred
+  ExtractAppArchive custom action (see Product.wxs and
+  installer/expand-staged-archive.ps1).
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Fragment>
+    <ComponentGroup Id="AppFilesGroup" Directory="APPFOLDER">
+      <Component Id="AppArchiveComponent" Guid="6a1f9d3e-6b7a-4b7c-9a0e-1a2b3c4d5ea1">
+        <File Id="AppArchiveZip" Source="!(bindpath.staging)\app.zip" KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+  </Fragment>
+</Wix>

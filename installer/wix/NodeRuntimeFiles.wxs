@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  The embedded Node.js runtime as ONE Component wrapping
+  staging\runtime\node-runtime.zip, built by installer/build.ps1, and expanded
+  into NODEFOLDER by the deferred ExtractNodeRuntimeArchive custom action (see
+  AppFiles.wxs for why it is a single archive).
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Fragment>
+    <ComponentGroup Id="NodeRuntimeFilesGroup" Directory="NODEFOLDER">
+      <Component Id="NodeRuntimeArchiveComponent" Guid="6a1f9d3e-6b7a-4b7c-9a0e-1a2b3c4d5ea2">
+        <File Id="NodeRuntimeArchiveZip" Source="!(bindpath.staging)\runtime\node-runtime.zip" KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+  </Fragment>
+</Wix>
