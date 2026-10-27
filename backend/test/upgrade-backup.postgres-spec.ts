@@ -1,3 +1,4 @@
+import { createHash, randomUUID } from 'crypto';
 import { execFile } from 'child_process';
 import { promisify } from 'util';
 import 'reflect-metadata';
@@ -27,8 +28,13 @@ suite('legacy upgrade and real encrypted PostgreSQL restore', () => {
   let legacy: { users: unknown[]; tasks: unknown[]; statuses: unknown[] };
   let environment: NodeJS.ProcessEnv;
   const evidenceId = 'af273756-e1e8-4a86-83e9-c6f13ecc1892';
-  const migrationRoot = join(__dirname, '../prisma/migrations');
+  // The migrations folded into the single migration: they build the "previous" database.
+  const archiveRoot = join(__dirname, '../prisma/migrations-archive');
   const upgrade = '20261016000000_task_execution';
+  // The single migration that upgrades it (and would also build a new database).
+  const single = readdirSync(join(__dirname, '../prisma/migrations')).find(
+    (name) => /^\d{14}_/.test(name),
+  )!;
   const prisma = (args: string[]) =>
     promisify(execFile)(
       process.execPath,
@@ -76,14 +82,32 @@ suite('legacy upgrade and real encrypted PostgreSQL restore', () => {
       { getRawValue: async () => null } as unknown as SettingsService,
       new EncryptionService(config),
     );
-    for (const name of readdirSync(migrationRoot)
+    // What a real older installation holds: the schema, and one history row per migration it ran.
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS _prisma_migrations (
+        id VARCHAR(36) PRIMARY KEY NOT NULL,
+        checksum VARCHAR(64) NOT NULL,
+        finished_at TIMESTAMPTZ,
+        migration_name VARCHAR(255) NOT NULL,
+        logs TEXT,
+        rolled_back_at TIMESTAMPTZ,
+        started_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+        applied_steps_count INTEGER NOT NULL DEFAULT 0
+      )`);
+    for (const name of readdirSync(archiveRoot)
       .filter((name) => name < upgrade)
       .sort()) {
       if (/^\d/.test(name)) {
-        await pool.query(
-          readFileSync(join(migrationRoot, name, 'migration.sql'), 'utf8'),
+        const sql = readFileSync(
+          join(archiveRoot, name, 'migration.sql'),
+          'utf8',
         );
-        await prisma(['migrate', 'resolve', '--applied', name]);
+        await pool.query(sql);
+        await pool.query(
+          `INSERT INTO _prisma_migrations (id, checksum, finished_at, migration_name, applied_steps_count)
+           VALUES ($1, $2, now(), $3, 1)`,
+          [randomUUID(), createHash('sha256').update(sql).digest('hex'), name],
+        );
       }
     }
     await pool.query(`
@@ -110,7 +134,18 @@ suite('legacy upgrade and real encrypted PostgreSQL restore', () => {
       (
         await pool.query(
           'SELECT migration_name FROM _prisma_migrations WHERE migration_name=$1 AND finished_at IS NOT NULL',
-          [upgrade],
+          [single],
+        )
+      ).rowCount,
+    ).toBe(1);
+    // Only the missing migrations ran, and the folded ones left the history.
+    expect(
+      (await pool.query('SELECT migration_name FROM _prisma_migrations')).rows,
+    ).toEqual([{ migration_name: single }]);
+    expect(
+      (
+        await pool.query(
+          "SELECT 1 FROM information_schema.columns WHERE table_name='tasks' AND column_name='execution_checklist'",
         )
       ).rowCount,
     ).toBe(1);
