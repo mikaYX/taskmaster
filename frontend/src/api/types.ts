@@ -301,6 +301,15 @@ export interface CreateDelegationDto {
   targetGroupIds?: number[];
 }
 
+export interface CreateBulkDelegationDto extends CreateDelegationDto {
+  taskIds: number[];
+}
+
+export interface BulkDelegationResult {
+  created: { taskId: number; delegationId: number }[];
+  failed: { taskId: number; taskName: string | null; reason: string }[];
+}
+
 export interface UpdateDelegationDto {
   startAt?: string;
   endAt?: string;

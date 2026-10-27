@@ -8,6 +8,8 @@ import type {
     TaskAssignmentDto,
     Delegation,
     CreateDelegationDto,
+    CreateBulkDelegationDto,
+    BulkDelegationResult,
     UpdateDelegationDto,
     PaginationParams,
     OverrideOccurrenceDto,
@@ -166,6 +168,12 @@ export const tasksApi = {
      */
     createDelegation: (id: number, dto: CreateDelegationDto) =>
         http.post<Delegation>(`/tasks/${id}/delegations`, dto),
+
+    /**
+     * Create the same delegation on several tasks at once.
+     */
+    createBulkDelegation: (dto: CreateBulkDelegationDto) =>
+        http.post<BulkDelegationResult>('/delegations/bulk', dto),
 
     /**
      * Update delegation.

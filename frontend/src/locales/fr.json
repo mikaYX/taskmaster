@@ -3,6 +3,10 @@
         "placeholder": "jj/mm/aaaa",
         "clear": "Effacer"
     },
+    "dateTimeInput": {
+        "hour": "Heure",
+        "minute": "Minute"
+    },
     "common": {
         "appName": "Taskmaster",
         "loading": "Chargement...",
@@ -2047,6 +2051,32 @@
             "reactivated": "Tâche réactivée",
             "reactivateFailed": "Échec de la réactivation de la tâche"
         },
+        "bulk": {
+            "deactivateTitle_one": "Désactiver la tâche sélectionnée ?",
+            "deactivateTitle_other": "Désactiver les {{count}} tâches sélectionnées ?",
+            "deactivateBody_one": "Cette tâche n'apparaîtra plus dans le planning quotidien mais pourra être réactivée plus tard.",
+            "deactivateBody_other": "Ces tâches n'apparaîtront plus dans le planning quotidien mais pourront être réactivées plus tard.",
+            "deactivated_one": "{{count}} tâche désactivée",
+            "deactivated_other": "{{count}} tâches désactivées",
+            "deactivateFailed_one": "{{count}} tâche n'a pas pu être désactivée",
+            "deactivateFailed_other": "{{count}} tâches n'ont pas pu être désactivées",
+            "deleteTitle_one": "Supprimer {{count}} tâche",
+            "deleteTitle_other": "Supprimer {{count}} tâches",
+            "deleteBody_one": "Cette action supprimera la tâche sélectionnée. Elle pourra être restaurée pendant 30 jours.",
+            "deleteBody_other": "Cette action supprimera les {{count}} tâches sélectionnées. Elles pourront être restaurées pendant 30 jours.",
+            "confirmPrompt": "Saisissez <name>{{count}}</name> pour confirmer :",
+            "deleted_one": "{{count}} tâche supprimée",
+            "deleted_other": "{{count}} tâches supprimées",
+            "deleteFailed_one": "{{count}} tâche n'a pas pu être supprimée",
+            "deleteFailed_other": "{{count}} tâches n'ont pas pu être supprimées",
+            "deactivate": "Désactiver",
+            "reactivate": "Réactiver",
+            "reactivated_one": "{{count}} tâche réactivée",
+            "reactivated_other": "{{count}} tâches réactivées",
+            "reactivateFailed_one": "{{count}} tâche n'a pas pu être réactivée",
+            "reactivateFailed_other": "{{count}} tâches n'ont pas pu être réactivées",
+            "delete": "Supprimer"
+        },
         "noMatch": "Aucune tâche ne correspond à ces filtres.",
         "stats": {
             "active": "Tâches actives",
@@ -2206,6 +2236,26 @@
             "active": "En cours",
             "planned": "Planifiée",
             "ended": "Terminée"
+        },
+        "bulk": {
+            "title_one": "Déléguer {{count}} tâche",
+            "title_other": "Déléguer {{count}} tâches",
+            "description": "La même délégation est créée sur chacune des tâches sélectionnées.",
+            "selectedCount_one": "{{count}} tâche sélectionnée",
+            "selectedCount_other": "{{count}} tâches sélectionnées",
+            "action": "Déléguer la sélection",
+            "clear": "Annuler la sélection",
+            "selectAll": "Tout sélectionner",
+            "selectTask": "Sélectionner {{name}}",
+            "submit": "Créer les délégations",
+            "allCreated_one": "Délégation créée sur {{count}} tâche",
+            "allCreated_other": "Délégations créées sur {{count}} tâches",
+            "partial_one": "{{count}} tâche n'a pas pu être déléguée",
+            "partial_other": "{{count}} tâches n'ont pas pu être déléguées",
+            "createdCount_one": "{{count}} délégation créée",
+            "createdCount_other": "{{count}} délégations créées",
+            "failedTitle": "Non déléguées",
+            "close": "Fermer"
         }
     },
     "userMgmt": {

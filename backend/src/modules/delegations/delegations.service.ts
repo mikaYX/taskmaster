@@ -10,7 +10,10 @@ import { AuditService } from '../../audit/audit.service';
 import { EmailService } from '../../email/email.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { BeneficiaryResolverService } from './beneficiary-resolver.service';
-import { CreateDelegationDto } from './dto/create-delegation.dto';
+import {
+  CreateBulkDelegationDto,
+  CreateDelegationDto,
+} from './dto/create-delegation.dto';
 import { UpdateDelegationDto } from './dto/update-delegation.dto';
 
 @Injectable()
@@ -22,7 +25,12 @@ export class DelegationsService {
     private readonly beneficiaryResolver: BeneficiaryResolverService,
   ) {}
 
-  async create(taskId: number, dto: CreateDelegationDto, adminId: number) {
+  async create(
+    taskId: number,
+    dto: CreateDelegationDto,
+    adminId: number,
+    options: { notify?: boolean } = {},
+  ) {
     if (new Date(dto.startAt) >= new Date(dto.endAt)) {
       throw new BadRequestException('startAt must be before endAt');
     }
@@ -67,7 +75,8 @@ export class DelegationsService {
       });
 
       // Send notifications
-      await this.notifyDelegationCreated(delegation);
+      if (options.notify !== false)
+        await this.notifyDelegationCreated(delegation);
 
       return delegation;
     } catch (error) {
@@ -88,6 +97,93 @@ export class DelegationsService {
         );
       }
       throw error;
+    }
+  }
+
+  /**
+   * Creates the same delegation on every task the caller can see. Each task succeeds or fails on
+   * its own (an overlapping delegation on one task must not block the others), and the people
+   * concerned get a single email instead of one per task.
+   */
+  async createMany(dto: CreateBulkDelegationDto, adminId: number) {
+    if (new Date(dto.startAt) >= new Date(dto.endAt)) {
+      throw new BadRequestException('startAt must be before endAt');
+    }
+    const { taskIds, ...delegation } = dto;
+    const tasks = await this.prisma.client.task.findMany({
+      where: {
+        id: { in: taskIds },
+        deletedAt: null,
+        ...this.prisma.buildSiteFilter(),
+      },
+      select: { id: true, name: true },
+    });
+    const found = new Map(tasks.map((task) => [task.id, task.name]));
+    const created: { taskId: number; delegationId: number }[] = [];
+    const failed: {
+      taskId: number;
+      taskName: string | null;
+      reason: string;
+    }[] = [];
+    let first: Awaited<ReturnType<DelegationsService['create']>> | undefined;
+    for (const taskId of taskIds) {
+      const taskName = found.get(taskId);
+      if (taskName === undefined) {
+        failed.push({ taskId, taskName: null, reason: 'Task not found' });
+        continue;
+      }
+      try {
+        const result = await this.create(taskId, delegation, adminId, {
+          notify: false,
+        });
+        first ??= result;
+        created.push({ taskId, delegationId: result.id });
+      } catch (error) {
+        failed.push({
+          taskId,
+          taskName,
+          reason: error instanceof Error ? error.message : 'Unknown error',
+        });
+      }
+    }
+    if (first)
+      await this.notifyBulkDelegationCreated(
+        first,
+        created.map(({ taskId }) => found.get(taskId)!),
+      );
+    return { created, failed };
+  }
+
+  private async notifyBulkDelegationCreated(
+    delegation: Awaited<ReturnType<DelegationsService['create']>>,
+    taskNames: string[],
+  ) {
+    try {
+      const beneficiaryIds =
+        await this.beneficiaryResolver.resolveBeneficiaryUserIdsFromDelegation(
+          delegation,
+        );
+      const allIds = Array.from(
+        new Set([...beneficiaryIds, delegation.delegatedById].filter(Boolean)),
+      ) as number[];
+      if (allIds.length === 0) return;
+      const users = await this.prisma.client.user.findMany({
+        where: { id: { in: allIds }, email: { not: null } },
+        select: { email: true },
+      });
+      const emails = Array.from(
+        new Set(users.map((u) => u.email).filter(Boolean)),
+      ) as string[];
+      if (emails.length === 0) return;
+      const start = new Date(delegation.startAt!).toLocaleDateString();
+      const end = new Date(delegation.endAt!).toLocaleDateString();
+      await this.emailService.send({
+        to: emails,
+        subject: `Nouvelle délégation pour ${taskNames.length} tâches`,
+        text: `Bonjour,\n\nUne délégation vous a été attribuée pour les tâches suivantes, du ${start} au ${end} :\n${taskNames.map((name) => `- ${name}`).join('\n')}\n${delegation.reason ? `\nMotif: ${delegation.reason}\n` : ''}\nCordialement,\nTaskmaster.`,
+      });
+    } catch (error) {
+      console.error('Failed to send delegation notifications:', error);
     }
   }
 

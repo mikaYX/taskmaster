@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 import { getDateLocale } from '@/lib/date-locale';
 import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import {
     Plus,
     Archive,
@@ -17,6 +18,10 @@ import {
     User,
     Users,
     X,
+    Power,
+    PowerOff,
+    Trash2,
+    Loader2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -46,6 +51,7 @@ import {
 import { CalendarClock } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { useTasks } from '@/hooks/use-tasks';
 import { useUsers } from '@/hooks/use-users';
@@ -53,6 +59,12 @@ import { useGroups } from '@/hooks/use-groups';
 import { useIsAdminOrManager, useIsGuest } from '@/stores/auth-store';
 import { TaskActions } from './components/task-actions';
 // import { TaskFormDialog } from './components/task-form-dialog'; // REMOVED
+import { BulkDelegationDialog } from './components/bulk-delegation-dialog';
+import { BulkDeactivateDialog } from './components/bulk-deactivate-dialog';
+import { BulkDeleteDialog } from './components/bulk-delete-dialog';
+import { runBulkTaskAction } from './components/run-bulk-task-action';
+import { tasksApi } from '@/api/tasks';
+import { toast } from 'sonner';
 import { TaskAssignmentsSheet } from './components/task-assignments-sheet';
 import { TaskDelegationsSheet } from './components/task-delegations-sheet';
 import type { Task } from '@/api/types';
@@ -92,6 +104,9 @@ export function TasksPage() {
 
     const [taskToAssign, setTaskToAssign] = useState<Task | undefined>(undefined);
     const [taskToDelegate, setTaskToDelegate] = useState<Task | undefined>(undefined);
+    const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+    const [bulkOpen, setBulkOpen] = useState<'delegate' | 'deactivate' | 'delete' | null>(null);
+    const queryClient = useQueryClient();
 
     const handleEdit = (task: Task) => {
         navigate(`/task-definitions/${task.id}`);
@@ -157,6 +172,36 @@ export function TasksPage() {
     };
 
     // Count stats
+    // Selection only counts what is still listed: a filter or a search must not delegate hidden tasks.
+    const selectable = isManager && !isGuest;
+    const selectedTasks = (processedTasks ?? []).filter(task => selectedIds.has(task.id));
+    const allSelected = !!processedTasks?.length && selectedTasks.length === processedTasks.length;
+    const activeSelected = selectedTasks.filter(task => task.isActive);
+    const inactiveSelected = selectedTasks.filter(task => !task.isActive);
+    const [reactivating, setReactivating] = useState(false);
+    // Like the per-task action, reactivating is harmless and undoable, so there is no confirmation.
+    const reactivateSelected = async () => {
+        setReactivating(true);
+        const { done, failed } = await runBulkTaskAction(inactiveSelected, tasksApi.reactivate);
+        setReactivating(false);
+        if (failed.length === 0) toast.success(t('taskList.bulk.reactivated', { count: done }));
+        else toast.error(t('taskList.bulk.reactivateFailed', { count: failed.length }), { description: failed.map(item => item.name).join(', ') });
+        closeBulk(done > 0);
+    };
+    const closeBulk = (done: boolean) => {
+        setBulkOpen(null);
+        if (!done) return;
+        setSelectedIds(new Set());
+        void queryClient.invalidateQueries({ queryKey: ['tasks'] });
+    };
+    const toggleTask = (id: number, checked: boolean) =>
+        setSelectedIds(current => {
+            const next = new Set(current);
+            if (checked) next.add(id); else next.delete(id);
+            return next;
+        });
+    const toggleAll = (checked: boolean) => setSelectedIds(checked ? new Set((processedTasks ?? []).map(task => task.id)) : new Set());
+
     const activeCount = processedTasks?.filter(t => t.isActive).length || 0;
     const inactiveCount = processedTasks?.filter(t => !t.isActive).length || 0;
     const now = new Date();
@@ -407,6 +452,37 @@ export function TasksPage() {
             </div>
 
             {/* ========== LIST ========== */}
+            {selectable && selectedTasks.length > 0 && (
+                <div role="region" aria-label={t('taskDelegations.bulk.selectedCount', { count: selectedTasks.length })} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-primary/30 bg-primary/5 px-4 py-2.5">
+                    <span className="text-sm font-medium">{t('taskDelegations.bulk.selectedCount', { count: selectedTasks.length })}</span>
+                    <div className="flex gap-2">
+                        <Button variant="ghost" size="sm" onClick={() => setSelectedIds(new Set())}>
+                            {t('taskDelegations.bulk.clear')}
+                        </Button>
+                        <Button size="sm" variant="outline" className="gap-2" onClick={() => setBulkOpen('delegate')}>
+                            <CalendarClock className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+                            {t('taskDelegations.bulk.action')}
+                        </Button>
+                        {activeSelected.length > 0 && (
+                            <Button size="sm" variant="outline" className="gap-2 text-amber-700 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-400" onClick={() => setBulkOpen('deactivate')}>
+                                <PowerOff className="h-4 w-4 text-current" />
+                                {t('taskList.bulk.deactivate')}
+                            </Button>
+                        )}
+                        {inactiveSelected.length > 0 && (
+                            <Button size="sm" variant="outline" className="gap-2 text-emerald-700 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-400" disabled={reactivating} onClick={() => void reactivateSelected()}>
+                                {reactivating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Power className="h-4 w-4 text-current" />}
+                                {t('taskList.bulk.reactivate')}
+                            </Button>
+                        )}
+                        <Button size="sm" variant="outline" className="gap-2 text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => setBulkOpen('delete')}>
+                            <Trash2 className="h-4 w-4 text-current" />
+                            {t('taskList.bulk.delete')}
+                        </Button>
+                    </div>
+                </div>
+            )}
+
             <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
                 {isLoading ? (
                     <div className="space-y-4 p-6">
@@ -448,6 +524,15 @@ export function TasksPage() {
                     <Table>
                         <TableHeader>
                             <TableRow className="bg-muted/40 hover:bg-muted/40">
+                                {selectable && (
+                                    <TableHead className="h-11 w-10 pl-6 pr-0">
+                                        <Checkbox
+                                            checked={allSelected ? true : selectedTasks.length > 0 ? 'indeterminate' : false}
+                                            onCheckedChange={checked => toggleAll(checked === true)}
+                                            aria-label={t('taskDelegations.bulk.selectAll')}
+                                        />
+                                    </TableHead>
+                                )}
                                 {sortableHead('name', t('taskList.columns.name'))}
                                 {sortableHead('periodicity', t('taskList.columns.periodicity'), 'hidden md:table-cell')}
                                 {sortableHead('assignments', t('taskList.columns.assignments'), 'hidden lg:table-cell')}
@@ -475,7 +560,16 @@ export function TasksPage() {
                                             handleEdit(task);
                                         }}
                                     >
-                                        <TableCell className="whitespace-normal py-3.5 pl-6 pr-4">
+                                        {selectable && (
+                                            <TableCell className="w-10 py-3.5 pl-6 pr-0">
+                                                <Checkbox
+                                                    checked={selectedIds.has(task.id)}
+                                                    onCheckedChange={checked => toggleTask(task.id, checked === true)}
+                                                    aria-label={t('taskDelegations.bulk.selectTask', { name: task.name })}
+                                                />
+                                            </TableCell>
+                                        )}
+                                        <TableCell className={cn('whitespace-normal py-3.5 pr-4', selectable ? 'pl-4' : 'pl-6')}>
                                             <div className="flex items-center gap-3">
                                                 <div className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-xl', PERIODICITY_TONE[periodicity] ?? PERIODICITY_TONE.custom)}>
                                                     <ClipboardList className="h-4 w-4" />
@@ -563,6 +657,9 @@ export function TasksPage() {
             </div>
 
             {/* ========== DIALOGS & SHEETS ========== */}
+            {bulkOpen === 'delegate' && <BulkDelegationDialog tasks={selectedTasks} open onClose={closeBulk} />}
+            {bulkOpen === 'deactivate' && <BulkDeactivateDialog tasks={activeSelected} open onClose={closeBulk} />}
+            {bulkOpen === 'delete' && <BulkDeleteDialog tasks={selectedTasks} open onClose={closeBulk} />}
             <TaskAssignmentsSheet
                 task={tasks?.find((t) => t.id === taskToAssign?.id) || taskToAssign}
                 open={!!taskToAssign}

@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom';
 import { MemoryRouter } from 'react-router-dom';
@@ -8,6 +8,8 @@ import React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 import i18n from '@/lib/i18n';
+import { useAuthStore } from '@/stores/auth-store';
+import { tasksApi } from '@/api/tasks';
 
 type UseTasksResult = ReturnType<typeof useTasks>;
 
@@ -22,6 +24,11 @@ vi.mock('@/hooks/use-tasks', () => ({
 vi.mock('./components/task-actions', () => ({ TaskActions: () => null }));
 vi.mock('./components/task-assignments-sheet', () => ({ TaskAssignmentsSheet: () => null }));
 vi.mock('./components/task-delegations-sheet', () => ({ TaskDelegationsSheet: () => null }));
+vi.mock('./components/bulk-deactivate-dialog', () => ({ BulkDeactivateDialog: ({ tasks }: { tasks: { name: string }[] }) => <div data-testid="bulk-deactivate">{tasks.map(task => task.name).join(',')}</div> }));
+vi.mock('./components/bulk-delete-dialog', () => ({ BulkDeleteDialog: ({ tasks }: { tasks: { name: string }[] }) => <div data-testid="bulk-delete">{tasks.map(task => task.name).join(',')}</div> }));
+vi.mock('./components/bulk-delegation-dialog', () => ({
+    BulkDelegationDialog: ({ tasks }: { tasks: { name: string }[] }) => <div data-testid="bulk-dialog">{tasks.map(task => task.name).join(',')}</div>,
+}));
 
 // Mock Shadcn Tooltip to avoid Radix UI internal jsdom incompatibilities and render content immediately
 vi.mock('@/components/ui/tooltip', () => ({
@@ -193,5 +200,67 @@ describe('TasksPage - Delegations Tooltip', () => {
 
         const expectedText = `Délégué de Inconnu vers Aucun bénéficiaire du ${startStr} au ${endStr}`;
         expect(document.body.textContent).toContain(expectedText);
+    });
+    describe('bulk delegation', () => {
+        const tasks = [1, 2, 3].map(id => ({ id, name: `Task ${id}`, isActive: id !== 2, delegations: [], assignedUserIds: [], assignedGroupIds: [] }));
+        const show = (role: 'MANAGER' | 'USER') => {
+            useAuthStore.setState({ role });
+            vi.mocked(useTasks).mockReturnValue({ data: tasks, isLoading: false } as unknown as UseTasksResult);
+            renderWithRouter(<TasksPage />);
+        };
+
+        it('lets a manager select tasks and delegate them together', () => {
+            show('MANAGER');
+            expect(screen.queryByRole('button', { name: 'Déléguer la sélection' })).toBeNull();
+            fireEvent.click(screen.getByRole('checkbox', { name: 'Sélectionner Task 1' }));
+            fireEvent.click(screen.getByRole('checkbox', { name: 'Sélectionner Task 3' }));
+            expect(screen.getByText('2 tâches sélectionnées')).toBeInTheDocument();
+            fireEvent.click(screen.getByRole('button', { name: 'Déléguer la sélection' }));
+            expect(screen.getByTestId('bulk-dialog')).toHaveTextContent('Task 1,Task 3');
+        });
+
+        it('selects every listed task from the header checkbox', () => {
+            show('MANAGER');
+            fireEvent.click(screen.getByRole('checkbox', { name: 'Tout sélectionner' }));
+            expect(screen.getByText('3 tâches sélectionnées')).toBeInTheDocument();
+            fireEvent.click(screen.getByRole('button', { name: 'Annuler la sélection' }));
+            expect(screen.queryByText('3 tâches sélectionnées')).toBeNull();
+        });
+
+        it('opens the deactivate and delete confirmations for the selection', () => {
+            show('MANAGER');
+            fireEvent.click(screen.getByRole('checkbox', { name: 'Tout sélectionner' }));
+            fireEvent.click(screen.getByRole('button', { name: 'Désactiver' }));
+            // Task 2 is already inactive: nothing to deactivate there.
+            expect(screen.getByTestId('bulk-deactivate')).toHaveTextContent('Task 1,Task 3');
+        });
+
+        it('opens the delete confirmation with every selected task', () => {
+            show('MANAGER');
+            fireEvent.click(screen.getByRole('checkbox', { name: 'Tout sélectionner' }));
+            fireEvent.click(screen.getByRole('button', { name: 'Supprimer' }));
+            expect(screen.getByTestId('bulk-delete')).toHaveTextContent('Task 1,Task 2,Task 3');
+        });
+
+        it('reactivates only the inactive tasks of the selection, without confirmation', async () => {
+            const reactivate = vi.spyOn(tasksApi, 'reactivate').mockResolvedValue({} as never);
+            show('MANAGER');
+            fireEvent.click(screen.getByRole('checkbox', { name: 'Tout sélectionner' }));
+            fireEvent.click(screen.getByRole('button', { name: 'Réactiver' }));
+            await waitFor(() => expect(reactivate).toHaveBeenCalledTimes(1));
+            expect(reactivate).toHaveBeenCalledWith(2);
+        });
+
+        it('offers reactivation instead of deactivation when everything selected is inactive', () => {
+            show('MANAGER');
+            fireEvent.click(screen.getByRole('checkbox', { name: 'Sélectionner Task 2' }));
+            expect(screen.getByRole('button', { name: 'Réactiver' })).toBeInTheDocument();
+            expect(screen.queryByRole('button', { name: 'Désactiver' })).toBeNull();
+        });
+
+        it('offers no selection to a regular user', () => {
+            show('USER');
+            expect(screen.queryByRole('checkbox')).toBeNull();
+        });
     });
 });

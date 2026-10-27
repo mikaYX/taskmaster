@@ -10,7 +10,10 @@ import {
   ParseIntPipe,
 } from '@nestjs/common';
 import { DelegationsService } from './delegations.service';
-import { CreateDelegationDto } from './dto/create-delegation.dto';
+import {
+  CreateBulkDelegationDto,
+  CreateDelegationDto,
+} from './dto/create-delegation.dto';
 import { UpdateDelegationDto } from './dto/update-delegation.dto';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
@@ -61,5 +64,20 @@ export class DelegationsController {
     @CurrentUser('username') adminUsername: string,
   ) {
     return this.delegationsService.remove(taskId, id, adminId, adminUsername);
+  }
+}
+
+@Controller('delegations')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(UserRole.SUPER_ADMIN, UserRole.MANAGER)
+export class BulkDelegationsController {
+  constructor(private readonly delegationsService: DelegationsService) {}
+
+  @Post('bulk')
+  createMany(
+    @Body() dto: CreateBulkDelegationDto,
+    @CurrentUser('id') adminId: number,
+  ) {
+    return this.delegationsService.createMany(dto, adminId);
   }
 }

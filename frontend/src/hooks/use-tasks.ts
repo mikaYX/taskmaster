@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { tasksApi } from '@/api/tasks';
-import type { CreateTaskDto, UpdateTaskDto, TaskAssignmentDto, CreateDelegationDto, UpdateDelegationDto } from '@/api/types';
+import type { CreateTaskDto, UpdateTaskDto, TaskAssignmentDto, CreateDelegationDto, CreateBulkDelegationDto, UpdateDelegationDto } from '@/api/types';
 
 export const taskKeys = {
     all: ['tasks'] as const,
@@ -143,6 +143,16 @@ export function useCreateDelegation() {
         onSuccess: (_, { taskId }) => {
             queryClient.invalidateQueries({ queryKey: taskKeys.delegations(taskId) });
         },
+    });
+}
+
+export function useCreateBulkDelegation() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: (dto: CreateBulkDelegationDto) => tasksApi.createBulkDelegation(dto),
+        // The list shows each task's active delegations, and any open sheet shows its own.
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: taskKeys.all }),
     });
 }
 

@@ -3,6 +3,10 @@
         "placeholder": "mm/dd/yyyy",
         "clear": "Clear"
     },
+    "dateTimeInput": {
+        "hour": "Hour",
+        "minute": "Minute"
+    },
     "common": {
         "appName": "Taskmaster",
         "loading": "Loading...",
@@ -2047,6 +2051,32 @@
             "reactivated": "Task reactivated",
             "reactivateFailed": "Failed to reactivate task"
         },
+        "bulk": {
+            "deactivateTitle_one": "Deactivate the selected task?",
+            "deactivateTitle_other": "Deactivate the {{count}} selected tasks?",
+            "deactivateBody_one": "This task will no longer appear in the daily schedule but can be reactivated later.",
+            "deactivateBody_other": "These tasks will no longer appear in the daily schedule but can be reactivated later.",
+            "deactivated_one": "{{count}} task deactivated",
+            "deactivated_other": "{{count}} tasks deactivated",
+            "deactivateFailed_one": "{{count}} task could not be deactivated",
+            "deactivateFailed_other": "{{count}} tasks could not be deactivated",
+            "deleteTitle_one": "Delete {{count}} task",
+            "deleteTitle_other": "Delete {{count}} tasks",
+            "deleteBody_one": "This will delete the selected task. It can be restored for 30 days.",
+            "deleteBody_other": "This will delete the {{count}} selected tasks. They can be restored for 30 days.",
+            "confirmPrompt": "Type <name>{{count}}</name> to confirm:",
+            "deleted_one": "{{count}} task deleted",
+            "deleted_other": "{{count}} tasks deleted",
+            "deleteFailed_one": "{{count}} task could not be deleted",
+            "deleteFailed_other": "{{count}} tasks could not be deleted",
+            "deactivate": "Deactivate",
+            "reactivate": "Reactivate",
+            "reactivated_one": "{{count}} task reactivated",
+            "reactivated_other": "{{count}} tasks reactivated",
+            "reactivateFailed_one": "{{count}} task could not be reactivated",
+            "reactivateFailed_other": "{{count}} tasks could not be reactivated",
+            "delete": "Delete"
+        },
         "noMatch": "No task matches these filters.",
         "stats": {
             "active": "Active tasks",
@@ -2206,6 +2236,26 @@
             "active": "In progress",
             "planned": "Planned",
             "ended": "Ended"
+        },
+        "bulk": {
+            "title_one": "Delegate {{count}} task",
+            "title_other": "Delegate {{count}} tasks",
+            "description": "The same delegation is created on each selected task.",
+            "selectedCount_one": "{{count}} task selected",
+            "selectedCount_other": "{{count}} tasks selected",
+            "action": "Delegate selection",
+            "clear": "Clear selection",
+            "selectAll": "Select all",
+            "selectTask": "Select {{name}}",
+            "submit": "Create delegations",
+            "allCreated_one": "Delegation created on {{count}} task",
+            "allCreated_other": "Delegations created on {{count}} tasks",
+            "partial_one": "{{count}} task could not be delegated",
+            "partial_other": "{{count}} tasks could not be delegated",
+            "createdCount_one": "{{count}} delegation created",
+            "createdCount_other": "{{count}} delegations created",
+            "failedTitle": "Not delegated",
+            "close": "Close"
         }
     },
     "userMgmt": {

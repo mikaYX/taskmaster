@@ -31,8 +31,10 @@ describe('DelegationsService', () => {
       user: {
         findMany: jest.fn().mockResolvedValue([]),
       },
+      task: { findMany: jest.fn() },
       $transaction: jest.fn((callback) => callback(mockPrismaService.client)),
     },
+    buildSiteFilter: jest.fn().mockReturnValue({ siteId: 1 }),
   };
 
   const mockAuditService = {
@@ -276,6 +278,67 @@ describe('DelegationsService', () => {
         mockPrismaService.client.taskDelegation.delete,
       ).toHaveBeenCalledWith({ where: { id: 1 } });
       expect(mockAuditService.log).toHaveBeenCalled();
+    });
+  });
+  describe('createMany', () => {
+    const dto = {
+      startAt: '2026-03-01T00:00:00Z',
+      endAt: '2026-03-15T00:00:00Z',
+      targetUserIds: [2],
+      taskIds: [10, 11, 12],
+    };
+
+    it('creates what it can, reports the rest and sends a single email', async () => {
+      mockPrismaService.client.task.findMany.mockResolvedValue([
+        { id: 10, name: 'Fridge' },
+        { id: 11, name: 'Oven' },
+      ]);
+      mockPrismaService.client.taskDelegation.create
+        .mockResolvedValueOnce({
+          id: 1,
+          delegatedById: 1,
+          startAt: new Date(),
+          endAt: new Date(),
+        })
+        .mockRejectedValueOnce(new Error('no_overlapping_delegations'));
+      mockBeneficiaryResolverService.resolveBeneficiaryUserIdsFromDelegation.mockResolvedValue(
+        [2],
+      );
+      mockPrismaService.client.user.findMany.mockResolvedValue([
+        { email: 'a@b.c' },
+      ]);
+
+      const result = await service.createMany(dto, 1);
+
+      expect(result.created).toEqual([{ taskId: 10, delegationId: 1 }]);
+      expect(result.failed).toEqual([
+        expect.objectContaining({ taskId: 11, taskName: 'Oven' }),
+        { taskId: 12, taskName: null, reason: 'Task not found' },
+      ]);
+      expect(mockEmailService.send).toHaveBeenCalledTimes(1);
+      expect(mockEmailService.send.mock.calls[0][0].text).toContain('- Fridge');
+      expect(mockEmailService.send.mock.calls[0][0].text).not.toContain('Oven');
+    });
+
+    it('only looks at tasks of the sites the caller can see', async () => {
+      mockPrismaService.client.task.findMany.mockResolvedValue([]);
+      await service.createMany(dto, 1);
+      expect(mockPrismaService.client.task.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ siteId: 1, deletedAt: null }),
+        }),
+      );
+      expect(mockEmailService.send).not.toHaveBeenCalled();
+    });
+
+    it('rejects reversed dates before touching any task', async () => {
+      await expect(
+        service.createMany(
+          { ...dto, startAt: dto.endAt, endAt: dto.startAt },
+          1,
+        ),
+      ).rejects.toThrow(BadRequestException);
+      expect(mockPrismaService.client.task.findMany).not.toHaveBeenCalled();
     });
   });
 });

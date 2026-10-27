@@ -10,6 +10,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { TargetPicker, type TargetPickerSection } from '@/components/target-picker';
 import { Input } from '@/components/ui/input';
+import { DateTimeInput } from '@/components/ui/date-time-input';
 import { Label } from '@/components/ui/label';
 
 import type { Task } from '@/api/types';
@@ -191,24 +192,14 @@ export function TaskDelegationsSheet({ task, open, onOpenChange }: TaskDelegatio
                             {t('taskDelegations.newDelegation')}
                         </h3>
 
-                        <div className="grid gap-3 sm:grid-cols-2">
+                        <div className="space-y-3">
                             <div className="space-y-1.5">
                                 <Label htmlFor="delegation-start" className="text-xs">{t('taskDelegations.startTime')}</Label>
-                                <Input
-                                    id="delegation-start"
-                                    type="datetime-local"
-                                    value={startAt}
-                                    onChange={(e) => setStartAt(e.target.value)}
-                                />
+                                <DateTimeInput id="delegation-start" value={startAt} onChange={setStartAt} />
                             </div>
                             <div className="space-y-1.5">
                                 <Label htmlFor="delegation-end" className="text-xs">{t('taskDelegations.endTime')}</Label>
-                                <Input
-                                    id="delegation-end"
-                                    type="datetime-local"
-                                    value={endAt}
-                                    onChange={(e) => setEndAt(e.target.value)}
-                                />
+                                <DateTimeInput id="delegation-end" value={endAt} onChange={setEndAt} defaultTime="23:55" />
                             </div>
                         </div>
 

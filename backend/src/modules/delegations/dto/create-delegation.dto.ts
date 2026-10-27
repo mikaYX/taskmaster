@@ -6,6 +6,8 @@ import {
   IsArray,
   IsInt,
   ArrayMinSize,
+  ArrayMaxSize,
+  ArrayUnique,
   ValidateIf,
 } from 'class-validator';
 
@@ -37,4 +39,14 @@ export class CreateDelegationDto {
     message: 'At least one target user or group must be provided',
   })
   targetGroupIds?: number[];
+}
+
+/** The same delegation, created on several tasks at once. */
+export class CreateBulkDelegationDto extends CreateDelegationDto {
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(100)
+  @ArrayUnique()
+  @IsInt({ each: true })
+  taskIds: number[];
 }

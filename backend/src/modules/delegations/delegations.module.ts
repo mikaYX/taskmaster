@@ -1,6 +1,9 @@
 import { Module } from '@nestjs/common';
 import { DelegationsService } from './delegations.service';
-import { DelegationsController } from './delegations.controller';
+import {
+  BulkDelegationsController,
+  DelegationsController,
+} from './delegations.controller';
 import { BeneficiaryResolverService } from './beneficiary-resolver.service';
 import { DelegationSchedulerService } from './delegation-scheduler.service';
 import { PrismaModule } from '../../prisma/prisma.module';
@@ -10,7 +13,7 @@ import { SettingsModule } from '../../settings/settings.module';
 
 @Module({
   imports: [PrismaModule, AuditModule, EmailModule, SettingsModule],
-  controllers: [DelegationsController],
+  controllers: [DelegationsController, BulkDelegationsController],
   providers: [
     DelegationsService,
     BeneficiaryResolverService,
