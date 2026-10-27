@@ -1785,6 +1785,14 @@
         "stepOf": "Étape {{current}} sur {{total}}"
     },
     "todos": {
+        "dispatch": {
+            "button": "Dispatcher",
+            "title": "Dispatcher la tâche",
+            "description": "Confiez « {{title}} » à un membre de votre équipe, ou rendez-la à l'équipe.",
+            "pick": "Confier à",
+            "placeholder": "Choisir un membre ou l'équipe...",
+            "confirm": "Dispatcher"
+        },
         "subtitle": "Vos tâches personnelles et collectives",
         "newTaskPlaceholder": "Nouvelle tâche... (n)",
         "newTask": "Nouvelle tâche",
@@ -2371,6 +2379,11 @@
             "deleteBody": "Cela supprimera définitivement le groupe <strong>{{name}}</strong>. Les affectations de tâches liées à ce groupe peuvent être impactées."
         },
         "members": {
+            "lead": "Responsable",
+            "makeLead": "Nommer {{name}} responsable de l'équipe",
+            "removeLead": "Retirer {{name}} des responsables",
+            "makeLeadShort": "Nommer responsable",
+            "removeLeadShort": "Retirer responsable",
             "title": "Membres du groupe",
             "description": "Gérez les membres de <strong>{{name}}</strong>",
             "addTitle": "Ajouter un membre",
@@ -2384,6 +2397,9 @@
             "empty": "Aucun membre dans ce groupe pour le moment.",
             "emptyHint": "Utilisez le sélecteur ci-dessus pour ajouter des utilisateurs.",
             "toasts": {
+                "leadSet": "Responsable nommé",
+                "leadRemoved": "Responsable retiré",
+                "leadFailed": "Impossible de modifier le responsable",
                 "added": "Membre ajouté avec succès",
                 "addFailed": "Échec de l'ajout du membre",
                 "removed": "Membre retiré avec succès",

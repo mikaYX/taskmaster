@@ -57,7 +57,13 @@ export const groupsApi = {
      * Get group members.
      */
     getMembers: (id: number) =>
-        http.get<User[]>(`/groups/${id}/members`),
+        http.get<(User & { isLead?: boolean })[]>(`/groups/${id}/members`),
+
+    /**
+     * Make a member a lead of the team, or take that back (a group can have several).
+     */
+    setLead: (id: number, userId: number, isLead: boolean) =>
+        http.put<void>(`/groups/${id}/members/${userId}/lead`, { isLead }),
 
     /**
      * Add members to group.

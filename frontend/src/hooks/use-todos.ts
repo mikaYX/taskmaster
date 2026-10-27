@@ -1,5 +1,5 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { todosApi, inboxApi, type CreateTodoDto, type Todo, type TodoScope, type UpdateTodoDto } from '../api/todos';
+import { todosApi, inboxApi, type CreateTodoDto, type DispatchTeam, type Todo, type TodoScope, type UpdateTodoDto } from '../api/todos';
 
 /** Lists refresh by themselves, so a colleague ticking a collective todo shows up. */
 const LIST_REFRESH_MS = 30_000;
@@ -18,6 +18,7 @@ export const todoKeys = {
     summary: ['todos', 'summary'] as const,
     history: (scope: TodoScope | undefined, search: string) => ['todos', 'history', scope, search] as const,
     preferences: ['todos', 'preferences'] as const,
+    dispatchTargets: ['todos', 'dispatch-targets'] as const,
     comments: (id: number) => ['todos', 'detail', id, 'comments'] as const,
     attachments: (id: number) => ['todos', 'detail', id, 'attachments'] as const,
 };
@@ -40,6 +41,16 @@ export function useTodoSummary(enabled = true) {
         enabled,
         refetchInterval: COUNTER_REFRESH_MS,
         refetchIntervalInBackground: false,
+    });
+}
+
+/** The teams the current user leads: empty for anyone who does not lead one. */
+export function useDispatchTargets(enabled = true) {
+    return useQuery<DispatchTeam[]>({
+        queryKey: todoKeys.dispatchTargets,
+        queryFn: () => todosApi.dispatchTargets(),
+        enabled,
+        staleTime: 5 * 60_000,
     });
 }
 

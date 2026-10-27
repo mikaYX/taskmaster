@@ -206,4 +206,44 @@ describe('Point 92 — GroupsService soft-delete', () => {
       );
     });
   });
+
+  // ─── setLead() ───────────────────────────────────────────────────────────
+
+  describe('setLead()', () => {
+    it('marque un membre comme responsable, sans toucher aux autres responsables', async () => {
+      mockPrismaClient.group.findFirst.mockResolvedValue(makeGroup());
+      mockPrismaClient.group.findUnique.mockResolvedValue(makeGroup());
+      mockPrismaClient.userGroupMembership.updateMany = jest
+        .fn()
+        .mockResolvedValue({ count: 1 });
+
+      await service.setLead(1, 7, true);
+
+      expect(
+        mockPrismaClient.userGroupMembership.updateMany,
+      ).toHaveBeenCalledWith({
+        where: { groupId: 1, userId: 7 },
+        data: { isLead: true },
+      });
+    });
+
+    it("refuse quelqu'un qui n'est pas membre du groupe", async () => {
+      mockPrismaClient.group.findFirst.mockResolvedValue(makeGroup());
+      mockPrismaClient.userGroupMembership.updateMany = jest
+        .fn()
+        .mockResolvedValue({ count: 0 });
+
+      await expect(service.setLead(1, 99, true)).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    it('refuse un groupe supprimé', async () => {
+      mockPrismaClient.group.findFirst.mockResolvedValue(null);
+
+      await expect(service.setLead(404, 7, true)).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+  });
 });

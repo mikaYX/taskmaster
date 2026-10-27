@@ -17,6 +17,7 @@ vi.mock('@/hooks/use-todos', () => ({
     useReorderTodos: idle,
     useDeleteTodo: idle,
     useTodoSummary: () => ({ data: { overdue: 0, dueToday: 0, open: 0, mine: 0 } }),
+    useDispatchTargets: () => ({ data: [] }),
     useTodoHistory: () => ({ data: undefined, isLoading: false }),
     useTodoPreferences: () => ({ data: undefined, isLoading: true }),
     useUpdateTodoPreferences: idle,

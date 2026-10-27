@@ -60,6 +60,7 @@ function fixture(
     userGroupMembership: {
       findFirst: jest.fn().mockResolvedValue({ userId: 8 }),
       findMany: jest.fn().mockResolvedValue([]),
+      count: jest.fn().mockResolvedValue(1),
     },
     notificationChannel: {
       findMany: jest.fn().mockResolvedValue(channels),
@@ -409,6 +410,143 @@ describe('TodosService assignment', () => {
     await service.update(2, { title: 'Renamed' }, 1, 'MANAGER', 1);
 
     expect(inbox.notify).not.toHaveBeenCalled();
+  });
+
+  describe('a team lead handing todos out', () => {
+    const asLead = (
+      client: ReturnType<typeof fixture>['client'],
+      ids: number[],
+    ) =>
+      client.userGroupMembership.findMany.mockImplementation(
+        (args: { where?: { isLead?: boolean } }) =>
+          Promise.resolve(
+            args.where?.isLead ? ids.map((groupId) => ({ groupId })) : [],
+          ),
+      );
+
+    it('hands a todo of the team to one of its members', async () => {
+      const { service, client, todo } = fixture();
+      asLead(client, [4]);
+      todo.findUnique.mockResolvedValue(collective);
+      todo.update.mockResolvedValue({ ...collective, assigneeId: 9 });
+
+      await service.update(2, { assigneeId: 9 }, 8, 'USER', 1);
+
+      expect(todo.update.mock.calls[0][0].data.assigneeId).toBe(9);
+    });
+
+    it('redispatches a todo assigned to the lead in person, even without a team', async () => {
+      const { service, client, todo } = fixture();
+      asLead(client, [4]);
+      todo.findUnique.mockResolvedValue({
+        ...collective,
+        groupId: null,
+        assigneeId: 8,
+      });
+      todo.update.mockResolvedValue({
+        ...collective,
+        groupId: null,
+        assigneeId: 9,
+      });
+
+      await service.update(2, { assigneeId: 9 }, 8, 'USER', 1);
+
+      const check = client.userGroupMembership.count.mock.calls[0][0].where;
+      expect(check).toEqual({ userId: 9, groupId: { in: [4] } });
+      expect(todo.update).toHaveBeenCalled();
+    });
+
+    it('can hand a todo back to the team', async () => {
+      const { service, client, todo } = fixture();
+      asLead(client, [4]);
+      todo.findUnique.mockResolvedValue({
+        ...collective,
+        groupId: null,
+        assigneeId: 8,
+      });
+      todo.update.mockResolvedValue({ ...collective, assigneeId: null });
+
+      await service.update(2, { groupId: 4, assigneeId: null }, 8, 'USER', 1);
+
+      expect(todo.update).toHaveBeenCalled();
+    });
+
+    it('refuses someone who is not a lead', async () => {
+      const { service, todo } = fixture();
+      todo.findUnique.mockResolvedValue(collective);
+
+      await expect(
+        service.update(2, { assigneeId: 9 }, 8, 'USER', 1),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('refuses a todo that belongs to another team', async () => {
+      const { service, client, todo } = fixture();
+      asLead(client, [4]);
+      todo.findUnique.mockResolvedValue({
+        ...collective,
+        groupId: 7,
+        assigneeId: 5,
+      });
+
+      await expect(
+        service.update(2, { assigneeId: 9 }, 8, 'USER', 1),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('refuses someone who is not in the team', async () => {
+      const { service, client, todo } = fixture();
+      asLead(client, [4]);
+      client.userGroupMembership.count.mockResolvedValue(0);
+      todo.findUnique.mockResolvedValue(collective);
+
+      await expect(
+        service.update(2, { assigneeId: 99 }, 8, 'USER', 1),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('refuses any other change, such as the title or a move to another team', async () => {
+      const { service, client, todo } = fixture();
+      asLead(client, [4]);
+      todo.findUnique.mockResolvedValue(collective);
+
+      await expect(
+        service.update(2, { title: 'Renamed' }, 8, 'USER', 1),
+      ).rejects.toThrow(ForbiddenException);
+      await expect(
+        service.update(2, { groupId: 7 }, 8, 'USER', 1),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('lists the teams a person leads with their members', async () => {
+      const { service, client } = fixture();
+      client.userGroupMembership.findMany.mockResolvedValue([
+        {
+          group: {
+            id: 4,
+            name: 'Maintenance',
+            members: [
+              { user: { id: 8, username: 'marie', fullname: 'Marie Dupont' } },
+              { user: { id: 9, username: 'paul', fullname: null } },
+            ],
+          },
+        },
+      ]);
+
+      const targets = await service.dispatchTargets(8);
+
+      expect(targets).toEqual([
+        {
+          id: 4,
+          name: 'Maintenance',
+          memberCount: 2,
+          members: [
+            { id: 8, username: 'marie', fullname: 'Marie Dupont' },
+            { id: 9, username: 'paul', fullname: null },
+          ],
+        },
+      ]);
+    });
   });
 
   it('lets a manager reassign and tells the new assignee', async () => {

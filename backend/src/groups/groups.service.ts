@@ -319,9 +319,42 @@ export class GroupsService {
     return this.findOne(groupId);
   }
 
+  /** A group can have several leads; only someone already in the group can be one. */
+  async setLead(
+    groupId: number,
+    userId: number,
+    isLead: boolean,
+  ): Promise<GroupResponseDto> {
+    const group = await this.prisma.client.group.findFirst({
+      where: { id: groupId, deletedAt: null },
+    });
+
+    if (!group) {
+      throw new NotFoundException(`Group with ID ${groupId} not found`);
+    }
+    await this.assertManagerOwnsSite(group.siteId);
+
+    const updated = await this.prisma.client.userGroupMembership.updateMany({
+      where: { groupId, userId },
+      data: { isLead },
+    });
+    if (updated.count === 0) {
+      throw new NotFoundException(
+        `User ${userId} is not a member of group ${groupId}`,
+      );
+    }
+
+    this.logger.log(
+      `${isLead ? 'Made' : 'Stopped making'} user ${userId} a lead of group ${group.name}`,
+    );
+    return this.findOne(groupId);
+  }
+
   async getMembers(
     groupId: number,
-  ): Promise<{ id: number; username: string; fullname: string | null }[]> {
+  ): Promise<
+    { id: number; username: string; fullname: string | null; isLead: boolean }[]
+  > {
     const group = await this.prisma.client.group.findFirst({
       where: { id: groupId, deletedAt: null },
       include: {
@@ -344,6 +377,7 @@ export class GroupsService {
       id: m.user.id,
       username: m.user.username,
       fullname: m.user.fullname,
+      isLead: m.isLead,
     }));
   }
 

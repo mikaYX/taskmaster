@@ -1785,6 +1785,14 @@
         "stepOf": "Step {{current}} of {{total}}"
     },
     "todos": {
+        "dispatch": {
+            "button": "Hand out",
+            "title": "Hand the task out",
+            "description": "Give \\u201c{{title}}\\u201d to a member of your team, or hand it back to the team.",
+            "pick": "Give to",
+            "placeholder": "Pick a member or the team...",
+            "confirm": "Hand out"
+        },
         "subtitle": "Your personal and collective tasks",
         "newTaskPlaceholder": "New task... (n)",
         "newTask": "New task",
@@ -2371,6 +2379,11 @@
             "deleteBody": "This will properly delete the group <strong>{{name}}</strong>. Task assignments related to this group might be affected."
         },
         "members": {
+            "lead": "Lead",
+            "makeLead": "Make {{name}} a lead of the team",
+            "removeLead": "Remove {{name}} from the leads",
+            "makeLeadShort": "Make lead",
+            "removeLeadShort": "Remove lead",
             "title": "Group Members",
             "description": "Manage members for <strong>{{name}}</strong>",
             "addTitle": "Add New Member",
@@ -2384,6 +2397,9 @@
             "empty": "No members in this group yet.",
             "emptyHint": "Use the selector above to add users.",
             "toasts": {
+                "leadSet": "Lead appointed",
+                "leadRemoved": "Lead removed",
+                "leadFailed": "Could not change the lead",
                 "added": "Member added successfully",
                 "addFailed": "Failed to add member",
                 "removed": "Member removed successfully",

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { applyAssignment, assignmentSections, assignmentValue } from './todo-assignment';
+import { applyAssignment, assignmentSections, assignmentValue, dispatchUpdate } from './todo-assignment';
 
 const t = (key: string, values?: Record<string, unknown>) => (values?.count !== undefined ? `${key}:${values.count}` : key);
 
@@ -36,5 +36,23 @@ describe('todo assignment', () => {
         expect(assignmentValue('4', '8')).toEqual(['user:8']);
         expect(assignmentValue('4', '')).toEqual(['group:4']);
         expect(assignmentValue('', '')).toEqual([]);
+    });
+
+    describe('dispatchUpdate (a team lead handing a todo out)', () => {
+        it('gives it to a member and keeps it in its team', () => {
+            expect(dispatchUpdate({ groupId: 4 }, 'user:9')).toEqual({ assigneeId: 9 });
+        });
+
+        it('hands it back to its own team by clearing the person', () => {
+            expect(dispatchUpdate({ groupId: 4 }, 'group:4')).toEqual({ assigneeId: null });
+        });
+
+        it('hands a todo held in person to a team', () => {
+            expect(dispatchUpdate({ groupId: null }, 'group:4')).toEqual({ groupId: 4, assigneeId: null });
+        });
+
+        it('does nothing without a choice', () => {
+            expect(dispatchUpdate({ groupId: 4 }, undefined)).toBeNull();
+        });
     });
 });

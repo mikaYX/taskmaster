@@ -26,7 +26,17 @@ export type {
     UpdateTodoDto,
 };
 
+/** A team the current user leads, with the people a todo can be handed out to. */
+export interface DispatchTeam {
+    id: number;
+    name: string;
+    memberCount: number;
+    members: { id: number; username: string; fullname: string | null }[];
+}
+
 export const todosApi = {
+    dispatchTargets: async () => await http.get<DispatchTeam[]>('/todos/dispatch-targets'),
+
     getAll: async (scope?: 'PRIVATE' | 'COLLECTIVE') => {
         const params = scope ? { scope } : undefined;
         return await http.get<Todo[]>('/todos', { params });

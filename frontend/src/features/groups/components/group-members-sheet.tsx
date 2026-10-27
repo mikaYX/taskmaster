@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Plus, Trash, Users, Search } from 'lucide-react';
+import { Plus, Trash, Users, Search, ShieldCheck } from 'lucide-react';
 import {
     Sheet,
     SheetContent,
@@ -13,7 +13,7 @@ import { Separator } from '@/components/ui/separator';
 import { Card, CardContent } from '@/components/ui/card';
 
 import type { Group } from '@/api/types';
-import { useGroupMembers, useAddGroupMembers, useRemoveGroupMembers } from '@/hooks/use-groups';
+import { useGroupMembers, useAddGroupMembers, useRemoveGroupMembers, useSetGroupLead } from '@/hooks/use-groups';
 import { useUsers } from '@/hooks/use-users';
 import { toast } from 'sonner';
 import { Trans, useTranslation } from 'react-i18next';
@@ -44,6 +44,7 @@ export function GroupMembersSheet({ group, open, onOpenChange }: GroupMembersShe
 
     const addMembers = useAddGroupMembers();
     const removeMembers = useRemoveGroupMembers();
+    const setLead = useSetGroupLead();
 
     // Available users (not in group, not deleted)
     const availableUsers = useMemo(
@@ -87,7 +88,18 @@ export function GroupMembersSheet({ group, open, onOpenChange }: GroupMembersShe
         );
     };
 
-    const isLoadingAction = addMembers.isPending || removeMembers.isPending;
+    const handleToggleLead = (userId: number, isLead: boolean) => {
+        if (!group) return;
+        setLead.mutate(
+            { id: group.id, userId, isLead },
+            {
+                onSuccess: () => toast.success(t(isLead ? 'groupMgmt.members.toasts.leadSet' : 'groupMgmt.members.toasts.leadRemoved')),
+                onError: () => toast.error(t('groupMgmt.members.toasts.leadFailed')),
+            },
+        );
+    };
+
+    const isLoadingAction = addMembers.isPending || removeMembers.isPending || setLead.isPending;
 
     return (
         <Sheet open={open} onOpenChange={onOpenChange}>
@@ -195,14 +207,33 @@ export function GroupMembersSheet({ group, open, onOpenChange }: GroupMembersShe
                                                 {(member.fullname || member.username || '?').substring(0, 2).toUpperCase()}
                                             </div>
                                             <div>
-                                                <div className="font-medium text-sm">
+                                                <div className="flex items-center gap-2 text-sm font-medium">
                                                     {member.fullname || member.username}
+                                                    {member.isLead && (
+                                                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-[11px] font-medium text-amber-700 dark:text-amber-400">
+                                                            <ShieldCheck className="h-3 w-3" />
+                                                            {t('groupMgmt.members.lead')}
+                                                        </span>
+                                                    )}
                                                 </div>
                                                 <div className="text-xs text-muted-foreground">
                                                     {member.email || member.username}
                                                 </div>
                                             </div>
                                         </div>
+                                        <div className="flex items-center">
+                                        <Button
+                                            variant={member.isLead ? 'secondary' : 'outline'}
+                                            size="sm"
+                                            className={`mr-1 h-8 gap-1.5 px-2.5 text-xs ${member.isLead ? 'text-amber-700 dark:text-amber-400' : ''}`}
+                                            aria-label={t(member.isLead ? 'groupMgmt.members.removeLead' : 'groupMgmt.members.makeLead', { name: member.fullname || member.username })}
+                                            aria-pressed={!!member.isLead}
+                                            onClick={() => handleToggleLead(member.id, !member.isLead)}
+                                            disabled={isLoadingAction}
+                                        >
+                                            <ShieldCheck className="h-3.5 w-3.5" />
+                                            {t(member.isLead ? 'groupMgmt.members.removeLeadShort' : 'groupMgmt.members.makeLeadShort')}
+                                        </Button>
                                         <Button
                                             variant="ghost"
                                             size="icon"
@@ -212,6 +243,7 @@ export function GroupMembersSheet({ group, open, onOpenChange }: GroupMembersShe
                                         >
                                             <Trash className="h-4 w-4" />
                                         </Button>
+                                        </div>
                                     </CardContent>
                                 </Card>
                             ))

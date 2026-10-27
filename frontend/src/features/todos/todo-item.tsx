@@ -8,6 +8,7 @@ import {
     ChevronRight,
     GripVertical,
     HandHelping,
+    Send,
     ListPlus,
     MessageSquare,
     Pencil,
@@ -30,6 +31,9 @@ export interface TodoItemActions {
     /** Collective todos: take it, or give it back. */
     onTake?: (todo: Todo) => void;
     onRelease?: (todo: Todo) => void;
+    /** A team lead hands the todo out (to a member, or back to the team). */
+    onDispatch?: (todo: Todo) => void;
+    canDispatch?: (todo: Todo) => boolean;
 }
 
 /** Native drag and drop state of one row, built by the page. */
@@ -282,6 +286,17 @@ export function TodoItem({ todo, subtasks = [], canManage, currentUserId = null,
                             onClick={() => actions.onRelease?.(todo)}
                         >
                             <UserMinus className="h-4 w-4" />
+                        </Button>
+                    )}
+                    {isCollective && !todo.isCompleted && !canManage && actions.onDispatch && actions.canDispatch?.(todo) && (
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="mr-1 h-7 gap-1 px-2 text-xs"
+                            onClick={() => actions.onDispatch?.(todo)}
+                        >
+                            <Send className="h-3.5 w-3.5" />
+                            {t('todos.dispatch.button')}
                         </Button>
                     )}
                     {!isSubtask && actions.onOpenDetails && (

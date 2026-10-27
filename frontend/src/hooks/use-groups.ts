@@ -93,3 +93,17 @@ export function useRemoveGroupMembers() {
         },
     });
 }
+
+export function useSetGroupLead() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: ({ id, userId, isLead }: { id: number; userId: number; isLead: boolean }) =>
+            groupsApi.setLead(id, userId, isLead),
+        onSuccess: (_, { id }) => {
+            queryClient.invalidateQueries({ queryKey: groupKeys.members(id) });
+            // What a lead can hand out follows who leads.
+            queryClient.invalidateQueries({ queryKey: ['todos', 'dispatch-targets'] });
+        },
+    });
+}

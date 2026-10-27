@@ -168,6 +168,8 @@ model Group {
 model UserGroupMembership {
   userId    Int      @map("user_id")
   groupId   Int      @map("group_id")
+  /** A lead can hand the todos of the team out to its members. A group may have several. */
+  isLead    Boolean  @default(false) @map("is_lead")
   createdAt DateTime @default(now()) @map("created_at")
   group     Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)

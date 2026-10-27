@@ -82,6 +82,12 @@ export class TodosController {
     return this.todosService.findAll(user.sub, userGroupIds, siteId, scope);
   }
 
+  /** The teams the current user leads, with their members (empty for anyone else). */
+  @Get('dispatch-targets')
+  dispatchTargets(@CurrentUser() user: JwtPayload) {
+    return this.todosService.dispatchTargets(user.sub);
+  }
+
   /** What needs attention now (badges and the opening reminder). */
   @Get('summary')
   async summary(@CurrentUser() user: JwtPayload) {

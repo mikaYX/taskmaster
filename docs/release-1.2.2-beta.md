@@ -97,7 +97,27 @@ En plus de la cloche, l'admin choisit quels canaux les todos utilisent, parmi ce
 
 - L'interface propose les types de canal **Discord** et **Webhook**, mais l'enum Prisma `NotificationChannelType` ne les contient pas (`SLACK`, `TEAMS`, `EMAIL`, `TELEGRAM`, `PUSH`). La création d'un tel canal doit donc échouer en base. À corriger (migration ou retrait des options).
 
-## 7. À venir
+## 7. Groupes : responsables d'équipe
+
+### Décisions
+
+- **Plusieurs responsables** possibles par groupe.
+- Une todo confiée à l'**équipe** prévient toute l'équipe, responsables compris. Une todo confiée au **responsable en personne** ne prévient que lui, et il peut la **redispatcher**.
+
+### Livré (à valider en test)
+
+- Migration `20261027020000_group_member_lead` : colonne `is_lead` sur `user_group_memberships` (faux par défaut).
+- Fiche des membres d'un groupe : bouton « Nommer responsable » / « Retirer des responsables » par membre, et pastille « Responsable ». Route `PUT /groups/:id/members/:userId/lead` (audit `GROUP_MEMBER_LEAD_CHANGED`).
+- Droit de dispatch pour un responsable (sans être manager) : sur une todo confiée à son équipe, ou à lui en personne, il peut la donner à un membre d'une équipe qu'il dirige, ou la rendre à l'équipe. Rien d'autre ne change dans le même appel (titre, échéance, autre équipe : refusés).
+- Bouton « Dispatcher » sur la ligne de la todo, pour les responsables seulement ; confier à un membre garde la todo dans son équipe.
+- Route `GET /todos/dispatch-targets` : les équipes dirigées par l'utilisateur, avec leurs membres.
+
+### À savoir
+
+- Le responsable n'a pas d'autre pouvoir : il ne peut pas renommer, supprimer ni changer l'échéance des todos de l'équipe (réservé aux managers).
+- Une todo confiée à une personne qui n'est pas responsable ne peut pas être redispatchée par elle (elle peut seulement la libérer).
+
+## 8. À venir
 
 _Autres points à ajouter plus tard._
 
@@ -106,4 +126,4 @@ _Autres points à ajouter plus tard._
 - [ ] Tests unitaires et e2e à jour
 - [x] Traductions FR/EN
 - [ ] Entrée dans `CHANGELOG.md` (section 1.2.2)
-- [ ] Migration Prisma documentée dans le changelog (`20261027000000_todo_reminder_email_default_on` ; le point 1 n'en demande aucune)
+- [ ] Migrations Prisma documentées dans le changelog (`20261027000000_todo_reminder_email_default_on`, `20261027020000_group_member_lead` ; le point 1 n'en demande aucune)

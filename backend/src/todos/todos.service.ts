@@ -288,6 +288,84 @@ export class TodosService {
     return this.isGroupMember(userId, todo.groupId);
   }
 
+  /** The groups this person leads. */
+  private async ledGroupIds(userId: number): Promise<number[]> {
+    const rows = await this.prisma.client.userGroupMembership.findMany({
+      where: { userId, isLead: true, group: { deletedAt: null } },
+      select: { groupId: true },
+    });
+    return rows.map((row) => row.groupId);
+  }
+
+  /**
+   * A lead of a team may hand its todos out: one that is assigned to the team, or to the
+   * lead in person, goes to a member of a team they lead, or back to the team. Nothing
+   * else about the todo may change in the same call.
+   */
+  private async canLeadDispatch(
+    todo: { groupId: number | null; assigneeId: number | null },
+    dto: UpdateTodoDto,
+    userId: number,
+  ) {
+    const keys = Object.keys(dto).filter(
+      (k) => dto[k as keyof UpdateTodoDto] !== undefined,
+    );
+    if (
+      keys.length === 0 ||
+      !keys.every((k) => k === 'assigneeId' || k === 'groupId')
+    ) {
+      return false;
+    }
+    const led = await this.ledGroupIds(userId);
+    if (led.length === 0) return false;
+
+    const holdsIt =
+      todo.assigneeId === userId ||
+      (todo.groupId !== null && led.includes(todo.groupId));
+    if (!holdsIt) return false;
+
+    // Where the todo ends up: the team named now, else the one it already has.
+    const team = dto.groupId !== undefined ? dto.groupId : todo.groupId;
+    if (team !== null && !led.includes(team)) return false;
+    if (dto.assigneeId != null) {
+      const member = await this.prisma.client.userGroupMembership.count({
+        where: {
+          userId: dto.assigneeId,
+          groupId: team !== null ? team : { in: led },
+        },
+      });
+      if (member === 0) return false;
+    }
+    return true;
+  }
+
+  /** The teams this person leads, with their members: what they can hand todos out to. */
+  async dispatchTargets(userId: number) {
+    const rows = await this.prisma.client.userGroupMembership.findMany({
+      where: { userId, isLead: true, group: { deletedAt: null } },
+      select: {
+        group: {
+          select: {
+            id: true,
+            name: true,
+            members: {
+              where: { user: { deletedAt: null } },
+              select: {
+                user: { select: { id: true, username: true, fullname: true } },
+              },
+            },
+          },
+        },
+      },
+    });
+    return rows.map(({ group }) => ({
+      id: group.id,
+      name: group.name,
+      memberCount: group.members.length,
+      members: group.members.map((m) => m.user),
+    }));
+  }
+
   private async findInSite(id: number, siteId: number) {
     const todo = await this.prisma.client.todo.findUnique({ where: { id } });
     // Same error for a missing todo and one from another site: don't leak IDs.
@@ -643,7 +721,8 @@ export class TodosService {
     if (
       todo.scope === TodoScope.COLLECTIVE &&
       !this.isManager(userRole) &&
-      !(await this.canMemberEditCollective(todo, dto, userId))
+      !(await this.canMemberEditCollective(todo, dto, userId)) &&
+      !(await this.canLeadDispatch(todo, dto, userId))
     ) {
       throw new ForbiddenException(
         'You need MANAGER or above role to update collective todos',

@@ -7,6 +7,7 @@ import {
     useClearCompletedTodos,
     useReorderTodos,
     useTodoSummary,
+    useDispatchTargets,
 } from '@/hooks/use-todos';
 import { cn } from '@/lib/utils';
 import { useGroups } from '@/hooks/use-groups';
@@ -52,6 +53,7 @@ import { TodoQuickAddHelp } from './todo-quick-add-help';
 import { usePublicBranding } from '@/hooks/use-public-branding';
 import { Navigate } from 'react-router-dom';
 import { TodoEditDialog } from './todo-edit-dialog';
+import { TodoDispatchDialog } from './todo-dispatch-dialog';
 import { TodoItem, type TodoDragProps } from './todo-item';
 import { TodoDetailsSheet } from './todo-details-sheet';
 import { TodoHistoryDialog } from './todo-history-dialog';
@@ -121,6 +123,9 @@ function TodosPageContent() {
     const todos = activeTab === 'PRIVATE' ? privateTodos : collectiveTodos;
     const isLoading = activeTab === 'PRIVATE' ? loadingPrivate : loadingCollective;
     const { data: groups } = useGroups(isManager);
+    // A team lead who is not a manager can still hand the todos of their team out.
+    const { data: ledTeams = [] } = useDispatchTargets(activeTab === 'COLLECTIVE' && !isManager);
+    const [todoToDispatch, setTodoToDispatch] = useState<Todo | null>(null);
     const { data: users } = useUsers(false, false, isManager);
 
     const createTodo = useCreateTodo();
@@ -327,6 +332,12 @@ function TodosPageContent() {
             }
             onRelease={(t) =>
                 updateTodo.mutate({ id: t.id, dto: { assigneeId: null } }, { onError: fail('todos.errors.update') })
+            }
+            onDispatch={setTodoToDispatch}
+            canDispatch={(t) =>
+                ledTeams.length > 0 &&
+                t.parentId === null &&
+                ((userId !== null && t.assigneeId === userId) || (t.groupId !== null && ledTeams.some((team) => team.id === t.groupId)))
             }
         />
     );
@@ -823,6 +834,16 @@ function TodosPageContent() {
                 <TabsContent value="PRIVATE">{renderTabContent()}</TabsContent>
                 <TabsContent value="COLLECTIVE">{renderTabContent()}</TabsContent>
             </Tabs>
+
+            <TodoDispatchDialog
+                todo={todoToDispatch}
+                teams={ledTeams}
+                saving={updateTodo.isPending}
+                onSave={(id, dto) =>
+                    updateTodo.mutate({ id, dto }, { onSuccess: () => setTodoToDispatch(null), onError: fail('todos.errors.update') })
+                }
+                onClose={() => setTodoToDispatch(null)}
+            />
 
             <TodoEditDialog
                 todo={todoToEdit}

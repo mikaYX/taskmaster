@@ -12,7 +12,12 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { GroupsService } from './groups.service';
-import { CreateGroupDto, UpdateGroupDto, ManageMembersDto } from './dto';
+import {
+  CreateGroupDto,
+  UpdateGroupDto,
+  ManageMembersDto,
+  SetLeadDto,
+} from './dto';
 import { JwtAuthGuard, RolesGuard, Roles } from '../auth';
 import { Audit } from '../audit/decorators/audit.decorator';
 import { AuditAction, AuditCategory } from '../audit/audit.constants';
@@ -144,5 +149,21 @@ export class GroupsController {
     @Body() dto: ManageMembersDto,
   ) {
     return this.groupsService.removeMembers(id, dto.userIds);
+  }
+
+  /**
+   * Make a member a lead of the team, or take that back (a group can have several).
+   */
+  @Put(':id/members/:userId/lead')
+  @Audit({
+    action: AuditAction.GROUP_MEMBER_LEAD_CHANGED,
+    category: AuditCategory.GROUP,
+  })
+  async setLead(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('userId', ParseIntPipe) userId: number,
+    @Body() dto: SetLeadDto,
+  ) {
+    return this.groupsService.setLead(id, userId, dto.isLead);
   }
 }

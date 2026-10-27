@@ -15,6 +15,8 @@ export class GroupMemberDto {
   id!: number;
   username!: string;
   fullname!: string | null;
+  /** Can hand the todos of the team out to its members. */
+  isLead!: boolean;
 }
 
 export function toGroupResponse(group: {
@@ -27,6 +29,7 @@ export function toGroupResponse(group: {
   siteId: number;
   site?: { id: number; name: string; code: string };
   members?: {
+    isLead: boolean;
     user: { id: number; username: string; fullname: string | null };
   }[];
   _count?: { members: number };
@@ -47,6 +50,7 @@ export function toGroupResponse(group: {
       id: m.user.id,
       username: m.user.username,
       fullname: m.user.fullname,
+      isLead: m.isLead,
     })),
   };
 }

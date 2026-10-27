@@ -1,4 +1,5 @@
 import type { TargetPickerSection } from '@/components/target-picker';
+import type { Todo, UpdateTodoDto } from '@/api/todos';
 
 type Translate = (key: string, values?: Record<string, unknown>) => string;
 
@@ -51,4 +52,17 @@ export function applyAssignment(values: string[]): { groupId: string; assigneeId
         groupId: kind === 'group' ? id : '',
         assigneeId: kind === 'user' ? id : '',
     };
+}
+
+/**
+ * What a team lead sends out: to a member of a team they lead, or back to the team.
+ * Handing it to a member keeps the todo in its team; only the person in charge changes.
+ */
+export function dispatchUpdate(todo: Pick<Todo, 'groupId'>, pick: string | undefined): UpdateTodoDto | null {
+    const [kind, raw] = (pick ?? '').split(':');
+    const id = Number(raw);
+    if (!id) return null;
+    if (kind === 'user') return { assigneeId: id };
+    if (kind === 'group') return todo.groupId === id ? { assigneeId: null } : { groupId: id, assigneeId: null };
+    return null;
 }
