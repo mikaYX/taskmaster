@@ -133,9 +133,14 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+  windows:
+    name: Build Windows MSI
+    needs: [changelog, quality]
+    uses: ./.github/workflows/windows-installer.yml
+
   release:
     name: Create GitHub Release
-    needs: [changelog, docker]
+    needs: [changelog, docker, windows]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -145,11 +150,21 @@ jobs:
         with:
           name: release-body
 
+      - uses: actions/download-artifact@v8
+        with:
+          name: taskmaster-windows-candidate
+          path: windows
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v3
         with:
           name: "Taskmaster ${{ needs.changelog.outputs.version }}"
           body_path: release_body.md
+          # Only the MSI and its checksum are public; the other files of the
+          # artifact are acceptance-test tooling.
+          files: |
+            windows/dist-installer/*.msi
+            windows/dist-installer/SHA256SUMS
           draft: false
           prerelease: ${{ needs.changelog.outputs.prerelease == 'true' }}
           make_latest: ${{ needs.changelog.outputs.prerelease == 'true' && 'false' || 'true' }}

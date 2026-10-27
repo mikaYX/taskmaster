@@ -2,6 +2,8 @@ name: Build Windows installer candidate
 
 on:
   workflow_dispatch:
+  # Called by release.yml so every tagged release ships its MSI.
+  workflow_call:
 
 permissions:
   contents: read

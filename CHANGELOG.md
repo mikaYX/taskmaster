@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.2-beta.2] - 2026-10-27
+
+Second beta of 1.2.2, for testing only (pre-release, `beta` Docker tag, never `latest`). The `1.2.2-beta.1` tag was never published because its browser regression check failed; this beta carries the same changes as it, plus the Windows installer.
+
+### Added
+
+- **Windows installer in the release.** Every tagged release now builds the unsigned `Taskmaster-<version>-x64.msi` and attaches it, with its `SHA256SUMS`, to the GitHub release. A pre-release such as `1.2.2-beta.2` is packaged with the MSI version `1.2.2.2`, and installing another build of the same version over it is now treated as an upgrade.
+
+### Fixed
+
+- The corrective action browser test now provides the `canUpdate` flag the page relies on to show the close button.
+
 ## [1.2.2-beta.1] - 2026-10-27
 
 Beta of 1.2.2, for testing only: it is published as a pre-release and under the `beta` Docker tag, never as `latest`. **Database migrations** run automatically on start: the previous migrations are now folded into a single guarded file (an existing installation only runs the parts it is missing, an up-to-date one skips everything), and it carries the new changes (`todo_reminder_email_default_on`, `corrective_action_group_assignee`, `group_member_lead`). They only add or relax columns, so existing data is untouched. If you run the backend by hand, apply them with `prisma migrate deploy` before starting.

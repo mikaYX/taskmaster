@@ -40,6 +40,7 @@
       Custom actions below hook into InstallExecuteSequence around this.
     -->
     <MajorUpgrade
+      AllowSameVersionUpgrades="yes"
       DowngradeErrorMessage="Une version plus récente de Taskmaster est déjà installée."
       Schedule="afterInstallInitialize" />
 

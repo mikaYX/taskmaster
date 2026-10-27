@@ -203,7 +203,7 @@ test('attend l’envoi de la photo avant de valider une checklist', async ({ pag
 });
 
 test('clôture une action corrective avec sa résolution', async ({ page }) => {
-    const action = { id: 1, taskId: 1, title: 'Remplacer le panneau', instanceDate: '2026-10-16T00:00:00Z', assigneeId: 1, createdById: 1, dueDate: null, state: 'OPEN', resolution: null as string | null, closedAt: null, task: { name: 'Contrôle 1', siteId: 1 }, assignee: { id: 1, username: 'admin', fullname: null } };
+    const action = { id: 1, taskId: 1, title: 'Remplacer le panneau', instanceDate: '2026-10-16T00:00:00Z', assigneeId: 1, createdById: 1, dueDate: null, state: 'OPEN', canUpdate: true, resolution: null as string | null, closedAt: null, task: { name: 'Contrôle 1', siteId: 1 }, assignee: { id: 1, username: 'admin', fullname: null } };
     await page.route('**/api/corrective-actions/search?*', route => {
         const state = new URL(route.request().url()).searchParams.get('state');
         const items = action.state === state ? [action] : [];

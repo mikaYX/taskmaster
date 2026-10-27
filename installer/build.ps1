@@ -54,6 +54,15 @@ $version = $rootPackageJson.version
 if (-not $version) { throw 'Could not read version from root package.json' }
 Write-Stage "Construction de Taskmaster v$version"
 
+# MSI versions are numeric (a.b.c.d): a pre-release such as 1.2.2-beta.3 ships
+# as 1.2.2.3 (the beta number goes in the 4th field). The app itself, and the
+# MSI file name, keep the full SemVer string.
+if ($version -notmatch '^(\d+)\.(\d+)\.(\d+)(?:-[0-9A-Za-z-]+\.(\d+))?$') {
+    throw "Unsupported version '$version' - expected X.Y.Z or X.Y.Z-<tag>.<number>"
+}
+$msiVersion = "$($Matches[1]).$($Matches[2]).$($Matches[3])"
+if ($Matches[4]) { $msiVersion += ".$($Matches[4])" }
+
 # ---- 3. npm ci (root) - preserves the `overrides` block automatically -----
 # backend's postinstall hook (triggered automatically by npm ci) runs
 # `prisma generate`, which loads prisma.config.ts - that file resolves
@@ -338,7 +347,7 @@ $msiPath = Join-Path $distRoot "Taskmaster-$version-x64.msi"
 & wix build (Join-Path $wixStaging 'Product.wxs') (Join-Path $wixStaging 'UI.wxs') (Join-Path $wixStaging 'AppFiles.wxs') (Join-Path $wixStaging 'NodeRuntimeFiles.wxs') `
     -arch x64 `
     -ext WixToolset.Util.wixext -ext WixToolset.UI.wixext `
-    -d "ProductVersion=$version" `
+    -d "ProductVersion=$msiVersion" `
     -bindpath "staging=$stagingRoot" `
     -bindpath "repo=$repoRoot" `
     -o $msiPath
