@@ -79,6 +79,7 @@
         "passkeyOptionalDesc": "Renforcez la sécurité de votre compte et connectez-vous plus vite avec une passkey. Vous pouvez utiliser la biométrie de votre appareil (empreinte, visage) ou une clé de sécurité.",
         "passkeyBenefits": "Les passkeys remplacent les mots de passe de façon plus sûre et plus simple.",
         "configureNow": "Configurer maintenant",
+        "passkeyDecline": "Non merci",
         "passkeyName": "Nom de l'appareil",
         "passkeyNamePlaceholder": "Mon téléphone, PC du bureau...",
         "passkeyNameHelp": "Choisissez un nom pour reconnaître cet appareil plus tard.",

@@ -8,6 +8,7 @@ import { TodoOpenReminder } from '@/components/todos/todo-open-reminder';
 import { PasskeyOnboardingModal } from '@/features/auth/components/passkey-onboarding-modal';
 import { ChangePasswordDialog } from '@/features/profile/components/change-password-dialog';
 import { useAuthStore } from '@/stores';
+import { declinePasskeyPrompt, isPasskeyPromptDeclined } from '@/lib/passkey-prompt';
 import { useState, useEffect } from 'react';
 import { usePublicBranding } from '@/hooks/use-public-branding';
 import { useUIStore } from '@/stores/ui-store';
@@ -25,9 +26,13 @@ interface AppLayoutProps {
  * Based on Figma reference.
  */
 export function AppLayout({ titleKey, subtitleKey }: AppLayoutProps) {
-    const { isAuthenticated, passkeysEnabled, passkeyPolicy, hasPasskey, role, mustChangePassword } = useAuthStore();
+    const { isAuthenticated, passkeysEnabled, passkeyPolicy, hasPasskey, role, mustChangePassword, userId } = useAuthStore();
     const { isTvMode, setIsTvMode } = useUIStore();
     const [isDismissed, setIsDismissed] = useState(() => !!sessionStorage.getItem('passkey_setup_dismissed'));
+    // "No thanks" is remembered for good; only an optional policy can be refused. Read at each
+    // render because the user id is not known yet on the very first one.
+    const [, refreshDeclined] = useState(0);
+    const isDeclined = isPasskeyPromptDeclined(userId);
 
     useEffect(() => {
         if (role === 'GUEST' && !isTvMode) {
@@ -48,7 +53,8 @@ export function AppLayout({ titleKey, subtitleKey }: AppLayoutProps) {
         passkeysEnabled &&
         !hasPasskey &&
         passkeyPolicy !== 'disabled' &&
-        !isDismissed
+        !isDismissed &&
+        !(isDeclined && passkeyPolicy === 'optional')
     );
 
     const handleOpenChange = (open: boolean) => {
@@ -56,6 +62,11 @@ export function AppLayout({ titleKey, subtitleKey }: AppLayoutProps) {
             sessionStorage.setItem('passkey_setup_dismissed', 'true');
             setIsDismissed(true);
         }
+    };
+
+    const handleDecline = () => {
+        declinePasskeyPrompt(userId);
+        refreshDeclined((n) => n + 1);
     };
 
     return (
@@ -87,6 +98,7 @@ export function AppLayout({ titleKey, subtitleKey }: AppLayoutProps) {
                     open={showPasskeyModal}
                     onOpenChange={handleOpenChange}
                     policy={passkeyPolicy}
+                    onDecline={handleDecline}
                 />
             )}
         </SidebarProvider>

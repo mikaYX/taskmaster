@@ -79,6 +79,7 @@
         "passkeyOptionalDesc": "Enhance your account security and sign in faster by setting up a passkey. You can use your device biometrics (fingerprint, face) or a security key.",
         "passkeyBenefits": "Passkeys are a safer and easier replacement for passwords.",
         "configureNow": "Configure Now",
+        "passkeyDecline": "No thanks",
         "passkeyName": "Device Name",
         "passkeyNamePlaceholder": "My Phone, Work Laptop...",
         "passkeyNameHelp": "Choose a name to help you identify this device later.",

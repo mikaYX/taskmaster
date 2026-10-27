@@ -25,12 +25,15 @@ interface PasskeyOnboardingModalProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     policy: 'optional' | 'required';
+    /** Optional policy only: the person refuses for good, so the prompt is not offered again. */
+    onDecline?: () => void;
 }
 
 export function PasskeyOnboardingModal({
     open,
     onOpenChange,
     policy,
+    onDecline,
 }: PasskeyOnboardingModalProps) {
     const { t } = useTranslation();
     const [passkeyName, setPasskeyName] = useState('');
@@ -179,14 +182,26 @@ export function PasskeyOnboardingModal({
 
                         <DialogFooter className="mt-6 flex sm:justify-between items-center sm:space-x-2 flex-col sm:flex-row gap-2">
                             {!isRequired && (
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    onClick={() => handleOpenChange(false)}
-                                    className="w-full sm:w-auto order-last sm:order-first"
-                                >
-                                    {t('common.later', 'Later')}
-                                </Button>
+                                <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row order-last sm:order-first">
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        onClick={() => handleOpenChange(false)}
+                                        className="w-full sm:w-auto"
+                                    >
+                                        {t('common.later', 'Later')}
+                                    </Button>
+                                    {onDecline && (
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            onClick={onDecline}
+                                            className="w-full text-muted-foreground sm:w-auto"
+                                        >
+                                            {t('auth.passkeyDecline', 'No thanks')}
+                                        </Button>
+                                    )}
+                                </div>
                             )}
                             <div className="flex w-full sm:w-auto gap-2">
                                 {isRequired && (

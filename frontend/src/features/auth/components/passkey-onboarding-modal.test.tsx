@@ -86,10 +86,10 @@ describe('PasskeyOnboardingModal', () => {
         Object.keys(localStorageStore).forEach(k => delete localStorageStore[k]);
     });
 
-    const renderComponent = (policy: 'optional' | 'required' = 'optional') =>
+    const renderComponent = (policy: 'optional' | 'required' = 'optional', onDecline?: () => void) =>
         render(
             <QueryClientProvider client={queryClient}>
-                <PasskeyOnboardingModal open={true} onOpenChange={mockOnOpenChange} policy={policy} />
+                <PasskeyOnboardingModal open={true} onOpenChange={mockOnOpenChange} policy={policy} onDecline={onDecline} />
             </QueryClientProvider>
         );
 
@@ -104,6 +104,23 @@ describe('PasskeyOnboardingModal', () => {
         // Clicking Later should trigger onOpenChange(false)
         fireEvent.click(screen.getByText('Later'));
         expect(mockOnOpenChange).toHaveBeenCalledWith(false);
+    });
+
+    it('offers to refuse for good on an optional policy, next to "later"', async () => {
+        const onDecline = vi.fn();
+        renderComponent('optional', onDecline);
+
+        await userEvent.click(await screen.findByRole('button', { name: 'No thanks' }));
+
+        expect(onDecline).toHaveBeenCalledTimes(1);
+        expect(screen.getByRole('button', { name: 'Later' })).toBeDefined();
+    });
+
+    it('never offers to refuse when the passkey is required', async () => {
+        renderComponent('required', vi.fn());
+
+        await screen.findByText('Configure Now');
+        expect(screen.queryByRole('button', { name: 'No thanks' })).toBeNull();
     });
 
     it('renders required modal without skip button and prevents closing', async () => {
