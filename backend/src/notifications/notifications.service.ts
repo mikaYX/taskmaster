@@ -4,7 +4,7 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { NotificationChannelType, Prisma } from '@prisma/client';
 import { safeFetch } from '../common/utils/url-validator.util';
 import { EmailService } from '../email/email.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -29,7 +29,7 @@ export interface TaskNotificationContext {
   correctiveAction?: string | null;
 }
 
-interface DetailLine {
+export interface DetailLine {
   label: string;
   value: string;
 }
@@ -40,6 +40,12 @@ const PRIORITY_LABELS: Record<string, string> = {
   HIGH: 'Haute',
   CRITICAL: 'Critique',
 };
+
+/** Setting that lists the channels the todolist uses; kept clean when a channel goes away. */
+export const TODO_CHANNELS_SETTING = 'addons.todolist.notify.channelIds';
+
+/** Email and push reach a person; every other channel posts one message for the whole team. */
+const PERSONAL_CHANNEL_TYPES: NotificationChannelType[] = ['EMAIL', 'PUSH'];
 
 const escapeHtml = (value: string) =>
   value
@@ -135,6 +141,7 @@ export class NotificationsService {
     await this.prisma.client.notificationChannel.delete({
       where: { id },
     });
+    await this.forgetTodoChannel(id);
 
     return { success: true };
   }
@@ -171,6 +178,76 @@ export class NotificationsService {
     throw new BadRequestException(
       'Testing is currently only supported for EMAIL channels',
     );
+  }
+
+  /** A deleted channel must not stay selected for the todolist. */
+  private async forgetTodoChannel(id: number) {
+    try {
+      const ids = await this.settingsService.getRawValue<number[]>(
+        TODO_CHANNELS_SETTING,
+      );
+      if (Array.isArray(ids) && ids.includes(id)) {
+        await this.settingsService.set(
+          TODO_CHANNELS_SETTING,
+          ids.filter((other) => other !== id),
+        );
+      }
+    } catch (error) {
+      this.logger.warn(
+        `Could not unlink channel ${id} from the todolist: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  }
+
+  /**
+   * Posts one message to the team channels among `channelIds` (Slack, Teams, Discord,
+   * Telegram, webhook) that are still enabled. Email and push reach a person: the caller
+   * sends those itself. Never throws.
+   */
+  async broadcast(
+    channelIds: number[],
+    subject: string,
+    details: DetailLine[],
+  ) {
+    if (channelIds.length === 0) return;
+    try {
+      const channels = await this.prisma.client.notificationChannel.findMany({
+        where: {
+          id: { in: channelIds },
+          enabled: true,
+          type: { notIn: PERSONAL_CHANNEL_TYPES },
+        },
+      });
+      const message = this.buildNotificationMessage(subject, details);
+      for (const channel of channels) {
+        let config = {};
+        try {
+          config = JSON.parse(this.encryption.decrypt(channel.config));
+        } catch {
+          this.logger.error(
+            `Failed to decrypt config for channel ${channel.id}`,
+          );
+          continue;
+        }
+        await this.sendToChannel(
+          channel.type,
+          config,
+          {},
+          message,
+          subject,
+          subject,
+          subject,
+          details,
+        ).catch((err) => {
+          this.logger.error(
+            `Error sending ${channel.type} broadcast on channel ${channel.id}:`,
+            err,
+          );
+        });
+      }
+    } catch (error) {
+      this.logger.error('Failed to broadcast notification:', error);
+    }
   }
 
   // ==========================================

@@ -406,6 +406,25 @@
         "todoListHint": "Affiche une todo personnelle et collective dans la barre latérale",
         "todoListReminders": "Rappels",
         "todoListRemindersHint": "Prévient lorsqu'une tâche arrive à échéance : centre de notifications, pop-up navigateur et email (chacun choisit ; l'email nécessite aussi l'envoi d'emails activé)",
+        "todoNotifications": {
+            "tab": "Notifications des todos",
+            "title": "Canaux secondaires des todos",
+            "description": "Choisissez les canaux utilisés, en plus du centre de notifications, quand une todo collective est créée ou assignée. Seuls les canaux configurés dans « Canaux de Notifications » sont proposés.",
+            "bellAlways": "Le centre de notifications (la cloche) est toujours utilisé. Les canaux activés ci-dessous s'y ajoutent.",
+            "empty": "Aucun canal configuré. Ajoutez-en un dans « Canaux de Notifications ».",
+            "reach": {
+                "email": "Un email à chaque personne concernée (l'envoi d'emails doit être activé)",
+                "push": "Un pop-up navigateur à chaque personne concernée, sauf si elle l'a désactivé",
+                "team": "Un message pour toute l'équipe à chaque création ou assignation"
+            },
+            "channelOff": "Désactivé dans « Canaux de Notifications » : ignoré tant qu'il reste désactivé",
+            "toggleAria": "Utiliser le canal {{name}} pour les todos",
+            "linkedBadge": "Lié aux todos",
+            "linkedTitle": "Attention : canal lié aux todos",
+            "linkedDisableWarning": "Le canal « {{name}} » est utilisé pour les notifications des todos. Tant qu'il est désactivé, les todos n'enverront plus rien par ce canal.",
+            "linkedDeleteWarning": "Ce canal est lié aux notifications des todos. Le supprimer le retire aussi des réglages des todos.",
+            "disableAnyway": "Désactiver quand même"
+        },
         "apiKeys": {
             "title": "Clés API",
             "description": "Gérer les clés d'accès pour les intégrations externes"
@@ -2840,6 +2859,7 @@
             "apiKeys": "Clés donnant accès à l'API à d'autres applications",
             "email": "Envoi des emails : fournisseur et expéditeur",
             "notifications": "Canaux utilisés pour alerter sur les tâches",
+            "todoNotifications": "Canaux utilisés pour les todos collectives",
             "export": "Exports automatiques et rapports",
             "backup": "Sauvegardes de la base et restauration",
             "updates": "Version de l'application et mises à jour disponibles"

@@ -12,6 +12,14 @@ import { randomUUID } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { getTodoAttachmentsDir } from '../config/app-paths';
 import { UserNotificationsService } from '../notifications/user-notifications.service';
+import {
+  NotificationsService,
+  TODO_CHANNELS_SETTING,
+} from '../notifications/notifications.service';
+import { EmailService } from '../email/email.service';
+import { SettingsService } from '../settings/settings.service';
+import { resolveEmailLogoUrl } from '../users/credentials-email.template';
+import { formatTodoDue, renderTodoEmail } from './todo-email.template';
 import { CreateTodoDto } from './dto/create-todo.dto';
 import { UpdateTodoDto } from './dto/update-todo.dto';
 import { Prisma, Todo, TodoScope } from '@prisma/client';
@@ -71,6 +79,16 @@ export function detectAttachmentType(buffer: Buffer): string | undefined {
   return undefined;
 }
 
+/** What the admin turned on for the todolist, on top of the bell. */
+interface TodoChannels {
+  email: boolean;
+  push: boolean;
+  /** Slack, Teams, Discord, Telegram, webhook: one message for the team. */
+  teamIds: number[];
+}
+
+const NO_CHANNELS: TodoChannels = { email: false, push: false, teamIds: [] };
+
 @Injectable()
 export class TodosService {
   private readonly logger = new Logger(TodosService.name);
@@ -79,6 +97,9 @@ export class TodosService {
     private prisma: PrismaService,
     // Optional so a context without the notifications module (and older specs) still builds.
     @Optional() private readonly inbox?: UserNotificationsService,
+    @Optional() private readonly email?: EmailService,
+    @Optional() private readonly settings?: SettingsService,
+    @Optional() private readonly channels?: NotificationsService,
   ) {}
 
   // ------------------------------------------------------------------
@@ -313,20 +334,49 @@ export class TodosService {
     return user?.fullname || user?.username || '?';
   }
 
-  /** Bell entry for one person, and a browser pop-up when they asked for those. */
+  /** The channels picked in the todolist settings that are still enabled. */
+  private async todoChannels(): Promise<TodoChannels> {
+    if (!this.settings) return NO_CHANNELS;
+    const ids = await this.settings.getRawValue<number[]>(
+      TODO_CHANNELS_SETTING,
+    );
+    if (!Array.isArray(ids) || ids.length === 0) return NO_CHANNELS;
+    const rows = await this.prisma.client.notificationChannel.findMany({
+      where: { id: { in: ids }, enabled: true },
+      select: { id: true, type: true },
+    });
+    return {
+      email: rows.some((row) => row.type === 'EMAIL'),
+      push: rows.some((row) => row.type === 'PUSH'),
+      teamIds: rows
+        .filter((row) => row.type !== 'EMAIL' && row.type !== 'PUSH')
+        .map((row) => row.id),
+    };
+  }
+
+  /**
+   * Bell entry for one person, and a browser pop-up when the admin turned push on for
+   * the todolist and the person did not opt out.
+   */
   private async tell(
     userId: number,
     notification: { type: string; title: string; body?: string },
+    channels?: TodoChannels,
   ) {
     if (!this.inbox) return;
-    const prefs = await this.prisma.client.user.findUnique({
-      where: { id: userId },
-      select: { todoReminderPush: true },
-    });
+    const allowed = channels ?? (await this.todoChannels());
+    let push = false;
+    if (allowed.push) {
+      const prefs = await this.prisma.client.user.findUnique({
+        where: { id: userId },
+        select: { todoReminderPush: true },
+      });
+      push = prefs?.todoReminderPush ?? false;
+    }
     await this.inbox.notify(
       userId,
       { ...notification, url: '/todos' },
-      { push: prefs?.todoReminderPush ?? false },
+      { push },
     );
   }
 
@@ -368,22 +418,157 @@ export class TodosService {
       },
       include: TODO_INCLUDE,
     });
-    if (todo.assigneeId !== null && todo.assigneeId !== userId) {
-      await this.notifyAssigned(todo.assigneeId, todo.title, userId);
+    if (todo.scope === TodoScope.COLLECTIVE) {
+      await this.announceCreated(todo, userId);
     }
     return todo;
   }
 
+  /**
+   * Who hears about a new collective todo: the person in charge, else the members of its
+   * group who did not opt out. A todo for the whole site with nobody in charge stays quiet
+   * in the bell. Team channels picked by the admin get one message either way.
+   */
+  private async announceCreated(todo: Todo, actorId: number) {
+    try {
+      const channels = await this.todoChannels();
+      await this.broadcast(
+        'Nouvelle tâche collective',
+        todo,
+        actorId,
+        channels,
+      );
+      if (todo.assigneeId !== null) {
+        if (todo.assigneeId !== actorId) {
+          await this.notifyAssigned(todo.assigneeId, todo, actorId, channels);
+        }
+        return;
+      }
+      if (todo.groupId === null) return;
+      const members = await this.prisma.client.userGroupMembership.findMany({
+        where: {
+          groupId: todo.groupId,
+          userId: { not: actorId },
+          user: { deletedAt: null, todoReminderCollective: true },
+        },
+        select: { userId: true },
+      });
+      for (const { userId } of members) {
+        await this.tell(
+          userId,
+          {
+            type: 'todo.created',
+            title: 'Nouvelle tâche collective',
+            body: `${await this.displayName(actorId)} a ajouté : ${todo.title}`,
+          },
+          channels,
+        );
+        if (channels.email) await this.mail('CREATED', userId, todo, actorId);
+      }
+    } catch (error) {
+      this.logger.error(
+        `Could not announce todo ${todo.id}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  }
+
   private async notifyAssigned(
     assigneeId: number,
-    title: string,
+    todo: Todo,
+    actorId: number,
+    channels: TodoChannels,
+  ) {
+    await this.tell(
+      assigneeId,
+      {
+        type: 'todo.assigned',
+        title: 'Tâche assignée',
+        body: `${await this.displayName(actorId)} vous a confié : ${todo.title}`,
+      },
+      channels,
+    );
+    if (channels.email) await this.mail('ASSIGNED', assigneeId, todo, actorId);
+  }
+
+  /** One message on the team channels (Slack, Teams...) the admin picked. */
+  private async broadcast(
+    subject: string,
+    todo: Todo,
+    actorId: number,
+    channels: TodoChannels,
+  ) {
+    if (!this.channels || channels.teamIds.length === 0) return;
+    const [actor, assignee, group] = await Promise.all([
+      this.displayName(actorId),
+      todo.assigneeId === null ? null : this.displayName(todo.assigneeId),
+      todo.groupId === null
+        ? null
+        : this.prisma.client.group.findUnique({
+            where: { id: todo.groupId },
+            select: { name: true },
+          }),
+    ]);
+    const due = formatTodoDue(todo.dueDate, todo.dueTime);
+    await this.channels.broadcast(channels.teamIds, subject, [
+      { label: 'Tâche', value: todo.title },
+      { label: 'Par', value: actor },
+      ...(assignee ? [{ label: 'Responsable', value: assignee }] : []),
+      ...(group ? [{ label: 'Équipe', value: group.name }] : []),
+      ...(due ? [{ label: 'Échéance', value: due }] : []),
+    ]);
+  }
+
+  /** Styled email for one person; a missing address or disabled email is not an error. */
+  private async mail(
+    reason: 'ASSIGNED' | 'CREATED',
+    userId: number,
+    todo: Todo,
     actorId: number,
   ) {
-    await this.tell(assigneeId, {
-      type: 'todo.assigned',
-      title: 'Tâche assignée',
-      body: `${await this.displayName(actorId)} vous a confié : ${title}`,
-    });
+    if (!this.email || !this.settings) return;
+    try {
+      const person = await this.prisma.client.user.findUnique({
+        where: { id: userId },
+        select: { email: true, fullname: true, username: true },
+      });
+      if (!person?.email) return;
+      const [appTitle, logo, group] = await Promise.all([
+        this.settings.getRawValue<string>('app.title'),
+        this.settings.getRawValue<string>('app.logoUrl'),
+        todo.groupId === null
+          ? null
+          : this.prisma.client.group.findUnique({
+              where: { id: todo.groupId },
+              select: { name: true },
+            }),
+      ]);
+      const base = (process.env.FRONTEND_URL || process.env.BACKEND_URL || '')
+        .trim()
+        .replace(/\/+$/, '');
+      const mail = renderTodoEmail({
+        reason,
+        name: person.fullname || person.username,
+        actor: await this.displayName(actorId),
+        title: todo.title,
+        description: todo.description,
+        due: formatTodoDue(todo.dueDate, todo.dueTime),
+        priority: todo.priority,
+        groupName: group?.name,
+        appTitle: appTitle || 'Taskmaster',
+        todosUrl: base ? `${base}/todos` : undefined,
+        logoUrl: resolveEmailLogoUrl(logo, base) ?? undefined,
+      });
+      await this.email.send({
+        to: person.email,
+        subject: mail.subject,
+        html: mail.html,
+        text: mail.text,
+      });
+    } catch (error) {
+      this.logger.warn(
+        `Todo email to user ${userId} failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
   }
 
   /** Subtasks stay on one level and follow their parent's scope, owner and group. */
@@ -539,7 +724,9 @@ export class TodosService {
         after.assigneeId !== before.assigneeId &&
         after.assigneeId !== actorId
       ) {
-        await this.notifyAssigned(after.assigneeId, after.title, actorId);
+        const channels = await this.todoChannels();
+        await this.broadcast('Tâche assignée', after, actorId, channels);
+        await this.notifyAssigned(after.assigneeId, after, actorId, channels);
       }
       if (justCompleted) {
         const concerned = new Set(
@@ -846,7 +1033,7 @@ export class TodosService {
       },
     });
     return {
-      email: user?.todoReminderEmail ?? false,
+      email: user?.todoReminderEmail ?? true,
       push: user?.todoReminderPush ?? true,
       collective: user?.todoReminderCollective ?? true,
     };

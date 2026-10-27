@@ -55,7 +55,7 @@ model User {
   notifications             UserNotification[]
   pushSubscriptions         PushSubscription[]
   /// Todo reminders: which channels the user wants, and whether collective todos count.
-  todoReminderEmail         Boolean                    @default(false) @map("todo_reminder_email")
+  todoReminderEmail         Boolean                    @default(true)  @map("todo_reminder_email")
   todoReminderPush          Boolean                    @default(true) @map("todo_reminder_push")
   todoReminderCollective    Boolean                    @default(true) @map("todo_reminder_collective")
   taskEvidence              TaskEvidence[]

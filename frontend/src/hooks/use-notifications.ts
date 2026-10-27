@@ -62,6 +62,8 @@ export const useDeleteChannel = () => {
         mutationFn: (id: number) => notificationsApi.deleteChannel(id),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['notifications', 'channels'] });
+            // The server also unlinks the channel from the todolist settings.
+            queryClient.invalidateQueries({ queryKey: ['settings'] });
         },
     });
 };

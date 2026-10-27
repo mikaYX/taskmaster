@@ -92,6 +92,7 @@ function TodosPageContent() {
     const [newDueTime, setNewDueTime] = useState('');
     const [newRemind, setNewRemind] = useState('default');
     const [newAssignee, setNewAssignee] = useState('none');
+    const [newGroup, setNewGroup] = useState('all');
     // Subtasks typed in the composer, created right after their parent.
     const [newSubtasks, setNewSubtasks] = useState<string[]>([]);
     const [newSubtaskTitle, setNewSubtaskTitle] = useState('');
@@ -150,6 +151,7 @@ function TodosPageContent() {
         setNewDueTime('');
         setNewRemind('default');
         setNewAssignee('none');
+        setNewGroup('all');
         setNewSubtasks([]);
         setNewSubtaskTitle('');
     };
@@ -186,7 +188,7 @@ function TodosPageContent() {
                 description: newNotes.trim() || undefined,
                 remindBeforeMinutes: dueDate && remind !== null ? remind : undefined,
                 assigneeId: activeTab === 'COLLECTIVE' && newAssignee !== 'none' ? Number(newAssignee) : undefined,
-                groupId: activeTab === 'COLLECTIVE' && selectedGroupId !== 'all' ? Number(selectedGroupId) : undefined,
+                groupId: activeTab === 'COLLECTIVE' && newGroup !== 'all' ? Number(newGroup) : undefined,
             },
             {
                 onSuccess: async (created) => {
@@ -428,6 +430,24 @@ function TodosPageContent() {
                     </div>
                     {!newDueDate && (newDueTime || newRemind !== 'default') && (
                         <p className="text-[11px] text-muted-foreground sm:col-span-2">{t('todos.options.noDateHint')}</p>
+                    )}
+                    {activeTab === 'COLLECTIVE' && isManager && (
+                        <div className="space-y-1.5">
+                            <Label htmlFor="todo-new-group" className="text-xs">{t('todos.dialog.group')}</Label>
+                            <Select value={newGroup} onValueChange={setNewGroup}>
+                                <SelectTrigger id="todo-new-group" className="w-full">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">{t('todos.wholeSite')}</SelectItem>
+                                    {groups?.map((g: { id: number; name: string }) => (
+                                        <SelectItem key={g.id} value={g.id.toString()}>
+                                            {g.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
                     )}
                     {activeTab === 'COLLECTIVE' && (
                         <div className="space-y-1.5">

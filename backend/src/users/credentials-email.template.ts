@@ -36,9 +36,9 @@ export const escapeHtml = (value: string): string =>
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
 
-const ACCENT = '#2563eb';
-const HEADER_BG = '#0f172a';
-const FONT =
+export const ACCENT = '#2563eb';
+export const HEADER_BG = '#0f172a';
+export const FONT =
   "-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif";
 
 /** Resolves the stored logo setting to a URL a mail client can fetch, or null. */

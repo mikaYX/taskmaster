@@ -9,6 +9,7 @@ import {
     Download,
     Fingerprint,
     KeyRound,
+    ListTodo,
     Mail,
     MapPin,
     Palette,
@@ -29,8 +30,10 @@ import { SchedulerSettingsPage } from './pages/scheduler-settings-page';
 import { ApiKeysSettingsPage } from './pages/api-keys-settings-page';
 import { SitesSettingsPage } from './pages/sites-settings-page';
 import { NotificationsSettingsPage } from './pages/notifications-settings-page';
+import { TodoNotificationsSettingsPage } from './pages/todo-notifications-settings-page';
 import { UpdatesPage } from './pages/updates-page';
 import { useAuthStore } from '@/stores/auth-store';
+import { usePublicBranding } from '@/hooks/use-public-branding';
 
 interface SettingsTab {
     value: string;
@@ -42,6 +45,8 @@ interface SettingsTab {
     render: () => React.ReactNode;
     /** Who sees the tab. */
     visible: 'all' | 'notManager' | 'superAdmin';
+    /** Only shown while this add-on is on. */
+    addon?: 'todolist';
 }
 
 /** Tabs grouped as they appear in the menu. */
@@ -68,6 +73,7 @@ const GROUPS: { labelKey: string; tabs: SettingsTab[] }[] = [
         tabs: [
             { value: 'email', labelKey: 'settings.email', descriptionKey: 'settingsShell.descriptions.email', icon: Mail, tone: 'bg-rose-500/10 text-rose-700 dark:text-rose-400', render: () => <EmailSettingsPage />, visible: 'notManager' },
             { value: 'notifications', labelKey: 'settings.notifications.tab', descriptionKey: 'settingsShell.descriptions.notifications', icon: Bell, tone: 'bg-orange-500/10 text-orange-700 dark:text-orange-400', render: () => <NotificationsSettingsPage />, visible: 'superAdmin' },
+            { value: 'todo-notifications', labelKey: 'settings.todoNotifications.tab', descriptionKey: 'settingsShell.descriptions.todoNotifications', icon: ListTodo, tone: 'bg-violet-500/10 text-violet-700 dark:text-violet-400', render: () => <TodoNotificationsSettingsPage />, visible: 'superAdmin', addon: 'todolist' },
         ],
     },
     {
@@ -93,6 +99,8 @@ export function SettingsPage() {
     // A manager only gets Security (users and groups of their own sites): no other tab, so no settings API call either.
     const isManager = role === 'MANAGER';
     const [activeTab, setActiveTab] = useState(isManager ? 'security' : 'general');
+    const { getSettingAsBool } = usePublicBranding();
+    const todolistOn = getSettingAsBool('addons.todolist.enabled');
 
     // The sticky tab header and the menu sit right under the page header: use its real height, not a guess.
     const rootRef = useRef<HTMLDivElement>(null);
@@ -110,7 +118,8 @@ export function SettingsPage() {
     }, []);
 
     const canSee = (tab: SettingsTab) =>
-        tab.visible === 'all' || (tab.visible === 'notManager' && !isManager) || (tab.visible === 'superAdmin' && isSuperAdmin);
+        (tab.addon !== 'todolist' || todolistOn) &&
+        (tab.visible === 'all' || (tab.visible === 'notManager' && !isManager) || (tab.visible === 'superAdmin' && isSuperAdmin));
     const groups = GROUPS.map((group) => ({ ...group, tabs: group.tabs.filter(canSee) })).filter((group) => group.tabs.length > 0);
     const showMenu = groups.reduce((n, group) => n + group.tabs.length, 0) > 1;
 

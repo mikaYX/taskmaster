@@ -11,7 +11,10 @@ import { detectAttachmentType, TodosService, TodoActor } from './todos.service';
 const JPEG = Buffer.from([255, 216, 255, 224, 0, 16]);
 const PDF = Buffer.from('%PDF-1.7 minimal');
 
-function fixture() {
+/** Channels picked in the todolist settings; push only unless a test says otherwise. */
+function fixture(
+  channels: { id: number; type: string }[] = [{ id: 1, type: 'PUSH' }],
+) {
   const todo = {
     findUnique: jest.fn(),
     findMany: jest.fn().mockResolvedValue([]),
@@ -50,9 +53,16 @@ function fixture() {
     user,
     todoComment: comment,
     todoAttachment: attachment,
-    group: { findFirst: jest.fn().mockResolvedValue({ id: 4 }) },
+    group: {
+      findFirst: jest.fn().mockResolvedValue({ id: 4 }),
+      findUnique: jest.fn().mockResolvedValue({ name: 'Maintenance' }),
+    },
     userGroupMembership: {
       findFirst: jest.fn().mockResolvedValue({ userId: 8 }),
+      findMany: jest.fn().mockResolvedValue([]),
+    },
+    notificationChannel: {
+      findMany: jest.fn().mockResolvedValue(channels),
     },
     $transaction: jest.fn(),
   };
@@ -62,8 +72,35 @@ function fixture() {
       : Promise.all(arg as unknown[]),
   );
   const inbox = { notify: jest.fn().mockResolvedValue(undefined) };
-  const service = new TodosService({ client } as never, inbox as never);
-  return { service, client, todo, user, comment, attachment, inbox };
+  const email = { send: jest.fn().mockResolvedValue(true) };
+  const settings = {
+    getRawValue: jest.fn((key: string) =>
+      Promise.resolve(
+        key === 'addons.todolist.notify.channelIds'
+          ? channels.map((c) => c.id)
+          : '',
+      ),
+    ),
+  };
+  const broadcaster = { broadcast: jest.fn().mockResolvedValue(undefined) };
+  const service = new TodosService(
+    { client } as never,
+    inbox as never,
+    email as never,
+    settings as never,
+    broadcaster as never,
+  );
+  return {
+    service,
+    client,
+    todo,
+    user,
+    comment,
+    attachment,
+    inbox,
+    email,
+    broadcaster,
+  };
 }
 
 const collective = {
@@ -163,6 +200,102 @@ describe('TodosService assignment', () => {
       expect.objectContaining({ type: 'todo.assigned', url: '/todos' }),
       { push: true },
     );
+  });
+
+  it('sends no pop-up, email or team message when the admin picked no channel', async () => {
+    const { service, todo, inbox, email, broadcaster } = fixture([]);
+    todo.create.mockResolvedValue({ ...collective, assigneeId: 3, userId: 1 });
+
+    await service.create(
+      { title: 'Inspect line', scope: 'COLLECTIVE', assigneeId: 3 } as never,
+      1,
+      1,
+      'MANAGER',
+    );
+
+    expect(inbox.notify).toHaveBeenCalledWith(
+      3,
+      expect.objectContaining({ type: 'todo.assigned' }),
+      { push: false },
+    );
+    expect(email.send).not.toHaveBeenCalled();
+    expect(broadcaster.broadcast).not.toHaveBeenCalled();
+  });
+
+  it('emails the assignee and posts on the team channels the admin picked', async () => {
+    const { service, todo, user, email, broadcaster } = fixture([
+      { id: 2, type: 'EMAIL' },
+      { id: 5, type: 'SLACK' },
+    ]);
+    user.findUnique.mockResolvedValue({
+      username: 'marie',
+      fullname: 'Marie Dupont',
+      email: 'marie@example.com',
+      todoReminderEmail: true,
+      todoReminderPush: true,
+    });
+    todo.create.mockResolvedValue({ ...collective, assigneeId: 3, userId: 1 });
+
+    await service.create(
+      { title: 'Inspect line', scope: 'COLLECTIVE', assigneeId: 3 } as never,
+      1,
+      1,
+      'MANAGER',
+    );
+
+    expect(email.send).toHaveBeenCalledWith(
+      expect.objectContaining({
+        to: 'marie@example.com',
+        subject: expect.stringContaining('Une tâche vous a été confiée'),
+      }),
+    );
+    expect(broadcaster.broadcast).toHaveBeenCalledWith(
+      [5],
+      'Nouvelle tâche collective',
+      expect.arrayContaining([{ label: 'Tâche', value: 'Inspect line' }]),
+    );
+  });
+
+  it('emails the assignee whatever their "By email" reminder choice', async () => {
+    const { service, todo, user, email } = fixture([{ id: 2, type: 'EMAIL' }]);
+    user.findUnique.mockResolvedValue({
+      username: 'marie',
+      fullname: 'Marie Dupont',
+      email: 'marie@example.com',
+      todoReminderEmail: false,
+      todoReminderPush: true,
+    });
+    todo.create.mockResolvedValue({ ...collective, assigneeId: 3, userId: 1 });
+
+    await service.create(
+      { title: 'Inspect line', scope: 'COLLECTIVE', assigneeId: 3 } as never,
+      1,
+      1,
+      'MANAGER',
+    );
+
+    expect(email.send).toHaveBeenCalledTimes(1);
+  });
+
+  it('tells the members of the group of an unassigned collective todo, not its creator', async () => {
+    const { service, client, todo, inbox } = fixture();
+    todo.create.mockResolvedValue({ ...collective, userId: 1 });
+    client.userGroupMembership.findMany.mockResolvedValue([
+      { userId: 8 },
+      { userId: 9 },
+    ]);
+
+    await service.create(
+      { title: 'Inspect line', scope: 'COLLECTIVE', groupId: 4 } as never,
+      1,
+      1,
+      'MANAGER',
+    );
+
+    const where = client.userGroupMembership.findMany.mock.calls[0][0].where;
+    expect(where.userId).toEqual({ not: 1 });
+    expect(inbox.notify.mock.calls.map(([id]) => id)).toEqual([8, 9]);
+    expect(inbox.notify.mock.calls[0][1].type).toBe('todo.created');
   });
 
   it('does not tell someone they assigned themselves', async () => {

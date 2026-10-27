@@ -199,3 +199,62 @@ describe('NotificationsService.dispatchTaskNotifications (email)', () => {
     expect(email.send).not.toHaveBeenCalled();
   });
 });
+
+describe('NotificationsService todolist channels', () => {
+  const build = (linked: number[]) => {
+    const prisma = {
+      client: {
+        notificationChannel: {
+          findUnique: jest.fn().mockResolvedValue({ id: 5 }),
+          delete: jest.fn().mockResolvedValue(undefined),
+          findMany: jest.fn().mockResolvedValue([]),
+        },
+      },
+    };
+    const settings = {
+      getRawValue: jest.fn().mockResolvedValue(linked),
+      set: jest.fn().mockResolvedValue(undefined),
+    };
+    const service = new NotificationsService(
+      prisma as never,
+      { decrypt: jest.fn() } as never,
+      { send: jest.fn() } as never,
+      settings as never,
+      { sendViaChannelConfig: jest.fn() } as never,
+    );
+    return { service, prisma, settings };
+  };
+
+  it('unlinks a deleted channel from the todolist', async () => {
+    const { service, settings } = build([2, 5]);
+
+    await service.deleteChannel(5);
+
+    expect(settings.set).toHaveBeenCalledWith(
+      'addons.todolist.notify.channelIds',
+      [2],
+    );
+  });
+
+  it('leaves the todolist alone when the deleted channel was not linked', async () => {
+    const { service, settings } = build([2]);
+
+    await service.deleteChannel(5);
+
+    expect(settings.set).not.toHaveBeenCalled();
+  });
+
+  it('only broadcasts on enabled team channels', async () => {
+    const { service, prisma } = build([]);
+
+    await service.broadcast([1, 2], 'Nouvelle tâche collective', []);
+
+    expect(prisma.client.notificationChannel.findMany).toHaveBeenCalledWith({
+      where: {
+        id: { in: [1, 2] },
+        enabled: true,
+        type: { notIn: ['EMAIL', 'PUSH'] },
+      },
+    });
+  });
+});

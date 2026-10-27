@@ -5,6 +5,7 @@ import { SettingsPage } from './settings-page';
 
 const auth = vi.hoisted(() => ({ role: 'SUPER_ADMIN' as string }));
 const security = vi.hoisted(() => ({ mounted: false }));
+const addons = vi.hoisted(() => ({ todolist: false }));
 
 vi.mock('react-i18next', () => ({
     useTranslation: () => ({ t: (key: string) => key }),
@@ -31,6 +32,10 @@ vi.mock('./pages/api-keys-settings-page', () => ({ ApiKeysSettingsPage: () => nu
 vi.mock('./pages/sites-settings-page', () => ({ SitesSettingsPage: () => null }));
 vi.mock('./pages/notifications-settings-page', () => ({ NotificationsSettingsPage: () => null }));
 vi.mock('./pages/updates-page', () => ({ UpdatesPage: () => null }));
+vi.mock('./pages/todo-notifications-settings-page', () => ({ TodoNotificationsSettingsPage: () => null }));
+vi.mock('@/hooks/use-public-branding', () => ({
+    usePublicBranding: () => ({ getSettingAsBool: (key: string) => key === 'addons.todolist.enabled' && addons.todolist }),
+}));
 
 const renderPage = (role: string) => {
     auth.role = role;
@@ -45,6 +50,7 @@ const renderPage = (role: string) => {
 describe('SettingsPage tabs by role', () => {
     beforeEach(() => {
         security.mounted = false;
+        addons.todolist = false;
     });
 
     it('shows a manager the Security tab only (users and groups), none of the application settings', () => {
@@ -69,5 +75,19 @@ describe('SettingsPage tabs by role', () => {
         );
         // The default tab of a super administrator is General, so Security is not mounted yet.
         expect(security.mounted).toBe(false);
+    });
+
+    it('shows the todo notifications tab to a super administrator only while the todolist is on', () => {
+        expect(renderPage('SUPER_ADMIN')).not.toContain('settings.todoNotifications.tab');
+    });
+
+    it('lists the todo notifications tab once the todolist is on', () => {
+        addons.todolist = true;
+        expect(renderPage('SUPER_ADMIN')).toContain('settings.todoNotifications.tab');
+    });
+
+    it('never shows the todo notifications tab to a manager', () => {
+        addons.todolist = true;
+        expect(renderPage('MANAGER')).toEqual(['settings.security']);
     });
 });

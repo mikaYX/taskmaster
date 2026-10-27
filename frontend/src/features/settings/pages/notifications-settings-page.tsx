@@ -7,19 +7,11 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Trash2, Edit, Play, Plus, Loader2, Bell, BellOff, Mail, MessageSquare, Send, Webhook, type LucideIcon } from "lucide-react";
+import { Trash2, Edit, Play, Plus, Loader2, Bell, BellOff, Webhook, AlertTriangle } from "lucide-react";
+import { CHANNEL_ICON, CHANNEL_TONE, TODO_CHANNELS_SETTING } from "../components/channel-style";
+import { useSettings } from "../hooks/use-settings";
 import { cn } from "@/lib/utils";
 
-const CHANNEL_ICON: Record<string, LucideIcon> = { email: Mail, slack: MessageSquare, teams: MessageSquare, discord: MessageSquare, telegram: Send, webhook: Webhook, push: Bell };
-const CHANNEL_TONE: Record<string, string> = {
-    email: "bg-rose-500/10 text-rose-700 dark:text-rose-400",
-    slack: "bg-violet-500/10 text-violet-700 dark:text-violet-400",
-    teams: "bg-indigo-500/10 text-indigo-700 dark:text-indigo-400",
-    discord: "bg-blue-500/10 text-blue-700 dark:text-blue-400",
-    telegram: "bg-sky-500/10 text-sky-700 dark:text-sky-400",
-    webhook: "bg-slate-500/10 text-slate-700 dark:text-slate-300",
-    push: "bg-amber-500/10 text-amber-700 dark:text-amber-400",
-};
 import { SettingsSection } from "../components/settings-section";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -50,6 +42,13 @@ export function NotificationsSettingsPage() {
 
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [channelToDelete, setChannelToDelete] = useState<number | null>(null);
+
+    // Guard: a channel the todolist relies on is not switched off by accident.
+    const [channelToDisable, setChannelToDisable] = useState<NotificationChannel | null>(null);
+    const { getSetting, getSettingAsBool } = useSettings();
+    const todoChannelIds = getSetting<unknown>(TODO_CHANNELS_SETTING);
+    const isTodoLinked = (id: number | null) =>
+        id !== null && getSettingAsBool('addons.todolist.enabled') && Array.isArray(todoChannelIds) && todoChannelIds.includes(id);
 
     const [isTestDialogOpen, setIsTestDialogOpen] = useState(false);
     const [channelToTest, setChannelToTest] = useState<NotificationChannel | null>(null);
@@ -103,6 +102,15 @@ export function NotificationsSettingsPage() {
             setEditingChannel(null);
         } catch {
             toast.error(t('settings.notifications.error'));
+        }
+    };
+
+    const setEnabled = async (channel: NotificationChannel, enabled: boolean) => {
+        try {
+            await updateMutation.mutateAsync({ id: channel.id, dto: { enabled } });
+            toast.success(t('common.updated'));
+        } catch {
+            toast.error(t('common.error'));
         }
     };
 
@@ -179,17 +187,21 @@ export function NotificationsSettingsPage() {
                             <div className="min-w-0 flex-1">
                                 <p className="truncate font-semibold">{channel.name}</p>
                                 <p className="text-xs text-muted-foreground">{getChannelTypeLabel(channel.type)}</p>
+                                {isTodoLinked(channel.id) && (
+                                    <span className="mt-1 inline-flex items-center rounded-full bg-violet-500/10 px-2 py-0.5 text-[11px] font-medium text-violet-700 dark:text-violet-400">
+                                        {t('settings.todoNotifications.linkedBadge')}
+                                    </span>
+                                )}
                             </div>
                             <Switch
                                 aria-label={channel.name}
                                 checked={channel.enabled}
-                                onCheckedChange={async (val) => {
-                                    try {
-                                        await updateMutation.mutateAsync({ id: channel.id, dto: { enabled: val } });
-                                        toast.success(t('common.updated'));
-                                    } catch {
-                                        toast.error(t('common.error'));
+                                onCheckedChange={(val) => {
+                                    if (!val && isTodoLinked(channel.id)) {
+                                        setChannelToDisable(channel);
+                                        return;
                                     }
+                                    void setEnabled(channel, val);
                                 }}
                             />
                         </div>
@@ -369,9 +381,42 @@ export function NotificationsSettingsPage() {
                             {t('settings.notifications.deleteWarning')}
                         </DialogDescription>
                     </DialogHeader>
+                    {isTodoLinked(channelToDelete) && (
+                        <div role="alert" className="flex items-start gap-3 rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-800 dark:text-amber-300">
+                            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                            <p>{t('settings.todoNotifications.linkedDeleteWarning')}</p>
+                        </div>
+                    )}
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>{t('common.cancel')}</Button>
                         <Button variant="destructive" onClick={confirmDelete}>{t('common.delete')}</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Disabling a channel the todolist uses */}
+            <Dialog open={channelToDisable !== null} onOpenChange={(open) => { if (!open) setChannelToDisable(null); }}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <AlertTriangle className="h-5 w-5 text-amber-500" />
+                            {t('settings.todoNotifications.linkedTitle')}
+                        </DialogTitle>
+                        <DialogDescription>
+                            {t('settings.todoNotifications.linkedDisableWarning', { name: channelToDisable?.name ?? '' })}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setChannelToDisable(null)}>{t('common.cancel')}</Button>
+                        <Button
+                            variant="destructive"
+                            onClick={() => {
+                                if (channelToDisable) void setEnabled(channelToDisable, false);
+                                setChannelToDisable(null);
+                            }}
+                        >
+                            {t('settings.todoNotifications.disableAnyway')}
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

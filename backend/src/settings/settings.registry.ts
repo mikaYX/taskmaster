@@ -783,6 +783,13 @@ export const SETTINGS_REGISTRY = {
     default: false,
     description: 'Email a reminder when a todo is due within 24 hours',
   },
+  'addons.todolist.notify.channelIds': {
+    schema: z.array(z.number().int().positive()),
+    sensitive: false,
+    default: [],
+    description:
+      'Notification channels used, on top of the bell, when a collective todo is created or assigned',
+  },
 } as const;
 
 export type SettingKey = keyof typeof SETTINGS_REGISTRY;

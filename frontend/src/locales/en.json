@@ -406,6 +406,25 @@
         "todoListHint": "Shows a personal and collective todo list in the sidebar",
         "todoListReminders": "Reminders",
         "todoListRemindersHint": "Reminds people when a task is due: notification center, browser pop-up and email (each person chooses; email also needs email sending enabled)",
+        "todoNotifications": {
+            "tab": "Todo notifications",
+            "title": "Todo secondary channels",
+            "description": "Choose the channels used, on top of the notification center, when a collective todo is created or assigned. Only channels set up under “Notification channels” are listed.",
+            "bellAlways": "The notification center (the bell) is always used. The channels turned on below come on top of it.",
+            "empty": "No channel set up yet. Add one under “Notification channels”.",
+            "reach": {
+                "email": "An email to each person concerned (email sending must be on)",
+                "push": "A browser pop-up to each person concerned, unless they turned it off",
+                "team": "One message for the whole team on each creation or assignment"
+            },
+            "channelOff": "Turned off under “Notification channels”: ignored while it stays off",
+            "toggleAria": "Use channel {{name}} for todos",
+            "linkedBadge": "Linked to todos",
+            "linkedTitle": "Warning: channel linked to todos",
+            "linkedDisableWarning": "The “{{name}}” channel is used for todo notifications. While it is off, todos will send nothing through it.",
+            "linkedDeleteWarning": "This channel is linked to todo notifications. Deleting it also removes it from the todo settings.",
+            "disableAnyway": "Turn off anyway"
+        },
         "apiKeys": {
             "title": "API Keys",
             "description": "Manage access keys for external integrations"
@@ -2840,6 +2859,7 @@
             "apiKeys": "Keys giving other applications access to the API",
             "email": "Sending emails: provider and sender",
             "notifications": "Channels used to alert on tasks",
+            "todoNotifications": "Channels used for collective todos",
             "export": "Automatic exports and reports",
             "backup": "Backups of the database and their restoration",
             "updates": "Version of the application and available updates"
