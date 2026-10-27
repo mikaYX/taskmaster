@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.2-beta.1] - 2026-10-27
+
+Beta of 1.2.2, for testing only: it is published as a pre-release and under the `beta` Docker tag, never as `latest`. **Database migrations** run automatically on start: the previous migrations are now folded into a single guarded file (an existing installation only runs the parts it is missing, an up-to-date one skips everything), and it carries the new changes (`todo_reminder_email_default_on`, `corrective_action_group_assignee`, `group_member_lead`). They only add or relax columns, so existing data is untouched. If you run the backend by hand, apply them with `prisma migrate deploy` before starting.
+
+### Added
+
+- **Assign to a team.** A shared searchable picker (Teams first, with their member count, then People) replaces the plain lists. A todo goes to one person or to one team, never both; every member of the team is notified when a todo is created for it or handed to it. The delegation panel uses the same picker, as a multi-select with "select all".
+- **Corrective actions can go to a team.** Only managers can pick a team, which must belong to the task site; every member of the team sees the action and can close it, and the close button only shows to people who may use it.
+- **Team leads.** A group can have several leads. A lead who is not a manager can hand out the todos assigned to their team, or to them in person, to a member of a team they lead or back to the team, and nothing else about the todo. New "Lead" badge and button in the members panel.
+- **Todo notification channels** (Settings > Communication > Todo notifications): pick which configured channels (email, push, Slack, Teams, Telegram) the todolist uses on top of the bell, with a styled email for creations and assignments. The channels page shows which channels are linked to todos and asks for confirmation before disabling or deleting one. A group selector is available when creating a collective todo.
+- **Bulk actions on the task list.** Managers can tick several tasks and delegate, deactivate, reactivate or delete them together, with the same confirmations as the per-task actions. Bulk delegation creates the same delegation on every selected task; a task that fails (for example an overlapping delegation) is reported without blocking the others, and the people concerned get a single summary email.
+- Passkey onboarding: when passkeys are optional, a "No thanks" button remembers the refusal for that user on this browser.
+
+### Changed
+
+- The "Reminders" switch of the todo add-on is removed: the hourly due-date reminders run whenever the todolist is on, and each person still chooses their channels in "My reminders". "By email" there only covers due reminders and is now ticked by default for new accounts.
+- The browser pop-up for todos (assignment, completion, comment) now needs a Push channel linked in "Todo notifications"; without one there is no pop-up.
+- `GET /tasks/:id/execution/assignees` now returns `{ users, groups }` instead of a list of users.
+- Prisma migrations are folded into one file at each release (`backend/scripts/squash-migrations.js`); the originals are kept in `backend/prisma/migrations-archive/`.
+- Delegation dates and times follow the app language with a 24-hour clock instead of the browser's native input. The measure field of a task step no longer shows the browser's spin buttons.
+
+### Fixed
+
+- The analytics no longer show stale counts after a task is validated or failed: a period opened just before used to keep the old numbers (0 %) for a minute while a period never opened showed the new ones.
+
 ## [1.2.1] - 2026-10-26
 
 Two database migrations (`site_country`, `site_timezone`) run automatically on start; they only add an optional column to the sites table, so existing data is untouched. If you run the backend by hand, apply them with `prisma migrate deploy` before starting. Browser pop-up notifications now work: devices that were "active" in the browser but unknown to the server register themselves again on the next visit.
