@@ -156,6 +156,7 @@ model Group {
   site                       Site                        @relation(fields: [siteId], references: [id])
   taskDelegationTargetGroups TaskDelegationTargetGroup[]
   taskAssignments            TaskGroupAssignment[]
+  correctiveActions          CorrectiveAction[]          @relation("CorrectiveGroup")
   members                    UserGroupMembership[]
   todos                      Todo[]
 
@@ -626,24 +627,28 @@ model TaskEvidence {
 }
 
 model CorrectiveAction {
-  id           Int       @id @default(autoincrement())
-  taskId       Int       @map("task_id")
-  instanceDate DateTime  @map("instance_date") @db.Date
-  title        String    @db.VarChar(255)
-  assigneeId   Int       @map("assignee_id")
-  createdById  Int       @map("created_by_id")
-  dueDate      DateTime? @map("due_date") @db.Date
-  state        String    @default("OPEN") @db.VarChar(20)
-  resolution   String?
-  closedAt     DateTime? @map("closed_at")
-  createdAt    DateTime  @default(now()) @map("created_at")
-  updatedAt    DateTime  @updatedAt @map("updated_at")
-  task         Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  assignee     User      @relation("CorrectiveAssignee", fields: [assigneeId], references: [id])
-  createdBy    User      @relation("CorrectiveCreator", fields: [createdById], references: [id])
+  id              Int       @id @default(autoincrement())
+  taskId          Int       @map("task_id")
+  instanceDate    DateTime  @map("instance_date") @db.Date
+  title           String    @db.VarChar(255)
+  // One person or one team, never both: a team handles the action together.
+  assigneeId      Int?      @map("assignee_id")
+  assigneeGroupId Int?      @map("assignee_group_id")
+  createdById     Int       @map("created_by_id")
+  dueDate         DateTime? @map("due_date") @db.Date
+  state           String    @default("OPEN") @db.VarChar(20)
+  resolution      String?
+  closedAt        DateTime? @map("closed_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  task            Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  assignee        User?     @relation("CorrectiveAssignee", fields: [assigneeId], references: [id])
+  assigneeGroup   Group?    @relation("CorrectiveGroup", fields: [assigneeGroupId], references: [id])
+  createdBy       User      @relation("CorrectiveCreator", fields: [createdById], references: [id])
 
   @@unique([taskId, instanceDate])
   @@index([assigneeId, state])
+  @@index([assigneeGroupId, state])
   @@index([state, dueDate])
   @@map("corrective_actions")
 }

@@ -184,17 +184,26 @@ export interface ExecutionAnswer { id: string; value: string | number | boolean 
 export interface ExecutionAnswerSnapshot extends ChecklistStep { value: string | number | boolean }
 export interface ExecutionSubmission {
   executionAnswers?: ExecutionAnswer[];
-  correctiveAction?: { title: string; dueDate?: string; assigneeId?: number };
+  correctiveAction?: { title: string; dueDate?: string; assigneeId?: number; assigneeGroupId?: number };
 }
 export interface StatusUpdateInput extends ExecutionSubmission {
   taskId: number; date: string; status: TaskStatusValue; comment?: string;
 }
 export interface CorrectiveAction {
   id: number; taskId: number; instanceDate: string; title: string;
-  assigneeId: number; createdById: number; dueDate: string | null;
+  /** One person or one team, never both. */
+  assigneeId: number | null; assigneeGroupId: number | null; createdById: number; dueDate: string | null;
   state: 'OPEN' | 'CLOSED'; resolution: string | null; closedAt: string | null;
   task: { name: string; siteId: number };
-  assignee: { id: number; username: string; fullname: string | null };
+  assignee: { id: number; username: string; fullname: string | null } | null;
+  assigneeGroup: { id: number; name: string } | null;
+  /** Decided by the server: a manager, the assignee or a member of the assigned team. */
+  canUpdate: boolean;
+}
+
+export interface ExecutionAssignees {
+  users: { id: number; username: string; fullname: string | null }[];
+  groups: { id: number; name: string; memberCount: number }[];
 }
 
 export interface CreateTaskDto {

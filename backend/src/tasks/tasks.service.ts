@@ -1462,13 +1462,32 @@ export class TasksService {
         'A corrective action can only be created for a failed occurrence',
       );
     }
-    const assigneeId = dto.correctiveAction?.assigneeId ?? userId;
-    if (dto.correctiveAction && assigneeId !== userId) {
+    const targetGroupId = dto.correctiveAction?.assigneeGroupId;
+    if (
+      targetGroupId !== undefined &&
+      dto.correctiveAction?.assigneeId !== undefined
+    )
+      throw new BadRequestException(
+        'Assign a corrective action to a person or a team, not both',
+      );
+    const assigneeId = targetGroupId
+      ? null
+      : (dto.correctiveAction?.assigneeId ?? userId);
+    if (dto.correctiveAction && targetGroupId !== undefined) {
+      if (!isExecutionManager(userRole))
+        throw new BadRequestException('Only a manager can assign a team');
+      const group = await this.prisma.client.group.findFirst({
+        where: { id: targetGroupId, deletedAt: null, siteId: task!.siteId },
+        select: { id: true },
+      });
+      if (!group)
+        throw new BadRequestException('Team must belong to the task site');
+    } else if (dto.correctiveAction && assigneeId !== userId) {
       if (!isExecutionManager(userRole))
         throw new BadRequestException('Only a manager can assign another user');
       const assignee = await this.prisma.client.user.findFirst({
         where: {
-          id: assigneeId,
+          id: assigneeId!,
           deletedAt: null,
           role: { not: 'GUEST' },
           sites: { some: { siteId: task!.siteId } },
@@ -1505,6 +1524,7 @@ export class TasksService {
               instanceDate: date,
               title: dto.correctiveAction!.title.trim(),
               assigneeId,
+              assigneeGroupId: targetGroupId,
               createdById: userId,
               dueDate: dto.correctiveAction!.dueDate
                 ? new Date(dto.correctiveAction!.dueDate)

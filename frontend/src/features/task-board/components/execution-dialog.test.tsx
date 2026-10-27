@@ -2,6 +2,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { tasksApi } from '@/api/tasks';
+import { useAuthStore } from '@/stores/auth-store';
 import { ExecutionDialog } from './execution-dialog';
 import type { BoardItem } from '@/api/types';
 
@@ -50,7 +51,20 @@ describe('execution submission', () => {
         fireEvent.change(screen.getByRole('textbox', { name: 'execution.actionTitle' }), { target: { value: 'Replace panel' } });
         fireEvent.click(screen.getByRole('button', { name: 'taskBoard.confirmFail' }));
         await waitFor(() => expect(tasksApi.setStatus).toHaveBeenCalled());
-        expect(tasksApi.setStatus).toHaveBeenCalledWith(1, '2026-10-16', 'FAILED', undefined, { correctiveAction: { title: 'Replace panel', dueDate: undefined, assigneeId: undefined } });
+        expect(tasksApi.setStatus).toHaveBeenCalledWith(1, '2026-10-16', 'FAILED', undefined, { correctiveAction: { title: 'Replace panel', dueDate: undefined, assigneeId: undefined, assigneeGroupId: undefined } });
+    });
+    it('lets a manager hand the corrective action to a team', async () => {
+        useAuthStore.setState({ role: 'MANAGER' });
+        vi.mocked(tasksApi.executionAssignees).mockResolvedValue({ users: [{ id: 2, username: 'bob', fullname: null }], groups: [{ id: 7, name: 'Maintenance', memberCount: 3 }] });
+        show({ executionChecklist: [] }, 'FAILED');
+        fireEvent.click(screen.getByRole('checkbox', { name: 'execution.createCorrectiveAction' }));
+        fireEvent.change(screen.getByRole('textbox', { name: 'execution.actionTitle' }), { target: { value: 'Replace panel' } });
+        fireEvent.click(screen.getByRole('combobox', { name: 'execution.assignee' }));
+        fireEvent.click(await screen.findByText('Maintenance'));
+        fireEvent.click(screen.getByRole('button', { name: 'taskBoard.confirmFail' }));
+        await waitFor(() => expect(tasksApi.setStatus).toHaveBeenCalled());
+        expect(tasksApi.setStatus).toHaveBeenCalledWith(1, '2026-10-16', 'FAILED', undefined, { correctiveAction: { title: 'Replace panel', dueDate: undefined, assigneeId: undefined, assigneeGroupId: 7 } });
+        useAuthStore.setState({ role: null });
     });
     it('shows the historical labels from the saved record', () => {
         show({ executionRecord: [{ id: 'check', label: 'Original panel label', kind: 'CHECK', required: true, value: true }] }, 'SUCCESS', true);

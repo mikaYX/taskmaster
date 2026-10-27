@@ -27,6 +27,7 @@ function fixture(notifications?: { dispatchTaskNotifications: jest.Mock }) {
     },
     taskEvidence: { findMany: jest.fn().mockResolvedValue([]) },
     correctiveAction: { upsert: jest.fn().mockResolvedValue({ id: 4 }) },
+    group: { findFirst: jest.fn() },
     user: {
       findUnique: jest.fn().mockResolvedValue({
         username: 'operator',
@@ -270,6 +271,68 @@ describe('checklist status submission', () => {
       ),
     ).rejects.toThrow('Only a manager');
     expect(client.status.upsert).not.toHaveBeenCalled();
+  });
+  it('assigns a corrective action to a team of the task site, managers only', async () => {
+    const { service, client } = fixture();
+    client.group.findFirst.mockResolvedValue({ id: 7 });
+    await expect(
+      service.setStatus(
+        1,
+        {
+          date: '2026-10-16',
+          status: 'FAILED',
+          correctiveAction: { title: 'Repair', assigneeGroupId: 7 },
+        },
+        1,
+        'USER',
+      ),
+    ).rejects.toThrow('Only a manager');
+    await service.setStatus(
+      1,
+      {
+        date: '2026-10-16',
+        status: 'FAILED',
+        correctiveAction: { title: 'Repair', assigneeGroupId: 7 },
+      },
+      1,
+      'MANAGER',
+    );
+    expect(
+      client.correctiveAction.upsert.mock.calls[0][0].create,
+    ).toMatchObject({ assigneeId: null, assigneeGroupId: 7, createdById: 1 });
+  });
+  it('rejects a team from another site and a person plus a team', async () => {
+    const { service, client } = fixture();
+    client.group.findFirst.mockResolvedValue(null);
+    await expect(
+      service.setStatus(
+        1,
+        {
+          date: '2026-10-16',
+          status: 'FAILED',
+          correctiveAction: { title: 'Repair', assigneeGroupId: 9 },
+        },
+        1,
+        'MANAGER',
+      ),
+    ).rejects.toThrow('task site');
+    await expect(
+      service.setStatus(
+        1,
+        {
+          date: '2026-10-16',
+          status: 'FAILED',
+          correctiveAction: {
+            title: 'Repair',
+            assigneeId: 2,
+            assigneeGroupId: 7,
+          },
+        },
+        1,
+        'MANAGER',
+      ),
+    ).rejects.toThrow('not both');
+    expect(client.correctiveAction.upsert).not.toHaveBeenCalled();
   });
   it('keeps completed-status overrides restricted to administrators', async () => {
     const { service, client } = fixture();

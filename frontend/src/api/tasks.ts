@@ -1,5 +1,6 @@
 import { http } from './http';
 import type {
+    ExecutionAssignees,
     Task,
     CreateTaskDto,
     ExecutionSubmission,
@@ -48,7 +49,7 @@ export const tasksApi = {
         return http.post<{ id: string }>(`/tasks/${taskId}/execution/evidence?date=${encodeURIComponent(date)}`, data);
     },
     downloadEvidence: (taskId: number, id: string) => http.get<Blob>(`/tasks/${taskId}/execution/evidence/${encodeURIComponent(id)}`, { responseType: 'blob' }),
-    executionAssignees: (taskId: number) => http.get<{ id: number; username: string; fullname: string | null }[]>(`/tasks/${taskId}/execution/assignees`),
+    executionAssignees: (taskId: number) => http.get<ExecutionAssignees>(`/tasks/${taskId}/execution/assignees`),
 
     /**
      * Get all tasks (paginated).

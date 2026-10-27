@@ -46,7 +46,7 @@ function ActionsWorkspace() {
     const { t } = useTranslation();
     const client = useQueryClient();
     const siteId = useSiteStore(state => state.currentSiteId);
-    const { userId, role } = useAuthStore();
+    const { userId } = useAuthStore();
     const [filter, setFilter] = useState<'OPEN' | 'CLOSED'>('OPEN');
     const [search, setSearch] = useState('');
     const [mine, setMine] = useState(false);
@@ -59,7 +59,6 @@ function ActionsWorkspace() {
         queryFn: () => correctiveActionsApi.search({ page, state: filter, search: query || undefined, mine: mine ? 'true' : undefined, overdueBefore: overdueOnly && filter === 'OPEN' ? today : undefined }),
         refetchOnWindowFocus: true, refetchInterval: 60000,
     });
-    const canManage = ['ADMIN', 'SUPER_ADMIN', 'MANAGER'].includes(role ?? '');
     const pages = actions.data ? Math.max(1, Math.ceil(actions.data.total / actions.data.pageSize)) : 1;
 
     const toggle = (pressed: boolean, onClick: () => void, Icon: typeof User, label: string) => (
@@ -142,7 +141,7 @@ function ActionsWorkspace() {
         </div>}
 
         {actions.data && actions.data.items.length > 0 && <div className="space-y-3">
-            {actions.data.items.map(action => <ActionCard key={action.id} action={action} canUpdate={canManage || action.assigneeId === userId} onUpdated={async () => { setPage(1); await client.invalidateQueries({ queryKey: ['corrective-actions'] }); }} />)}
+            {actions.data.items.map(action => <ActionCard key={action.id} action={action} canUpdate={action.canUpdate} onUpdated={async () => { setPage(1); await client.invalidateQueries({ queryKey: ['corrective-actions'] }); }} />)}
         </div>}
 
         {actions.data && actions.data.items.length === 0 && <div className="flex flex-col items-center justify-center rounded-xl border border-dashed bg-muted/20 px-6 py-14 text-center">
@@ -172,7 +171,7 @@ function ActionCard({ action, canUpdate, onUpdated }: { action: CorrectiveAction
     const update = useMutation({ mutationFn: (state: 'OPEN' | 'CLOSED') => correctiveActionsApi.update(action.id, state, resolution), onSuccess: onUpdated });
     const isOpen = action.state === 'OPEN';
     const overdue = isOpen && action.dueDate && action.dueDate.slice(0, 10) < format(new Date(), 'yyyy-MM-dd');
-    const assignee = action.assignee.fullname || action.assignee.username;
+    const assignee = action.assigneeGroup?.name ?? (action.assignee?.fullname || action.assignee?.username) ?? '';
 
     return <article className="relative overflow-hidden rounded-xl border bg-card shadow-sm transition-shadow hover:shadow-md">
         <span aria-hidden="true" className={cn('absolute inset-y-0 left-0 w-1', overdue ? 'bg-red-500' : isOpen ? 'bg-amber-500' : 'bg-emerald-500')} />

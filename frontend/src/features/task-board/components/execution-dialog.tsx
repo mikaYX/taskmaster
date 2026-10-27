@@ -13,6 +13,8 @@ import { getErrorMessage } from '@/api/http';
 import { useAuthStore } from '@/stores/auth-store';
 import type { BoardItem, ExecutionSubmission } from '@/api/types';
 import { DateInput } from '@/components/ui/date-input';
+import { TargetPicker } from '@/components/target-picker';
+import { applyAssignment, assignmentSections } from '@/features/todos/todo-assignment';
 
 export function ExecutionDialog({ item, status, onClose, readOnly = false }: {
     item: BoardItem; status: 'SUCCESS' | 'FAILED'; onClose: () => void; readOnly?: boolean;
@@ -27,7 +29,8 @@ export function ExecutionDialog({ item, status, onClose, readOnly = false }: {
     const [createAction, setCreateAction] = useState(false);
     const [actionTitle, setActionTitle] = useState('');
     const [dueDate, setDueDate] = useState('');
-    const [assignee, setAssignee] = useState('self');
+    // Empty means the person submitting; otherwise `user:<id>` or `group:<id>`.
+    const [target, setTarget] = useState<string[]>([]);
     const [uploading, setUploading] = useState(false);
     const assignees = useQuery({ queryKey: ['execution-assignees', item.taskId], queryFn: () => tasksApi.executionAssignees(item.taskId), enabled: createAction && canAssign });
     const save = useMutation({
@@ -45,7 +48,10 @@ export function ExecutionDialog({ item, status, onClose, readOnly = false }: {
     const submit = () => {
         const submission: ExecutionSubmission = {};
         if (steps.length) submission.executionAnswers = steps.filter(step => values[step.id] !== undefined && values[step.id] !== '').map(step => ({ id: step.id, value: values[step.id] }));
-        if (createAction) submission.correctiveAction = { title: actionTitle.trim(), dueDate: dueDate || undefined, assigneeId: assignee !== 'self' ? Number(assignee) : undefined };
+        if (createAction) {
+            const { groupId, assigneeId } = applyAssignment(target);
+            submission.correctiveAction = { title: actionTitle.trim(), dueDate: dueDate || undefined, assigneeId: assigneeId ? Number(assigneeId) : undefined, assigneeGroupId: groupId ? Number(groupId) : undefined };
+        }
         save.mutate(submission);
     };
     const upload = async (stepId: string, file?: File) => {
@@ -80,7 +86,7 @@ export function ExecutionDialog({ item, status, onClose, readOnly = false }: {
                         {readOnly ? (step.kind === 'PHOTO' ? <Button variant="outline" onClick={() => download(String(record?.value))}>{t('execution.viewPhoto')}</Button> : <p className="text-sm whitespace-pre-wrap">{typeof record?.value === 'boolean' ? t(record.value ? 'execution.checked' : 'execution.unchecked') : String(record?.value ?? '')}</p>)
                             : step.kind === 'CHECK' ? <Checkbox id={`execution-${step.id}`} disabled={busy} checked={values[step.id] === true} onCheckedChange={checked => setValues(current => ({ ...current, [step.id]: checked === true }))} />
                             : step.kind === 'PHOTO' ? <><Input id={`execution-${step.id}`} type="file" accept="image/png,image/jpeg,image/webp" disabled={busy} onChange={event => { void upload(step.id, event.target.files?.[0]); }} /><p className="text-xs text-muted-foreground">{values[step.id] ? t('execution.photoReady') : t('execution.photoLimit')}</p></>
-                            : <Input id={`execution-${step.id}`} type={step.kind === 'NUMBER' ? 'number' : 'text'} step={step.kind === 'NUMBER' ? 'any' : undefined} maxLength={2000} disabled={busy} value={String(values[step.id] ?? '')} onChange={event => setValues(current => ({ ...current, [step.id]: step.kind === 'NUMBER' && event.target.value !== '' ? Number(event.target.value) : event.target.value }))} />}
+                            : <Input id={`execution-${step.id}`} type={step.kind === 'NUMBER' ? 'number' : 'text'} step={step.kind === 'NUMBER' ? 'any' : undefined} className={step.kind === 'NUMBER' ? '[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none' : undefined} maxLength={2000} disabled={busy} value={String(values[step.id] ?? '')} onChange={event => setValues(current => ({ ...current, [step.id]: step.kind === 'NUMBER' && event.target.value !== '' ? Number(event.target.value) : event.target.value }))} />}
                     </div>;
                 })}
                 {!readOnly && <>
@@ -93,7 +99,18 @@ export function ExecutionDialog({ item, status, onClose, readOnly = false }: {
                             <Input id="action-title" maxLength={255} disabled={busy} value={actionTitle} onChange={event => setActionTitle(event.target.value)} />
                             <Label htmlFor="action-due">{t('execution.dueDate')}</Label>
                             <DateInput id="action-due" disabled={busy} value={dueDate} onChange={setDueDate} />
-                            {canAssign && <><Label htmlFor="action-assignee">{t('execution.assignee')}</Label><select id="action-assignee" className="w-full rounded-md border bg-background p-2 text-sm" disabled={busy || assignees.isLoading} value={assignee} onChange={event => setAssignee(event.target.value)}><option value="self">{t('execution.myself')}</option>{assignees.data?.map(user => <option key={user.id} value={user.id}>{user.fullname || user.username}</option>)}</select></>}
+                            {canAssign && <><Label htmlFor="action-assignee">{t('execution.assignee')}</Label>
+                                <TargetPicker
+                                    id="action-assignee"
+                                    sections={assignmentSections(t, assignees.data?.groups, assignees.data?.users)}
+                                    value={target}
+                                    onChange={setTarget}
+                                    noneLabel={t('execution.myself')}
+                                    placeholder={t('execution.myself')}
+                                    ariaLabel={t('execution.assignee')}
+                                />
+                                {target[0]?.startsWith('group:') && <p className="text-xs text-muted-foreground">{t('execution.assigneeTeamHint')}</p>}
+                            </>}
                         </>}
                     </div>}
                 </>}

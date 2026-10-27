@@ -134,15 +134,74 @@ export class TaskExecutionService {
   async assignees(taskId: number, user: JwtPayload) {
     const task = await this.accessibleTask(taskId, user);
     if (!isExecutionManager(user.role)) throw new ForbiddenException();
-    return this.prisma.client.user.findMany({
-      where: {
-        deletedAt: null,
-        role: { not: 'GUEST' },
-        sites: { some: { siteId: task.siteId } },
+    const [users, groups] = await Promise.all([
+      this.prisma.client.user.findMany({
+        where: {
+          deletedAt: null,
+          role: { not: 'GUEST' },
+          sites: { some: { siteId: task.siteId } },
+        },
+        select: { id: true, username: true, fullname: true },
+        orderBy: { username: 'asc' },
+      }),
+      this.prisma.client.group.findMany({
+        where: { deletedAt: null, siteId: task.siteId },
+        select: {
+          id: true,
+          name: true,
+          _count: { select: { members: true } },
+        },
+        orderBy: { name: 'asc' },
+      }),
+    ]);
+    return {
+      users,
+      groups: groups.map(({ _count, ...group }) => ({
+        ...group,
+        memberCount: _count.members,
+      })),
+    };
+  }
+
+  /** The team, plus the user's own membership so the list can tell whether they may act on it. */
+  private groupSelect(userId: number) {
+    return {
+      select: {
+        id: true,
+        name: true,
+        members: { where: { userId }, select: { userId: true } },
       },
-      select: { id: true, username: true, fullname: true },
-      orderBy: { username: 'asc' },
-    });
+    } satisfies Prisma.CorrectiveActionInclude['assigneeGroup'];
+  }
+
+  /** Mirrors the rule enforced by `updateAction`, without exposing the team's members. */
+  private withCanUpdate<
+    T extends {
+      assigneeId: number | null;
+      assigneeGroup: { id: number; name: string; members: unknown[] } | null;
+    },
+  >(action: T, user: JwtPayload) {
+    const { members, ...group } = action.assigneeGroup ?? {
+      members: [],
+    };
+    return {
+      ...action,
+      assigneeGroup: action.assigneeGroup ? group : null,
+      canUpdate:
+        isExecutionManager(user.role) ||
+        action.assigneeId === user.sub ||
+        members.length > 0,
+    };
+  }
+
+  /** Actions given to the user directly or to one of their teams. */
+  private assignedToUser(userId: number): Prisma.CorrectiveActionWhereInput {
+    return {
+      OR: [
+        { assigneeId: userId },
+        { assigneeGroup: { members: { some: { userId } } } },
+      ],
+    };
   }
 
   async searchActions(user: JwtPayload, filters: ListCorrectiveActionsDto) {
@@ -160,10 +219,10 @@ export class TaskExecutionService {
     ];
     if (!isExecutionManager(user.role))
       conditions.push({
-        OR: [{ assigneeId: user.sub }, { createdById: user.sub }],
+        OR: [this.assignedToUser(user.sub), { createdById: user.sub }],
       });
     if (filters.state) conditions.push({ state: filters.state });
-    if (filters.mine === 'true') conditions.push({ assigneeId: user.sub });
+    if (filters.mine === 'true') conditions.push(this.assignedToUser(user.sub));
     if (filters.overdueBefore)
       conditions.push({
         state: 'OPEN',
@@ -176,6 +235,9 @@ export class TaskExecutionService {
           { task: { name: { contains: search, mode: 'insensitive' } } },
           { assignee: { username: { contains: search, mode: 'insensitive' } } },
           { assignee: { fullname: { contains: search, mode: 'insensitive' } } },
+          {
+            assigneeGroup: { name: { contains: search, mode: 'insensitive' } },
+          },
         ],
       });
     const where: Prisma.CorrectiveActionWhereInput = { AND: conditions };
@@ -185,6 +247,7 @@ export class TaskExecutionService {
         include: {
           task: { select: { name: true, siteId: true } },
           assignee: { select: { id: true, username: true, fullname: true } },
+          assigneeGroup: this.groupSelect(user.sub),
         },
         orderBy: [
           { dueDate: { sort: 'asc', nulls: 'last' } },
@@ -196,7 +259,12 @@ export class TaskExecutionService {
       }),
       this.prisma.client.correctiveAction.count({ where }),
     ]);
-    return { items, total, page, pageSize };
+    return {
+      items: items.map((action) => this.withCanUpdate(action, user)),
+      total,
+      page,
+      pageSize,
+    };
   }
 
   async listActions(user: JwtPayload) {
@@ -204,20 +272,22 @@ export class TaskExecutionService {
       user.role === 'SUPER_ADMIN'
         ? {}
         : { siteId: { in: this.prisma.getUserSiteIds() } };
-    return this.prisma.client.correctiveAction.findMany({
+    const actions = await this.prisma.client.correctiveAction.findMany({
       where: {
         task: { ...sites, ...this.prisma.buildSiteFilter(), deletedAt: null },
         ...(!isExecutionManager(user.role)
-          ? { OR: [{ assigneeId: user.sub }, { createdById: user.sub }] }
+          ? { OR: [this.assignedToUser(user.sub), { createdById: user.sub }] }
           : {}),
       },
       include: {
         task: { select: { name: true, siteId: true } },
         assignee: { select: { id: true, username: true, fullname: true } },
+        assigneeGroup: this.groupSelect(user.sub),
       },
       orderBy: [{ state: 'desc' }, { dueDate: 'asc' }, { createdAt: 'desc' }],
       take: 500,
     });
+    return actions.map((action) => this.withCanUpdate(action, user));
   }
 
   async updateAction(
@@ -238,9 +308,15 @@ export class TaskExecutionService {
       include: { task: { select: { siteId: true } } },
     });
     if (!action) throw new NotFoundException('Corrective action not found');
-    if (!isExecutionManager(user.role) && action.assigneeId !== user.sub)
+    if (
+      !isExecutionManager(user.role) &&
+      action.assigneeId !== user.sub &&
+      !(await this.prisma.client.correctiveAction.count({
+        where: { id, ...this.assignedToUser(user.sub) },
+      }))
+    )
       throw new ForbiddenException(
-        'Only the assignee or a manager can update this action',
+        'Only the assignee, a member of the assigned team or a manager can update this action',
       );
     if (state === 'CLOSED' && !(resolution ?? action.resolution)?.trim())
       throw new BadRequestException(

@@ -51,6 +51,8 @@ export class CorrectiveActionDto {
   @Matches(/^\d{4}-\d{2}-\d{2}$/)
   dueDate?: string;
   @IsOptional() @IsInt() @Min(1) assigneeId?: number;
+  /** A team takes the action together; mutually exclusive with `assigneeId`. */
+  @IsOptional() @IsInt() @Min(1) assigneeGroupId?: number;
 }
 
 export class ExecutionSubmissionDto {

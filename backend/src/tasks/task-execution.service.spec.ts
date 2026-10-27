@@ -112,13 +112,49 @@ describe('private evidence and corrective actions', () => {
     ).rejects.toThrow('PNG');
   });
   it('scopes action lists to sites and actor or assignee for a normal user', async () => {
+    client.correctiveAction.findMany.mockResolvedValue([]);
     await service.listActions(user);
     expect(
       client.correctiveAction.findMany.mock.calls[0][0].where,
     ).toMatchObject({
       task: { siteId: 1 },
-      OR: [{ assigneeId: 1 }, { createdById: 1 }],
+      OR: [
+        {
+          OR: [
+            { assigneeId: 1 },
+            { assigneeGroup: { members: { some: { userId: 1 } } } },
+          ],
+        },
+        { createdById: 1 },
+      ],
     });
+  });
+  it('flags which listed actions the user may update, including through a team', async () => {
+    const row = (
+      id: number,
+      assigneeId: number | null,
+      members: unknown[],
+    ) => ({
+      id,
+      assigneeId,
+      assigneeGroup: assigneeId
+        ? null
+        : { id: 7, name: 'Maintenance', members },
+    });
+    client.correctiveAction.findMany.mockResolvedValue([
+      row(1, 1, []),
+      row(2, 5, []),
+      row(3, null, [{ userId: 1 }]),
+      row(4, null, []),
+    ]);
+    const items = await service.listActions(user);
+    expect(items.map((item) => item.canUpdate)).toEqual([
+      true,
+      false,
+      true,
+      false,
+    ]);
+    expect(items[2].assigneeGroup).toEqual({ id: 7, name: 'Maintenance' });
   });
   it('requires a resolution and ownership to close an action', async () => {
     client.correctiveAction.findFirst.mockResolvedValue({
@@ -141,10 +177,33 @@ describe('private evidence and corrective actions', () => {
       },
     });
     client.correctiveAction.update.mockClear();
+    client.correctiveAction.count.mockResolvedValue(0);
     await expect(
       service.updateAction(3, 'CLOSED', 'Done', { ...user, sub: 4 }),
     ).rejects.toThrow('assignee');
     expect(client.correctiveAction.update).not.toHaveBeenCalled();
+  });
+  it('lets a member of the assigned team update the action', async () => {
+    client.correctiveAction.findFirst.mockResolvedValue({
+      id: 3,
+      assigneeId: null,
+      assigneeGroupId: 7,
+      resolution: null,
+      closedAt: null,
+      task: { siteId: 1 },
+    });
+    client.correctiveAction.count.mockResolvedValue(1);
+    await service.updateAction(3, 'CLOSED', 'Done', { ...user, sub: 4 });
+    expect(client.correctiveAction.count).toHaveBeenCalledWith({
+      where: {
+        id: 3,
+        OR: [
+          { assigneeId: 4 },
+          { assigneeGroup: { members: { some: { userId: 4 } } } },
+        ],
+      },
+    });
+    expect(client.correctiveAction.update).toHaveBeenCalled();
   });
   it('search and mine filters cannot bypass user visibility or site access', async () => {
     client.correctiveAction.findMany.mockResolvedValue([]);
@@ -160,8 +219,23 @@ describe('private evidence and corrective actions', () => {
     expect(args.where.AND).toEqual(
       expect.arrayContaining([
         { task: { siteId: 1, deletedAt: null } },
-        { OR: [{ assigneeId: 1 }, { createdById: 1 }] },
-        { assigneeId: 1 },
+        {
+          OR: [
+            {
+              OR: [
+                { assigneeId: 1 },
+                { assigneeGroup: { members: { some: { userId: 1 } } } },
+              ],
+            },
+            { createdById: 1 },
+          ],
+        },
+        {
+          OR: [
+            { assigneeId: 1 },
+            { assigneeGroup: { members: { some: { userId: 1 } } } },
+          ],
+        },
         { state: 'OPEN' },
       ]),
     );
