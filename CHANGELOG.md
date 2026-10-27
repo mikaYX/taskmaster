@@ -7,16 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.2.2-beta.2] - 2026-10-27
+## [1.2.2-beta.3] - 2026-10-27
 
-Second beta of 1.2.2, for testing only (pre-release, `beta` Docker tag, never `latest`). The `1.2.2-beta.1` tag was never published because its browser regression check failed; this beta carries the same changes as it, plus the Windows installer.
+Third beta of 1.2.2, for testing only (pre-release, `beta` Docker tag, never `latest`). `1.2.2-beta.1` and `1.2.2-beta.2` have no GitHub release (a browser regression check, then the MSI build, failed); this beta carries their changes plus the Windows installer.
 
 ### Added
 
-- **Windows installer in the release.** Every tagged release now builds the unsigned `Taskmaster-<version>-x64.msi` and attaches it, with its `SHA256SUMS`, to the GitHub release. A pre-release such as `1.2.2-beta.2` is packaged with the MSI version `1.2.2.2`, and installing another build of the same version over it is now treated as an upgrade.
+- **Windows installer in the release.** Every tagged release now builds the unsigned `Taskmaster-<version>-x64.msi` and attaches it, with its `SHA256SUMS`, to the GitHub release. A pre-release such as `1.2.2-beta.2` is packaged with the MSI version `1.2.2.3`, and installing another build of the same version over it is now treated as an upgrade.
 
 ### Fixed
 
+- The Windows installer build failed because two WiX files it needs were never committed; they are now part of the repository.
 - The corrective action browser test now provides the `canUpdate` flag the page relies on to show the close button.
 
 ## [1.2.2-beta.1] - 2026-10-27
