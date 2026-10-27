@@ -37,7 +37,7 @@ export function ExecutionDialog({ item, status, onClose, readOnly = false }: {
         mutationKey: ['task-execution', item.taskId, item.instanceDate],
         mutationFn: (submission: ExecutionSubmission) => tasksApi.setStatus(item.taskId, item.instanceDate, status, comment || undefined, submission),
         onSuccess: async () => {
-            await Promise.all([client.invalidateQueries({ queryKey: ['task-board'] }), client.invalidateQueries({ queryKey: ['corrective-actions'] })]);
+            await Promise.all([client.invalidateQueries({ queryKey: ['task-board'] }), client.invalidateQueries({ queryKey: ['corrective-actions'] }), client.invalidateQueries({ queryKey: ['analytics'] })]);
             toast.success(t('taskBoard.overrideSuccess'));
             onClose();
         },

@@ -67,7 +67,7 @@ export function useTaskBoard(filters: { filterUserId?: number; filterGroupId?: n
         mutationFn: ({ taskId, date, status, comment }: { taskId: number; date: string; status: TaskStatusValue; comment?: string }) =>
             tasksApi.setStatus(taskId, date, status, comment),
         onSuccess: async () => {
-            await queryClient.invalidateQueries({ queryKey: ['task-board'] });
+            await Promise.all([queryClient.invalidateQueries({ queryKey: ['task-board'] }), queryClient.invalidateQueries({ queryKey: ['analytics'] })]);
             toast.success(t('taskBoard.overrideSuccess'));
         },
         onSettled: (_data, _error, variables) => {
