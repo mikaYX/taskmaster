@@ -1448,6 +1448,7 @@
         "dueDate": "Due date (optional)",
         "assignee": "Assignee",
         "myself": "Myself",
+        "assigneeTeamHint": "Every member of the team sees this action and can close it.",
         "saving": "Saving…",
         "correctiveActions": "Corrective actions",
         "correctiveDescription": "Follow up on failed checks. Closing an action preserves the failure status of the original check.",
@@ -1863,11 +1864,12 @@
             "dueDate": "Due date",
             "clear": "Clear",
             "priority": "Priority",
-            "group": "Group",
             "dueTime": "Time",
             "remind": "Remind me",
-            "assignee": "Assigned to",
-            "nobody": "Nobody"
+            "assignTo": "Assigned to",
+            "assignToPlaceholder": "Whole site, nobody in particular",
+            "assignToTeamHint": "The whole team sees the task and handles it together: every member is notified.",
+            "wholeSiteNobody": "Whole site (nobody in particular)"
         },
         "fab": {
             "title": "My todos",
@@ -2151,6 +2153,19 @@
         },
         "remove": "Remove"
     },
+    "targetPicker": {
+        "search": "Search...",
+        "selectAll": "Select all",
+        "clear": "Clear all",
+        "empty": "No result",
+        "selectedCount_one": "{{count}} selected",
+        "selectedCount_other": "{{count}} selected",
+        "teams": "Teams",
+        "noTeams": "No team yet: create one under Settings > Security.",
+        "people": "People",
+        "members_one": "{{count}} member",
+        "members_other": "{{count}} members"
+    },
     "taskDelegations": {
         "title": "Task Delegations",
         "description": "Delegate <strong>{{name}}</strong> to others for a specific period of time.",
@@ -2159,10 +2174,9 @@
         "endTime": "End Time",
         "reason": "Reason (Optional)",
         "reasonPlaceholder": "E.g. Annual Leave",
-        "delegateToUsers": "Delegate to (Users)",
-        "delegateToGroups": "Delegate to (Groups)",
-        "selectUser": "Select a user...",
-        "selectGroup": "Select a group...",
+        "delegateTo": "Delegate to",
+        "delegateToPlaceholder": "Pick teams or people...",
+        "delegateToHint": "A team includes its future members.",
         "create": "Create Delegation",
         "creating": "Creating...",
         "activeAndPlanned": "Active & Planned",
@@ -2178,7 +2192,6 @@
             "removeFailed": "Failed to remove delegation"
         },
         "removeTarget": "Remove {{name}}",
-        "addTarget": "Add",
         "removeDelegation": "Remove the delegation",
         "status": {
             "active": "In progress",

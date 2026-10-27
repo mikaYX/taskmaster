@@ -4,44 +4,30 @@ Liste de travail, à compléter au fil de l'eau. Une fois un point livré, le re
 
 ## 1. Todos : pouvoir assigner à une équipe (groupe)
 
-### Constat
+### Décision
 
-Dans une todo, le champ « assigné à » ne propose que des personnes. Le modèle `Todo` ne porte qu'un seul `assigneeId` (relation `TodoAssignee` vers `User`), alors que les groupes (`Group`, `UserGroupMembership`) existent déjà et sont utilisés par les tâches et les délégations.
+**Option A** : la todo est partagée avec l'équipe, qui la traite entre elle. Tous les membres sont prévenus à l'assignation ; n'importe lequel peut la prendre ou la terminer ; un membre ajouté ou retiré après coup suit la todo automatiquement.
 
-### Questions à trancher
+### Livré (à valider en test)
 
-- **Sémantique** : assigner à un groupe veut dire quoi ?
-  - **A. Todo collective partagée** (recommandé) : la todo est visible par tous les membres du groupe, n'importe lequel peut la prendre/terminer. Cohérent avec le marqueur **C** (collective) ajouté en 1.2.1.
-  - **B. Duplication** : une todo individuelle créée par membre. Plus lourd, perd le lien entre les copies.
-- Un membre ajouté ou retiré du groupe après coup : suit-il la todo ? (avec A : oui, automatiquement.)
-- Qui reçoit les notifications ? Tous les membres, ou seulement au moment de la prise en charge ?
+- **Aucune migration** : le modèle `Todo` porte déjà `groupId` (visibilité par les membres du groupe, prise en charge par n'importe lequel). Une colonne `assigneeGroupId` aurait fait doublon, donc elle n'est pas ajoutée.
+- Un seul sélecteur « Assignée à » (formulaire de création et dialogue d'édition), avec deux sections : **Équipes** (avec le nombre de membres) puis **Personnes**, et une recherche.
+- Une todo va à **une personne ou à une équipe, jamais les deux** : choisir une équipe retire la personne, choisir une personne retire l'équipe. Rien choisi = tout le site, personne en particulier.
+- Notifications : à la création d'une todo pour une équipe, ou quand on confie une todo existante à une équipe (`todo.assigned_team`), tous les membres sont prévenus (sauf l'auteur et ceux qui ont désactivé « Tâches collectives de mes groupes »), plus les canaux choisis par l'admin (point 6).
+- Filtres et compteurs : inchangés, ils incluent déjà les todos des groupes de l'utilisateur.
 
-### Pistes techniques (option A)
+### À savoir
 
-- Backend : ajouter `assigneeGroupId Int?` sur `Todo` (migration Prisma, relation vers `Group`, index), avec la règle « un utilisateur **ou** un groupe, pas les deux » dans le DTO/service.
-- Réutiliser la logique de résolution des membres de `BeneficiaryResolverService` pour les droits d'accès et les notifications.
-- Filtres de la liste (« mes todos », compteurs du tableau de bord) : inclure les todos des groupes dont l'utilisateur est membre.
-- Frontend : le sélecteur d'assigné devient un sélecteur à deux sections « Personnes » / « Équipes » (avec recherche), même composant que pour les délégations (voir point 2).
-- Tests : DTO, droits d'accès, filtres, e2e de création d'une todo assignée à un groupe.
+- Choisir une personne retire le groupe : la todo devient visible par tout le site (comme avant pour une todo assignée sans groupe).
 
 ## 2. Délégations : sélection multiple plus rapide
 
-### Constat
+### Livré (à valider en test)
 
-Le backend accepte déjà plusieurs cibles (`targetUserIds[]`, `targetGroupIds[]`). Mais dans `task-delegations-sheet.tsx`, l'interface oblige à choisir **une personne dans une liste déroulante, puis l'ajouter, puis recommencer** (chips ensuite). Avec beaucoup de bénéficiaires, c'est long.
-
-### Solutions possibles
-
-1. **Liste déroulante à cases à cocher (recommandé)** : un seul menu (combobox) avec recherche, qui reste ouvert et où l'on coche autant de personnes que voulu. Les chips actuels sont conservés pour résumer la sélection. Changement limité au frontend, aucun changement d'API.
-2. **Boutons « Tout sélectionner » / « Tout désélectionner »** dans ce même menu, appliqués aux résultats filtrés par la recherche.
-3. **Sélectionner par équipe** : cocher un groupe ajoute d'un coup tous ses membres. Déjà possible via `targetGroupIds`, il suffit de mieux le mettre en avant (section « Équipes » en tête du menu, avec le nombre de membres).
-4. *(optionnel)* **Coller une liste** de noms ou d'identifiants pour les gros volumes. À ne faire que si 1 à 3 ne suffisent pas.
-
-### Points d'attention
-
-- Choisir entre cibler un groupe (les futurs membres sont inclus) et copier ses membres (liste figée) : à indiquer clairement dans l'interface.
-- Le composant multi-sélection devrait être générique et partagé avec le point 1.
-- Accessibilité : navigation clavier, `aria-label` conservés, traductions `fr.json` / `en.json`.
+- Composant partagé `components/target-picker.tsx` (menu à recherche, sections Équipes / Personnes, mode simple ou multiple), utilisé par les todos (point 1) et par `task-delegations-sheet.tsx`.
+- Délégations : un seul menu qui reste ouvert et où l'on coche autant d'équipes et de personnes que voulu, avec « Tout sélectionner » / « Tout désélectionner » (appliqués aux résultats filtrés). Les pastilles résument la sélection.
+- Les équipes sont en tête, avec leur nombre de membres. Indication : une équipe inclut ses futurs membres.
+- Pas de collage de liste (option 4, optionnelle) : à faire seulement si ce n'est pas assez rapide.
 
 ## 3. Todos collectives : notification et email à la création
 
@@ -105,7 +91,7 @@ En plus de la cloche, l'admin choisit quels canaux les todos utilisent, parmi ce
 ### Impact à connaître
 
 - Le pop-up navigateur des todos (assignation, terminée, commentaire) dépend maintenant d'un canal Push choisi par l'admin. Sans canal Push lié, il n'y a plus de pop-up (avant, il partait par défaut).
-- Les rappels d'échéance (réglage « Rappels », point 5) gardent leur fonctionnement actuel. Il reste à décider s'ils doivent aussi suivre ce choix.
+- Les rappels d'échéance (point 5) gardent leur fonctionnement actuel (cloche, pop-up et email selon les cases de chacun). Il reste à décider s'ils doivent aussi suivre ce choix.
 
 ### Problème repéré
 
@@ -118,6 +104,6 @@ _Autres points à ajouter plus tard._
 ## Définition de « terminé » pour 1.2.2
 
 - [ ] Tests unitaires et e2e à jour
-- [ ] Traductions FR/EN
+- [x] Traductions FR/EN
 - [ ] Entrée dans `CHANGELOG.md` (section 1.2.2)
-- [ ] Migration Prisma documentée dans le changelog si le point 1 est livré
+- [ ] Migration Prisma documentée dans le changelog (`20261027000000_todo_reminder_email_default_on` ; le point 1 n'en demande aucune)

@@ -373,6 +373,44 @@ describe('TodosService assignment', () => {
     ).rejects.toThrow(ForbiddenException);
   });
 
+  it('tells every member of the team when an existing todo is handed to it', async () => {
+    const { service, client, todo, inbox } = fixture();
+    todo.findUnique.mockResolvedValue({
+      ...collective,
+      groupId: null,
+      assigneeId: 5,
+    });
+    todo.update.mockResolvedValue({
+      ...collective,
+      groupId: 4,
+      assigneeId: null,
+    });
+    client.userGroupMembership.findMany.mockResolvedValue([
+      { userId: 8 },
+      { userId: 9 },
+    ]);
+
+    await service.update(2, { groupId: 4, assigneeId: null }, 1, 'MANAGER', 1);
+
+    expect(inbox.notify.mock.calls.map(([id]) => id)).toEqual([8, 9]);
+    expect(inbox.notify.mock.calls[0][1]).toEqual(
+      expect.objectContaining({
+        type: 'todo.assigned_team',
+        title: 'Tâche confiée à votre équipe',
+      }),
+    );
+  });
+
+  it('stays quiet when the team of a todo does not change', async () => {
+    const { service, todo, inbox } = fixture();
+    todo.findUnique.mockResolvedValue(collective);
+    todo.update.mockResolvedValue({ ...collective, title: 'Renamed' });
+
+    await service.update(2, { title: 'Renamed' }, 1, 'MANAGER', 1);
+
+    expect(inbox.notify).not.toHaveBeenCalled();
+  });
+
   it('lets a manager reassign and tells the new assignee', async () => {
     const { service, todo, inbox } = fixture();
     todo.findUnique.mockResolvedValue({ ...collective, assigneeId: 5 });

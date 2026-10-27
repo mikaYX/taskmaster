@@ -18,11 +18,13 @@ import { buildTodoUpdate, formFromTodo } from './todo-update';
 import { PRIORITY_VALUES } from './todo-priority';
 import { REMIND_OPTIONS, remindToSelect } from './todo-schedule';
 import { DateInput } from '@/components/ui/date-input';
+import { TargetPicker } from '@/components/target-picker';
+import { applyAssignment, assignmentSections, assignmentValue } from './todo-assignment';
 
 interface TodoEditDialogProps {
     todo: Todo | null;
     /** Groups offered for a collective todo; omit for a private one. */
-    groups?: { id: number; name: string }[];
+    groups?: { id: number; name: string; memberCount?: number }[];
     /** People a collective todo can be assigned to; omit when assignment is not offered. */
     assignees?: { id: number; username: string; fullname: string | null }[];
     saving?: boolean;
@@ -161,47 +163,21 @@ function TodoEditForm({
                         </Select>
                     </div>
 
-                    {groups && todo.parentId === null && (
+                    {(groups || assignees) && todo.parentId === null && (
                         <div className="space-y-2">
-                            <Label htmlFor="todo-edit-group">{t('todos.dialog.group')}</Label>
-                            <Select
-                                value={form.groupId || 'none'}
-                                onValueChange={(value) => set({ groupId: value === 'none' ? '' : value })}
-                            >
-                                <SelectTrigger id="todo-edit-group">
-                                    <SelectValue placeholder={t('todos.wholeSite')} />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="none">{t('todos.wholeSite')}</SelectItem>
-                                    {groups.map((group) => (
-                                        <SelectItem key={group.id} value={group.id.toString()}>
-                                            {group.name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    )}
-
-                    {assignees && todo.parentId === null && (
-                        <div className="space-y-2">
-                            <Label htmlFor="todo-edit-assignee">{t('todos.dialog.assignee')}</Label>
-                            <Select
-                                value={form.assigneeId || 'none'}
-                                onValueChange={(value) => set({ assigneeId: value === 'none' ? '' : value })}
-                            >
-                                <SelectTrigger id="todo-edit-assignee">
-                                    <SelectValue placeholder={t('todos.dialog.nobody')} />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="none">{t('todos.dialog.nobody')}</SelectItem>
-                                    {assignees.map((person) => (
-                                        <SelectItem key={person.id} value={person.id.toString()}>
-                                            {person.fullname || person.username}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                            <Label htmlFor="todo-edit-target">{t('todos.dialog.assignTo')}</Label>
+                            <TargetPicker
+                                id="todo-edit-target"
+                                sections={assignmentSections(t, groups, assignees)}
+                                value={assignmentValue(form.groupId, form.assigneeId)}
+                                onChange={(values) => set(applyAssignment(values))}
+                                noneLabel={t('todos.dialog.wholeSiteNobody')}
+                                placeholder={t('todos.dialog.assignToPlaceholder')}
+                                ariaLabel={t('todos.dialog.assignTo')}
+                            />
+                            {form.groupId !== '' && form.assigneeId === '' && (
+                                <p className="text-[11px] text-muted-foreground">{t('todos.dialog.assignToTeamHint')}</p>
+                            )}
                         </div>
                     )}
 

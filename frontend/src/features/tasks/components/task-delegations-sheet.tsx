@@ -8,13 +8,7 @@ import {
     SheetTitle,
 } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
+import { TargetPicker, type TargetPickerSection } from '@/components/target-picker';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
@@ -44,10 +38,6 @@ export function TaskDelegationsSheet({ task, open, onOpenChange }: TaskDelegatio
     const [selectedUserIds, setSelectedUserIds] = useState<number[]>([]);
     const [selectedGroupIds, setSelectedGroupIds] = useState<number[]>([]);
 
-    // For the dropdown selection
-    const [tempUserId, setTempUserId] = useState<string>('');
-    const [tempGroupId, setTempGroupId] = useState<string>('');
-
     const { data: allUsers } = useUsers();
     const { data: allGroups } = useGroups();
 
@@ -57,19 +47,28 @@ export function TaskDelegationsSheet({ task, open, onOpenChange }: TaskDelegatio
 
     if (!task) return null;
 
-    const availableUsers = allUsers?.filter(u => !u.deletedAt && !selectedUserIds.includes(u.id)) || [];
-    const availableGroups = allGroups?.filter(g => !selectedGroupIds.includes(g.id)) || [];
-
-    const handleAddUser = () => {
-        if (!tempUserId) return;
-        setSelectedUserIds([...selectedUserIds, parseInt(tempUserId)]);
-        setTempUserId('');
-    };
-
-    const handleAddGroup = () => {
-        if (!tempGroupId) return;
-        setSelectedGroupIds([...selectedGroupIds, parseInt(tempGroupId)]);
-        setTempGroupId('');
+    // Teams first: picking one covers everybody in it, now and later.
+    const sections: TargetPickerSection[] = [
+        {
+            key: 'groups',
+            label: t('targetPicker.teams'),
+            items: (allGroups ?? []).map(g => ({
+                value: `group:${g.id}`,
+                label: g.name,
+                hint: t('targetPicker.members', { count: g.memberCount }),
+            })),
+        },
+        {
+            key: 'users',
+            label: t('targetPicker.people'),
+            items: (allUsers ?? []).filter(u => !u.deletedAt).map(u => ({ value: `user:${u.id}`, label: u.fullname || u.username })),
+        },
+    ];
+    const pickerValue = [...selectedGroupIds.map(id => `group:${id}`), ...selectedUserIds.map(id => `user:${id}`)];
+    const handlePick = (values: string[]) => {
+        const idsOf = (kind: string) => values.filter(v => v.startsWith(`${kind}:`)).map(v => parseInt(v.slice(kind.length + 1), 10));
+        setSelectedGroupIds(idsOf('group'));
+        setSelectedUserIds(idsOf('user'));
     };
 
     const handleRemoveSelectedUser = (id: number) => {
@@ -86,8 +85,6 @@ export function TaskDelegationsSheet({ task, open, onOpenChange }: TaskDelegatio
         setReason('');
         setSelectedUserIds([]);
         setSelectedGroupIds([]);
-        setTempUserId('');
-        setTempGroupId('');
     };
 
     const handleCreateDelegation = () => {
@@ -225,60 +222,28 @@ export function TaskDelegationsSheet({ task, open, onOpenChange }: TaskDelegatio
                             />
                         </div>
 
-                        {/* TARGET SELECTION */}
+                        {/* TARGET SELECTION: one menu, tick as many teams and people as needed */}
                         <div className="space-y-2 rounded-lg bg-muted/30 p-3">
-                            <Label className="text-xs">{t('taskDelegations.delegateToUsers')}</Label>
-                            <div className="flex gap-2">
-                                <Select value={tempUserId} onValueChange={setTempUserId}>
-                                    <SelectTrigger className="flex-1 bg-background" aria-label={t('taskDelegations.delegateToUsers')}>
-                                        <SelectValue placeholder={t('taskDelegations.selectUser')} />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {availableUsers.map((user) => (
-                                            <SelectItem key={user.id} value={user.id.toString()}>
-                                                {user.fullname || user.username}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                                <Button variant="outline" size="icon" aria-label={t('taskDelegations.addTarget')} onClick={handleAddUser} disabled={!tempUserId}>
-                                    <Plus className="h-4 w-4" />
-                                </Button>
-                            </div>
-                            {selectedUserIds.length > 0 && (
-                                <div className="flex flex-wrap gap-1.5">
-                                    {selectedUserIds.map(id => {
-                                        const u = allUsers?.find(user => user.id === id);
-                                        return chip(`u${id}`, u?.fullname || u?.username || String(id), () => handleRemoveSelectedUser(id), 'bg-primary/10 text-primary');
-                                    })}
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="space-y-2 rounded-lg bg-muted/30 p-3">
-                            <Label className="text-xs">{t('taskDelegations.delegateToGroups')}</Label>
-                            <div className="flex gap-2">
-                                <Select value={tempGroupId} onValueChange={setTempGroupId}>
-                                    <SelectTrigger className="flex-1 bg-background" aria-label={t('taskDelegations.delegateToGroups')}>
-                                        <SelectValue placeholder={t('taskDelegations.selectGroup')} />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {availableGroups.map((group) => (
-                                            <SelectItem key={group.id} value={group.id.toString()}>
-                                                {group.name}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                                <Button variant="outline" size="icon" aria-label={t('taskDelegations.addTarget')} onClick={handleAddGroup} disabled={!tempGroupId}>
-                                    <Plus className="h-4 w-4" />
-                                </Button>
-                            </div>
-                            {selectedGroupIds.length > 0 && (
+                            <Label htmlFor="delegation-targets" className="text-xs">{t('taskDelegations.delegateTo')}</Label>
+                            <TargetPicker
+                                id="delegation-targets"
+                                multiple
+                                sections={sections}
+                                value={pickerValue}
+                                onChange={handlePick}
+                                placeholder={t('taskDelegations.delegateToPlaceholder')}
+                                ariaLabel={t('taskDelegations.delegateTo')}
+                            />
+                            <p className="text-[11px] text-muted-foreground">{t('taskDelegations.delegateToHint')}</p>
+                            {pickerValue.length > 0 && (
                                 <div className="flex flex-wrap gap-1.5">
                                     {selectedGroupIds.map(id => {
                                         const g = allGroups?.find(group => group.id === id);
                                         return chip(`g${id}`, g?.name || String(id), () => handleRemoveSelectedGroup(id), 'bg-orange-500/10 text-orange-700 dark:text-orange-400');
+                                    })}
+                                    {selectedUserIds.map(id => {
+                                        const u = allUsers?.find(user => user.id === id);
+                                        return chip(`u${id}`, u?.fullname || u?.username || String(id), () => handleRemoveSelectedUser(id), 'bg-primary/10 text-primary');
                                     })}
                                 </div>
                             )}

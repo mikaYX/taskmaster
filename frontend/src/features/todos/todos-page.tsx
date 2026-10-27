@@ -10,6 +10,8 @@ import {
 } from '@/hooks/use-todos';
 import { cn } from '@/lib/utils';
 import { useGroups } from '@/hooks/use-groups';
+import { TargetPicker } from '@/components/target-picker';
+import { applyAssignment, assignmentSections } from './todo-assignment';
 import { useUsers } from '@/hooks/use-users';
 import { useAuthStore } from '@/stores';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -91,8 +93,8 @@ function TodosPageContent() {
     const [newNotes, setNewNotes] = useState('');
     const [newDueTime, setNewDueTime] = useState('');
     const [newRemind, setNewRemind] = useState('default');
-    const [newAssignee, setNewAssignee] = useState('none');
-    const [newGroup, setNewGroup] = useState('all');
+    // One choice: a team, a person, or nothing (the whole site, nobody in particular).
+    const [newTarget, setNewTarget] = useState<string[]>([]);
     // Subtasks typed in the composer, created right after their parent.
     const [newSubtasks, setNewSubtasks] = useState<string[]>([]);
     const [newSubtaskTitle, setNewSubtaskTitle] = useState('');
@@ -150,8 +152,7 @@ function TodosPageContent() {
         setNewNotes('');
         setNewDueTime('');
         setNewRemind('default');
-        setNewAssignee('none');
-        setNewGroup('all');
+        setNewTarget([]);
         setNewSubtasks([]);
         setNewSubtaskTitle('');
     };
@@ -169,6 +170,7 @@ function TodosPageContent() {
         const quick = parseQuickAdd(newTitle);
         if (!quick.title) return;
 
+        const assignment = applyAssignment(newTarget);
         const remind = selectToRemind(newRemind);
         const time = quick.dueTime ?? (newDueTime || undefined);
         // A time or a reminder without a date means today.
@@ -187,8 +189,8 @@ function TodosPageContent() {
                 priority: quick.priority ?? newPriority,
                 description: newNotes.trim() || undefined,
                 remindBeforeMinutes: dueDate && remind !== null ? remind : undefined,
-                assigneeId: activeTab === 'COLLECTIVE' && newAssignee !== 'none' ? Number(newAssignee) : undefined,
-                groupId: activeTab === 'COLLECTIVE' && newGroup !== 'all' ? Number(newGroup) : undefined,
+                assigneeId: activeTab === 'COLLECTIVE' && assignment.assigneeId ? Number(assignment.assigneeId) : undefined,
+                groupId: activeTab === 'COLLECTIVE' && assignment.groupId ? Number(assignment.groupId) : undefined,
             },
             {
                 onSuccess: async (created) => {
@@ -432,39 +434,20 @@ function TodosPageContent() {
                         <p className="text-[11px] text-muted-foreground sm:col-span-2">{t('todos.options.noDateHint')}</p>
                     )}
                     {activeTab === 'COLLECTIVE' && isManager && (
-                        <div className="space-y-1.5">
-                            <Label htmlFor="todo-new-group" className="text-xs">{t('todos.dialog.group')}</Label>
-                            <Select value={newGroup} onValueChange={setNewGroup}>
-                                <SelectTrigger id="todo-new-group" className="w-full">
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">{t('todos.wholeSite')}</SelectItem>
-                                    {groups?.map((g: { id: number; name: string }) => (
-                                        <SelectItem key={g.id} value={g.id.toString()}>
-                                            {g.name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    )}
-                    {activeTab === 'COLLECTIVE' && (
-                        <div className="space-y-1.5">
-                            <Label htmlFor="todo-new-assignee" className="text-xs">{t('todos.dialog.assignee')}</Label>
-                            <Select value={newAssignee} onValueChange={setNewAssignee}>
-                                <SelectTrigger id="todo-new-assignee" className="w-full">
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="none">{t('todos.dialog.nobody')}</SelectItem>
-                                    {users?.map((u) => (
-                                        <SelectItem key={u.id} value={u.id.toString()}>
-                                            {u.fullname || u.username}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                        <div className="space-y-1.5 sm:col-span-2">
+                            <Label htmlFor="todo-new-target" className="text-xs">{t('todos.dialog.assignTo')}</Label>
+                            <TargetPicker
+                                id="todo-new-target"
+                                sections={assignmentSections(t, groups, users)}
+                                value={newTarget}
+                                onChange={setNewTarget}
+                                noneLabel={t('todos.dialog.wholeSiteNobody')}
+                                placeholder={t('todos.dialog.assignToPlaceholder')}
+                                ariaLabel={t('todos.dialog.assignTo')}
+                            />
+                            {newTarget[0]?.startsWith('group:') && (
+                                <p className="text-[11px] text-muted-foreground">{t('todos.dialog.assignToTeamHint')}</p>
+                            )}
                         </div>
                     )}
                     <div className="space-y-1.5 sm:col-span-2">

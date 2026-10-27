@@ -1448,6 +1448,7 @@
         "dueDate": "Échéance (facultative)",
         "assignee": "Responsable",
         "myself": "Moi-même",
+        "assigneeTeamHint": "Tous les membres de l’équipe voient cette action et peuvent la clôturer.",
         "saving": "Enregistrement…",
         "correctiveActions": "Actions correctives",
         "correctiveDescription": "Suivez les suites données aux contrôles échoués. Clôturer une action conserve le statut d’échec du contrôle d’origine.",
@@ -1863,11 +1864,12 @@
             "dueDate": "Échéance",
             "clear": "Effacer",
             "priority": "Priorité",
-            "group": "Groupe",
             "dueTime": "Heure",
             "remind": "Me rappeler",
-            "assignee": "Assignée à",
-            "nobody": "Personne"
+            "assignTo": "Assignée à",
+            "assignToPlaceholder": "Tout le site, personne en particulier",
+            "assignToTeamHint": "Toute l'équipe voit la tâche et la traite ensemble : chaque membre est prévenu.",
+            "wholeSiteNobody": "Tout le site (personne en particulier)"
         },
         "fab": {
             "title": "Mes tâches",
@@ -2151,6 +2153,19 @@
         },
         "remove": "Retirer"
     },
+    "targetPicker": {
+        "search": "Rechercher...",
+        "selectAll": "Tout sélectionner",
+        "clear": "Tout désélectionner",
+        "empty": "Aucun résultat",
+        "selectedCount_one": "{{count}} sélectionné",
+        "selectedCount_other": "{{count}} sélectionnés",
+        "teams": "Équipes",
+        "noTeams": "Aucune équipe pour l'instant : créez-en dans Réglages > Sécurité.",
+        "people": "Personnes",
+        "members_one": "{{count}} membre",
+        "members_other": "{{count}} membres"
+    },
     "taskDelegations": {
         "title": "Délégations de la tâche",
         "description": "Déléguez <strong>{{name}}</strong> à d'autres personnes pour une période donnée.",
@@ -2159,10 +2174,9 @@
         "endTime": "Fin",
         "reason": "Motif (facultatif)",
         "reasonPlaceholder": "Ex. Congés annuels",
-        "delegateToUsers": "Déléguer à (utilisateurs)",
-        "delegateToGroups": "Déléguer à (groupes)",
-        "selectUser": "Sélectionner un utilisateur...",
-        "selectGroup": "Sélectionner un groupe...",
+        "delegateTo": "Déléguer à",
+        "delegateToPlaceholder": "Choisir des équipes ou des personnes...",
+        "delegateToHint": "Une équipe inclut ses futurs membres.",
         "create": "Créer la délégation",
         "creating": "Création...",
         "activeAndPlanned": "En cours et planifiées",
@@ -2178,7 +2192,6 @@
             "removeFailed": "Échec de la suppression de la délégation"
         },
         "removeTarget": "Retirer {{name}}",
-        "addTarget": "Ajouter",
         "removeDelegation": "Supprimer la délégation",
         "status": {
             "active": "En cours",

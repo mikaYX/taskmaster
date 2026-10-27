@@ -444,31 +444,49 @@ export class TodosService {
         }
         return;
       }
-      if (todo.groupId === null) return;
-      const members = await this.prisma.client.userGroupMembership.findMany({
-        where: {
-          groupId: todo.groupId,
-          userId: { not: actorId },
-          user: { deletedAt: null, todoReminderCollective: true },
-        },
-        select: { userId: true },
+      await this.notifyTeam(todo, actorId, channels, {
+        type: 'todo.created',
+        title: 'Nouvelle tâche collective',
+        verb: 'a ajouté',
       });
-      for (const { userId } of members) {
-        await this.tell(
-          userId,
-          {
-            type: 'todo.created',
-            title: 'Nouvelle tâche collective',
-            body: `${await this.displayName(actorId)} a ajouté : ${todo.title}`,
-          },
-          channels,
-        );
-        if (channels.email) await this.mail('CREATED', userId, todo, actorId);
-      }
     } catch (error) {
       this.logger.error(
         `Could not announce todo ${todo.id}: ${error instanceof Error ? error.message : String(error)}`,
       );
+    }
+  }
+
+  /**
+   * Tells every member of the todo's group (but who acted) who did not opt out: the team
+   * handles the todo among themselves, so all of them need to know.
+   */
+  private async notifyTeam(
+    todo: Todo,
+    actorId: number,
+    channels: TodoChannels,
+    event: { type: string; title: string; verb: string },
+  ) {
+    if (todo.groupId === null) return;
+    const members = await this.prisma.client.userGroupMembership.findMany({
+      where: {
+        groupId: todo.groupId,
+        userId: { not: actorId },
+        user: { deletedAt: null, todoReminderCollective: true },
+      },
+      select: { userId: true },
+    });
+    const who = await this.displayName(actorId);
+    for (const { userId } of members) {
+      await this.tell(
+        userId,
+        {
+          type: event.type,
+          title: event.title,
+          body: `${who} ${event.verb} : ${todo.title}`,
+        },
+        channels,
+      );
+      if (channels.email) await this.mail('CREATED', userId, todo, actorId);
     }
   }
 
@@ -727,6 +745,25 @@ export class TodosService {
         const channels = await this.todoChannels();
         await this.broadcast('Tâche assignée', after, actorId, channels);
         await this.notifyAssigned(after.assigneeId, after, actorId, channels);
+      }
+      if (
+        after.groupId !== null &&
+        after.groupId !== before.groupId &&
+        after.assigneeId === null
+      ) {
+        // Handed over to a team: all its members hear about it, not one person.
+        const channels = await this.todoChannels();
+        await this.broadcast(
+          'Tâche confiée à une équipe',
+          after,
+          actorId,
+          channels,
+        );
+        await this.notifyTeam(after, actorId, channels, {
+          type: 'todo.assigned_team',
+          title: 'Tâche confiée à votre équipe',
+          verb: 'a confié à votre équipe',
+        });
       }
       if (justCompleted) {
         const concerned = new Set(

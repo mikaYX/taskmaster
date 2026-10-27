@@ -39,6 +39,34 @@ function setup(overrides: Partial<Parameters<typeof TodoEditDialog>[0]> = {}) {
 }
 
 describe('TodoEditDialog', () => {
+    it('offers the teams and hands the todo to one of them', async () => {
+        const { onSave, user } = setup({
+            todo: { ...todo, scope: 'COLLECTIVE', assigneeId: 1 },
+            groups: [{ id: 4, name: 'Maintenance', memberCount: 3 }],
+            assignees: [{ id: 1, username: 'admin', fullname: 'Admin Local' }],
+        });
+
+        await user.click(screen.getByRole('combobox', { name: 'Assignée à' }));
+        expect(screen.getByRole('group', { name: 'Équipes' })).toBeDefined();
+        await user.click(screen.getByRole('option', { name: /Maintenance/ }));
+        await user.click(screen.getByRole('button', { name: 'Enregistrer' }));
+
+        expect(onSave).toHaveBeenCalledWith(4, { groupId: 4, assigneeId: null });
+    });
+
+    it('still shows the Teams section, with a hint, when no team exists yet', async () => {
+        const { user } = setup({
+            todo: { ...todo, scope: 'COLLECTIVE' },
+            groups: [],
+            assignees: [{ id: 1, username: 'admin', fullname: 'Admin Local' }],
+        });
+
+        await user.click(screen.getByRole('combobox', { name: 'Assignée à' }));
+
+        expect(screen.getByRole('group', { name: 'Équipes' })).toBeDefined();
+        expect(screen.getByText(/Aucune équipe/)).toBeDefined();
+    });
+
     it('pre-fills the current title and due date', () => {
         setup();
 
