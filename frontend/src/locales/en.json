@@ -404,8 +404,6 @@
         "addonsDescription": "Enable or disable additional features",
         "todoListEnabled": "Enable Todo",
         "todoListHint": "Shows a personal and collective todo list in the sidebar",
-        "todoListReminders": "Reminders",
-        "todoListRemindersHint": "Reminds people when a task is due: notification center, browser pop-up and email (each person chooses; email also needs email sending enabled)",
         "todoNotifications": {
             "tab": "Todo notifications",
             "title": "Todo secondary channels",

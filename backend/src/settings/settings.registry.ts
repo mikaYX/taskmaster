@@ -774,15 +774,7 @@ export const SETTINGS_REGISTRY = {
     description:
       'Web Push (VAPID) private key, generated on first start (encrypted)',
   },
-  'addons.todolist.reminders.enabled': {
-    schema: z.preprocess(
-      (v) => (v === 'true' ? true : v === 'false' ? false : v),
-      z.boolean(),
-    ),
-    sensitive: false,
-    default: false,
-    description: 'Email a reminder when a todo is due within 24 hours',
-  },
+
   'addons.todolist.notify.channelIds': {
     schema: z.array(z.number().int().positive()),
     sensitive: false,

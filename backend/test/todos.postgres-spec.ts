@@ -415,7 +415,6 @@ postgresTests('todolist against isolated PostgreSQL', () => {
           (
             {
               'addons.todolist.enabled': true,
-              'addons.todolist.reminders.enabled': true,
               'email.enabled': false,
               'scheduler.timezone': 'Europe/Paris',
             } as Record<string, unknown>

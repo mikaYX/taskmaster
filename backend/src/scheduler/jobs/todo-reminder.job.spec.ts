@@ -43,7 +43,6 @@ describe('TodoReminderJob', () => {
       Promise.resolve(
         {
           'addons.todolist.enabled': true,
-          'addons.todolist.reminders.enabled': true,
           'email.enabled': true,
           'scheduler.timezone': 'Europe/Paris',
           ...overrides,
@@ -195,9 +194,7 @@ describe('TodoReminderJob', () => {
     expect(todoModel.updateMany).toHaveBeenCalled();
   });
 
-  it('does nothing when reminders or the todolist are off', async () => {
-    settingsOn({ 'addons.todolist.reminders.enabled': false });
-    await job.execute(dayBefore);
+  it('does nothing when the todolist is off', async () => {
     settingsOn({ 'addons.todolist.enabled': false });
     await job.execute(dayBefore);
 

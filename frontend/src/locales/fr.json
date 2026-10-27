@@ -404,8 +404,6 @@
         "addonsDescription": "Activer ou désactiver des fonctionnalités supplémentaires",
         "todoListEnabled": "Activer Todo",
         "todoListHint": "Affiche une todo personnelle et collective dans la barre latérale",
-        "todoListReminders": "Rappels",
-        "todoListRemindersHint": "Prévient lorsqu'une tâche arrive à échéance : centre de notifications, pop-up navigateur et email (chacun choisit ; l'email nécessite aussi l'envoi d'emails activé)",
         "todoNotifications": {
             "tab": "Notifications des todos",
             "title": "Canaux secondaires des todos",

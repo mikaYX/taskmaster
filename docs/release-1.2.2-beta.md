@@ -71,9 +71,11 @@ Le formulaire de création n'avait aucun sélecteur de groupe : le groupe n'éta
 
 - Sélecteur « Groupe » dans le formulaire de création d'une todo collective (« Tout le site » par défaut), visible pour les gestionnaires.
 
-## 5. Réglage « Rappels » : clarifier le libellé
+## 5. Réglage « Rappels » supprimé : rappels d'échéance toujours actifs
 
-Le réglage `addons.todolist.reminders.enabled` active seulement le job horaire de rappel d'échéance. Il n'a aucun effet sur les notifications de création ou d'assignation. À préciser dans le libellé et l'aide (« Rappels d'échéance »).
+Le réglage admin `addons.todolist.reminders.enabled` (interrupteur « Rappels » du module todo) est supprimé : le job horaire de rappel d'échéance tourne dès que le module todo est actif. Chaque personne règle toujours ses canaux dans « Mes rappels » (cloche, pop-up, email).
+
+Une ancienne valeur éventuellement stockée en base pour cette clé est simplement ignorée.
 
 ## 6. Todos : canaux de notification secondaires choisis par l'admin
 

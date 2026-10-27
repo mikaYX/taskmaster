@@ -71,14 +71,13 @@ export class TodoReminderJob implements SchedulerJob {
 
   @Cron('0 * * * *', { name: 'todo-reminders' })
   async execute(now: Date = new Date()): Promise<void> {
-    const [todolist, reminders, emailEnabled, timeZone] = await Promise.all([
+    const [todolist, emailEnabled, timeZone] = await Promise.all([
       this.settings.getRawValue<boolean>('addons.todolist.enabled'),
-      this.settings.getRawValue<boolean>('addons.todolist.reminders.enabled'),
       this.settings.getRawValue<boolean>('email.enabled'),
       this.settings.getRawValue<string>('scheduler.timezone'),
     ]);
     const on = (v: unknown) => v === true || v === 'true';
-    if (!on(todolist) || !on(reminders)) return;
+    if (!on(todolist)) return;
     const zone = timeZone || 'Europe/Paris';
 
     const todos = await this.prisma.client.todo.findMany({

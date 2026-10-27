@@ -412,21 +412,6 @@ export function GeneralSettingsPage() {
                             onCheckedChange={(checked) => updateSetting({ key: 'addons.todolist.enabled', value: String(checked) })}
                         />
                     </div>
-                    {getSettingAsBool('addons.todolist.enabled') && (
-                        <div className="flex items-center justify-between border-t pt-4">
-                            <div className="space-y-0.5">
-                                <Label htmlFor="todoListReminders">{t('settings.todoListReminders')}</Label>
-                                <p className="text-xs text-muted-foreground">
-                                    {t('settings.todoListRemindersHint')}
-                                </p>
-                            </div>
-                            <Switch
-                                id="todoListReminders"
-                                checked={getSettingAsBool('addons.todolist.reminders.enabled')}
-                                onCheckedChange={(checked) => updateSetting({ key: 'addons.todolist.reminders.enabled', value: String(checked) })}
-                            />
-                        </div>
-                    )}
                 </div>
             </SettingsSection>
         </div>
