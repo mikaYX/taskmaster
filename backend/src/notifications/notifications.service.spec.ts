@@ -247,7 +247,14 @@ describe('NotificationsService todolist channels', () => {
   it('reports how many tasks use each channel', async () => {
     const { service, prisma } = build([]);
     prisma.client.notificationChannel.findMany.mockResolvedValue([
-      { id: 5, type: 'SLACK', name: 'Ops', config: '', enabled: true, _count: { taskNotifications: 4 } },
+      {
+        id: 5,
+        type: 'SLACK',
+        name: 'Ops',
+        config: '',
+        enabled: true,
+        _count: { taskNotifications: 4 },
+      },
     ]);
 
     const [channel] = await service.getChannels();
