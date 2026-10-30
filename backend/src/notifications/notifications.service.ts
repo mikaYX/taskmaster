@@ -70,6 +70,7 @@ export class NotificationsService {
     const whereClause = enabled !== undefined ? { enabled } : {};
     const channels = await this.prisma.client.notificationChannel.findMany({
       where: whereClause,
+      include: { _count: { select: { taskNotifications: true } } },
     });
     return channels.map((c: any) => this.mapChannelToDto(c));
   }
@@ -621,7 +622,7 @@ export class NotificationsService {
       })
       .join('');
 
-    await this.emailService.send({
+    const sent = await this.emailService.send({
       to: Array.from(recipients),
       subject,
       html: `<div style="font-family: sans-serif; padding: 20px;">
@@ -630,6 +631,11 @@ export class NotificationsService {
             </div>`,
       text: details.map((line) => `${line.label} : ${line.value}`).join('\n'),
     });
+    if (!sent) {
+      this.logger.warn(
+        `Email "${subject}" was not sent (email disabled, provider error or circuit open)`,
+      );
+    }
   }
 
   private async sendPush(config: any, text: string) {
@@ -656,6 +662,8 @@ export class NotificationsService {
       enabled: channel.enabled,
       createdAt: channel.createdAt,
       updatedAt: channel.updatedAt,
+      // Only the list loads the count; other callers get 0.
+      taskCount: channel._count?.taskNotifications ?? 0,
     };
   }
 }

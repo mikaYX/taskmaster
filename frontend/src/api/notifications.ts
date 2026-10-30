@@ -7,6 +7,8 @@ export interface NotificationChannel {
     config: Record<string, unknown>;
     enabled: boolean;
     createdAt: string;
+    /** Tasks that notify through this channel. */
+    taskCount?: number;
 }
 
 export interface TaskNotificationDto {

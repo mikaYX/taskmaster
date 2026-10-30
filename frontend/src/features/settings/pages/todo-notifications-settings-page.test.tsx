@@ -10,7 +10,7 @@ const state = vi.hoisted(() => ({
 }));
 
 const CHANNELS = [
-    { id: 1, name: 'Mail', type: 'EMAIL', enabled: true, config: {} },
+    { id: 1, name: 'Mail', type: 'EMAIL', enabled: true, config: {}, taskCount: 3 },
     { id: 2, name: 'Équipe', type: 'SLACK', enabled: true, config: {} },
     { id: 3, name: 'Vieux', type: 'TEAMS', enabled: false, config: {} },
 ];
@@ -83,7 +83,7 @@ describe('NotificationsSettingsPage guard for channels linked to the todolist', 
         fireEvent.click(screen.getByRole('switch', { name: 'Équipe' }));
 
         expect(state.updateChannel).not.toHaveBeenCalled();
-        expect(screen.getByText('settings.todoNotifications.linkedTitle')).toBeDefined();
+        expect(screen.getByText('settings.notifications.inUseTitle')).toBeDefined();
 
         fireEvent.click(screen.getByRole('button', { name: 'settings.todoNotifications.disableAnyway' }));
         expect(state.updateChannel).toHaveBeenCalledWith({ id: 2, dto: { enabled: false } });
@@ -95,7 +95,7 @@ describe('NotificationsSettingsPage guard for channels linked to the todolist', 
         fireEvent.click(screen.getByRole('switch', { name: 'Équipe' }));
 
         expect(state.updateChannel).toHaveBeenCalledWith({ id: 2, dto: { enabled: false } });
-        expect(screen.queryByText('settings.todoNotifications.linkedTitle')).toBeNull();
+        expect(screen.queryByText('settings.notifications.inUseTitle')).toBeNull();
     });
 
     it('marks the linked channel and warns when deleting it', () => {
@@ -106,5 +106,19 @@ describe('NotificationsSettingsPage guard for channels linked to the todolist', 
 
         fireEvent.click(screen.getAllByRole('button', { name: 'settings.notifications.deleteAria' })[1]);
         expect(screen.getByRole('alert').textContent).toContain('settings.todoNotifications.linkedDeleteWarning');
+    });
+
+    it('warns before switching off or deleting a channel that tasks use', () => {
+        render(<NotificationsSettingsPage />);
+
+        expect(screen.getByText('settings.notifications.tasksBadge')).toBeDefined();
+
+        fireEvent.click(screen.getByRole('switch', { name: 'Mail' }));
+        expect(state.updateChannel).not.toHaveBeenCalled();
+        expect(screen.getByText('settings.notifications.inUseTitle')).toBeDefined();
+        fireEvent.click(screen.getByRole('button', { name: 'common.cancel' }));
+
+        fireEvent.click(screen.getAllByRole('button', { name: 'settings.notifications.deleteAria' })[0]);
+        expect(screen.getByRole('alert').textContent).toContain('settings.notifications.tasksDeleteWarning');
     });
 });

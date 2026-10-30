@@ -47,6 +47,7 @@ export function NotificationsSettingsPage() {
     const [channelToDisable, setChannelToDisable] = useState<NotificationChannel | null>(null);
     const { getSetting, getSettingAsBool } = useSettings();
     const todoChannelIds = getSetting<unknown>(TODO_CHANNELS_SETTING);
+    const deleteTaskCount = channels?.find((c) => c.id === channelToDelete)?.taskCount ?? 0;
     const isTodoLinked = (id: number | null) =>
         id !== null && getSettingAsBool('addons.todolist.enabled') && Array.isArray(todoChannelIds) && todoChannelIds.includes(id);
 
@@ -187,17 +188,26 @@ export function NotificationsSettingsPage() {
                             <div className="min-w-0 flex-1">
                                 <p className="truncate font-semibold">{channel.name}</p>
                                 <p className="text-xs text-muted-foreground">{getChannelTypeLabel(channel.type)}</p>
-                                {isTodoLinked(channel.id) && (
-                                    <span className="mt-1 inline-flex items-center rounded-full bg-violet-500/10 px-2 py-0.5 text-[11px] font-medium text-violet-700 dark:text-violet-400">
-                                        {t('settings.todoNotifications.linkedBadge')}
-                                    </span>
+                                {(isTodoLinked(channel.id) || !!channel.taskCount) && (
+                                    <div className="mt-1 flex flex-wrap gap-1">
+                                        {isTodoLinked(channel.id) && (
+                                            <span className="inline-flex items-center rounded-full bg-violet-500/10 px-2 py-0.5 text-[11px] font-medium text-violet-700 dark:text-violet-400">
+                                                {t('settings.todoNotifications.linkedBadge')}
+                                            </span>
+                                        )}
+                                        {!!channel.taskCount && (
+                                            <span className="inline-flex items-center rounded-full bg-sky-500/10 px-2 py-0.5 text-[11px] font-medium text-sky-700 dark:text-sky-400">
+                                                {t('settings.notifications.tasksBadge', { count: channel.taskCount })}
+                                            </span>
+                                        )}
+                                    </div>
                                 )}
                             </div>
                             <Switch
                                 aria-label={channel.name}
                                 checked={channel.enabled}
                                 onCheckedChange={(val) => {
-                                    if (!val && isTodoLinked(channel.id)) {
+                                    if (!val && (isTodoLinked(channel.id) || !!channel.taskCount)) {
                                         setChannelToDisable(channel);
                                         return;
                                     }
@@ -205,7 +215,7 @@ export function NotificationsSettingsPage() {
                                 }}
                             />
                         </div>
-                        <div className="flex items-center justify-between gap-2 border-t pt-3">
+                        <div className="mt-auto flex items-center justify-between gap-2 border-t pt-3">
                             <span className={cn('inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium', channel.enabled ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400' : 'bg-muted text-muted-foreground')}>
                                 <span className={cn('h-1.5 w-1.5 rounded-full', channel.enabled ? 'bg-emerald-500' : 'bg-muted-foreground/60')} />
                                 {channel.enabled ? t('emailSettings.statusOn') : t('emailSettings.statusOff')}
@@ -387,6 +397,12 @@ export function NotificationsSettingsPage() {
                             <p>{t('settings.todoNotifications.linkedDeleteWarning')}</p>
                         </div>
                     )}
+                    {!!deleteTaskCount && (
+                        <div role="alert" className="flex items-start gap-3 rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-800 dark:text-amber-300">
+                            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                            <p>{t('settings.notifications.tasksDeleteWarning', { count: deleteTaskCount })}</p>
+                        </div>
+                    )}
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>{t('common.cancel')}</Button>
                         <Button variant="destructive" onClick={confirmDelete}>{t('common.delete')}</Button>
@@ -400,11 +416,16 @@ export function NotificationsSettingsPage() {
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
                             <AlertTriangle className="h-5 w-5 text-amber-500" />
-                            {t('settings.todoNotifications.linkedTitle')}
+                            {t('settings.notifications.inUseTitle')}
                         </DialogTitle>
                         <DialogDescription>
-                            {t('settings.todoNotifications.linkedDisableWarning', { name: channelToDisable?.name ?? '' })}
+                            {channelToDisable && isTodoLinked(channelToDisable.id) && t('settings.todoNotifications.linkedDisableWarning', { name: channelToDisable.name })}
                         </DialogDescription>
+                        {!!channelToDisable?.taskCount && (
+                            <p className="text-sm text-muted-foreground">
+                                {t('settings.notifications.tasksDisableWarning', { name: channelToDisable.name, count: channelToDisable.taskCount })}
+                            </p>
+                        )}
                     </DialogHeader>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setChannelToDisable(null)}>{t('common.cancel')}</Button>

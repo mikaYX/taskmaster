@@ -1,5 +1,5 @@
 import type { BoardItem, TaskStatusValue, UserRole } from '@/api/types';
-import { isAfter, isValid, parseISO, startOfDay, endOfDay, differenceInDays, subDays, isSameDay } from 'date-fns';
+import { isAfter, startOfDay, endOfDay, differenceInDays, subDays, isSameDay } from 'date-fns';
 
 export interface TaskInstance extends BoardItem {
     key: string;
@@ -149,18 +149,10 @@ export function loadTaskBoardPreferences(): TaskBoardPreferences {
 
         const parsed = JSON.parse(raw);
 
-        // Parse dates
-        let start = parsed.dateRange?.start ? parseISO(parsed.dateRange.start) : defaultPrefs.dateRange.start;
-        let end = parsed.dateRange?.end ? parseISO(parsed.dateRange.end) : defaultPrefs.dateRange.end;
-
-        if (!isValid(start)) start = defaultPrefs.dateRange.start;
-        if (!isValid(end)) end = defaultPrefs.dateRange.end;
-
-        // Apply strict clamping on load
-        const clamped = clampDateRange({ start, end });
-
+        // La plage de dates n'est pas restaurée : le board s'ouvre toujours sur
+        // « Aujourd'hui » pour ne pas masquer les tâches en cours.
         return {
-            dateRange: clamped,
+            dateRange: defaultPrefs.dateRange,
             showCompleted: typeof parsed.showCompleted === 'boolean' ? parsed.showCompleted : defaultPrefs.showCompleted
         };
     } catch {
