@@ -1,6 +1,6 @@
 {
   "name": "taskmaster",
-  "version": "1.2.2-beta.3",
+  "version": "1.2.2-beta.4",
   "description": "Taskmaster — Task management monorepo (NestJS + React)",
   "private": true,
   "workspaces": [

@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.2-beta.4] - 2026-10-30
+
+Fourth beta of 1.2.2, for testing only (pre-release, `beta` Docker tag, never `latest`).
+
+### Fixed
+
+- **The task board always opens on "Today".** The date range saved from a previous visit (7 days, 30 days...) is no longer restored, so running tasks are no longer hidden on arrival. Only the "show completed" preference is remembered.
+- **Missed-task emails were never sent.** The audit marks missed occurrences as `MISSING`, but the alert job only looked at `RUNNING` ones. The audit now dispatches the "missed" notification when it creates the `MISSING` occurrence (still gated by `email.alerts.missingTasks`).
+- **Silent email failures are now logged.** A task notification email that is not sent (email disabled, provider error, open circuit breaker) now leaves a warning in the backend logs.
+- **Notification channels used by tasks.** Each channel shows how many tasks notify through it, and turning it off or deleting it asks for confirmation first (deleting a channel removes it from those tasks). The cards of a row now keep their buttons aligned when one of them carries a badge.
+
 ## [1.2.2-beta.3] - 2026-10-27
 
 Third beta of 1.2.2, for testing only (pre-release, `beta` Docker tag, never `latest`). `1.2.2-beta.1` and `1.2.2-beta.2` have no GitHub release (a browser regression check, then the MSI build, failed); this beta carries their changes plus the Windows installer.
