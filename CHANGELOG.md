@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.2-beta.5] - 2026-11-04
+
+Fifth beta of 1.2.2, for testing only (pre-release, `beta` Docker tag, never `latest`). No database migration.
+
+### Fixed
+
+- **Missed-task and reminder emails were never sent.** The alert job and the reminder job also required two global switches (`email.alerts.missingTasks`, `email.reminders.enabled`) that no screen could turn on, so they stayed off whatever the notification channels said. Each channel now decides on its own, from its "missed task" and "reminder" options: ticking them is enough. Existing values of the two global switches are ignored.
+- **Clearer backend logs.** The missing-tasks job no longer names the wrong setting when it runs. A notification skipped because its channel is disabled, or because the email has no recipient, now leaves a warning.
+
 ## [1.2.2-beta.4] - 2026-10-30
 
 Fourth beta of 1.2.2, for testing only (pre-release, `beta` Docker tag, never `latest`).
