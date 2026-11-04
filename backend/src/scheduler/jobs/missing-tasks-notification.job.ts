@@ -3,7 +3,6 @@ import { Cron } from '@nestjs/schedule';
 import type { SchedulerJob } from '../scheduler.interface';
 import { PrismaService } from '../../prisma';
 import { NotificationsService } from '../../notifications/notifications.service';
-import { SettingsService } from '../../settings';
 import { JobLockService } from '../job-lock.service';
 
 @Injectable()
@@ -16,7 +15,6 @@ export class MissingTasksNotificationJob implements SchedulerJob {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notificationsService: NotificationsService,
-    private readonly settingsService: SettingsService,
     private readonly jobLock: JobLockService,
   ) {}
 
@@ -24,16 +22,6 @@ export class MissingTasksNotificationJob implements SchedulerJob {
   async execute(): Promise<void> {
     await this.jobLock.withLock(this.name, async () => {
       this.logger.log('Checking for overdue task notifications...');
-
-      const alertsEnabled = await this.settingsService.getRawValue<boolean>(
-        'email.alerts.missingTasks',
-      );
-      if (alertsEnabled === false) {
-        this.logger.log(
-          'email.alerts.enabled is false, skipping missing tasks check.',
-        );
-        return;
-      }
 
       const now = new Date();
       const deduplicationWindow = new Date(now.getTime() - 24 * 60 * 60 * 1000); // 24h

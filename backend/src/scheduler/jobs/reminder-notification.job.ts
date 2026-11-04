@@ -20,11 +20,6 @@ export class ReminderNotificationJob implements SchedulerJob {
 
   @Cron('*/15 * * * *', { name: 'email-reminders' })
   async execute(): Promise<void> {
-    const enabled = await this.settings.getRawValue<boolean>(
-      'email.reminders.enabled',
-    );
-    if (!enabled) return;
-
     const offsetHours = Number(
       (await this.settings.getRawValue<number>(
         'email.reminders.offsetHours',

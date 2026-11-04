@@ -328,7 +328,12 @@ export class NotificationsService {
       if (!notifications.length) return;
 
       for (const notif of notifications) {
-        if (!notif.channel.enabled) continue;
+        if (!notif.channel.enabled) {
+          this.logger.warn(
+            `Channel ${notif.channelId} is disabled, skipping ${event} notification for task ${taskId}`,
+          );
+          continue;
+        }
 
         let shouldNotify = false;
         let eventLabel = '';
@@ -608,7 +613,12 @@ export class NotificationsService {
       });
     }
 
-    if (recipients.size === 0) return;
+    if (recipients.size === 0) {
+      this.logger.warn(
+        `Email "${subject}" not sent: channel ${notif.channelId} has no recipient`,
+      );
+      return;
+    }
 
     // Every value comes from user input (task name, comment...): escape before it enters the HTML.
     const rows = details

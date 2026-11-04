@@ -60,14 +60,12 @@ export class AuditScheduler {
     let missingCount = 0;
 
     // Optimize: Fetch settings once
-    const [defaultCountry, fcEnabled, wStart, wEnd, alertsEnabled] =
-      await Promise.all([
-        this.settings.getRawValue<string>('app.country'),
-        this.settings.getRawValue<boolean>('FROM_COMPLETION_ENABLED'),
-        this.settings.getRawValue<string>('SCHEDULE_DEFAULT_START_TIME'),
-        this.settings.getRawValue<string>('SCHEDULE_DEFAULT_END_TIME'),
-        this.settings.getRawValue<boolean>('email.alerts.missingTasks'),
-      ]);
+    const [defaultCountry, fcEnabled, wStart, wEnd] = await Promise.all([
+      this.settings.getRawValue<string>('app.country'),
+      this.settings.getRawValue<boolean>('FROM_COMPLETION_ENABLED'),
+      this.settings.getRawValue<string>('SCHEDULE_DEFAULT_START_TIME'),
+      this.settings.getRawValue<string>('SCHEDULE_DEFAULT_END_TIME'),
+    ]);
     const countryForSite = await loadSiteCountryResolver(
       this.prisma.client,
       defaultCountry || 'FR',
@@ -133,18 +131,16 @@ export class AuditScheduler {
               },
             });
             missingCount++;
-            if (alertsEnabled) {
-              this.notificationsService
-                .dispatchTaskNotifications(task.id, 'OVERDUE', {
-                  instanceDate: dateKey,
-                })
-                .catch((err: unknown) => {
-                  this.logger.error(
-                    `Failed to dispatch OVERDUE notification for task ${task.id}`,
-                    err,
-                  );
-                });
-            }
+            this.notificationsService
+              .dispatchTaskNotifications(task.id, 'OVERDUE', {
+                instanceDate: dateKey,
+              })
+              .catch((err: unknown) => {
+                this.logger.error(
+                  `Failed to dispatch OVERDUE notification for task ${task.id}`,
+                  err,
+                );
+              });
           } catch (error: any) {
             // Ignore unique constraint violation (P2002) - race condition or already exists
             if (error.code !== 'P2002') {

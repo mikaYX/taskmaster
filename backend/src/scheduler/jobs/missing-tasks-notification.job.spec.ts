@@ -6,14 +6,12 @@ describe('MissingTasksNotificationJob', () => {
     notification: { findMany: jest.fn(), create: jest.fn() },
   };
   const notifications = { dispatchTaskNotifications: jest.fn() };
-  const settings = { getRawValue: jest.fn() };
   const jobLock = {
     withLock: (_name: string, fn: () => Promise<void>) => fn(),
   };
   const job = new MissingTasksNotificationJob(
     { client } as never,
     notifications as never,
-    settings as never,
     jobLock as never,
   );
   const overdue = (taskId: number) => ({
@@ -24,7 +22,6 @@ describe('MissingTasksNotificationJob', () => {
 
   beforeEach(() => {
     jest.resetAllMocks();
-    settings.getRawValue.mockResolvedValue(true);
     client.notification.create.mockResolvedValue({});
     notifications.dispatchTaskNotifications.mockResolvedValue(undefined);
   });
