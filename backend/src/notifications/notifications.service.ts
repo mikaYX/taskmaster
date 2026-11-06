@@ -51,6 +51,81 @@ const PRIORITY_LABELS: Record<string, string> = {
   CRITICAL: 'Critique',
 };
 
+/** What the occurrence itself recorded: the answered checklist and the corrective action. */
+interface OccurrenceFacts {
+  record?: unknown;
+  action?: {
+    title: string;
+    assignee: string | null;
+    dueDate: Date | null;
+  } | null;
+}
+
+const MAX_STEP_VALUE_LENGTH = 200;
+const MAX_STEPS_LENGTH = 1500;
+
+/** YYYY-MM-DD (or a date) to DD/MM/YYYY, the way the recipients read it. */
+export function frenchDate(value: string | Date): string {
+  const iso =
+    typeof value === 'string' ? value.slice(0, 10) : value.toISOString();
+  const [year, month, day] = iso.slice(0, 10).split('-');
+  return year && month && day ? `${day}/${month}/${year}` : String(value);
+}
+
+const clip = (text: string, max: number) =>
+  text.length > max ? `${text.slice(0, max - 1)}…` : text;
+
+/**
+ * One line per checklist step. Without a recorded answer the steps are only listed
+ * (what had to be done); with one, each step shows what was ticked or typed.
+ * Photo steps are left out: only an identifier is stored for them.
+ */
+export function formatChecklistSteps(
+  checklist: unknown,
+  record: unknown,
+): string | undefined {
+  if (!Array.isArray(checklist)) return undefined;
+  const steps = checklist.filter(
+    (
+      step,
+    ): step is {
+      id: string;
+      label: string;
+      kind: string;
+      required?: boolean;
+    } =>
+      !!step &&
+      typeof step === 'object' &&
+      typeof (step as { label?: unknown }).label === 'string' &&
+      (step as { kind?: unknown }).kind !== 'PHOTO',
+  );
+  if (!steps.length) return undefined;
+
+  const answers = new Map<string, unknown>();
+  const hasRecord = Array.isArray(record) && record.length > 0;
+  if (hasRecord) {
+    for (const answer of record as { id?: unknown; value?: unknown }[]) {
+      if (answer && typeof answer.id === 'string') {
+        answers.set(answer.id, answer.value);
+      }
+    }
+  }
+
+  const lines = steps.map((step) => {
+    const required = step.required ? ' (obligatoire)' : '';
+    if (!hasRecord) return `• ${step.label}${required}`;
+    const value = answers.get(step.id);
+    if (value === undefined || value === null || value === '') {
+      return `○ ${step.label} : non renseignée${required}`;
+    }
+    if (step.kind === 'CHECK') {
+      return value === true ? `✔ ${step.label}` : `✘ ${step.label}`;
+    }
+    return `✔ ${step.label} : ${clip(String(value), MAX_STEP_VALUE_LENGTH)}`;
+  });
+  return clip(lines.join('\n'), MAX_STEPS_LENGTH);
+}
+
 /** Setting that lists the channels the todolist uses; kept clean when a channel goes away. */
 export const TODO_CHANNELS_SETTING = 'addons.todolist.notify.channelIds';
 
@@ -349,6 +424,8 @@ export class NotificationsService {
           description: true,
           priority: true,
           timezone: true,
+          procedureUrl: true,
+          executionChecklist: true,
         },
       });
 
@@ -360,6 +437,12 @@ export class NotificationsService {
       });
 
       if (!notifications.length) return;
+
+      const facts = await this.loadOccurrenceFacts(
+        taskId,
+        event,
+        context?.instanceDate,
+      );
 
       for (const notif of notifications) {
         if (
@@ -386,7 +469,7 @@ export class NotificationsService {
             break;
           case 'OVERDUE':
             shouldNotify = notif.notifyOnMissing;
-            eventLabel = 'Tâche en retard (Manquante)';
+            eventLabel = 'Tâche non réalisée';
             break;
           case 'REMINDER':
             shouldNotify = notif.notifyOnReminder;
@@ -396,11 +479,11 @@ export class NotificationsService {
 
         if (!shouldNotify) continue;
 
-        const details = this.buildDetails(taskId, task, context);
+        const details = this.buildDetails(taskId, task, context, facts, event);
         const message = this.buildNotificationMessage(eventLabel, details);
         // The date makes each occurrence a distinct subject (one ticket per failure in a helpdesk).
-        const subject = `${eventLabel}: ${task.name}${
-          context?.instanceDate ? ` — ${context.instanceDate}` : ''
+        const subject = `${eventLabel} : ${task.name}${
+          context?.instanceDate ? ` — ${frenchDate(context.instanceDate)}` : ''
         }`;
 
         // Decode config once per channel
@@ -442,6 +525,55 @@ export class NotificationsService {
     }
   }
 
+  /** Answers and corrective action saved with the occurrence; never blocks a notification. */
+  private async loadOccurrenceFacts(
+    taskId: number,
+    event: TaskNotificationEvent,
+    instanceDate?: string,
+  ): Promise<OccurrenceFacts> {
+    if (!instanceDate || event === 'REMINDER') return {};
+    try {
+      const date = new Date(instanceDate);
+      const key = { taskId_instanceDate: { taskId, instanceDate: date } };
+      const [status, action] = await Promise.all([
+        this.prisma.client.status.findUnique({
+          where: key,
+          select: { executionRecord: true },
+        }),
+        event === 'FAILED'
+          ? this.prisma.client.correctiveAction.findUnique({
+              where: key,
+              select: {
+                title: true,
+                dueDate: true,
+                assignee: { select: { username: true, fullname: true } },
+                assigneeGroup: { select: { name: true } },
+              },
+            })
+          : null,
+      ]);
+      return {
+        record: status?.executionRecord,
+        action: action
+          ? {
+              title: action.title,
+              dueDate: action.dueDate,
+              assignee:
+                action.assignee?.fullname ||
+                action.assignee?.username ||
+                action.assigneeGroup?.name ||
+                null,
+            }
+          : null,
+      };
+    } catch (error) {
+      this.logger.warn(
+        `Could not load the checklist of task ${taskId} for the ${event} notification: ${error}`,
+      );
+      return {};
+    }
+  }
+
   /** The facts shared by every channel; empty ones are left out. */
   private buildDetails(
     taskId: number,
@@ -450,12 +582,16 @@ export class NotificationsService {
       description: string | null;
       priority: string | null;
       timezone?: string | null;
+      procedureUrl?: string | null;
+      executionChecklist?: unknown;
     },
     context?: TaskNotificationContext,
+    facts: OccurrenceFacts = {},
+    event?: TaskNotificationEvent,
   ): DetailLine[] {
     const lines: DetailLine[] = [{ label: 'Tâche', value: task.name }];
     if (context?.instanceDate) {
-      lines.push({ label: 'Date', value: context.instanceDate });
+      lines.push({ label: 'Date', value: frenchDate(context.instanceDate) });
     }
     if (context?.deadline) {
       lines.push({
@@ -479,11 +615,26 @@ export class NotificationsService {
     if (context?.comment?.trim()) {
       lines.push({ label: 'Motif', value: context.comment.trim() });
     }
-    if (context?.correctiveAction) {
+    const action = facts.action;
+    const actionTitle = action?.title ?? context?.correctiveAction;
+    if (actionTitle) {
       lines.push({
         label: 'Action corrective',
-        value: context.correctiveAction,
+        value: [
+          actionTitle,
+          action?.assignee ? `Assignée à : ${action.assignee}` : null,
+          action?.dueDate ? `Avant le : ${frenchDate(action.dueDate)}` : null,
+        ]
+          .filter(Boolean)
+          .join('\n'),
       });
+    }
+    if (event === 'FAILED' || event === 'OVERDUE') {
+      const steps = formatChecklistSteps(task.executionChecklist, facts.record);
+      if (steps) lines.push({ label: 'Étapes', value: steps });
+    }
+    if (task.procedureUrl) {
+      lines.push({ label: 'Procédure', value: task.procedureUrl });
     }
     if (task.description) {
       lines.push({ label: 'Description', value: task.description });

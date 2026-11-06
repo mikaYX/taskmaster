@@ -48,6 +48,8 @@ describe('NotificationsService.dispatchTaskNotifications (email)', () => {
       taskNotification: { findMany: jest.fn() },
       user: { findMany: jest.fn() },
       group: { findMany: jest.fn() },
+      status: { findUnique: jest.fn() },
+      correctiveAction: { findUnique: jest.fn() },
     },
   };
   const email = { send: jest.fn() };
@@ -70,6 +72,8 @@ describe('NotificationsService.dispatchTaskNotifications (email)', () => {
     jest.resetAllMocks();
     process.env.FRONTEND_URL = 'https://taskmaster.example.com/';
     prisma.client.task.findUnique.mockResolvedValue(task);
+    prisma.client.status.findUnique.mockResolvedValue(null);
+    prisma.client.correctiveAction.findUnique.mockResolvedValue(null);
     email.send.mockResolvedValue(true);
   });
 
@@ -97,9 +101,9 @@ describe('NotificationsService.dispatchTaskNotifications (email)', () => {
     const mail = email.send.mock.calls[0][0];
     expect(mail.to).toEqual(['glpi@example.com']);
     expect(mail.subject).toBe(
-      'Échec de tâche: Check <b>boiler</b> — 2026-10-20',
+      'Échec de tâche : Check <b>boiler</b> — 20/10/2026',
     );
-    expect(mail.text).toContain('Date : 2026-10-20');
+    expect(mail.text).toContain('Date : 20/10/2026');
     expect(mail.text).toContain('Priorité : Haute');
     expect(mail.text).toContain('Signalé par : Olivia Operator');
     expect(mail.text).toContain('Motif : Pressure too low\nsecond line');
@@ -214,8 +218,142 @@ describe('NotificationsService.dispatchTaskNotifications (email)', () => {
     expect(email.send.mock.calls[0][0].to).toEqual(['missed@example.com']);
     // No occurrence date to add for a job-driven event: the subject stays plain.
     expect(email.send.mock.calls[0][0].subject).toBe(
-      'Tâche en retard (Manquante): Check <b>boiler</b>',
+      'Tâche non réalisée : Check <b>boiler</b>',
     );
+  });
+
+  const checklist = [
+    { id: 'valve', label: 'Close the valve', kind: 'CHECK', required: true },
+    { id: 'reading', label: 'Pressure (bar)', kind: 'NUMBER', required: true },
+    { id: 'note', label: 'Remarks <i>', kind: 'TEXT', required: false },
+    { id: 'shot', label: 'Gauge photo', kind: 'PHOTO', required: false },
+  ];
+  const failedRow = [
+    {
+      taskId: 7,
+      channelId: 1,
+      channel: emailChannel,
+      notifyOnFailed: true,
+      notifyOnMissing: true,
+      notifyOnReminder: true,
+      emailCustom: ['glpi@example.com'],
+    },
+  ];
+
+  it('lists the checklist steps with their answers, without the photos', async () => {
+    prisma.client.task.findUnique.mockResolvedValue({
+      ...task,
+      procedureUrl: 'https://wiki.example.com/boiler',
+      executionChecklist: checklist,
+    });
+    prisma.client.status.findUnique.mockResolvedValue({
+      executionRecord: [
+        { id: 'valve', value: true },
+        { id: 'note', value: 'Leak <here>' },
+      ],
+    });
+    prisma.client.taskNotification.findMany.mockResolvedValue(failedRow);
+
+    await service.dispatchTaskNotifications(7, 'FAILED', context);
+    await flush();
+
+    const mail = email.send.mock.calls[0][0];
+    expect(mail.text).toContain(
+      'Étapes : ✔ Close the valve\n○ Pressure (bar) : non renseignée (obligatoire)\n✔ Remarks <i> : Leak <here>',
+    );
+    expect(mail.text).not.toContain('Gauge photo');
+    expect(mail.text).toContain('Procédure : https://wiki.example.com/boiler');
+    expect(mail.html).toContain('✔ Remarks &lt;i&gt; : Leak &lt;here&gt;');
+    expect(mail.html).not.toContain('Leak <here>');
+  });
+
+  it('shows what was ticked off when a step is explicitly unchecked', async () => {
+    prisma.client.task.findUnique.mockResolvedValue({
+      ...task,
+      executionChecklist: [checklist[0]],
+    });
+    prisma.client.status.findUnique.mockResolvedValue({
+      executionRecord: [{ id: 'valve', value: false }],
+    });
+    prisma.client.taskNotification.findMany.mockResolvedValue(failedRow);
+
+    await service.dispatchTaskNotifications(7, 'FAILED', context);
+    await flush();
+
+    expect(email.send.mock.calls[0][0].text).toContain(
+      'Étapes : ✘ Close the valve',
+    );
+  });
+
+  it('only lists what had to be done when a missed task has no answers', async () => {
+    prisma.client.task.findUnique.mockResolvedValue({
+      ...task,
+      executionChecklist: checklist,
+    });
+    prisma.client.taskNotification.findMany.mockResolvedValue(failedRow);
+
+    await service.dispatchTaskNotifications(7, 'OVERDUE', {
+      instanceDate: '2026-10-20',
+    });
+    await flush();
+
+    expect(email.send.mock.calls[0][0].text).toContain(
+      'Étapes : • Close the valve (obligatoire)\n• Pressure (bar) (obligatoire)\n• Remarks <i>',
+    );
+    expect(prisma.client.correctiveAction.findUnique).not.toHaveBeenCalled();
+  });
+
+  it('adds the assignee and the due date of the corrective action', async () => {
+    prisma.client.correctiveAction.findUnique.mockResolvedValue({
+      title: 'Call the technician',
+      dueDate: new Date('2026-10-25T00:00:00.000Z'),
+      assignee: { username: 'tech', fullname: 'Tom Technician' },
+      assigneeGroup: null,
+    });
+    prisma.client.taskNotification.findMany.mockResolvedValue(failedRow);
+
+    await service.dispatchTaskNotifications(7, 'FAILED', context);
+    await flush();
+
+    expect(email.send.mock.calls[0][0].text).toContain(
+      'Action corrective : Call the technician\nAssignée à : Tom Technician\nAvant le : 25/10/2026',
+    );
+  });
+
+  it('leaves the steps out of a reminder and of a task without checklist', async () => {
+    prisma.client.task.findUnique.mockResolvedValue({
+      ...task,
+      executionChecklist: checklist,
+    });
+    prisma.client.taskNotification.findMany.mockResolvedValue(failedRow);
+
+    await service.dispatchTaskNotifications(7, 'REMINDER', context);
+    await flush();
+    expect(email.send.mock.calls[0][0].text).not.toContain('Étapes');
+    expect(prisma.client.status.findUnique).not.toHaveBeenCalled();
+
+    email.send.mockClear();
+    prisma.client.task.findUnique.mockResolvedValue({
+      ...task,
+      executionChecklist: [],
+    });
+    await service.dispatchTaskNotifications(7, 'FAILED', context);
+    await flush();
+    expect(email.send.mock.calls[0][0].text).not.toContain('Étapes');
+  });
+
+  it('still notifies when the answers cannot be read', async () => {
+    prisma.client.task.findUnique.mockResolvedValue({
+      ...task,
+      executionChecklist: checklist,
+    });
+    prisma.client.status.findUnique.mockRejectedValue(new Error('db down'));
+    prisma.client.taskNotification.findMany.mockResolvedValue(failedRow);
+
+    await service.dispatchTaskNotifications(7, 'FAILED', context);
+    await flush();
+
+    expect(email.send).toHaveBeenCalledTimes(1);
   });
 
   it('skips a disabled channel', async () => {
