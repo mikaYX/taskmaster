@@ -36,6 +36,18 @@ export class AuditScheduler {
         deletedAt: null,
         OR: [{ activeUntil: null }, { activeUntil: { gte: auditStart } }],
       },
+      // Skipped or moved occurrences: without them a skipped day is marked MISSING
+      // and sends a false "missed task" alert.
+      include: {
+        overrides: {
+          where: {
+            OR: [
+              { originalDate: { gte: auditStart, lte: auditEnd } },
+              { targetDate: { gte: auditStart, lte: auditEnd } },
+            ],
+          },
+        },
+      },
     });
 
     if (tasks.length === 0) {

@@ -47,6 +47,17 @@ describe('AuditScheduler.auditMissedInstances queries', () => {
     expect(client.status.findMany).not.toHaveBeenCalled();
   });
 
+  it('loads the skipped and moved occurrences so they are not marked missing', async () => {
+    client.task.findMany.mockResolvedValue([]);
+    await scheduler.auditMissedInstances();
+
+    const { include } = client.task.findMany.mock.calls[0][0];
+    expect(include.overrides.where.OR).toEqual([
+      { originalDate: { gte: expect.any(Date), lte: expect.any(Date) } },
+      { targetDate: { gte: expect.any(Date), lte: expect.any(Date) } },
+    ]);
+  });
+
   it('reads existing statuses in one query and only creates the missing ones', async () => {
     client.task.findMany.mockResolvedValue([
       { id: 1, recurrenceMode: 'ON_SCHEDULE' },
