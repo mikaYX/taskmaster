@@ -29,6 +29,11 @@ Sixth beta of 1.2.2, for testing only (pre-release, `beta` Docker tag, never `la
 
 - **A skipped occurrence was reported as missed.** The audit ignored the "skip" and "move" exceptions of a task, so a day skipped on purpose was marked as missing and sent a missed-task alert.
 
+### Security
+
+- **Dependency scan back to green on the backend.** The secondary `backend/package-lock.json` was behind the root one and still listed `@azure/msal-node` 5.6.0, `body-parser` 2.3.0, `multer` 2.4.0 and `follow-redirects` 1.16.1 (4 high findings). It now matches the versions already shipped (7.1.1, 2.4.0, 2.5.0, 1.16.2), and `backend/package.json` pins `body-parser` and `multer` like the root one. The shipped application does not change.
+- Moderate and low findings left on purpose: `deepmerge` (no fixed version exists), and `glob`/`minimatch` inside `archiver` and the Jest tooling (the fix is `archiver` 8, which is ESM-only and would break the CommonJS backup code).
+
 ### Removed
 
 - The email alert and reminder settings that no screen used (`email.alerts.*`, `email.reminders.*`). The reminder delay now belongs to each channel of a task. Rows left in the database are ignored.
