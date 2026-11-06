@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.2-beta.7] - 2026-11-06
+
+Seventh beta of 1.2.2, for testing only (pre-release, `beta` Docker tag, never `latest`).
+
+**Database migration:** none. The migrations folder is unchanged since beta.6 (`20261106181704_baseline`).
+
+### Changed
+
+- **Failure and missed-task emails now carry the checklist.** When the task has steps, the mail lists each one with what was ticked or typed (`✔`, `✘`, or `○` when it was left empty), and a missed task lists what had to be done. Photo steps are left out. The mail also gives the procedure link and, for a failure, the assignee and due date of the corrective action, so a helpdesk ticket holds the whole context. Slack, Teams, Telegram and webhook messages get the same lines.
+- **Clearer notification titles.** `Tâche en retard (Manquante)` becomes `Tâche non réalisée`, a space now precedes the colon (`Échec de tâche : …`) and the date is written `05/11/2026` instead of `2026-11-05`. The date still makes each occurrence a distinct subject, so a helpdesk keeps opening one ticket per occurrence. **A helpdesk rule that matches the old subject (for example `Tâche en retard (Manquante)` or `Échec de tâche:`) has to be updated.**
+
+### Security
+
+- **`glob` and `minimatch` updated to their fixed versions (14.0.4 and 11.0.5)** through targeted overrides, without moving `archiver` to its ESM-only version 8. Findings reported by `npm audit` go from 36 (29 moderate) to 13, all low. The backup and export tests pass unchanged.
+- Left open on purpose: `deepmerge` (reached through `@sendgrid/mail` and `date-holidays`), because no fixed version has been published. The secondary `backend/package-lock.json` is not touched here: re-resolving it moves about 3,000 lines of unrelated versions.
+
 ## [1.2.2-beta.6] - 2026-11-06
 
 Sixth beta of 1.2.2, for testing only (pre-release, `beta` Docker tag, never `latest`).
