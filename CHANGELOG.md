@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.2-beta.6] - 2026-11-06
+
+Sixth beta of 1.2.2, for testing only (pre-release, `beta` Docker tag, never `latest`).
+
+**Database migration:** the migrations are folded again into one file, `20261106181704_baseline`, which adds `task_notifications.reminder_offset_minutes` (default 60 minutes, so existing reminders do not change). Run `prisma migrate deploy` before starting the new version: the Docker image, the Windows installer and `update.bat` already do. Existing installations, from beta.5 or older, keep their data.
+
+### Added
+
+- **Reminder delay per channel.** Ticking "Reminder" on a task channel now shows how long before the end of the task period it goes out, from 15 minutes to 24 hours by steps of 15 minutes. Existing reminders keep their one-hour delay.
+
+### Changed
+
+- **New design for task emails.** Failure, missed-task and reminder emails now have a clear layout, one colour per event, the deadline and a button to open the task. Their subject does not change, so helpdesk rules keep working.
+
+### Fixed
+
+- **Reminders were never sent for tasks nobody had started.** The reminder job only looked at occurrences already marked running, and judged them on their start date. It now computes every open occurrence from the schedule, including weekly, monthly, yearly and from-completion tasks, and reminds before the deadline. Skipped occurrences get no reminder.
+
+- **A task that already started could not be saved from its edit screen.** The edit form refused the task as soon as its start date was in the past, and "Save changes" then sent you back to the task without saving anything and without a message. A date the task already has is now accepted (a changed date is still checked, and an unchanged one is no longer sent to the API, which refused it), an invalid form shows an error, and the screen stays open when saving fails.
+
+- **A skipped occurrence was reported as missed.** The audit ignored the "skip" and "move" exceptions of a task, so a day skipped on purpose was marked as missing and sent a missed-task alert.
+
+### Removed
+
+- The email alert and reminder settings that no screen used (`email.alerts.*`, `email.reminders.*`). The reminder delay now belongs to each channel of a task. Rows left in the database are ignored.
+
 ## [1.2.2-beta.5] - 2026-11-04
 
 Fifth beta of 1.2.2, for testing only (pre-release, `beta` Docker tag, never `latest`). No database migration.
