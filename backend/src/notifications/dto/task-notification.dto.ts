@@ -22,6 +22,11 @@ export class TaskNotificationDto {
   @IsOptional()
   notifyOnReminder?: boolean;
 
+  /** Checked by the service: the parent DTO does not validate its rows. */
+  @IsInt()
+  @IsOptional()
+  reminderOffsetMinutes?: number;
+
   @IsArray()
   @IsInt({ each: true })
   @IsOptional()

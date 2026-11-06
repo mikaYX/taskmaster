@@ -16,6 +16,7 @@ import { groupsApi } from "@/api/groups";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ReminderOffsetField } from "./reminder-offset-field";
 
 const TypeIcon = ({ type }: { type: string }) => {
     switch (type) {
@@ -115,6 +116,7 @@ export function StepNotifications() {
                                             notifyOnFailed: true,
                                             notifyOnMissing: true,
                                             notifyOnReminder: false,
+                                            reminderOffsetMinutes: 60,
                                             emailUserIds: [],
                                             emailGroupIds: [],
                                             emailCustom: []
@@ -174,6 +176,20 @@ export function StepNotifications() {
                                         )}
                                     />
                                 </div>
+
+                                {notifications[existingIndex]?.notifyOnReminder && (
+                                    <FormField
+                                        control={control}
+                                        name={`notifications.${existingIndex}.reminderOffsetMinutes`}
+                                        render={({ field }) => (
+                                            <ReminderOffsetField
+                                                id={`reminder-offset-${channel.id}`}
+                                                value={field.value}
+                                                onChange={field.onChange}
+                                            />
+                                        )}
+                                    />
+                                )}
 
                                 {channel.type === 'EMAIL' && (
                                     <div className="space-y-4 pt-2">

@@ -7,6 +7,7 @@ import { PrismaService } from '../prisma';
 import { SettingsService } from '../settings/settings.service';
 import { InstanceService } from '../tasks/instance.service';
 import { loadSiteCountryResolver } from '../sites/site-country';
+import { loadFromCompletionContext } from './from-completion-context';
 
 @Injectable()
 export class AuditScheduler {
@@ -78,27 +79,12 @@ export class AuditScheduler {
         import('../tasks/instance.service').FromCompletionContext | undefined;
 
       if (fcEnabled && t.recurrenceMode === 'FROM_COMPLETION' && t.rrule) {
-        const lastTerminal = await this.prisma.client.status.findFirst({
-          where: {
-            taskId: task.id,
-            status: { in: ['SUCCESS', 'FAILED'] },
-          },
-          orderBy: { updatedAt: 'desc' },
-        });
-
-        const hasRunning =
-          (await this.prisma.client.status.count({
-            where: {
-              taskId: task.id,
-              status: 'RUNNING',
-              instanceDate: { gte: auditStart, lte: auditEnd },
-            },
-          })) > 0;
-
-        fromCompletionCtx = {
-          lastTerminalDate: lastTerminal?.updatedAt ?? null,
-          hasRunningInstance: hasRunning,
-        };
+        fromCompletionCtx = await loadFromCompletionContext(
+          this.prisma.client,
+          task.id,
+          auditStart,
+          auditEnd,
+        );
       }
 
       const virtuals = this.instanceService.computeInstances(
@@ -134,6 +120,7 @@ export class AuditScheduler {
             this.notificationsService
               .dispatchTaskNotifications(task.id, 'OVERDUE', {
                 instanceDate: dateKey,
+                deadline: periodEnd,
               })
               .catch((err: unknown) => {
                 this.logger.error(

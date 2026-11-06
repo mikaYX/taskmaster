@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useTask } from '@/hooks/use-tasks';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { formatReminderOffset } from './wizard/steps/reminder-offset';
 import {
     ArrowLeft,
     Bell,
@@ -265,7 +266,7 @@ export function TaskDetailsPage() {
                                         <span className="flex flex-wrap gap-1">
                                             {notif.notifyOnFailed && <Badge variant="destructive" className="h-5 px-1.5 text-[10px]">{t('taskDetails.badges.fail')}</Badge>}
                                             {notif.notifyOnMissing && <Badge variant="outline" className="h-5 px-1.5 text-[10px]">{t('taskDetails.badges.missing')}</Badge>}
-                                            {notif.notifyOnReminder && <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">{t('taskDetails.badges.reminder')}</Badge>}
+                                            {notif.notifyOnReminder && <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">{t('taskDetails.badges.reminderWithOffset', { offset: formatReminderOffset(notif.reminderOffsetMinutes) })}</Badge>}
                                         </span>
                                     </li>
                                 );

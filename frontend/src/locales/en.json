@@ -871,8 +871,6 @@
         "taskReminders": "Task Reminders",
         "remindersDescription": "Send reminders before task deadlines (checked every 10 minutes)",
         "enableReminders": "Enable Reminders",
-        "offsetHours": "Offset Hours (0-24)",
-        "offsetMinutes": "Offset Minutes (0-59)",
         "testSuccess": "Test email sent successfully",
         "testError": "Failed to send test email"
     },
@@ -1650,6 +1648,10 @@
             "onMissingDesc": "Notify if missed",
             "reminder": "Reminder",
             "reminderDesc": "Remind before due",
+            "reminderOffset": "Reminder delay",
+            "reminderOffsetHelp": "The reminder goes out this long before the end of the task period.",
+            "reminderOffsetHours": "Hours",
+            "reminderOffsetMinutes": "Minutes",
             "emailRecipients": "Email Recipients",
             "selectUsers": "Select Users",
             "selectGroups": "Select Groups",
@@ -2128,7 +2130,8 @@
         "badges": {
             "fail": "Fail",
             "missing": "Missing",
-            "reminder": "Reminder"
+            "reminder": "Reminder",
+            "reminderWithOffset": "Reminder · {{offset}}"
         },
         "createdAt": "Created At",
         "updatedAt": "Updated At",
@@ -2150,7 +2153,8 @@
             "recurrentNeedsRule": "Recurrent tasks strictly require a recurrence rule.",
             "updated": "Task Updated",
             "uploadFailed": "Task was updated, but the new procedure file failed to upload.",
-            "updateFailed": "Failed to update task"
+            "updateFailed": "Failed to update task",
+            "invalidForm": "The form contains an error: nothing was saved. Check the tabs."
         },
         "backToTask": "Back to the task",
         "subtitle": "Change the definition, the schedule, the assignments or the notifications.",

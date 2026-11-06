@@ -32,9 +32,11 @@ suite('legacy upgrade and real encrypted PostgreSQL restore', () => {
   const archiveRoot = join(__dirname, '../prisma/migrations-archive');
   const upgrade = '20261016000000_task_execution';
   // The single migration that upgrades it (and would also build a new database).
-  const single = readdirSync(join(__dirname, '../prisma/migrations')).find(
-    (name) => /^\d{14}_/.test(name),
-  )!;
+  // Migrations added since the last release stay beside it until the next re-fold.
+  const migrations = readdirSync(join(__dirname, '../prisma/migrations'))
+    .filter((name) => /^\d{14}_/.test(name))
+    .sort();
+  const single = migrations[0];
   const prisma = (args: string[]) =>
     promisify(execFile)(
       process.execPath,
@@ -140,8 +142,12 @@ suite('legacy upgrade and real encrypted PostgreSQL restore', () => {
     ).toBe(1);
     // Only the missing migrations ran, and the folded ones left the history.
     expect(
-      (await pool.query('SELECT migration_name FROM _prisma_migrations')).rows,
-    ).toEqual([{ migration_name: single }]);
+      (
+        await pool.query(
+          'SELECT migration_name FROM _prisma_migrations ORDER BY migration_name',
+        )
+      ).rows,
+    ).toEqual(migrations.map((name) => ({ migration_name: name })));
     expect(
       (
         await pool.query(

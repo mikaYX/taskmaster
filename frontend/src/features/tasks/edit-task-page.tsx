@@ -6,11 +6,12 @@ import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { useTask, useUpdateTask } from "@/hooks/use-tasks";
-import { createTaskSchema, type CreateTaskFormValues } from "./schemas/task-creation.schema";
+import { buildEditTaskSchema, type CreateTaskFormValues } from "./schemas/task-creation.schema";
 import { StepDefinition } from "./wizard/steps/step-definition";
 import { StepScheduling } from "./wizard/steps/step-scheduling";
 import { StepAssignment } from "./wizard/steps/step-assignment";
 import { StepNotifications } from "./wizard/steps/step-notifications";
+import { normalizeNotifications } from "./utils/normalize-notifications";
 import { useTaskNotifications, useSaveTaskNotifications } from "@/hooks/use-notifications";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -21,6 +22,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Save, ArrowLeft, Bell, CalendarClock, FileText, Loader2, Pencil, Users } from "lucide-react";
 import type { UpdateTaskDto } from "@/api/types";
 import { tasksApi } from "@/api/tasks";
+
+/** `yyyy-MM-dd` of a date picked in the form, or undefined when it is still the saved one. */
+function changedDay(picked: Date | undefined, saved: string | Date | null | undefined): string | undefined {
+    if (!picked) return undefined;
+    const day = format(picked, 'yyyy-MM-dd');
+    return saved && format(new Date(saved), 'yyyy-MM-dd') === day ? undefined : day;
+}
 
 export function EditTaskPage() {
     const { t } = useTranslation();
@@ -36,9 +44,15 @@ export function EditTaskPage() {
     const { getSettingAsBool } = useSettings();
     const fcEnabled = getSettingAsBool('FROM_COMPLETION_ENABLED');
 
+    // A task that already started in the past must stay editable.
+    const editSchema = buildEditTaskSchema({
+        startDate: task?.startDate ? new Date(task.startDate) : undefined,
+        endDate: task?.endDate ? new Date(task.endDate) : undefined,
+    });
+
     const methods = useForm<CreateTaskFormValues>({
         // @ts-expect-error - Discriminated union type mismatch with RHF resolver
-        resolver: zodResolver(createTaskSchema),
+        resolver: zodResolver(editSchema),
         mode: "onChange",
         defaultValues: {
             periodicity: 'daily',
@@ -94,7 +108,7 @@ export function EditTaskPage() {
 
 
 
-                notifications: existingNotifications ?? [],
+                notifications: normalizeNotifications(existingNotifications),
 
                 // Merge V2 parsed values (interval, byWeekday, etc.)
                 ...v2Values,
@@ -116,7 +130,7 @@ export function EditTaskPage() {
             toast.error(t('taskEdit.toasts.notificationsFailed'));
         }
     };
-    const onSubmit = async (data: CreateTaskFormValues) => {
+    const onSubmit = async (data: CreateTaskFormValues): Promise<boolean> => {
         try {
             const payload: UpdateTaskDto = {
                 name: data.name,
@@ -124,8 +138,9 @@ export function EditTaskPage() {
                 executionChecklist: data.executionChecklist ?? [],
                 periodicity: data.periodicity,
                 priority: data.priority,
-                startDate: data.startDate ? format(data.startDate, 'yyyy-MM-dd') : undefined,
-                endDate: (data.periodicity === 'yearly' && data.endDate) ? format(data.endDate, 'yyyy-MM-dd') : undefined,
+                // The API refuses a date in the past: only send a date that was changed.
+                startDate: changedDay(data.startDate, task?.startDate),
+                endDate: data.periodicity === 'yearly' ? changedDay(data.endDate, task?.endDate) : undefined,
                 procedureUrl: data.procedureMode === 'URL' ? (data.procedureUrl || '') : undefined,
 
                 skipWeekends: data.skipWeekends,
@@ -156,10 +171,10 @@ export function EditTaskPage() {
             } else if (payload.recurrenceMode === 'FROM_COMPLETION') {
                 // If from completion, we must have an RRule (or valid pattern to generate it)
                 toast.error(t('taskEdit.toasts.invalidConfig'), { description: t('taskEdit.toasts.fromCompletionNoRule') });
-                return;
+                return false;
             } else {
                 toast.error(t('taskEdit.toasts.invalidConfig'), { description: t('taskEdit.toasts.recurrentNeedsRule') });
-                return;
+                return false;
             }
 
             // Explicitly cast or construct object matching useUpdateTask signature
@@ -180,24 +195,37 @@ export function EditTaskPage() {
                     console.error("Failed to upload procedure file during edit:", err);
                     toast.warning(t('taskEdit.toasts.updated'), { description: t('taskEdit.toasts.uploadFailed') });
                     navigate(`/task-definitions/${taskId}`);
-                    return;
+                    return false;
                 }
             }
 
             toast.success(t('taskEdit.toasts.updated'));
+            return true;
         } catch (error) {
             console.error(error);
             toast.error(t('taskEdit.toasts.updateFailed'));
+            return false;
         }
     };
 
     const handleSaveAndClose = async (e: React.MouseEvent<HTMLButtonElement>) => {
+        let saved = false;
         try {
-            await handleSubmit((d) => onSubmit(d as unknown as CreateTaskFormValues))(e);
+            await handleSubmit(
+                async (d) => {
+                    saved = await onSubmit(d as unknown as CreateTaskFormValues);
+                },
+                (errors) => {
+                    // Without this the form stayed silently invalid and nothing was saved.
+                    console.error('Task form is invalid', errors);
+                    toast.error(t('taskEdit.toasts.invalidForm'));
+                },
+            )(e);
         } catch {
-            // validation failed or request error — navigate anyway
+            // request error: already reported by onSubmit
         }
-        navigate(`/task-definitions/${taskId}`);
+        // Stay on the page when something went wrong, so the error can be read and fixed.
+        if (saved) navigate(`/task-definitions/${taskId}`);
     };
 
     if (isLoading) {

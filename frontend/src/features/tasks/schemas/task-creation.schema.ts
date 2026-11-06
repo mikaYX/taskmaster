@@ -9,6 +9,7 @@ const notificationsSchema = z.object({
     notifyOnFailed: z.boolean(),
     notifyOnMissing: z.boolean(),
     notifyOnReminder: z.boolean(),
+    reminderOffsetMinutes: z.number().int().min(15).max(1440).multipleOf(15),
     emailUserIds: z.array(z.number()).optional(),
     emailGroupIds: z.array(z.number()).optional(),
     emailCustom: z.array(z.string().email("taskWizard.validation.invalidEmail")).optional(),
@@ -105,7 +106,7 @@ const v2SchedulingRefinement = (data: V2SchedulingData, ctx: z.RefinementCtx) =>
     }
 };
 
-export const createTaskSchema = z.discriminatedUnion('periodicity', [
+const taskUnionSchema = z.discriminatedUnion('periodicity', [
     baseSchema.extend({
         periodicity: z.literal('daily'),
         ...schedulingSchema.shape,
@@ -154,8 +155,22 @@ export const createTaskSchema = z.discriminatedUnion('periodicity', [
             }
         }
     }),
-]).superRefine((data, ctx) => {
-    if (data.startDate) {
+])
+
+type OriginalDates = { startDate?: Date | null; endDate?: Date | null };
+
+const sameDay = (a: Date, b?: Date | null) =>
+    !!b && a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+
+/**
+ * "Not in the past" only matters for a date being chosen. When editing, a date
+ * the task already has must not block saving everything else.
+ */
+const dateRules = (original?: OriginalDates) => (
+    data: { periodicity: string; startDate?: Date; endDate?: Date },
+    ctx: z.RefinementCtx,
+) => {
+    if (data.startDate && !sameDay(data.startDate, original?.startDate)) {
         const startResult = validateTaskDate(data.periodicity, data.startDate, 'startDate');
         if (!startResult.isValid) {
             ctx.addIssue({
@@ -167,8 +182,8 @@ export const createTaskSchema = z.discriminatedUnion('periodicity', [
     }
 
     // In this schema, `endDate` is used dynamically for yearly tasks (or it could be optional for others depending on form usage)
-    if ('endDate' in data && data.endDate) {
-        const endResult = validateTaskDate(data.periodicity, data.endDate as Date, 'endDate');
+    if (data.endDate && !sameDay(data.endDate, original?.endDate)) {
+        const endResult = validateTaskDate(data.periodicity, data.endDate, 'endDate');
         if (!endResult.isValid) {
             ctx.addIssue({
                 code: z.ZodIssueCode.custom,
@@ -177,7 +192,12 @@ export const createTaskSchema = z.discriminatedUnion('periodicity', [
             });
         }
     }
-});
+};
+
+export const createTaskSchema = taskUnionSchema.superRefine(dateRules());
+
+/** Same rules for an existing task, whose current dates are always accepted. */
+export const buildEditTaskSchema = (original?: OriginalDates) => taskUnionSchema.superRefine(dateRules(original));
 
 export type CreateTaskFormValues = z.infer<typeof createTaskSchema>;
 

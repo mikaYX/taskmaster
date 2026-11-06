@@ -116,6 +116,44 @@ describe('NotificationsService.dispatchTaskNotifications (email)', () => {
     );
   });
 
+  it('only uses the targeted row and states the deadline in the task time zone', async () => {
+    prisma.client.task.findUnique.mockResolvedValue({
+      ...task,
+      timezone: 'Europe/Paris',
+    });
+    prisma.client.taskNotification.findMany.mockResolvedValue([
+      {
+        id: 1,
+        taskId: 7,
+        channelId: 1,
+        channel: emailChannel,
+        notifyOnReminder: true,
+        emailCustom: ['one@example.com'],
+      },
+      {
+        id: 2,
+        taskId: 7,
+        channelId: 2,
+        channel: { ...emailChannel, id: 2 },
+        notifyOnReminder: true,
+        emailCustom: ['two@example.com'],
+      },
+    ]);
+
+    await service.dispatchTaskNotifications(7, 'REMINDER', {
+      notificationId: 2,
+      instanceDate: '2026-11-05',
+      deadline: new Date('2026-11-05T17:00:00.000Z'),
+    });
+    await flush();
+
+    expect(email.send).toHaveBeenCalledTimes(1);
+    const mail = email.send.mock.calls[0][0];
+    expect(mail.to).toEqual(['two@example.com']);
+    expect(mail.text).toContain('Échéance : 05/11/2026 18:00');
+    expect(mail.html).toContain('Une tâche arrive à échéance');
+  });
+
   it('sends each configured channel to its own recipients', async () => {
     prisma.client.taskNotification.findMany.mockResolvedValue([
       {
@@ -274,5 +312,62 @@ describe('NotificationsService todolist channels', () => {
         type: { notIn: ['EMAIL', 'PUSH'] },
       },
     });
+  });
+});
+
+describe('NotificationsService.saveTaskNotifications', () => {
+  const tx = {
+    taskNotification: {
+      deleteMany: jest.fn(),
+      createMany: jest.fn(),
+      findMany: jest.fn(),
+    },
+  };
+  const prisma = {
+    client: {
+      task: { findUnique: jest.fn() },
+      $transaction: jest.fn(),
+    },
+  };
+  const service = new NotificationsService(
+    prisma as never,
+    {} as never,
+    {} as never,
+    {} as never,
+    {} as never,
+  );
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    prisma.client.task.findUnique.mockResolvedValue({ id: 7 });
+    prisma.client.$transaction.mockImplementation(
+      (run: (client: typeof tx) => unknown) => run(tx),
+    );
+    tx.taskNotification.findMany.mockResolvedValue([]);
+  });
+
+  it.each([0, 10, 1455, 22.5])(
+    'rejects a reminder delay of %s',
+    async (offset) => {
+      await expect(
+        service.saveTaskNotifications(7, {
+          notifications: [{ channelId: 1, reminderOffsetMinutes: offset }],
+        }),
+      ).rejects.toThrow('reminderOffsetMinutes');
+      expect(prisma.client.$transaction).not.toHaveBeenCalled();
+    },
+  );
+
+  it('keeps a valid delay and defaults to one hour', async () => {
+    await service.saveTaskNotifications(7, {
+      notifications: [
+        { channelId: 1, reminderOffsetMinutes: 90 },
+        { channelId: 2 },
+      ],
+    });
+
+    const { data } = tx.taskNotification.createMany.mock.calls[0][0];
+    expect(data[0].reminderOffsetMinutes).toBe(90);
+    expect(data[1].reminderOffsetMinutes).toBe(60);
   });
 });

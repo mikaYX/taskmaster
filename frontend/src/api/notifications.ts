@@ -16,6 +16,7 @@ export interface TaskNotificationDto {
     notifyOnFailed: boolean;
     notifyOnMissing: boolean;
     notifyOnReminder: boolean;
+    reminderOffsetMinutes: number;
     emailUserIds?: number[];
     emailGroupIds?: number[];
     emailCustom?: string[];

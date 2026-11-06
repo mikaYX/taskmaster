@@ -158,6 +158,12 @@ Contributions are welcome: features, fixes, translations, documentation and test
 - An installable mobile app (PWA)
 - More interface languages
 
+### Planned for 1.2.3
+
+- **Alert escalation:** notify a manager or a group when a missed or failed task stays unresolved after a set time
+- **Audit file export:** one PDF for a period and a site, with occurrences, checklists, photo evidence, corrective actions and the audit log
+- **Task template library:** reusable task templates, deployed to several sites at once
+
 ## Support the project
 
 If Taskmaster is useful to you, you can support its development:

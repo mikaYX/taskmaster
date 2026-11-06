@@ -5,6 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { NotificationChannelType, Prisma } from '@prisma/client';
+import { formatInTimeZone } from 'date-fns-tz';
 import { safeFetch } from '../common/utils/url-validator.util';
 import { EmailService } from '../email/email.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -16,6 +17,11 @@ import {
 } from './dto/channel.dto';
 import { SaveTaskNotificationsDto } from './dto/task-notification.dto';
 import { PushService } from './push.service';
+import { resolveEmailLogoUrl } from '../users/credentials-email.template';
+import {
+  TaskNotificationEvent,
+  renderTaskNotificationEmail,
+} from './task-notification-email.template';
 
 /** What the caller knows about the occurrence that triggered the notification. */
 export interface TaskNotificationContext {
@@ -27,6 +33,10 @@ export interface TaskNotificationContext {
   actor?: string | null;
   /** Title of the corrective action created together with the failure. */
   correctiveAction?: string | null;
+  /** Only send through this notification row (each channel has its own reminder delay). */
+  notificationId?: number;
+  /** When the occurrence has to be finished. */
+  deadline?: Date;
 }
 
 export interface DetailLine {
@@ -47,12 +57,14 @@ export const TODO_CHANNELS_SETTING = 'addons.todolist.notify.channelIds';
 /** Email and push reach a person; every other channel posts one message for the whole team. */
 const PERSONAL_CHANNEL_TYPES: NotificationChannelType[] = ['EMAIL', 'PUSH'];
 
-const escapeHtml = (value: string) =>
-  value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+const DEFAULT_REMINDER_OFFSET_MINUTES = 60;
+const REMINDER_OFFSET_STEP_MINUTES = 15;
+const MAX_REMINDER_OFFSET_MINUTES = 24 * 60;
+
+const appBaseUrl = () =>
+  (process.env.FRONTEND_URL || process.env.BACKEND_URL || '')
+    .trim()
+    .replace(/\/+$/, '');
 
 @Injectable()
 export class NotificationsService {
@@ -272,6 +284,21 @@ export class NotificationsService {
       throw new NotFoundException('Task not found');
     }
 
+    for (const n of dto.notifications ?? []) {
+      const offset = n.reminderOffsetMinutes;
+      if (
+        offset !== undefined &&
+        (!Number.isInteger(offset) ||
+          offset < REMINDER_OFFSET_STEP_MINUTES ||
+          offset > MAX_REMINDER_OFFSET_MINUTES ||
+          offset % REMINDER_OFFSET_STEP_MINUTES !== 0)
+      ) {
+        throw new BadRequestException(
+          `reminderOffsetMinutes must be a multiple of ${REMINDER_OFFSET_STEP_MINUTES} between ${REMINDER_OFFSET_STEP_MINUTES} and ${MAX_REMINDER_OFFSET_MINUTES}`,
+        );
+      }
+    }
+
     // Replace all existing notifications for this task in a transaction
     return this.prisma.client.$transaction(async (prisma) => {
       await prisma.taskNotification.deleteMany({
@@ -288,6 +315,8 @@ export class NotificationsService {
         notifyOnFailed: n.notifyOnFailed ?? true,
         notifyOnMissing: n.notifyOnMissing ?? true,
         notifyOnReminder: n.notifyOnReminder ?? false,
+        reminderOffsetMinutes:
+          n.reminderOffsetMinutes ?? DEFAULT_REMINDER_OFFSET_MINUTES,
         emailUserIds: n.emailUserIds ?? Prisma.DbNull,
         emailGroupIds: n.emailGroupIds ?? Prisma.DbNull,
         emailCustom: n.emailCustom ?? Prisma.DbNull,
@@ -309,13 +338,18 @@ export class NotificationsService {
 
   async dispatchTaskNotifications(
     taskId: number,
-    event: 'FAILED' | 'OVERDUE' | 'REMINDER',
+    event: TaskNotificationEvent,
     context?: TaskNotificationContext,
   ) {
     try {
       const task = await this.prisma.client.task.findUnique({
         where: { id: taskId },
-        select: { name: true, description: true, priority: true },
+        select: {
+          name: true,
+          description: true,
+          priority: true,
+          timezone: true,
+        },
       });
 
       if (!task) return;
@@ -328,6 +362,13 @@ export class NotificationsService {
       if (!notifications.length) return;
 
       for (const notif of notifications) {
+        if (
+          context?.notificationId !== undefined &&
+          notif.id !== context.notificationId
+        ) {
+          continue;
+        }
+
         if (!notif.channel.enabled) {
           this.logger.warn(
             `Channel ${notif.channelId} is disabled, skipping ${event} notification for task ${taskId}`,
@@ -385,6 +426,7 @@ export class NotificationsService {
           eventLabel,
           subject,
           details,
+          event,
         ).catch((err) => {
           this.logger.error(
             `Error sending ${notif.channel.type} notification for task ${taskId}:`,
@@ -403,12 +445,27 @@ export class NotificationsService {
   /** The facts shared by every channel; empty ones are left out. */
   private buildDetails(
     taskId: number,
-    task: { name: string; description: string | null; priority: string | null },
+    task: {
+      name: string;
+      description: string | null;
+      priority: string | null;
+      timezone?: string | null;
+    },
     context?: TaskNotificationContext,
   ): DetailLine[] {
     const lines: DetailLine[] = [{ label: 'Tâche', value: task.name }];
     if (context?.instanceDate) {
       lines.push({ label: 'Date', value: context.instanceDate });
+    }
+    if (context?.deadline) {
+      lines.push({
+        label: 'Échéance',
+        value: formatInTimeZone(
+          context.deadline,
+          task.timezone || 'UTC',
+          'dd/MM/yyyy HH:mm',
+        ),
+      });
     }
     if (task.priority) {
       lines.push({
@@ -431,9 +488,7 @@ export class NotificationsService {
     if (task.description) {
       lines.push({ label: 'Description', value: task.description });
     }
-    const base = (process.env.FRONTEND_URL || process.env.BACKEND_URL || '')
-      .trim()
-      .replace(/\/+$/, '');
+    const base = appBaseUrl();
     if (base) {
       lines.push({
         label: 'Lien',
@@ -461,6 +516,7 @@ export class NotificationsService {
     eventLabel: string,
     subject: string,
     details: DetailLine[],
+    event?: TaskNotificationEvent,
   ) {
     switch (type) {
       case 'SLACK':
@@ -472,7 +528,10 @@ export class NotificationsService {
       case 'DISCORD':
         return this.sendDiscord(config, message);
       case 'EMAIL':
-        return this.sendEmail(notif, subject, details);
+        // Team broadcasts carry no event and never target an email channel.
+        return (
+          event && this.sendEmail(notif, subject, details, event, taskName)
+        );
       case 'WEBHOOK':
         return this.sendWebhook(config, message, taskName, eventLabel);
       case 'PUSH':
@@ -577,7 +636,13 @@ export class NotificationsService {
     );
   }
 
-  private async sendEmail(notif: any, subject: string, details: DetailLine[]) {
+  private async sendEmail(
+    notif: any,
+    subject: string,
+    details: DetailLine[],
+    event: TaskNotificationEvent,
+    taskName: string,
+  ) {
     const recipients = new Set<string>();
 
     // 1. Custom emails
@@ -620,25 +685,21 @@ export class NotificationsService {
       return;
     }
 
-    // Every value comes from user input (task name, comment...): escape before it enters the HTML.
-    const rows = details
-      .map((line) => {
-        const value = escapeHtml(line.value).replace(/\n/g, '<br>');
-        const shown =
-          line.label === 'Lien' && /^https?:\/\//.test(line.value)
-            ? `<a href="${escapeHtml(line.value)}">${value}</a>`
-            : value;
-        return `<tr><td style="padding:6px 12px 6px 0;color:#666;vertical-align:top;white-space:nowrap;"><strong>${escapeHtml(line.label)}</strong></td><td style="padding:6px 0;color:#222;">${shown}</td></tr>`;
-      })
-      .join('');
+    const [appTitle, logo] = await Promise.all([
+      this.settingsService.getRawValue<string>('app.title'),
+      this.settingsService.getRawValue<string>('app.logoUrl'),
+    ]);
 
     const sent = await this.emailService.send({
       to: Array.from(recipients),
       subject,
-      html: `<div style="font-family: sans-serif; padding: 20px;">
-                <h2 style="color: #333;">${escapeHtml(subject)}</h2>
-                <table style="background: #f5f5f5; padding: 15px; border-radius: 5px; margin-top: 15px; border-collapse: collapse;">${rows}</table>
-            </div>`,
+      html: renderTaskNotificationEmail({
+        event,
+        taskName,
+        details,
+        appTitle: appTitle || 'Taskmaster',
+        logoUrl: resolveEmailLogoUrl(logo, appBaseUrl()),
+      }),
       text: details.map((line) => `${line.label} : ${line.value}`).join('\n'),
     });
     if (!sent) {
