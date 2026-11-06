@@ -343,56 +343,6 @@ export const SETTINGS_REGISTRY = {
     description: 'SAML Metadata URL (optional)',
   },
 
-  // === Email Alerts & Reminders ===
-  'email.alerts.missingTasks': {
-    schema: z.boolean(),
-    sensitive: false,
-    default: false,
-    description: 'Enable missing tasks alerts',
-  },
-  'email.alerts.recipients': {
-    schema: z.array(z.string()),
-    sensitive: false,
-    default: ['admin'],
-    description: 'Missing tasks alert recipients',
-  },
-  'email.alerts.customEmails': {
-    schema: z.array(z.string().email()),
-    sensitive: false,
-    default: [],
-    description: 'Custom email recipients for alerts',
-  },
-  'email.reminders.enabled': {
-    schema: z.boolean(),
-    sensitive: false,
-    default: false,
-    description: 'Enable task reminders',
-  },
-  'email.reminders.offsetHours': {
-    schema: z.number().int().min(0).max(24),
-    sensitive: false,
-    default: 1,
-    description: 'Reminder offset hours',
-  },
-  'email.reminders.offsetMinutes': {
-    schema: z.number().int().min(0).max(59),
-    sensitive: false,
-    default: 0,
-    description: 'Reminder offset minutes',
-  },
-  'email.reminders.recipients': {
-    schema: z.array(z.string()),
-    sensitive: false,
-    default: ['assigned'],
-    description: 'Task reminder recipients',
-  },
-  'email.reminders.customEmails': {
-    schema: z.array(z.string().email()),
-    sensitive: false,
-    default: [],
-    description: 'Custom email recipients for reminders',
-  },
-
   // === Export Settings ===
   'export.autoExport.enabled': {
     schema: z.boolean(),

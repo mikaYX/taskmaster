@@ -47,8 +47,6 @@ export function EmailSettingsPage() {
             mailgun: { apiKey: '', domain: '', region: 'us', from: '' },
             mailjet: { apiKey: '', secretKey: '', from: '' },
             sendgrid: { apiKey: '', from: '' },
-            alerts: { missingTasks: false, recipients: [] as string[], customEmails: [] as string[] },
-            reminders: { enabled: false, offsetHours: 1, offsetMinutes: 0, recipients: [] as string[], customEmails: [] as string[] },
         },
     });
     const emailEnabled = useWatch({ control: form.control, name: 'enabled' });
@@ -87,9 +85,6 @@ export function EmailSettingsPage() {
                     apiKey: getSetting('email.sendgrid.apiKey') || '',
                     from: getSetting('email.from') || '',
                 },
-                // alerts / reminders : gérés dans l’onglet Notifications (valeurs par défaut, non persistées depuis cette page)
-                alerts: { missingTasks: false, recipients: [] as string[], customEmails: [] as string[] },
-                reminders: { enabled: false, offsetHours: 1, offsetMinutes: 0, recipients: [] as string[], customEmails: [] as string[] },
             });
             setTestEmailTo(getSetting('email.recipients') || '');
         }
@@ -125,8 +120,6 @@ export function EmailSettingsPage() {
         } else if (data.provider === 'sendgrid') {
             updateSetting({ key: 'email.sendgrid.apiKey', value: data.sendgrid?.apiKey ?? '' });
         }
-
-        // alerts / reminders : gérés dans l’onglet Notifications, pas sauvegardés ici
 
         // Reset form dirty state with new values
         form.reset(data);

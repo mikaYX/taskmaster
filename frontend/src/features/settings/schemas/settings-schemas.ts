@@ -99,18 +99,6 @@ export const emailSettingsSchema = z.object({
         apiKey: z.string().optional(),
         from: z.string().email(i18n.t('settingsValidation.invalidEmailAddress')).optional().or(z.literal('')),
     }).optional(),
-    alerts: z.object({
-        missingTasks: z.boolean(),
-        recipients: z.array(z.string()),
-        customEmails: z.array(z.string().email()),
-    }),
-    reminders: z.object({
-        enabled: z.boolean(),
-        offsetHours: z.number().min(0).max(24),
-        offsetMinutes: z.number().min(0).max(59),
-        recipients: z.array(z.string()),
-        customEmails: z.array(z.string().email()),
-    }),
 });
 
 export const exportSettingsSchema = z.object({
