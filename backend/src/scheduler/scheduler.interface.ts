@@ -1,3 +1,11 @@
+/** What a job run really did: it ran, it was skipped by the lock, or it failed. */
+export interface JobExecutionResult {
+  success: boolean;
+  status: 'success' | 'locked' | 'failed';
+  message: string;
+  error?: string;
+}
+
 /**
  * Scheduler Job Interface.
  *
@@ -17,7 +25,7 @@ export interface SchedulerJob {
   /**
    * Execute the job.
    */
-  execute(): Promise<void>;
+  execute(): Promise<void | JobExecutionResult>;
 }
 
 export const SCHEDULER_JOB = Symbol('SCHEDULER_JOB');

@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **A job lock can no longer be released by a run that no longer owns it.** Each lock now carries a unique token and is released with an atomic compare-and-delete, so a run whose lease expired cannot free the lock of a newer run and let a third one start.
 - **A task reminder is no longer sent twice.** Each reminder is claimed in the `notifications` table (task, row and occurrence, keyed on the deadline) before it is sent, so two runs on the same window cannot both send it. The claim is freed if dispatching fails, so a later run can retry.
 - **A todo reminder is no longer lost when the inbox write fails.** The todo is only marked as reminded once at least one recipient has it in the bell; otherwise it is retried on the next run. A todo shared by several people is marked once one of them has it, so the others are not reminded twice.
+- **Running a job by hand now tells the truth.** The jobs page used to report success even when the job had failed or when its lock was already held. It now shows an error with the reason (already running, or the error message of the failed job). A job that catches its own errors (backups, exports, health check) is still reported as run.
 
 ## [1.2.2-beta.7] - 2026-11-06
 

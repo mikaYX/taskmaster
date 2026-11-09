@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
-import type { SchedulerJob } from '../scheduler.interface';
+import type { SchedulerJob, JobExecutionResult } from '../scheduler.interface';
 import { PrismaService } from '../../prisma';
 import { NotificationsService } from '../../notifications/notifications.service';
 import { JobLockService } from '../job-lock.service';
@@ -19,8 +19,8 @@ export class MissingTasksNotificationJob implements SchedulerJob {
   ) {}
 
   @Cron('0 * * * *', { name: 'email-alerts' })
-  async execute(): Promise<void> {
-    await this.jobLock.withLock(this.name, async () => {
+  async execute(): Promise<JobExecutionResult> {
+    return this.jobLock.withLock(this.name, async () => {
       this.logger.log('Checking for overdue task notifications...');
 
       const now = new Date();

@@ -17,7 +17,9 @@ export function useJobs() {
     const runMutation = useMutation({
         mutationFn: (name: string) => jobsApi.run(name),
         onSuccess: (data) => {
-            toast.success(data.message);
+            // A skipped (locked) or failed run answers 200 with success: false.
+            if (data.success) toast.success(data.message);
+            else toast.error(data.message);
         },
         onError: () => {
             toast.error(t('jobs.runFailed'));

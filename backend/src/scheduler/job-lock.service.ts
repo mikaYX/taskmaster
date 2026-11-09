@@ -1,6 +1,7 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
 import Redis from 'ioredis';
 import { randomUUID } from 'node:crypto';
+import type { JobExecutionResult } from './scheduler.interface';
 import { REDIS_CLIENT } from '../common/redis/redis.module';
 
 @Injectable()
@@ -43,25 +44,38 @@ export class JobLockService {
     jobName: string,
     executeFn: () => Promise<void> | void,
     ttlSeconds: number = 300,
-  ): Promise<{ success: boolean; message: string }> {
+  ): Promise<JobExecutionResult> {
     const locked = await this.acquireLock(jobName, ttlSeconds);
     if (!locked) {
       this.logger.warn(
         `[${jobName}] Execution skipped: Job is already running (locked)`,
       );
-      return { success: false, message: 'Job is already running' };
+      return {
+        success: false,
+        status: 'locked',
+        message: 'Job is already running',
+      };
     }
 
     try {
       this.logger.log(`[${jobName}] Lock acquired. Starting execution...`);
       await executeFn();
-      return { success: true, message: 'Job executed successfully' };
+      return {
+        success: true,
+        status: 'success',
+        message: 'Job executed successfully',
+      };
     } catch (err: any) {
       this.logger.error(
         `[${jobName}] Execution failed: ${err.message}`,
         err.stack,
       );
-      return { success: false, message: `Execution failed: ${err.message}` };
+      return {
+        success: false,
+        status: 'failed',
+        error: err.message,
+        message: `Execution failed: ${err.message}`,
+      };
     } finally {
       await this.releaseLock(jobName, locked);
       this.logger.log(`[${jobName}] Lock released.`);

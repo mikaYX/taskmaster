@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { endOfDay, format, startOfDay, subDays } from 'date-fns';
-import type { SchedulerJob } from '../scheduler.interface';
+import type { SchedulerJob, JobExecutionResult } from '../scheduler.interface';
 import { JobLockService } from '../job-lock.service';
 import { loadFromCompletionContext } from '../from-completion-context';
 import { PrismaService } from '../../prisma';
@@ -30,8 +30,8 @@ export class ReminderNotificationJob implements SchedulerJob {
   ) {}
 
   @Cron('*/15 * * * *', { name: 'email-reminders' })
-  async execute(): Promise<void> {
-    await this.jobLock.withLock(this.name, () => this.sendDueReminders());
+  async execute(): Promise<JobExecutionResult> {
+    return this.jobLock.withLock(this.name, () => this.sendDueReminders());
   }
 
   private async sendDueReminders(): Promise<void> {

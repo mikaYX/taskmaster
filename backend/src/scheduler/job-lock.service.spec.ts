@@ -45,3 +45,38 @@ describe('JobLockService ownership', () => {
     await second;
   });
 });
+
+describe('JobLockService.withLock result', () => {
+  const build = (setResult: 'OK' | null) => {
+    const redis = {
+      set: jest.fn().mockResolvedValue(setResult),
+      eval: jest.fn().mockResolvedValue(1),
+    };
+    return new JobLockService(redis as never);
+  };
+
+  it('says so when the lock is already taken', async () => {
+    const run = jest.fn();
+    await expect(build(null).withLock('job', run)).resolves.toMatchObject({
+      success: false,
+      status: 'locked',
+    });
+    expect(run).not.toHaveBeenCalled();
+  });
+
+  it('carries the error of a failed run', async () => {
+    await expect(
+      build('OK').withLock('job', () => Promise.reject(new Error('boom'))),
+    ).resolves.toMatchObject({
+      success: false,
+      status: 'failed',
+      error: 'boom',
+    });
+  });
+
+  it('reports success otherwise', async () => {
+    await expect(
+      build('OK').withLock('job', () => Promise.resolve()),
+    ).resolves.toMatchObject({ success: true, status: 'success' });
+  });
+});

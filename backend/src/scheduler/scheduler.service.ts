@@ -2,6 +2,7 @@ import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { SchedulerRegistry } from '@nestjs/schedule';
 import { SettingsService } from '../settings';
 import { AuditScheduler } from './audit.scheduler';
+import type { JobExecutionResult } from './scheduler.interface';
 import {
   AutoBackupJob,
   AutoExportJob,
@@ -122,57 +123,61 @@ export class SchedulerService implements OnApplicationBootstrap {
     return result;
   }
 
-  async triggerJob(
-    jobName: string,
-  ): Promise<{ success: boolean; message: string }> {
-    switch (jobName) {
-      case 'cleanup-exports':
-        await this.cleanupExportsJob.execute();
-        return { success: true, message: 'cleanup-exports job executed' };
+  /**
+   * Runs one job now and reports what really happened: success, skipped
+   * because the lock is held, or failed with its error.
+   */
+  async triggerJob(jobName: string): Promise<JobExecutionResult> {
+    const runners: Record<string, () => Promise<void | JobExecutionResult>> = {
+      'cleanup-exports': () => this.cleanupExportsJob.execute(),
+      'cleanup-backups': () => this.cleanupBackupsJob.execute(),
+      'health-check': () => this.healthCheckJob.execute(),
+      'auto-export': () => this.autoExportJob.execute(),
+      'auto-backup': () => this.autoBackupJob.execute(),
+      'email-alerts': () => this.missingTasksNotificationJob.execute(),
+      'email-reminders': () => this.reminderNotificationJob.execute(),
+      'audit-producer': () => this.auditScheduler.auditMissedInstances(),
+    };
 
-      case 'cleanup-backups':
-        await this.cleanupBackupsJob.execute();
-        return { success: true, message: 'cleanup-backups job executed' };
+    let run = runners[jobName];
+    if (!run) {
+      let job: { fireOnTick?: () => unknown };
+      try {
+        job = this.schedulerRegistry.getCronJob(jobName) as typeof job;
+      } catch {
+        return {
+          success: false,
+          status: 'failed',
+          message: `Unknown job: ${jobName}`,
+        };
+      }
+      // Generic fallback for jobs not explicitly mapped above.
+      run = async () => {
+        await job.fireOnTick?.();
+      };
+    }
 
-      case 'health-check':
-        await this.healthCheckJob.execute();
-        return { success: true, message: 'health-check job executed' };
-
-      case 'auto-export':
-        await this.autoExportJob.execute();
-        return { success: true, message: 'auto-export job executed' };
-
-      case 'auto-backup':
-        await this.autoBackupJob.execute();
-        return { success: true, message: 'auto-backup job executed' };
-
-      case 'email-alerts':
-        await this.missingTasksNotificationJob.execute();
-        return { success: true, message: 'email-alerts job executed' };
-
-      case 'email-reminders':
-        await this.reminderNotificationJob.execute();
-        return { success: true, message: 'email-reminders job executed' };
-
-      case 'audit-producer':
-        await this.auditScheduler.auditMissedInstances();
-        return { success: true, message: 'audit-producer job executed' };
-
-      default:
-        try {
-          const job = this.schedulerRegistry.getCronJob(jobName);
-          // Generic fallback for jobs not explicitly mapped above.
-          const result = (job as { fireOnTick?: () => unknown }).fireOnTick?.();
-          if (
-            result &&
-            typeof (result as Promise<unknown>).then === 'function'
-          ) {
-            await (result as Promise<unknown>);
-          }
-          return { success: true, message: `${jobName} job executed` };
-        } catch {
-          return { success: false, message: `Unknown job: ${jobName}` };
-        }
+    try {
+      const result = await run();
+      if (result && typeof result === 'object' && 'status' in result) {
+        return result.status === 'success'
+          ? { ...result, message: `${jobName} job executed` }
+          : result;
+      }
+      return {
+        success: true,
+        status: 'success',
+        message: `${jobName} job executed`,
+      };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.error(`[${jobName}] Manual run failed: ${message}`);
+      return {
+        success: false,
+        status: 'failed',
+        error: message,
+        message: `${jobName} job failed: ${message}`,
+      };
     }
   }
 
