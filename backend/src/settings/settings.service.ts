@@ -337,11 +337,14 @@ export class SettingsService {
     const keys = await this.prisma.client.$transaction(async (tx) => {
       await tx.$queryRaw`SELECT pg_advisory_xact_lock(824731, 1)::text`;
       // Read inside the lock, bypassing each instance's settings cache.
-      const read = async (key: typeof publicKeySetting | typeof privateKeySetting) => {
+      const read = async (
+        key: typeof publicKeySetting | typeof privateKeySetting,
+      ) => {
         const record = await tx.config.findUnique({ where: { key } });
         if (!record) return '';
         const value =
-          SETTINGS_REGISTRY[key].sensitive && this.encryption.isEncrypted(record.value)
+          SETTINGS_REGISTRY[key].sensitive &&
+          this.encryption.isEncrypted(record.value)
             ? this.encryption.decrypt(record.value)
             : record.value;
         return this.parseValue(value) as string;
@@ -355,7 +358,9 @@ export class SettingsService {
         [publicKeySetting, generated.publicKey],
         [privateKeySetting, generated.privateKey],
       ] as const) {
-        const serialized = JSON.stringify(SETTINGS_REGISTRY[key].schema.parse(value));
+        const serialized = JSON.stringify(
+          SETTINGS_REGISTRY[key].schema.parse(value),
+        );
         const stored = SETTINGS_REGISTRY[key].sensitive
           ? this.encryption.encrypt(serialized)
           : serialized;
