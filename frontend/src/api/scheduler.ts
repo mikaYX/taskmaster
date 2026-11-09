@@ -1,11 +1,23 @@
 import { http } from './http';
 
+export interface JobExecutionResult {
+    success: boolean;
+    status: 'success' | 'locked' | 'failed' | 'skipped';
+    message: string;
+    error?: string;
+    finishedAt: string;
+    durationMs: number;
+}
+
 export interface SchedulerJob {
     name: string;
     cron: string;
     enabled: boolean;
     nextRun: string | null;
     description: string;
+    lastRun?: Pick<JobExecutionResult, 'status' | 'finishedAt' | 'durationMs'> & {
+        message?: string;
+    };
 }
 
 export const schedulerApi = {
@@ -25,7 +37,7 @@ export const schedulerApi = {
      * Trigger a job manually.
      */
     triggerJob: (name: string) =>
-        http.post<{ success: boolean; message: string }>(`/jobs/${encodeURIComponent(name)}/run`),
+        http.post<JobExecutionResult>(`/jobs/${encodeURIComponent(name)}/run`),
 
     /**
      * Sync Master Scheduler state (read settings and apply).

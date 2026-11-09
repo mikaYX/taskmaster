@@ -1,112 +1,68 @@
-import { SchedulerService } from './scheduler.service';
+import { HTTP_CODE_METADATA } from '@nestjs/common/constants';
+import { JobsController } from './scheduler.controller';
+import { schedulerFixture } from './__mocks__/scheduler';
 
-describe('SchedulerService.triggerJob', () => {
-  const job = () => ({ execute: jest.fn().mockResolvedValue(undefined) });
-  const registry = { getCronJob: jest.fn() };
-  const build = () => {
-    const jobs = {
-      cleanupExports: job(),
-      cleanupBackups: job(),
-      health: job(),
-      autoExport: job(),
-      autoBackup: job(),
-      alerts: job(),
-      reminders: job(),
-    };
-    const audit = {
-      auditMissedInstances: jest.fn().mockResolvedValue(undefined),
-    };
-    const service = new SchedulerService(
-      registry as never,
-      { getRawValue: jest.fn() } as never,
-      jobs.cleanupExports as never,
-      jobs.cleanupBackups as never,
-      jobs.health as never,
-      jobs.autoExport as never,
-      jobs.autoBackup as never,
-      jobs.alerts as never,
-      jobs.reminders as never,
-      audit as never,
-    );
-    return { service, jobs, audit };
-  };
-
-  beforeEach(() => jest.resetAllMocks());
-
-  it('reports success when the job ran', async () => {
-    const { service, jobs } = build();
-    jobs.health.execute.mockResolvedValue(undefined);
-
-    await expect(service.triggerJob('health-check')).resolves.toMatchObject({
-      success: true,
+describe('SchedulerService', () => {
+  it('reports success and exposes the same last run with the central definition', async () => {
+    const { service, work } = schedulerFixture();
+    expect((await service.getJobsStatus())[0].lastRun).toBeUndefined();
+    const result = await service.triggerJob('health-check');
+    expect(result).toMatchObject({
       status: 'success',
+      message: 'health-check job executed',
+    });
+    expect(work).toHaveBeenCalledTimes(1);
+    expect((await service.getJobsStatus())[0]).toMatchObject({
+      cron: '*/5 * * * *',
+      description: 'System health monitoring',
+      lastRun: result,
     });
   });
 
-  it('reports a job that was skipped because its lock is held', async () => {
-    const { service, jobs } = build();
-    jobs.reminders.execute.mockResolvedValue({
-      success: false,
-      status: 'locked',
-      message: 'Job is already running',
-    });
-
-    await expect(service.triggerJob('email-reminders')).resolves.toEqual({
-      success: false,
-      status: 'locked',
-      message: 'Job is already running',
-    });
-  });
-
-  it('reports the error of a job that failed inside its lock', async () => {
-    const { service, jobs } = build();
-    jobs.alerts.execute.mockResolvedValue({
-      success: false,
-      status: 'failed',
-      error: 'smtp down',
-      message: 'Execution failed: smtp down',
-    });
-
-    await expect(service.triggerJob('email-alerts')).resolves.toMatchObject({
-      success: false,
-      status: 'failed',
-      error: 'smtp down',
-    });
-  });
-
-  it('reports a job that throws instead of claiming success', async () => {
-    const { service, audit } = build();
-    audit.auditMissedInstances.mockRejectedValue(new Error('db down'));
-
-    await expect(service.triggerJob('audit-producer')).resolves.toMatchObject({
-      success: false,
+  it('returns locked, failed and unknown results without a cron fallback', async () => {
+    const { service, lock, work, registry } = schedulerFixture();
+    lock.held.add('health-check');
+    expect((await service.triggerJob('health-check')).status).toBe('locked');
+    lock.held.clear();
+    work.mockRejectedValueOnce(new Error('db down'));
+    expect(await service.triggerJob('health-check')).toMatchObject({
       status: 'failed',
       error: 'db down',
     });
-  });
-
-  it('reports an unknown job', async () => {
-    const { service } = build();
-    registry.getCronJob.mockImplementation(() => {
-      throw new Error('not found');
-    });
-
-    await expect(service.triggerJob('nope')).resolves.toMatchObject({
-      success: false,
-      message: 'Unknown job: nope',
-    });
-  });
-
-  it('reports a failure of the generic cron fallback', async () => {
-    const { service } = build();
-    registry.getCronJob.mockReturnValue({
-      fireOnTick: jest.fn().mockRejectedValue(new Error('boom')),
-    });
-
-    await expect(service.triggerJob('custom')).resolves.toMatchObject({
-      success: false,
+    expect(await service.triggerJob('unknown')).toMatchObject({
       status: 'failed',
-      error: 'boom',
+      message: 'Unknown job: unknown',
     });
+    expect(registry.getCronJob).not.toHaveBeenCalled();
+  });
+
+  it('runs the startup audit through the same lock as its first cron tick', async () => {
+    const { service, runner, audit, lock } = schedulerFixture();
+    let finish!: () => void;
+    audit.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          finish = resolve;
+        }),
+    );
+    const run = jest.spyOn(runner, 'run');
+    await service.onApplicationBootstrap();
+    expect(run).toHaveBeenCalledWith('audit-producer', 'cron');
+    expect((await runner.run('audit-producer', 'cron')).status).toBe('locked');
+    expect(audit).toHaveBeenCalledTimes(1);
+    expect(lock.calls[0]).toEqual({ name: 'audit-producer', ttl: 600 });
+    finish();
+    await run.mock.results[0].value;
+  });
+
+  it('keeps HTTP 200 for run outcomes, including failed and unknown jobs', async () => {
+    const { service, lock } = schedulerFixture();
+    const controller = new JobsController(service);
+    expect(Reflect.getMetadata(HTTP_CODE_METADATA, controller.triggerJob)).toBe(
+      200,
+    );
+    lock.error = new Error('Redis unavailable');
+    expect((await controller.triggerJob('health-check')).status).toBe('failed');
+    expect((await controller.triggerJob('unknown')).status).toBe('failed');
   });
 });

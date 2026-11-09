@@ -1220,6 +1220,15 @@
         "masterDesc": "Interrupteur principal pour tous les travaux automatisés en arrière-plan."
     },
     "schedulerSettings": {
+        "lastRun": "Dernier run",
+        "neverRun": "Jamais exécuté",
+        "runDuration": "Durée : {{duration}} ms",
+        "runStatus": {
+            "success": "Réussi",
+            "locked": "Déjà en cours",
+            "failed": "Échec",
+            "skipped": "Ignoré"
+        },
         "active": "Actif",
         "suspended": "Suspendu",
         "disabled": "Désactivé",

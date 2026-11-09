@@ -1,3 +1,5 @@
+import { JobRunner } from '../job-runner.service';
+import { JOB_DEFINITIONS } from '../job-definitions';
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import type { SchedulerJob } from '../scheduler.interface';
@@ -16,10 +18,12 @@ import {
  * Removes expired export files.
  * Runs daily at 2:00 AM.
  */
+const DEF = JOB_DEFINITIONS['cleanup-exports'];
+
 @Injectable()
 export class CleanupExportsJob implements SchedulerJob {
-  readonly name = 'cleanup-exports';
-  readonly cron = '0 2 * * *'; // Daily at 2:00 AM
+  readonly name = DEF.name;
+  readonly cron = DEF.cron; // Daily at 2:00 AM
 
   private readonly logger = new Logger(CleanupExportsJob.name);
 
@@ -27,9 +31,16 @@ export class CleanupExportsJob implements SchedulerJob {
     private readonly exportService: ExportService,
     private readonly settingsService: SettingsService,
     private readonly auditService: AuditService,
-  ) {}
+    private readonly runner: JobRunner,
+  ) {
+    this.runner.register(DEF, () => this.execute());
+  }
 
-  @Cron('0 2 * * *', { name: 'cleanup-exports' })
+  @Cron(DEF.cron, { name: DEF.name })
+  handleCron() {
+    return this.runner.run(DEF.name, 'cron');
+  }
+
   async execute(): Promise<void> {
     const start = Date.now();
     this.logger.log(`[${this.name}] Job started`);

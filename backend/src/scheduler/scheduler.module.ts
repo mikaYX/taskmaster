@@ -15,7 +15,7 @@ import {
   TodoReminderJob,
   TodoMaintenanceJob,
 } from './jobs';
-import { JobLockService } from './job-lock.service';
+import { JobRunnerModule } from './job-runner.module';
 import { SettingsModule } from '../settings';
 import { BackupModule } from '../backup';
 import { AuditScheduler } from './audit.scheduler';
@@ -28,12 +28,12 @@ import { DelegationsModule } from '../modules/delegations/delegations.module';
  * Scheduler Module.
  *
  * Provides scheduled job execution.
- * Jobs: cleanup-exports, cleanup-backups, health-check.
  */
 @Module({
   imports: [
     ScheduleModule.forRoot(),
     SettingsModule,
+    JobRunnerModule,
     BackupModule,
     TasksModule,
     NotificationsModule,
@@ -43,7 +43,6 @@ import { DelegationsModule } from '../modules/delegations/delegations.module';
   controllers: [JobsController],
   providers: [
     SchedulerService,
-    JobLockService,
     CleanupExportsJob,
     CleanupBackupsJob,
     CleanupAuditLogsJob,

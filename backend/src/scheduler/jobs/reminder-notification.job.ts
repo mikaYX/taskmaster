@@ -1,9 +1,10 @@
+import { JobRunner } from '../job-runner.service';
+import { JOB_DEFINITIONS } from '../job-definitions';
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { UniqueDelivery } from '../../notifications/unique-delivery';
 import { endOfDay, format, startOfDay, subDays } from 'date-fns';
-import type { SchedulerJob, JobExecutionResult } from '../scheduler.interface';
-import { JobLockService } from '../job-lock.service';
+import type { SchedulerJob } from '../scheduler.interface';
 import { PrismaService } from '../../prisma';
 import { SettingsService } from '../../settings/settings.service';
 import { NotificationsService } from '../../notifications/notifications.service';
@@ -14,10 +15,12 @@ const INTERVAL_MS = 15 * 60_000; // match cron interval
 /** A yearly occurrence can start long before its deadline. */
 const LOOK_BACK_DAYS = 366;
 
+const DEF = JOB_DEFINITIONS['email-reminders'];
+
 @Injectable()
 export class ReminderNotificationJob implements SchedulerJob {
-  readonly name = 'email-reminders';
-  readonly cron = '*/15 * * * *'; // Every 15 minutes
+  readonly name = DEF.name;
+  readonly cron = DEF.cron; // Every 15 minutes
 
   private readonly logger = new Logger(ReminderNotificationJob.name);
 
@@ -26,15 +29,17 @@ export class ReminderNotificationJob implements SchedulerJob {
     private readonly settings: SettingsService,
     private readonly notificationsService: NotificationsService,
     private readonly instanceService: InstanceService,
-    private readonly jobLock: JobLockService,
-  ) {}
-
-  @Cron('*/15 * * * *', { name: 'email-reminders' })
-  async execute(): Promise<JobExecutionResult> {
-    return this.jobLock.withLock(this.name, () => this.sendDueReminders());
+    private readonly runner: JobRunner,
+  ) {
+    this.runner.register(DEF, () => this.execute());
   }
 
-  private async sendDueReminders(): Promise<void> {
+  @Cron(DEF.cron, { name: DEF.name })
+  handleCron() {
+    return this.runner.run(DEF.name, 'cron');
+  }
+
+  async execute(): Promise<void> {
     const rows = await this.prisma.client.taskNotification.findMany({
       where: {
         notifyOnReminder: true,

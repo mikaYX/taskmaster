@@ -1,3 +1,4 @@
+import { JobRunner } from '../job-runner.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { PrismaService } from '../../prisma';
 import { AuditService } from '../../audit/audit.service';
@@ -26,6 +27,7 @@ describe('CleanupRefreshTokensJob', () => {
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
+        { provide: JobRunner, useValue: { register: jest.fn() } },
         CleanupRefreshTokensJob,
         {
           provide: PrismaService,
@@ -109,10 +111,10 @@ describe('CleanupRefreshTokensJob', () => {
     );
   });
 
-  it('does not throw and records a failure entry when Prisma fails', async () => {
+  it('propagates the error to the runner and records a failure entry when Prisma fails', async () => {
     findMany.mockRejectedValueOnce(new Error('db down'));
 
-    await expect(job.execute()).resolves.toBeUndefined();
+    await expect(job.execute()).rejects.toThrow();
 
     expect(auditLog).toHaveBeenCalledWith(
       expect.objectContaining({

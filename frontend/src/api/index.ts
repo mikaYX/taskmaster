@@ -20,7 +20,6 @@ export { settingsApi } from './settings';
 
 export { exportApi } from './export';
 export { backupApi } from './backup';
-export { jobsApi } from './jobs';
 export { setupApi } from './setup';
 export { auditApi } from './audit';
 export { sitesApi } from './sites';

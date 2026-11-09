@@ -1,122 +1,41 @@
-import { SchedulerRegistry } from '@nestjs/schedule';
-import { Test, TestingModule } from '@nestjs/testing';
-import { SettingsService } from '../settings';
-import { AuditScheduler } from './audit.scheduler';
-import {
-  AutoBackupJob,
-  AutoExportJob,
-  CleanupBackupsJob,
-  CleanupExportsJob,
-  HealthCheckJob,
-  MissingTasksNotificationJob,
-  ReminderNotificationJob,
-} from './jobs';
-import { SchedulerService } from './scheduler.service';
+import { schedulerFixture } from './__mocks__/scheduler';
 
-const mockJob = () => ({
-  start: jest.fn(),
-  stop: jest.fn(),
-  _isActive: true,
-  running: undefined,
-  cronTime: { source: '0 0 * * *' },
-  nextDate: () => new Date(),
-});
-
-const makeModule = async (settingsEnabled: boolean) => {
-  const job = mockJob();
-  const module: TestingModule = await Test.createTestingModule({
-    providers: [
-      SchedulerService,
-      {
-        provide: SchedulerRegistry,
-        useValue: {
-          getCronJobs: jest.fn().mockReturnValue(new Map([['test-job', job]])),
-          getCronJob: jest.fn().mockReturnValue(job),
-        },
-      },
-      {
-        provide: SettingsService,
-        useValue: { getRawValue: jest.fn().mockResolvedValue(settingsEnabled) },
-      },
-      { provide: CleanupExportsJob, useValue: {} },
-      { provide: CleanupBackupsJob, useValue: {} },
-      { provide: HealthCheckJob, useValue: {} },
-      { provide: AutoExportJob, useValue: {} },
-      { provide: AutoBackupJob, useValue: {} },
-      { provide: MissingTasksNotificationJob, useValue: {} },
-      { provide: ReminderNotificationJob, useValue: {} },
-      { provide: AuditScheduler, useValue: {} },
-    ],
-  }).compile();
-
-  return { module, job };
-};
-
-describe('SchedulerService (Pause/Resume)', () => {
-  it('should stop all jobs on bootstrap if scheduler is disabled', async () => {
-    const { module, job } = await makeModule(false);
-    const service = module.get<SchedulerService>(SchedulerService);
-
-    service['schedulerRegistry'].getCronJobs = jest
-      .fn()
-      .mockReturnValue(new Map([['test-job', job]]));
+describe('SchedulerService pause/resume', () => {
+  it('stops all jobs and skips startup audit when globally disabled', async () => {
+    const { service, job, audit } = schedulerFixture(false);
     await service.onApplicationBootstrap();
-
-    expect(job.stop).toHaveBeenCalled();
+    expect(job.stop).toHaveBeenCalledTimes(1);
+    expect(audit).not.toHaveBeenCalled();
+    expect((await service.getJobsStatus())[0].enabled).toBe(false);
   });
 
-  it('should track paused job in disabledJobs and return enabled:false', () => {
-    // Direct instantiation test for toggleJob use disabledJobs
-    const job = mockJob();
-    const service = new SchedulerService(
-      {
-        getCronJobs: jest.fn().mockReturnValue(new Map([['j', job]])),
-        getCronJob: jest.fn().mockReturnValue(job),
-      } as any,
-      { getRawValue: jest.fn().mockResolvedValue(true) } as any,
-      {} as any,
-      {} as any,
-      {} as any,
-      {} as any,
-      {} as any,
-      {} as any,
-      {} as any,
-      {} as any,
-    );
-
-    // First toggle: should stop
-    const r1 = service.toggleJob('j');
-    expect(job.stop).toHaveBeenCalled();
-    expect(r1.enabled).toBe(false);
-    expect((service as any).disabledJobs.has('j')).toBe(true);
-
-    // Second toggle: should start
-    const r2 = service.toggleJob('j');
-    expect(job.start).toHaveBeenCalled();
-    expect(r2.enabled).toBe(true);
-    expect((service as any).disabledJobs.has('j')).toBe(false);
+  it('exposes a manual pause through the public API and still permits manual execution', async () => {
+    const { service, runner, job, work } = schedulerFixture();
+    expect(service.toggleJob('health-check').enabled).toBe(false);
+    expect(job.stop).toHaveBeenCalledTimes(1);
+    expect((await service.getJobsStatus())[0].enabled).toBe(false);
+    expect((await runner.run('health-check', 'cron')).status).toBe('skipped');
+    expect(work).not.toHaveBeenCalled();
+    expect((await service.triggerJob('health-check')).status).toBe('success');
+    expect(service.toggleJob('health-check').enabled).toBe(true);
+    expect(job.start).toHaveBeenCalledTimes(1);
+    expect((await service.getJobsStatus())[0].enabled).toBe(true);
   });
 
-  it('getJobsStatus returns enabled:false for disabled job even if _isActive is true', async () => {
-    const job = mockJob();
-    job._isActive = true; // still true in cron lib even after stop()
-    const service = new SchedulerService(
-      { getCronJobs: jest.fn().mockReturnValue(new Map([['j', job]])) } as any,
-      { getRawValue: jest.fn().mockResolvedValue(true) } as any,
-      {} as any,
-      {} as any,
-      {} as any,
-      {} as any,
-      {} as any,
-      {} as any,
-      {} as any,
-      {} as any,
-    );
+  it('resets individual pauses on global resume, preserving existing behavior', async () => {
+    const { service, settings, job } = schedulerFixture();
+    service.toggleJob('health-check');
+    settings.getRawValue.mockResolvedValue('false');
+    expect((await service.syncSchedulerState()).enabled).toBe(false);
+    settings.getRawValue.mockResolvedValue('true');
+    expect((await service.syncSchedulerState()).enabled).toBe(true);
+    expect(job.start).toHaveBeenCalledTimes(1);
+    expect((await service.getJobsStatus())[0].enabled).toBe(true);
+  });
 
-    // Manually mark job as disabled
-    (service as any).disabledJobs.add('j');
-
-    const status = await service.getJobsStatus();
-    expect(status[0].enabled).toBe(false);
+  it('reports an unknown toggle without changing known jobs', () => {
+    const { service, job } = schedulerFixture();
+    expect(service.toggleJob('unknown').success).toBe(false);
+    expect(job.stop).not.toHaveBeenCalled();
   });
 });

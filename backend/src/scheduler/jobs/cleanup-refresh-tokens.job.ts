@@ -1,3 +1,5 @@
+import { JobRunner } from '../job-runner.service';
+import { JOB_DEFINITIONS } from '../job-definitions';
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import type { SchedulerJob } from '../scheduler.interface';
@@ -25,10 +27,12 @@ import {
  * Deletes are batched (`BATCH_SIZE`) to keep per-batch locks short.
  * Runs at 04:15 — staggered after `cleanup-audit-logs` to spread DB load.
  */
+const DEF = JOB_DEFINITIONS['cleanup-refresh-tokens'];
+
 @Injectable()
 export class CleanupRefreshTokensJob implements SchedulerJob {
-  readonly name = 'cleanup-refresh-tokens';
-  readonly cron = '15 4 * * *'; // Daily at 04:15
+  readonly name = DEF.name;
+  readonly cron = DEF.cron; // Daily at 04:15
 
   private static readonly BATCH_SIZE = 10_000;
   private static readonly MAX_BATCHES = 100;
@@ -39,9 +43,16 @@ export class CleanupRefreshTokensJob implements SchedulerJob {
   constructor(
     private readonly prisma: PrismaService,
     private readonly auditService: AuditService,
-  ) {}
+    private readonly runner: JobRunner,
+  ) {
+    this.runner.register(DEF, () => this.execute());
+  }
 
-  @Cron('15 4 * * *', { name: 'cleanup-refresh-tokens' })
+  @Cron(DEF.cron, { name: DEF.name })
+  handleCron() {
+    return this.runner.run(DEF.name, 'cron');
+  }
+
   async execute(): Promise<void> {
     const start = Date.now();
     const revokedRetentionDays = this.resolveRevokedRetentionDays();
@@ -135,6 +146,7 @@ export class CleanupRefreshTokensJob implements SchedulerJob {
         },
         severity: AuditSeverity.ERROR,
       });
+      throw error;
     }
   }
 

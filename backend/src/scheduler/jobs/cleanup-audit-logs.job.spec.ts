@@ -1,3 +1,4 @@
+import { JobRunner } from '../job-runner.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { PrismaService } from '../../prisma';
 import { AuditService } from '../../audit/audit.service';
@@ -30,6 +31,7 @@ describe('CleanupAuditLogsJob', () => {
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
+        { provide: JobRunner, useValue: { register: jest.fn() } },
         CleanupAuditLogsJob,
         {
           provide: PrismaService,
@@ -113,10 +115,10 @@ describe('CleanupAuditLogsJob', () => {
     expect(auditLog).not.toHaveBeenCalled();
   });
 
-  it('records a SYSTEM_CLEANUP_FAILURE audit entry but does not throw on Prisma errors', async () => {
+  it('records a SYSTEM_CLEANUP_FAILURE audit entry and propagates Prisma errors to the runner', async () => {
     findMany.mockRejectedValueOnce(new Error('connection refused'));
 
-    await expect(job.execute()).resolves.toBeUndefined();
+    await expect(job.execute()).rejects.toThrow();
 
     expect(auditLog).toHaveBeenCalledWith(
       expect.objectContaining({

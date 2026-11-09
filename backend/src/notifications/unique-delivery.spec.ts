@@ -244,7 +244,7 @@ describe('reminder caller → channel delivery → receipt', () => {
           computeInstances: () => [{ date: deadline, periodEnd: deadline }],
         } as never,
         {
-          withLock: (_name: string, run: () => Promise<void>) => run(),
+          register: jest.fn(),
         } as never,
       );
       const fetch = jest.mocked(safeFetch);

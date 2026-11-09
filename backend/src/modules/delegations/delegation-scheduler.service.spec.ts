@@ -1,3 +1,5 @@
+import { JobRunner } from '../../scheduler/job-runner.service';
+import { MemoryJobLock } from '../../scheduler/__mocks__/job-lock';
 import { Test, TestingModule } from '@nestjs/testing';
 import { EmailService } from '../../email/email.service';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -34,6 +36,14 @@ describe('DelegationSchedulerService', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
+        {
+          provide: JobRunner,
+          useFactory: () =>
+            new JobRunner(
+              new MemoryJobLock() as never,
+              mockSettingsService as never,
+            ),
+        },
         DelegationSchedulerService,
         { provide: PrismaService, useValue: mockPrisma },
         { provide: EmailService, useValue: mockEmailService },

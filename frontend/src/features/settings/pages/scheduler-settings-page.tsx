@@ -179,6 +179,29 @@ export function SchedulerSettingsPage() {
                                             </div>
                                         </div>
                                     </div>
+                                    <div className="min-w-0 text-xs sm:w-52 sm:shrink-0">
+                                        <p className="mb-1 font-medium text-muted-foreground">{t('schedulerSettings.lastRun')}</p>
+                                        {job.lastRun ? (
+                                            <div className="space-y-1">
+                                                <p className={cn(
+                                                    "font-medium",
+                                                    job.lastRun.status === 'failed' && "text-destructive",
+                                                    job.lastRun.status === 'success' && "text-emerald-700 dark:text-emerald-400",
+                                                )}>
+                                                    {t(`schedulerSettings.runStatus.${job.lastRun.status}`)}
+                                                </p>
+                                                <p className="text-muted-foreground">
+                                                    <time dateTime={job.lastRun.finishedAt}>
+                                                        {new Date(job.lastRun.finishedAt).toLocaleString(getDateLocale().code, { dateStyle: 'medium', timeStyle: 'short' })}
+                                                    </time>
+                                                </p>
+                                                <p className="text-muted-foreground">{t('schedulerSettings.runDuration', { duration: job.lastRun.durationMs })}</p>
+                                                {job.lastRun.message && <p className="break-words text-muted-foreground">{job.lastRun.message}</p>}
+                                            </div>
+                                        ) : (
+                                            <p className="text-muted-foreground">{t('schedulerSettings.neverRun')}</p>
+                                        )}
+                                    </div>
                                     <div className="flex items-center gap-2 sm:shrink-0">
                                         <span className={cn(
                                             "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium",

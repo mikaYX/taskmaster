@@ -1,10 +1,13 @@
+import { JobRunner } from '../../scheduler/job-runner.service';
+import { JOB_DEFINITIONS } from '../../scheduler/job-definitions';
 import { Injectable, Logger } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../../prisma/prisma.service';
 import { BeneficiaryResolverService } from './beneficiary-resolver.service';
 
 import { EmailService } from '../../email/email.service';
-import { SettingsService } from '../../settings/settings.service';
+
+const DEF = JOB_DEFINITIONS['delegation-expiry'];
 
 @Injectable()
 export class DelegationSchedulerService {
@@ -14,17 +17,17 @@ export class DelegationSchedulerService {
     private readonly prisma: PrismaService,
     private readonly beneficiaryResolver: BeneficiaryResolverService,
     private readonly emailService: EmailService,
-    private readonly settingsService: SettingsService,
-  ) {}
+    private readonly runner: JobRunner,
+  ) {
+    this.runner.register(DEF, () => this.work());
+  }
 
-  @Cron(CronExpression.EVERY_MINUTE, { name: 'delegation-expiry' })
-  async handleExpiredDelegations() {
-    const schedulerEnabled =
-      await this.settingsService.getRawValue<boolean>('scheduler.enabled');
-    if (!schedulerEnabled) {
-      return;
-    }
+  @Cron(DEF.cron, { name: DEF.name })
+  handleExpiredDelegations() {
+    return this.runner.run(DEF.name, 'cron');
+  }
 
+  async work() {
     this.logger.debug('Checking for recently expired delegations...');
 
     const now = new Date();

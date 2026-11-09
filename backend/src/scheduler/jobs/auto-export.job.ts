@@ -1,3 +1,5 @@
+import { JobRunner } from '../job-runner.service';
+import { JOB_DEFINITIONS } from '../job-definitions';
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import cronParser from 'cron-parser';
@@ -20,10 +22,12 @@ import {
  * Since the schedule is dynamic (user configured), this job runs every minute
  * and checks if it matches the user's configuration.
  */
+const DEF = JOB_DEFINITIONS['auto-export'];
+
 @Injectable()
 export class AutoExportJob implements SchedulerJob {
-  readonly name = 'auto-export';
-  readonly cron = '* * * * *'; // Run every minute to check schedule
+  readonly name = DEF.name;
+  readonly cron = DEF.cron; // Run every minute to check schedule
 
   private readonly logger = new Logger(AutoExportJob.name);
 
@@ -33,9 +37,16 @@ export class AutoExportJob implements SchedulerJob {
     private readonly auditService: AuditService,
     private readonly emailService: EmailService,
     private readonly prisma: PrismaService,
-  ) {}
+    private readonly runner: JobRunner,
+  ) {
+    this.runner.register(DEF, () => this.execute());
+  }
 
-  @Cron('* * * * *', { name: 'auto-export' })
+  @Cron(DEF.cron, { name: DEF.name })
+  handleCron() {
+    return this.runner.run(DEF.name, 'cron');
+  }
+
   async execute(): Promise<void> {
     // 1. Check if enabled
     let enabled = await this.settings.getRawValue<boolean>(

@@ -1,6 +1,8 @@
+import { JobRunner } from './job-runner.service';
+import { JOB_DEFINITIONS } from './job-definitions';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { Cron } from '@nestjs/schedule';
 import { UniqueDelivery } from '../notifications/unique-delivery';
 import { endOfDay, format, startOfDay, subDays } from 'date-fns';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -8,6 +10,8 @@ import { PrismaService } from '../prisma';
 import { SettingsService } from '../settings/settings.service';
 import { InstanceService } from '../tasks/instance.service';
 import { loadPlanningContext } from '../tasks/planning-context';
+
+const DEF = JOB_DEFINITIONS['audit-producer'];
 
 @Injectable()
 export class AuditScheduler {
@@ -19,10 +23,17 @@ export class AuditScheduler {
     private readonly config: ConfigService,
     private readonly settings: SettingsService,
     private readonly notificationsService: NotificationsService,
-  ) {}
+    private readonly runner: JobRunner,
+  ) {
+    this.runner.register(DEF, () => this.work());
+  }
 
-  @Cron(CronExpression.EVERY_5_MINUTES, { name: 'audit-producer' })
-  async auditMissedInstances() {
+  @Cron(DEF.cron, { name: DEF.name })
+  auditMissedInstances() {
+    return this.runner.run(DEF.name, 'cron');
+  }
+
+  async work() {
     this.logger.log('Starting Audit of Missed Instances...');
 
     const now = new Date();

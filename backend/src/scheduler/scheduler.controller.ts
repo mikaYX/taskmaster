@@ -8,6 +8,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { SchedulerService } from './scheduler.service';
+import type { JobRun } from './job-runner.service';
 import { JwtAuthGuard, RolesGuard, Roles } from '../auth';
 
 /**
@@ -34,7 +35,7 @@ export class JobsController {
    */
   @Post(':name/run')
   @HttpCode(HttpStatus.OK)
-  triggerJob(@Param('name') name: string) {
+  triggerJob(@Param('name') name: string): Promise<JobRun> {
     return this.schedulerService.triggerJob(name);
   }
 

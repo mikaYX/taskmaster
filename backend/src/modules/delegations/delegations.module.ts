@@ -1,3 +1,4 @@
+import { JobRunnerModule } from '../../scheduler/job-runner.module';
 import { Module } from '@nestjs/common';
 import { DelegationsService } from './delegations.service';
 import {
@@ -12,7 +13,13 @@ import { EmailModule } from '../../email/email.module';
 import { SettingsModule } from '../../settings/settings.module';
 
 @Module({
-  imports: [PrismaModule, AuditModule, EmailModule, SettingsModule],
+  imports: [
+    JobRunnerModule,
+    PrismaModule,
+    AuditModule,
+    EmailModule,
+    SettingsModule,
+  ],
   controllers: [DelegationsController, BulkDelegationsController],
   providers: [
     DelegationsService,

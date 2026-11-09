@@ -41,6 +41,7 @@ describe('AuditScheduler.auditMissedInstances queries', () => {
     {
       dispatchTaskNotifications: jest.fn().mockResolvedValue(undefined),
     } as never,
+    { register: jest.fn() } as never,
   );
 
   beforeEach(() => {
@@ -53,7 +54,7 @@ describe('AuditScheduler.auditMissedInstances queries', () => {
 
   it('only audits tasks that are not archived', async () => {
     client.task.findMany.mockResolvedValue([]);
-    await scheduler.auditMissedInstances();
+    await scheduler.work();
 
     expect(client.task.findMany.mock.calls[0][0].where.deletedAt).toBeNull();
     expect(client.status.findMany).not.toHaveBeenCalled();
@@ -61,7 +62,7 @@ describe('AuditScheduler.auditMissedInstances queries', () => {
 
   it('loads the skipped and moved occurrences so they are not marked missing', async () => {
     client.task.findMany.mockResolvedValue([]);
-    await scheduler.auditMissedInstances();
+    await scheduler.work();
 
     const { include } = client.task.findMany.mock.calls[0][0];
     expect(include.overrides.where.OR).toEqual([
@@ -85,7 +86,7 @@ describe('AuditScheduler.auditMissedInstances queries', () => {
       ](),
     );
 
-    await scheduler.auditMissedInstances();
+    await scheduler.work();
 
     expect(client.status.findMany).toHaveBeenCalledTimes(1);
     expect(client.status.findMany.mock.calls[0][0].where.taskId).toEqual({

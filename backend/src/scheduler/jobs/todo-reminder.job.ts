@@ -1,3 +1,5 @@
+import { JobRunner } from '../job-runner.service';
+import { JOB_DEFINITIONS } from '../job-definitions';
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { formatInTimeZone } from 'date-fns-tz';
@@ -55,10 +57,12 @@ const RECIPIENT_SELECT = {
  * - other collective todos: the members of their group who did not opt out
  *   (their creator when they are for the whole site).
  */
+const DEF = JOB_DEFINITIONS['todo-reminders'];
+
 @Injectable()
 export class TodoReminderJob implements SchedulerJob {
-  readonly name = 'todo-reminders';
-  readonly cron = '0 * * * *';
+  readonly name = DEF.name;
+  readonly cron = DEF.cron;
 
   private readonly logger = new Logger(TodoReminderJob.name);
 
@@ -67,9 +71,16 @@ export class TodoReminderJob implements SchedulerJob {
     private readonly settings: SettingsService,
     private readonly email: EmailService,
     private readonly inbox: UserNotificationsService,
-  ) {}
+    private readonly runner: JobRunner,
+  ) {
+    this.runner.register(DEF, () => this.execute());
+  }
 
-  @Cron('0 * * * *', { name: 'todo-reminders' })
+  @Cron(DEF.cron, { name: DEF.name })
+  handleCron() {
+    return this.runner.run(DEF.name, 'cron');
+  }
+
   async execute(now: Date = new Date()): Promise<void> {
     const [todolist, emailEnabled, timeZone] = await Promise.all([
       this.settings.getRawValue<boolean>('addons.todolist.enabled'),

@@ -30,6 +30,7 @@ describe('Audit OVERDUE delivery', () => {
     {} as never,
     { getRawValue: jest.fn() } as never,
     { dispatchTaskNotifications } as never,
+    { register: jest.fn() } as never,
   );
   beforeEach(() => {
     jest.useFakeTimers().setSystemTime(new Date('2026-05-04T19:00:00Z'));
@@ -43,12 +44,12 @@ describe('Audit OVERDUE delivery', () => {
   afterEach(() => jest.useRealTimers());
   it('retries MISSING after failure, without resending a successful alert', async () => {
     dispatchTaskNotifications.mockRejectedValueOnce(new Error('offline'));
-    await expect(scheduler.auditMissedInstances()).rejects.toThrow('offline');
+    await expect(scheduler.work()).rejects.toThrow('offline');
     expect(receipts).toHaveLength(0);
     jest.advanceTimersByTime(300000);
-    await scheduler.auditMissedInstances();
+    await scheduler.work();
     jest.advanceTimersByTime(300000);
-    await scheduler.auditMissedInstances();
+    await scheduler.work();
     expect(client.status.create).toHaveBeenCalledTimes(1);
     expect(dispatchTaskNotifications).toHaveBeenCalledTimes(2);
     expect(receipts).toHaveLength(1);
@@ -60,11 +61,11 @@ describe('Audit OVERDUE delivery', () => {
       kind: 'pending:audit:2026-05-04',
       sentAt: new Date(),
     });
-    await scheduler.auditMissedInstances();
+    await scheduler.work();
     expect(dispatchTaskNotifications).not.toHaveBeenCalled();
     jest.advanceTimersByTime(DELIVERY_LEASE_MS);
-    await scheduler.auditMissedInstances();
-    await scheduler.auditMissedInstances();
+    await scheduler.work();
+    await scheduler.work();
     expect(dispatchTaskNotifications).toHaveBeenCalledTimes(1);
     expect(receipts[0].kind).toBe('audit:2026-05-04');
   });

@@ -16,13 +16,12 @@ describe('ReminderNotificationJob', () => {
   const settings = { getRawValue: jest.fn() };
   const notifications = { dispatchTaskNotifications: jest.fn() };
   const instances = { computeInstances: jest.fn() };
-  const jobLock = { withLock: jest.fn() };
   const job = new ReminderNotificationJob(
     { client } as never,
     settings as never,
     notifications as never,
     instances as never,
-    jobLock as never,
+    { register: jest.fn() } as never,
   );
 
   const row = (id: number, taskId: number, offset = 60, task = {}) => ({
@@ -60,28 +59,10 @@ describe('ReminderNotificationJob', () => {
     );
     client.notification.delete.mockResolvedValue(undefined);
     instances.computeInstances.mockReturnValue([]);
-    jobLock.withLock.mockImplementation(
-      async (_name: string, run: () => Promise<void>) => {
-        await run();
-        return { success: true, message: '' };
-      },
-    );
   });
 
   afterEach(() => {
     jest.useRealTimers();
-  });
-
-  it('runs under the job lock', async () => {
-    jobLock.withLock.mockResolvedValue({ success: false, message: 'locked' });
-
-    await job.execute();
-
-    expect(jobLock.withLock).toHaveBeenCalledWith(
-      'email-reminders',
-      expect.any(Function),
-    );
-    expect(client.taskNotification.findMany).not.toHaveBeenCalled();
   });
 
   it('only loads rows asking for a reminder on an enabled channel and a live task', async () => {

@@ -1,76 +1,23 @@
-import { SchedulerRegistry } from '@nestjs/schedule';
-import { Test, TestingModule } from '@nestjs/testing';
-import { SettingsService } from '../settings';
-import { AuditScheduler } from './audit.scheduler';
-import {
-  AutoBackupJob,
-  AutoExportJob,
-  CleanupBackupsJob,
-  CleanupExportsJob,
-  HealthCheckJob,
-  MissingTasksNotificationJob,
-  ReminderNotificationJob,
-} from './jobs';
-import { SchedulerService } from './scheduler.service';
+import { schedulerFixture } from './__mocks__/scheduler';
+import { SETTINGS_REGISTRY } from '../settings/settings.registry';
 
-describe('Scheduler Service - Global Toggle Consistency', () => {
-  let service: SchedulerService;
-  let settingsService: SettingsService;
-
-  const mockJob = (_name: string) => ({
-    _isActive: true, // Physiquement "actif" dans le thread
-    cronTime: { source: '0 0 * * *' },
-    nextDate: () => new Date(),
-    stop: jest.fn(),
-    start: jest.fn(),
-  });
-
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        SchedulerService,
-        {
-          provide: SchedulerRegistry,
-          useValue: {
-            getCronJobs: jest
-              .fn()
-              .mockReturnValue(new Map([['test-job', mockJob('test-job')]])),
-          },
-        },
-        {
-          provide: SettingsService,
-          useValue: {
-            getRawValue: jest.fn(),
-          },
-        },
-        { provide: CleanupExportsJob, useValue: {} },
-        { provide: CleanupBackupsJob, useValue: {} },
-        { provide: HealthCheckJob, useValue: {} },
-        { provide: AutoExportJob, useValue: {} },
-        { provide: AutoBackupJob, useValue: {} },
-        { provide: MissingTasksNotificationJob, useValue: {} },
-        { provide: ReminderNotificationJob, useValue: {} },
-        { provide: AuditScheduler, useValue: {} },
-      ],
-    }).compile();
-
-    service = module.get<SchedulerService>(SchedulerService);
-    settingsService = module.get<SettingsService>(SettingsService);
-  });
-
-  it('should return enabled: false for all jobs when scheduler.enabled is false', async () => {
-    (settingsService.getRawValue as jest.Mock).mockResolvedValue(false);
-
-    const status = await service.getJobsStatus();
-
-    expect(status[0].enabled).toBe(false);
-  });
-
-  it('should return enabled: true when scheduler.enabled is true and job is active', async () => {
-    (settingsService.getRawValue as jest.Mock).mockResolvedValue(true);
-
-    const status = await service.getJobsStatus();
-
-    expect(status[0].enabled).toBe(true);
-  });
+describe('Scheduler global flag consistency', () => {
+  it.each([true, 'true', false, 'false', undefined, null])(
+    'uses one interpretation at bootstrap, status, sync and cron: %s',
+    async (value) => {
+      const { service, settings, runner, job } = schedulerFixture();
+      settings.getRawValue.mockResolvedValue(value);
+      const enabled =
+        value == null
+          ? SETTINGS_REGISTRY['scheduler.enabled'].default
+          : value === true || value === 'true';
+      await service.onApplicationBootstrap();
+      expect(job.stop).toHaveBeenCalledTimes(enabled ? 0 : 1);
+      expect((await service.getJobsStatus())[0].enabled).toBe(enabled);
+      expect((await service.syncSchedulerState()).enabled).toBe(enabled);
+      expect((await runner.run('health-check', 'cron')).status).toBe(
+        enabled ? 'success' : 'skipped',
+      );
+    },
+  );
 });

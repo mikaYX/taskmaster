@@ -1220,6 +1220,15 @@
         "masterDesc": "Global switch for all automated background tasks."
     },
     "schedulerSettings": {
+        "lastRun": "Last run",
+        "neverRun": "Not run yet",
+        "runDuration": "Duration: {{duration}} ms",
+        "runStatus": {
+            "success": "Succeeded",
+            "locked": "Already running",
+            "failed": "Failed",
+            "skipped": "Skipped"
+        },
         "active": "Active",
         "suspended": "Suspended",
         "disabled": "Disabled",

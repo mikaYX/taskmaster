@@ -1,3 +1,5 @@
+import { JobRunner } from '../job-runner.service';
+import { JOB_DEFINITIONS } from '../job-definitions';
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import type { SchedulerJob } from '../scheduler.interface';
@@ -24,10 +26,12 @@ import {
  * - Runs at 04:00 local time every day, after the existing cleanup jobs (02:00
  *   exports, 03:00 backups), to spread DB load.
  */
+const DEF = JOB_DEFINITIONS['cleanup-audit-logs'];
+
 @Injectable()
 export class CleanupAuditLogsJob implements SchedulerJob {
-  readonly name = 'cleanup-audit-logs';
-  readonly cron = '0 4 * * *'; // Daily at 04:00
+  readonly name = DEF.name;
+  readonly cron = DEF.cron; // Daily at 04:00
 
   /** Number of rows deleted per batch — keeps the per-batch lock window short. */
   private static readonly BATCH_SIZE = 10_000;
@@ -43,9 +47,16 @@ export class CleanupAuditLogsJob implements SchedulerJob {
   constructor(
     private readonly prisma: PrismaService,
     private readonly auditService: AuditService,
-  ) {}
+    private readonly runner: JobRunner,
+  ) {
+    this.runner.register(DEF, () => this.execute());
+  }
 
-  @Cron('0 4 * * *', { name: 'cleanup-audit-logs' })
+  @Cron(DEF.cron, { name: DEF.name })
+  handleCron() {
+    return this.runner.run(DEF.name, 'cron');
+  }
+
   async execute(): Promise<void> {
     const start = Date.now();
     const retentionDays = this.resolveRetentionDays();
@@ -139,6 +150,7 @@ export class CleanupAuditLogsJob implements SchedulerJob {
         },
         severity: AuditSeverity.ERROR,
       });
+      throw error;
     }
   }
 

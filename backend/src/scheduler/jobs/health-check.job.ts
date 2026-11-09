@@ -1,3 +1,5 @@
+import { JobRunner } from '../job-runner.service';
+import { JOB_DEFINITIONS } from '../job-definitions';
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import type { SchedulerJob } from '../scheduler.interface';
@@ -9,16 +11,27 @@ import { PrismaService } from '../../prisma';
  * Validates database connection and logs status.
  * Runs every 5 minutes.
  */
+const DEF = JOB_DEFINITIONS['health-check'];
+
 @Injectable()
 export class HealthCheckJob implements SchedulerJob {
-  readonly name = 'health-check';
-  readonly cron = '*/5 * * * *'; // Every 5 minutes
+  readonly name = DEF.name;
+  readonly cron = DEF.cron; // Every 5 minutes
 
   private readonly logger = new Logger(HealthCheckJob.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly runner: JobRunner,
+  ) {
+    this.runner.register(DEF, () => this.execute());
+  }
 
-  @Cron('*/5 * * * *', { name: 'health-check' })
+  @Cron(DEF.cron, { name: DEF.name })
+  handleCron() {
+    return this.runner.run(DEF.name, 'cron');
+  }
+
   async execute(): Promise<void> {
     const start = Date.now();
 

@@ -21,6 +21,7 @@ describe('TodoReminderJob', () => {
     settings as never,
     email as never,
     inbox as never,
+    { register: jest.fn() } as never,
   );
 
   // 07:00 UTC is 09:00 in Paris: the default due moment of a todo due on the 20th.
@@ -233,7 +234,10 @@ describe('TodoReminderJob', () => {
 describe('TodoMaintenanceJob', () => {
   it('clears old notifications', async () => {
     const inbox = { purgeOld: jest.fn().mockResolvedValue(5) };
-    const job = new TodoMaintenanceJob(inbox as never);
+    const job = new TodoMaintenanceJob(
+      inbox as never,
+      { register: jest.fn() } as never,
+    );
     const now = new Date('2026-10-20T00:10:00Z');
 
     await job.execute(now);

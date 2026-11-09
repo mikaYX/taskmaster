@@ -18,15 +18,12 @@ describe('MissingTasksNotificationJob', () => {
     },
   };
   const notifications = { dispatchTaskNotifications: jest.fn() };
-  const jobLock = {
-    withLock: (_name: string, fn: () => Promise<void>) => fn(),
-  };
   const job = new MissingTasksNotificationJob(
     { client } as never,
     notifications as never,
-    jobLock as never,
     new InstanceService(new RecurrenceService()),
     { getRawValue: jest.fn() } as never,
+    { register: jest.fn() } as never,
   );
   const overdue = (taskId: number) => ({
     taskId,
