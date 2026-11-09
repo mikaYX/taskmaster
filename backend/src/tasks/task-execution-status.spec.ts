@@ -8,7 +8,7 @@ import type { NotificationsService } from '../notifications/notifications.servic
 import { InstanceService } from './instance.service';
 import { ProcedureStorageService } from './procedure-storage.service';
 
-function fixture(notifications?: { dispatchTaskNotifications: jest.Mock }) {
+function fixture(notifications?: { notifyTaskFailure: jest.Mock }) {
   const task = {
     id: 1,
     siteId: 1,
@@ -172,9 +172,7 @@ describe('checklist status submission', () => {
     });
   });
   describe('failure notification', () => {
-    const notifications = () => ({
-      dispatchTaskNotifications: jest.fn().mockResolvedValue(undefined),
-    });
+    const notifications = () => ({ notifyTaskFailure: jest.fn() });
     const failed = {
       date: '2026-10-16',
       status: 'FAILED' as const,
@@ -182,16 +180,16 @@ describe('checklist status submission', () => {
       correctiveAction: { title: 'Repair panel' },
     };
 
-    it('notifies once with what the occurrence needs to be a ticket', async () => {
+    it('hands the failure to the notification rule with what the occurrence needs to be a ticket', async () => {
       const notify = notifications();
       const { service, client } = fixture(notify);
       client.status.findUnique.mockResolvedValue({ status: 'RUNNING' });
 
       await service.setStatus(1, failed, 1, 'USER');
 
-      expect(notify.dispatchTaskNotifications).toHaveBeenCalledWith(
+      expect(notify.notifyTaskFailure).toHaveBeenCalledWith(
         1,
-        'FAILED',
+        { status: 'FAILED', previousStatus: 'RUNNING' },
         {
           instanceDate: '2026-10-16',
           comment: 'Panel is dead',
@@ -201,17 +199,21 @@ describe('checklist status submission', () => {
       );
     });
 
-    it('stays silent when the occurrence was already failed', async () => {
+    it('tells the rule when the occurrence was already failed', async () => {
       const notify = notifications();
       const { service, client } = fixture(notify);
       client.status.findUnique.mockResolvedValue({ status: 'FAILED' });
 
       await service.setStatus(1, failed, 1, 'SUPER_ADMIN');
 
-      expect(notify.dispatchTaskNotifications).not.toHaveBeenCalled();
+      expect(notify.notifyTaskFailure).toHaveBeenCalledWith(
+        1,
+        { status: 'FAILED', previousStatus: 'FAILED' },
+        expect.any(Object),
+      );
     });
 
-    it('stays silent for other statuses', async () => {
+    it('reports a new occurrence as having no previous status', async () => {
       const notify = notifications();
       const { service, client } = fixture(notify);
       client.status.findUnique.mockResolvedValue(null);
@@ -227,19 +229,11 @@ describe('checklist status submission', () => {
         'USER',
       );
 
-      expect(notify.dispatchTaskNotifications).not.toHaveBeenCalled();
-    });
-
-    it('does not fail the status change when the notification fails', async () => {
-      const notify = notifications();
-      notify.dispatchTaskNotifications.mockRejectedValue(
-        new Error('smtp down'),
+      expect(notify.notifyTaskFailure).toHaveBeenCalledWith(
+        1,
+        { status: 'SUCCESS', previousStatus: undefined },
+        expect.any(Object),
       );
-      const { service } = fixture(notify);
-
-      await expect(
-        service.setStatus(1, failed, 1, 'USER'),
-      ).resolves.toBeDefined();
     });
   });
 

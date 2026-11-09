@@ -455,6 +455,33 @@ export class NotificationsService {
   // Dispatch Notifications
   // ==========================================
 
+  /**
+   * The one rule for failure alerts: an occurrence notifies when it becomes FAILED,
+   * never when a FAILED occurrence is saved again (retry, edited comment, repeated API call).
+   * Fire and forget: a delivery problem is logged and never blocks the caller.
+   * Returns whether an alert was started.
+   */
+  notifyTaskFailure(
+    taskId: number,
+    change: {
+      status: string;
+      previousStatus?: string | null;
+    },
+    context: TaskNotificationContext,
+  ): boolean {
+    if (change.status !== 'FAILED' || change.previousStatus === 'FAILED')
+      return false;
+    void this.dispatchTaskNotifications(taskId, 'FAILED', context).catch(
+      (error: unknown) => {
+        this.logger.error(
+          `Failed to dispatch FAILED notifications for task ${taskId}`,
+          error,
+        );
+      },
+    );
+    return true;
+  }
+
   async dispatchTaskNotifications(
     taskId: number,
     event: TaskNotificationEvent,

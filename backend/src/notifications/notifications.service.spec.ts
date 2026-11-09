@@ -651,3 +651,80 @@ describe('NotificationsService.updateChannel configuration round trip', () => {
     expect(savedConfig()).toEqual({ ...stored, botToken: 'new-token' });
   });
 });
+
+describe('NotificationsService.notifyTaskFailure', () => {
+  let service: NotificationsService;
+  let dispatch: jest.SpyInstance;
+
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        NotificationsService,
+        { provide: PrismaService, useValue: {} },
+        { provide: EncryptionService, useValue: {} },
+        { provide: EmailService, useValue: {} },
+        { provide: SettingsService, useValue: { getRawValue: jest.fn() } },
+        { provide: PushService, useValue: { sendViaChannelConfig: jest.fn() } },
+      ],
+    }).compile();
+    service = module.get(NotificationsService);
+    dispatch = jest
+      .spyOn(service, 'dispatchTaskNotifications')
+      .mockResolvedValue(undefined);
+  });
+
+  const context = { instanceDate: '2026-10-16', actor: 'Olivia' };
+
+  it.each([
+    ['a new occurrence', undefined],
+    ['a null previous status', null],
+    ['a running occurrence', 'RUNNING'],
+    ['a successful occurrence', 'SUCCESS'],
+  ])('notifies when %s becomes failed', (_label, previousStatus) => {
+    expect(
+      service.notifyTaskFailure(
+        7,
+        { status: 'FAILED', previousStatus },
+        context,
+      ),
+    ).toBe(true);
+    expect(dispatch).toHaveBeenCalledWith(7, 'FAILED', context);
+  });
+
+  it('stays silent when a failed occurrence is saved again', () => {
+    expect(
+      service.notifyTaskFailure(
+        7,
+        { status: 'FAILED', previousStatus: 'FAILED' },
+        context,
+      ),
+    ).toBe(false);
+    expect(dispatch).not.toHaveBeenCalled();
+  });
+
+  it.each(['SUCCESS', 'RUNNING', 'MISSING'])(
+    'stays silent for the status %s',
+    (status) => {
+      expect(
+        service.notifyTaskFailure(
+          7,
+          { status, previousStatus: 'FAILED' },
+          context,
+        ),
+      ).toBe(false);
+      expect(
+        service.notifyTaskFailure(7, { status, previousStatus: null }, context),
+      ).toBe(false);
+      expect(dispatch).not.toHaveBeenCalled();
+    },
+  );
+
+  it('never throws nor rejects when the delivery fails', async () => {
+    dispatch.mockRejectedValue(new Error('smtp down'));
+    expect(() =>
+      service.notifyTaskFailure(7, { status: 'FAILED' }, context),
+    ).not.toThrow();
+    await new Promise((resolve) => setImmediate(resolve));
+    expect(dispatch).toHaveBeenCalledTimes(1);
+  });
+});

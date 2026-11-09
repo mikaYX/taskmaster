@@ -1480,22 +1480,17 @@ export class TasksService {
         })
       : await writeStatus(this.prisma.client);
 
-    // Notify once per failure: saving the same failed occurrence again (retry, edited comment) stays silent.
-    if (dto.status === 'FAILED' && existing?.status !== 'FAILED') {
-      void this.notifications
-        ?.dispatchTaskNotifications(taskId, 'FAILED', {
-          instanceDate: dto.date,
-          comment: dto.comment,
-          actor: user?.fullname || user?.username,
-          correctiveAction: dto.correctiveAction?.title,
-        })
-        .catch((err: unknown) => {
-          this.logger.error(
-            `Failed to dispatch FAILED notifications for task ${taskId}`,
-            err,
-          );
-        });
-    }
+    // Once per failure: saving the same failed occurrence again stays silent.
+    this.notifications?.notifyTaskFailure(
+      taskId,
+      { status: dto.status, previousStatus: existing?.status },
+      {
+        instanceDate: dto.date,
+        comment: dto.comment,
+        actor: user?.fullname || user?.username,
+        correctiveAction: dto.correctiveAction?.title,
+      },
+    );
 
     this.logger.log(
       `Set status ${dto.status} for task ${taskId} on ${dto.date} by user ${userId} (role: ${userRole})`,

@@ -54,6 +54,11 @@ export class StatusService {
 
     const instanceDate = new Date(dto.instanceDate);
 
+    const previous = await this.prisma.client.status.findUnique({
+      where: { taskId_instanceDate: { taskId: dto.taskId, instanceDate } },
+      select: { status: true },
+    });
+
     const status = await this.prisma.client.status.upsert({
       where: {
         taskId_instanceDate: { taskId: dto.taskId, instanceDate },
@@ -75,20 +80,11 @@ export class StatusService {
       include: { task: { select: { description: true } } },
     });
 
-    if (dto.status === 'FAILED') {
-      this.notificationsService
-        .dispatchTaskNotifications(dto.taskId, 'FAILED', {
-          instanceDate: dto.instanceDate,
-          comment: dto.comment,
-          actor: username,
-        })
-        .catch((err) => {
-          this.logger.error(
-            `Failed to dispatch FAILED notifications for task ${dto.taskId}`,
-            err,
-          );
-        });
-    }
+    this.notificationsService.notifyTaskFailure(
+      dto.taskId,
+      { status: dto.status, previousStatus: previous?.status },
+      { instanceDate: dto.instanceDate, comment: dto.comment, actor: username },
+    );
 
     this.logger.log(
       `Upserted status for task ${dto.taskId} on ${dto.instanceDate}: ${dto.status}`,
