@@ -139,9 +139,12 @@ export class TodoReminderJob implements SchedulerJob {
     }
     if (handled.length === 0) return;
 
+    // Todos that reached at least one person's bell; the others stay unmarked
+    // and are retried on the next run instead of being silently lost.
+    const stored = new Set<number>();
     let emails = 0;
     for (const { person, items } of byRecipient.values()) {
-      await this.inbox.notify(
+      const inInbox = await this.inbox.notify(
         person.id,
         {
           type: 'todo.reminder',
@@ -157,6 +160,11 @@ export class TodoReminderJob implements SchedulerJob {
         },
         { push: person.todoReminderPush },
       );
+      if (!inInbox) {
+        this.logger.warn(`Reminder for user ${person.id} not stored`);
+        continue;
+      }
+      for (const item of items) stored.add(item.id);
       if (on(emailEnabled) && person.todoReminderEmail && person.email) {
         const sent = await this.email.send({
           to: person.email,
@@ -172,11 +180,19 @@ export class TodoReminderJob implements SchedulerJob {
       }
     }
 
-    // Everyone concerned found it in the bell: a failed email is not worth reminding twice.
-    await this.prisma.client.todo.updateMany({
-      where: { id: { in: handled } },
-      data: { reminderSentAt: now },
-    });
+    // A failed email is not worth reminding twice, but a failed bell is: only
+    // a todo whose recipients all missed the bell is left for the next run.
+    const withRecipients = new Set(
+      [...byRecipient.values()].flatMap(({ items }) => items.map((i) => i.id)),
+    );
+    const done = handled.filter(
+      (id) => stored.has(id) || !withRecipients.has(id),
+    );
+    if (done.length > 0)
+      await this.prisma.client.todo.updateMany({
+        where: { id: { in: done } },
+        data: { reminderSentAt: now },
+      });
     this.logger.log(
       `Todo reminders: ${handled.length} todos, ${byRecipient.size} people, ${emails} emails`,
     );

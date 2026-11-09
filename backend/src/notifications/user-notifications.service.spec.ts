@@ -58,9 +58,18 @@ describe('UserNotificationsService', () => {
     const { service, model } = build();
     model.create.mockRejectedValue(new Error('db down'));
 
+    await expect(service.notify(8, { type: 't', title: 'T' })).resolves.toBe(
+      false,
+    );
+  });
+
+  it('reports the notification as stored even when only the pop-up fails', async () => {
+    const { service, push } = build();
+    push.sendToUser.mockRejectedValue(new Error('push down'));
+
     await expect(
-      service.notify(8, { type: 't', title: 'T' }),
-    ).resolves.toBeUndefined();
+      service.notify(8, { type: 't', title: 'T' }, { push: true }),
+    ).resolves.toBe(true);
   });
 
   it('lists the latest ones with the unread count', async () => {

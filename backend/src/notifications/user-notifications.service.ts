@@ -31,12 +31,15 @@ export class UserNotificationsService {
   /**
    * Stores the notification and, when asked, also pops it up on the user's devices.
    * Never throws: a notification must not break the action that caused it.
+   * Resolves to whether the notification was stored (a failed pop-up alone
+   * does not count: the bell has it).
    */
   async notify(
     userId: number,
     notification: InAppNotification,
     options: { push?: boolean } = {},
-  ): Promise<void> {
+  ): Promise<boolean> {
+    let stored = false;
     try {
       await this.prisma.client.userNotification.create({
         data: {
@@ -47,6 +50,7 @@ export class UserNotificationsService {
           url: notification.url?.slice(0, 255) ?? null,
         },
       });
+      stored = true;
       if (options.push) {
         await this.push.sendToUser(userId, {
           title: notification.title,
@@ -60,6 +64,7 @@ export class UserNotificationsService {
         `Could not notify user ${userId}: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
+    return stored;
   }
 
   async list(userId: number) {

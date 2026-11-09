@@ -55,7 +55,7 @@ describe('TodoReminderJob', () => {
     process.env.FRONTEND_URL = 'https://taskmaster.example.com/';
     settingsOn();
     email.send.mockResolvedValue(true);
-    inbox.notify.mockResolvedValue(undefined);
+    inbox.notify.mockResolvedValue(true);
     todoModel.findMany.mockResolvedValue([base]);
   });
   afterEach(() => {
@@ -199,6 +199,34 @@ describe('TodoReminderJob', () => {
     await job.execute(dayBefore);
 
     expect(todoModel.findMany).not.toHaveBeenCalled();
+  });
+
+  it('leaves the todo unmarked when the inbox write fails, so it is retried', async () => {
+    inbox.notify.mockResolvedValue(false);
+
+    await job.execute(dayBefore);
+
+    expect(email.send).not.toHaveBeenCalled();
+    expect(todoModel.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('marks a shared todo once one person has it, so the others are not reminded twice', async () => {
+    todoModel.findMany.mockResolvedValue([
+      {
+        ...base,
+        scope: 'COLLECTIVE',
+        groupId: 4,
+        group: { members: [{ user: person(6) }, { user: person(7) }] },
+      },
+    ]);
+    inbox.notify.mockImplementation(async (userId: number) => userId === 7);
+
+    await job.execute(dayBefore);
+
+    expect(todoModel.updateMany).toHaveBeenCalledWith({
+      where: { id: { in: [1] } },
+      data: { reminderSentAt: dayBefore },
+    });
   });
 });
 
