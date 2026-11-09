@@ -13,6 +13,7 @@ describe('AuditScheduler.auditMissedInstances queries', () => {
   });
 
   const client = {
+    notification: { findMany: jest.fn(), create: jest.fn() },
     task: { findMany: jest.fn() },
     site: { findMany: jest.fn() },
     status: {
@@ -29,11 +30,14 @@ describe('AuditScheduler.auditMissedInstances queries', () => {
     instances as never,
     {} as never,
     settings as never,
-    {} as never,
+    {
+      dispatchTaskNotifications: jest.fn().mockResolvedValue(undefined),
+    } as never,
   );
 
   beforeEach(() => {
-    jest.resetAllMocks();
+    jest.clearAllMocks();
+    client.notification.findMany.mockResolvedValue([]);
     settings.getRawValue.mockResolvedValue(undefined);
     client.status.create.mockResolvedValue({});
     client.site.findMany.mockResolvedValue([]);

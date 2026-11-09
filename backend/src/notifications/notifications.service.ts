@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  ForbiddenException,
   Logger,
   NotFoundException,
 } from '@nestjs/common';
@@ -25,6 +26,9 @@ import {
 
 /** What the caller knows about the occurrence that triggered the notification. */
 export interface TaskNotificationContext {
+  /** Wait for delivery and propagate failures to the scheduler. */
+  awaitDelivery?: boolean;
+  deliveryKey?: string;
   /** Occurrence date, YYYY-MM-DD. */
   instanceDate?: string;
   /** Free-text reason given when the task was marked as failed. */
@@ -205,8 +209,27 @@ export class NotificationsService {
     if (dto.enabled !== undefined) updateData.enabled = dto.enabled;
 
     if (dto.config) {
-      const configString = JSON.stringify(dto.config);
-      updateData.config = this.encryption.encrypt(configString);
+      // Reads only expose presence flags (booleans). Merge instead of replace so
+      // a round trip (read, rename, save) never overwrites a secret with a flag,
+      // and omitted fields keep their stored value.
+      let stored: Record<string, unknown> = {};
+      if (existing.config) {
+        try {
+          stored = JSON.parse(this.encryption.decrypt(existing.config));
+        } catch {
+          stored = {};
+        }
+      }
+      const merged: Record<string, unknown> = { ...stored };
+      for (const [key, value] of Object.entries(
+        dto.config as Record<string, unknown>,
+      )) {
+        const isPresenceFlag =
+          typeof value === 'boolean' && typeof stored[key] !== 'boolean';
+        if (isPresenceFlag) continue;
+        merged[key] = value;
+      }
+      updateData.config = this.encryption.encrypt(JSON.stringify(merged));
     }
 
     const channel = await this.prisma.client.notificationChannel.update({
@@ -342,7 +365,22 @@ export class NotificationsService {
   // Task Notifications
   // ==========================================
 
+  private async assertTaskSiteAccess(taskId: number): Promise<void> {
+    const task = await this.prisma.client.task.findUnique({
+      where: { id: taskId },
+      select: { siteId: true },
+    });
+    if (!task) throw new NotFoundException('Task not found');
+    if (
+      !this.prisma.isSuperAdmin() &&
+      !this.prisma.getUserSiteIds().includes(task.siteId)
+    ) {
+      throw new ForbiddenException('Task site access denied');
+    }
+  }
+
   async getTaskNotifications(taskId: number) {
+    await this.assertTaskSiteAccess(taskId);
     const notifications = await this.prisma.client.taskNotification.findMany({
       where: { taskId },
     });
@@ -350,14 +388,7 @@ export class NotificationsService {
   }
 
   async saveTaskNotifications(taskId: number, dto: SaveTaskNotificationsDto) {
-    // Verifier que la tâche existe
-    const task = await this.prisma.client.task.findUnique({
-      where: { id: taskId },
-    });
-
-    if (!task) {
-      throw new NotFoundException('Task not found');
-    }
+    await this.assertTaskSiteAccess(taskId);
 
     for (const n of dto.notifications ?? []) {
       const offset = n.reminderOffsetMinutes;
@@ -491,16 +522,32 @@ export class NotificationsService {
         if (notif.channel.config) {
           try {
             config = JSON.parse(this.encryption.decrypt(notif.channel.config));
-          } catch {
+          } catch (error) {
             this.logger.error(
               `Failed to decrypt config for channel ${notif.channelId}`,
             );
-            continue;
+            throw error;
           }
         }
 
-        // Dispatch to specific provider without blocking
-        this.sendToChannel(
+        const kind = context?.deliveryKey
+          ? `sent:${context.deliveryKey}:${notif.id}`
+          : undefined;
+        if (
+          kind &&
+          (await this.prisma.client.notification.findFirst({
+            where: {
+              taskId,
+              kind,
+              ...(context?.deliveryKey === 'hourly'
+                ? { sentAt: { gte: new Date(Date.now() - 86400000) } }
+                : {}),
+            },
+          }))
+        )
+          continue;
+
+        await this.sendToChannel(
           notif.channel.type,
           config,
           notif,
@@ -510,18 +557,18 @@ export class NotificationsService {
           subject,
           details,
           event,
-        ).catch((err) => {
-          this.logger.error(
-            `Error sending ${notif.channel.type} notification for task ${taskId}:`,
-            err,
-          );
-        });
+        );
+        if (kind)
+          await this.prisma.client.notification.create({
+            data: { taskId, kind, sentAt: new Date() },
+          });
       }
     } catch (error) {
       this.logger.error(
         `Failed to dispatch notifications for task ${taskId}:`,
         error,
       );
+      if (context?.awaitDelivery || event === 'OVERDUE') throw error;
     }
   }
 
@@ -904,7 +951,7 @@ export class NotificationsService {
       text: details.map((line) => `${line.label} : ${line.value}`).join('\n'),
     });
     if (!sent) {
-      this.logger.warn(
+      throw new Error(
         `Email "${subject}" was not sent (email disabled, provider error or circuit open)`,
       );
     }
@@ -930,7 +977,13 @@ export class NotificationsService {
       id: channel.id,
       type: channel.type,
       name: channel.name,
-      config: decryptedConfig,
+      // Configuration values are write-only, including future provider fields.
+      config: Object.fromEntries(
+        Object.entries(decryptedConfig).map(([key, value]) => [
+          key,
+          value !== null && value !== undefined && value !== '',
+        ]),
+      ),
       enabled: channel.enabled,
       createdAt: channel.createdAt,
       updatedAt: channel.updatedAt,

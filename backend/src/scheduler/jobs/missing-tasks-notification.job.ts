@@ -1,3 +1,8 @@
+import { endOfDay, format, startOfDay } from 'date-fns';
+import { InstanceService } from '../../tasks/instance.service';
+import { SettingsService } from '../../settings/settings.service';
+import { loadSiteCountryResolver } from '../../sites/site-country';
+import { loadFromCompletionContext } from '../from-completion-context';
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import type { SchedulerJob, JobExecutionResult } from '../scheduler.interface';
@@ -16,6 +21,8 @@ export class MissingTasksNotificationJob implements SchedulerJob {
     private readonly prisma: PrismaService,
     private readonly notificationsService: NotificationsService,
     private readonly jobLock: JobLockService,
+    private readonly instanceService: InstanceService,
+    private readonly settings: SettingsService,
   ) {}
 
   @Cron('0 * * * *', { name: 'email-alerts' })
@@ -36,19 +43,52 @@ export class MissingTasksNotificationJob implements SchedulerJob {
         },
         include: {
           task: {
-            select: { dueOffset: true },
+            include: { overrides: true },
           },
         },
       });
 
       const overdueTaskIds = new Set<number>();
 
+      const [country, fcEnabled, start, end] = await Promise.all([
+        this.settings.getRawValue<string>('app.country'),
+        this.settings.getRawValue<boolean>('FROM_COMPLETION_ENABLED'),
+        this.settings.getRawValue<string>('SCHEDULE_DEFAULT_START_TIME'),
+        this.settings.getRawValue<string>('SCHEDULE_DEFAULT_END_TIME'),
+      ]);
+      const countryForSite = await loadSiteCountryResolver(
+        this.prisma.client,
+        country || 'FR',
+      );
       for (const status of runningStatuses) {
-        const offsetMs = (status.task.dueOffset || 0) * 60000;
-        const deadline = new Date(status.instanceDate.getTime() + offsetMs);
-
-        if (deadline < now) {
-          overdueTaskIds.add(status.taskId);
+        const rangeStart = startOfDay(status.instanceDate);
+        const rangeEnd = endOfDay(status.instanceDate);
+        const task = status.task;
+        const context =
+          fcEnabled && task.recurrenceMode === 'FROM_COMPLETION' && task.rrule
+            ? await loadFromCompletionContext(
+                this.prisma.client,
+                status.taskId,
+                rangeStart,
+                rangeEnd,
+              )
+            : undefined;
+        for (const instance of this.instanceService.computeInstances(
+          task,
+          rangeStart,
+          rangeEnd,
+          countryForSite(task.siteId),
+          context,
+          { start: start || '08:00', end: end || '18:00' },
+        )) {
+          if (
+            format(instance.date, 'yyyy-MM-dd') ===
+              format(status.instanceDate, 'yyyy-MM-dd') &&
+            instance.periodEnd &&
+            instance.periodEnd < now
+          ) {
+            overdueTaskIds.add(status.taskId);
+          }
         }
       }
 
@@ -73,22 +113,16 @@ export class MissingTasksNotificationJob implements SchedulerJob {
           continue; // Skip if already notified in window
         }
 
-        await this.prisma.client.notification.create({
-          data: {
-            taskId,
-            kind: 'OVERDUE',
-            sentAt: now,
+        await this.notificationsService.dispatchTaskNotifications(
+          taskId,
+          'OVERDUE',
+          {
+            deliveryKey: 'hourly',
           },
+        );
+        await this.prisma.client.notification.create({
+          data: { taskId, kind: 'OVERDUE', sentAt: new Date() },
         });
-
-        this.notificationsService
-          .dispatchTaskNotifications(taskId, 'OVERDUE')
-          .catch((err: unknown) => {
-            this.logger.error(
-              `Failed to dispatch OVERDUE notification for task ${taskId}`,
-              err,
-            );
-          });
       }
 
       if (overdueTaskIds.size > 0) {

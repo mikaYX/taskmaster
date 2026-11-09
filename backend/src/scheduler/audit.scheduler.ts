@@ -61,7 +61,7 @@ export class AuditScheduler {
         taskId: { in: tasks.map((task) => task.id) },
         instanceDate: { gte: auditStart, lte: auditEnd },
       },
-      select: { taskId: true, instanceDate: true },
+      select: { taskId: true, instanceDate: true, status: true },
     });
     const statusDatesByTask = new Map<number, Set<string>>();
     for (const s of existingStatuses) {
@@ -70,6 +70,19 @@ export class AuditScheduler {
       statusDatesByTask.set(s.taskId, dates);
     }
 
+    const receipts = await this.prisma.client.notification.findMany({
+      where: {
+        taskId: { in: tasks.map((task) => task.id) },
+        kind: { startsWith: 'audit:' },
+      },
+      select: { taskId: true, kind: true },
+    });
+    const delivered = new Set(receipts.map((r) => `${r.taskId}:${r.kind}`));
+    const missing = new Set(
+      existingStatuses
+        .filter((s) => s.status === 'MISSING')
+        .map((s) => `${s.taskId}:${format(s.instanceDate, 'yyyy-MM-dd')}`),
+    );
     let missingCount = 0;
 
     // Optimize: Fetch settings once
@@ -116,9 +129,9 @@ export class AuditScheduler {
         const periodEnd =
           v.periodEnd || new Date(new Date(v.date).setHours(23, 59, 59, 999));
 
-        if (!statusDates.has(dateKey) && now > periodEnd) {
-          // Persist as MISSING
-
+        if (now <= periodEnd) continue;
+        const key = `${task.id}:${dateKey}`;
+        if (!statusDates.has(dateKey)) {
           try {
             await this.prisma.client.status.create({
               data: {
@@ -129,26 +142,28 @@ export class AuditScheduler {
               },
             });
             missingCount++;
-            this.notificationsService
-              .dispatchTaskNotifications(task.id, 'OVERDUE', {
-                instanceDate: dateKey,
-                deadline: periodEnd,
-              })
-              .catch((err: unknown) => {
-                this.logger.error(
-                  `Failed to dispatch OVERDUE notification for task ${task.id}`,
-                  err,
-                );
-              });
+            statusDates.add(dateKey);
+            missing.add(key);
           } catch (error: any) {
-            // Ignore unique constraint violation (P2002) - race condition or already exists
-            if (error.code !== 'P2002') {
-              this.logger.error(
-                `Failed to create missing status for task ${task.id} on ${dateKey}`,
-                error,
-              );
-            }
+            if (error.code === 'P2002') continue;
+            throw error;
           }
+        }
+        const kind = `audit:${dateKey}`;
+        if (missing.has(key) && !delivered.has(`${task.id}:${kind}`)) {
+          await this.notificationsService.dispatchTaskNotifications(
+            task.id,
+            'OVERDUE',
+            {
+              instanceDate: dateKey,
+              deadline: periodEnd,
+              deliveryKey: kind,
+            },
+          );
+          await this.prisma.client.notification.create({
+            data: { taskId: task.id, kind, sentAt: new Date() },
+          });
+          delivered.add(`${task.id}:${kind}`);
         }
       }
     }

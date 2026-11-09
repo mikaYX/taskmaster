@@ -462,6 +462,7 @@ describe('NotificationsService.saveTaskNotifications', () => {
     },
   };
   const prisma = {
+    isSuperAdmin: () => true,
     client: {
       task: { findUnique: jest.fn() },
       $transaction: jest.fn(),
@@ -507,5 +508,146 @@ describe('NotificationsService.saveTaskNotifications', () => {
     const { data } = tx.taskNotification.createMany.mock.calls[0][0];
     expect(data[0].reminderOffsetMinutes).toBe(90);
     expect(data[1].reminderOffsetMinutes).toBe(60);
+  });
+});
+
+describe('NotificationsService task site authorization', () => {
+  const prisma = {
+    isSuperAdmin: jest.fn(),
+    getUserSiteIds: jest.fn(),
+    client: {
+      task: { findUnique: jest.fn() },
+      taskNotification: { findMany: jest.fn().mockResolvedValue([]) },
+      $transaction: jest.fn().mockResolvedValue([]),
+    },
+  };
+  const service = new NotificationsService(
+    prisma as never,
+    {} as never,
+    {} as never,
+    {} as never,
+    {} as never,
+  );
+  beforeEach(() => {
+    jest.clearAllMocks();
+    prisma.client.taskNotification.findMany.mockResolvedValue([]);
+    prisma.client.$transaction.mockResolvedValue([]);
+    prisma.isSuperAdmin.mockReturnValue(false);
+    prisma.getUserSiteIds.mockReturnValue([1]);
+    prisma.client.task.findUnique.mockResolvedValue({ id: 7, siteId: 2 });
+  });
+  const operations = [
+    () => service.getTaskNotifications(7),
+    () => service.saveTaskNotifications(7, { notifications: [] }),
+  ];
+  it.each(operations)('rejects foreign-site access with 403', async (run) => {
+    await expect(run()).rejects.toMatchObject({ status: 403 });
+    expect(prisma.client.taskNotification.findMany).not.toHaveBeenCalled();
+    expect(prisma.client.$transaction).not.toHaveBeenCalled();
+  });
+  it.each(operations)('rejects a manager with no sites', async (run) => {
+    prisma.getUserSiteIds.mockReturnValue([]);
+    await expect(run()).rejects.toMatchObject({ status: 403 });
+  });
+  it.each(operations)('allows an assigned site', async (run) => {
+    prisma.getUserSiteIds.mockReturnValue([2]);
+    await expect(run()).resolves.toEqual([]);
+  });
+  it.each(operations)('allows super administrators', async (run) => {
+    prisma.isSuperAdmin.mockReturnValue(true);
+    await expect(run()).resolves.toEqual([]);
+  });
+});
+
+describe('NotificationsService channel secret responses', () => {
+  const secret = {
+    botToken: 'telegram-secret',
+    webhookUrl: 'https://secret.example/token',
+    headers: { Authorization: 'Bearer secret' },
+  };
+  const channel = {
+    id: 1,
+    type: 'TELEGRAM',
+    name: 'Team',
+    config: 'encrypted',
+  };
+  const repository = Object.fromEntries(
+    ['findUnique', 'create', 'update'].map((method) => [
+      method,
+      jest.fn().mockResolvedValue(channel),
+    ]),
+  );
+  repository.findMany = jest.fn().mockResolvedValue([channel]);
+  const service = new NotificationsService(
+    { client: { notificationChannel: repository } } as never,
+    {
+      decrypt: () => JSON.stringify(secret),
+      encrypt: () => 'encrypted',
+    } as never,
+    {} as never,
+    {} as never,
+    {} as never,
+  );
+  beforeEach(() => {
+    for (const method of ['findUnique', 'create', 'update'])
+      repository[method].mockResolvedValue(channel);
+    repository.findMany.mockResolvedValue([channel]);
+  });
+  it.each([
+    () => service.getChannels(),
+    () => service.getChannelById(1),
+    () =>
+      service.createChannel({ name: 'Team', type: 'TELEGRAM', config: secret }),
+    () => service.updateChannel(1, { name: 'New name' }),
+  ])('never returns configuration secrets', async (run) => {
+    const result = await run();
+    const dto = Array.isArray(result) ? result[0] : result;
+    expect(dto.config).toEqual({
+      botToken: true,
+      webhookUrl: true,
+      headers: true,
+    });
+    expect(JSON.stringify(result)).not.toContain('secret');
+  });
+});
+
+describe('NotificationsService.updateChannel configuration round trip', () => {
+  const stored = {
+    botToken: 'real-token',
+    chatId: '42',
+    webhookUrl: 'https://hook.example/real',
+  };
+  const existing = { id: 1, type: 'TELEGRAM', name: 'Team', config: 'enc' };
+  const update = jest.fn();
+  const findUnique = jest.fn();
+  const service = new NotificationsService(
+    { client: { notificationChannel: { findUnique, update } } } as never,
+    {
+      decrypt: () => JSON.stringify(stored),
+      encrypt: (value: string) => value,
+    } as never,
+    {} as never,
+    {} as never,
+    {} as never,
+  );
+  beforeEach(() => {
+    findUnique.mockResolvedValue(existing);
+    update.mockReset();
+    update.mockResolvedValue(existing);
+  });
+  const savedConfig = () =>
+    JSON.parse(update.mock.calls[0][0].data.config as string);
+
+  it('keeps stored secrets when the client sends back the presence flags', async () => {
+    const read = await service.getChannelById(1);
+    await service.updateChannel(1, { name: 'Renamed', config: read.config });
+    expect(savedConfig()).toEqual(stored);
+  });
+
+  it('replaces a value that is explicitly changed and keeps the others', async () => {
+    await service.updateChannel(1, {
+      config: { botToken: 'new-token', chatId: true },
+    });
+    expect(savedConfig()).toEqual({ ...stored, botToken: 'new-token' });
   });
 });
