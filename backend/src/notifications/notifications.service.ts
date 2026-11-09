@@ -807,12 +807,21 @@ export class NotificationsService {
     let body;
     if (config.payloadTemplate) {
       try {
-        let strPayload = JSON.stringify(config.payloadTemplate);
-        strPayload = strPayload
-          .replace(/{{message}}/g, text)
-          .replace(/{{taskName}}/g, taskName)
-          .replace(/{{eventLabel}}/g, eventLabel);
-        body = strPayload;
+        const values: Record<string, string> = {
+          message: text,
+          taskName,
+          eventLabel,
+        };
+        // A replacer transforms string values before JSON escaping; inserted
+        // placeholders and replacement patterns are never interpreted again.
+        body = JSON.stringify(config.payloadTemplate, (_key, value) =>
+          typeof value === 'string'
+            ? value.replace(
+                /{{(message|taskName|eventLabel)}}/g,
+                (_match, name: string) => values[name],
+              )
+            : value,
+        );
       } catch {
         body = JSON.stringify({ message: text });
       }
