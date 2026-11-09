@@ -13,11 +13,7 @@ import { ConfigService } from '@nestjs/config';
 import { SettingsService } from '../settings/settings.service';
 import { formatInTimeZone } from 'date-fns-tz';
 import { subDays } from 'date-fns';
-import {
-  InstanceService,
-  VirtualInstance,
-  FromCompletionContext,
-} from './instance.service';
+import { InstanceService, VirtualInstance } from './instance.service';
 import {
   CreateTaskDto,
   UpdateTaskDto,
@@ -36,7 +32,7 @@ import { AuditAction, AuditCategory } from '../audit/audit.constants';
 import { ProcedureStorageService } from './procedure-storage.service';
 import { BeneficiaryResolverService } from '../modules/delegations/beneficiary-resolver.service';
 import { NotificationsService } from '../notifications/notifications.service';
-import { loadSiteCountryResolver } from '../sites/site-country';
+import { loadPlanningContext } from './planning-context';
 
 /**
  * Tasks Service.
@@ -129,23 +125,16 @@ export class TasksService {
       const rangeStart = dto.startDate ? new Date(dto.startDate) : now;
       // Use an arbitrarily long enough period to get 10 instances (e.g. 5 years)
       const rangeEnd = addMonths(rangeStart, 60);
-      const [defaultCountry, wStart, wEnd] = await Promise.all([
-        this.settings.getRawValue<string>('app.country'),
-        this.settings.getRawValue<string>('SCHEDULE_DEFAULT_START_TIME'),
-        this.settings.getRawValue<string>('SCHEDULE_DEFAULT_END_TIME'),
-      ]);
-      const countryForSite = await loadSiteCountryResolver(
+      const { countryForSite, windowDefaults } = await loadPlanningContext(
         this.prisma.client,
-        defaultCountry || 'FR',
+        this.settings,
       );
-      const country = countryForSite(this.prisma.getCurrentSiteId());
-      const windowDefaults = { start: wStart || '08:00', end: wEnd || '18:00' };
 
       const iterator = this.instanceService.computeInstances(
         task,
         rangeStart,
         rangeEnd,
-        country,
+        countryForSite(this.prisma.getCurrentSiteId()),
         undefined,
         windowDefaults,
       );
@@ -191,17 +180,8 @@ export class TasksService {
       category?: string;
     },
   ): Promise<{ items: import('./dto').BoardItem[]; total: number }> {
-    const [defaultCountry, fcEnabled, wStart, wEnd] = await Promise.all([
-      this.settings.getRawValue<string>('app.country'),
-      this.settings.getRawValue<boolean>('FROM_COMPLETION_ENABLED'),
-      this.settings.getRawValue<string>('SCHEDULE_DEFAULT_START_TIME'),
-      this.settings.getRawValue<string>('SCHEDULE_DEFAULT_END_TIME'),
-    ]);
-    const countryForSite = await loadSiteCountryResolver(
-      this.prisma.client,
-      defaultCountry || 'FR',
-    );
-    const windowDefaults = { start: wStart || '08:00', end: wEnd || '18:00' };
+    const { countryForSite, windowDefaults, fromCompletion } =
+      await loadPlanningContext(this.prisma.client, this.settings);
 
     // === Security & Logic Hardening ===
     // 1. Clamp Future: End date cannot be in the future
@@ -369,36 +349,7 @@ export class TasksService {
     let boardItems: import('./dto').BoardItem[] = [];
 
     for (const task of tasks) {
-      let fromCompletionCtx: FromCompletionContext | undefined;
-
-      // Build FROM_COMPLETION context only when feature flag is ON
-      if (
-        fcEnabled &&
-        task.recurrenceMode === 'FROM_COMPLETION' &&
-        task.rrule
-      ) {
-        const lastTerminal = await this.prisma.client.status.findFirst({
-          where: {
-            taskId: task.id,
-            status: { in: ['SUCCESS', 'FAILED'] },
-          },
-          orderBy: { updatedAt: 'desc' },
-        });
-
-        const hasRunning =
-          (await this.prisma.client.status.count({
-            where: {
-              taskId: task.id,
-              status: 'RUNNING',
-              instanceDate: { gte: startDate, lte: endDate },
-            },
-          })) > 0;
-
-        fromCompletionCtx = {
-          lastTerminalDate: lastTerminal?.updatedAt ?? null,
-          hasRunningInstance: hasRunning,
-        };
-      }
+      const fromCompletionCtx = await fromCompletion(task, startDate, endDate);
 
       // On remonte de 31 jours pour capturer les tâches en cours à cheval sur la fenêtre
       const generationStart = new Date(
@@ -406,7 +357,7 @@ export class TasksService {
       );
 
       const instances = this.instanceService.computeInstances(
-        task as unknown as Parameters<InstanceService['computeInstances']>[0],
+        task,
         generationStart,
         endDate,
         countryForSite(task.siteId),
@@ -1310,21 +1261,14 @@ export class TasksService {
     }
 
     if (task) {
-      const countryForSite = await loadSiteCountryResolver(
+      const { countryForSite, windowDefaults } = await loadPlanningContext(
         this.prisma.client,
-        (await this.settings.getRawValue<string>('app.country')) || 'FR',
+        this.settings,
       );
-      const wStart = await this.settings.getRawValue<string>(
-        'SCHEDULE_DEFAULT_START_TIME',
-      );
-      const wEnd = await this.settings.getRawValue<string>(
-        'SCHEDULE_DEFAULT_END_TIME',
-      );
-      const windowDefaults = { start: wStart || '08:00', end: wEnd || '18:00' };
 
       const instances = Array.from(
         this.instanceService.computeInstances(
-          task as unknown as Prisma.TaskGetPayload<object>,
+          task,
           date,
           date,
           countryForSite(task.siteId),

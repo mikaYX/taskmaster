@@ -4,9 +4,18 @@ import { MissingTasksNotificationJob } from './missing-tasks-notification.job';
 
 describe('MissingTasksNotificationJob', () => {
   const client = {
+    $transaction: jest.fn(),
+    $executeRaw: jest.fn(),
     status: { findMany: jest.fn() },
     site: { findMany: jest.fn().mockResolvedValue([]) },
-    notification: { findMany: jest.fn(), create: jest.fn() },
+    notification: {
+      findMany: jest.fn(),
+      findFirst: jest.fn(),
+      create: jest.fn(),
+      delete: jest.fn(),
+      updateMany: jest.fn(),
+      deleteMany: jest.fn(),
+    },
   };
   const notifications = { dispatchTaskNotifications: jest.fn() };
   const jobLock = {
@@ -34,9 +43,13 @@ describe('MissingTasksNotificationJob', () => {
   beforeEach(() => {
     jest.resetAllMocks();
     jest.useFakeTimers().setSystemTime(new Date('2026-01-06T20:00:00Z'));
+    client.$transaction.mockImplementation((run) => run(client));
+    client.notification.updateMany.mockResolvedValue({ count: 1 });
+    client.notification.deleteMany.mockResolvedValue({ count: 1 });
     client.site.findMany.mockResolvedValue([]);
     client.notification.findMany.mockResolvedValue([]);
     client.notification.create.mockResolvedValue({});
+    client.notification.delete.mockResolvedValue({});
     notifications.dispatchTaskNotifications.mockResolvedValue(undefined);
   });
 
@@ -98,10 +111,12 @@ describe('MissingTasksNotificationJob', () => {
       new Error('offline'),
     );
     await expect(job.execute()).rejects.toThrow('offline');
-    expect(client.notification.create).not.toHaveBeenCalled();
+    expect(client.notification.deleteMany).toHaveBeenCalledWith({
+      where: { taskId: 1, kind: 'pending:OVERDUE', sentAt: expect.any(Date) },
+    });
     jest.advanceTimersByTime(3600000);
     await job.execute();
-    expect(client.notification.create).toHaveBeenCalledTimes(1);
+    expect(client.notification.create).toHaveBeenCalledTimes(2);
     client.notification.findMany.mockResolvedValue([{ taskId: 1 }]);
     jest.advanceTimersByTime(3600000);
     await job.execute();

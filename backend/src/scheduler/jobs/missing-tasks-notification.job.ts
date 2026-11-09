@@ -1,10 +1,10 @@
 import { endOfDay, format, startOfDay } from 'date-fns';
 import { InstanceService } from '../../tasks/instance.service';
 import { SettingsService } from '../../settings/settings.service';
-import { loadSiteCountryResolver } from '../../sites/site-country';
-import { loadFromCompletionContext } from '../from-completion-context';
+import { loadPlanningContext } from '../../tasks/planning-context';
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
+import { UniqueDelivery } from '../../notifications/unique-delivery';
 import type { SchedulerJob, JobExecutionResult } from '../scheduler.interface';
 import { PrismaService } from '../../prisma';
 import { NotificationsService } from '../../notifications/notifications.service';
@@ -31,7 +31,6 @@ export class MissingTasksNotificationJob implements SchedulerJob {
       this.logger.log('Checking for overdue task notifications...');
 
       const now = new Date();
-      const deduplicationWindow = new Date(now.getTime() - 24 * 60 * 60 * 1000); // 24h
 
       // Same 90-day look-back as the MISSING audit; archived tasks never alert.
       const lookBack = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
@@ -50,36 +49,20 @@ export class MissingTasksNotificationJob implements SchedulerJob {
 
       const overdueTaskIds = new Set<number>();
 
-      const [country, fcEnabled, start, end] = await Promise.all([
-        this.settings.getRawValue<string>('app.country'),
-        this.settings.getRawValue<boolean>('FROM_COMPLETION_ENABLED'),
-        this.settings.getRawValue<string>('SCHEDULE_DEFAULT_START_TIME'),
-        this.settings.getRawValue<string>('SCHEDULE_DEFAULT_END_TIME'),
-      ]);
-      const countryForSite = await loadSiteCountryResolver(
-        this.prisma.client,
-        country || 'FR',
-      );
+      const { countryForSite, windowDefaults, fromCompletion } =
+        await loadPlanningContext(this.prisma.client, this.settings);
       for (const status of runningStatuses) {
         const rangeStart = startOfDay(status.instanceDate);
         const rangeEnd = endOfDay(status.instanceDate);
         const task = status.task;
-        const context =
-          fcEnabled && task.recurrenceMode === 'FROM_COMPLETION' && task.rrule
-            ? await loadFromCompletionContext(
-                this.prisma.client,
-                status.taskId,
-                rangeStart,
-                rangeEnd,
-              )
-            : undefined;
+        const context = await fromCompletion(task, rangeStart, rangeEnd);
         for (const instance of this.instanceService.computeInstances(
           task,
           rangeStart,
           rangeEnd,
           countryForSite(task.siteId),
           context,
-          { start: start || '08:00', end: end || '18:00' },
+          windowDefaults,
         )) {
           if (
             format(instance.date, 'yyyy-MM-dd') ===
@@ -92,37 +75,25 @@ export class MissingTasksNotificationJob implements SchedulerJob {
         }
       }
 
-      // Deduplication Check: one query for every overdue task
-      const recentlyNotified = new Set(
-        overdueTaskIds.size === 0
-          ? []
-          : (
-              await this.prisma.client.notification.findMany({
-                where: {
-                  taskId: { in: [...overdueTaskIds] },
-                  kind: 'OVERDUE',
-                  sentAt: { gte: deduplicationWindow },
-                },
-                select: { taskId: true },
-              })
-            ).map((n) => n.taskId),
-      );
-
+      const delivery = new UniqueDelivery(this.prisma.client);
+      const recentlyNotified = await delivery.recentOverdue([
+        ...overdueTaskIds,
+      ]);
       for (const taskId of overdueTaskIds) {
-        if (recentlyNotified.has(taskId)) {
-          continue; // Skip if already notified in window
-        }
-
-        await this.notificationsService.dispatchTaskNotifications(
+        if (recentlyNotified.has(taskId)) continue;
+        await delivery.run(
           taskId,
-          'OVERDUE',
-          {
-            deliveryKey: 'hourly',
-          },
+          { type: 'overdue' },
+          () =>
+            this.notificationsService.dispatchTaskNotifications(
+              taskId,
+              'OVERDUE',
+              {
+                deliveryKey: 'hourly',
+              },
+            ),
+          true,
         );
-        await this.prisma.client.notification.create({
-          data: { taskId, kind: 'OVERDUE', sentAt: new Date() },
-        });
       }
 
       if (overdueTaskIds.size > 0) {

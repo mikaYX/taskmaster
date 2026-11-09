@@ -1,13 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import { UniqueDelivery } from '../notifications/unique-delivery';
 import { endOfDay, format, startOfDay, subDays } from 'date-fns';
 import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma';
 import { SettingsService } from '../settings/settings.service';
 import { InstanceService } from '../tasks/instance.service';
-import { loadSiteCountryResolver } from '../sites/site-country';
-import { loadFromCompletionContext } from './from-completion-context';
+import { loadPlanningContext } from '../tasks/planning-context';
 
 @Injectable()
 export class AuditScheduler {
@@ -70,14 +70,10 @@ export class AuditScheduler {
       statusDatesByTask.set(s.taskId, dates);
     }
 
-    const receipts = await this.prisma.client.notification.findMany({
-      where: {
-        taskId: { in: tasks.map((task) => task.id) },
-        kind: { startsWith: 'audit:' },
-      },
-      select: { taskId: true, kind: true },
-    });
-    const delivered = new Set(receipts.map((r) => `${r.taskId}:${r.kind}`));
+    const delivery = new UniqueDelivery(this.prisma.client);
+    const delivered = await delivery.auditReceipts(
+      tasks.map((task) => task.id),
+    );
     const missing = new Set(
       existingStatuses
         .filter((s) => s.status === 'MISSING')
@@ -86,31 +82,15 @@ export class AuditScheduler {
     let missingCount = 0;
 
     // Optimize: Fetch settings once
-    const [defaultCountry, fcEnabled, wStart, wEnd] = await Promise.all([
-      this.settings.getRawValue<string>('app.country'),
-      this.settings.getRawValue<boolean>('FROM_COMPLETION_ENABLED'),
-      this.settings.getRawValue<string>('SCHEDULE_DEFAULT_START_TIME'),
-      this.settings.getRawValue<string>('SCHEDULE_DEFAULT_END_TIME'),
-    ]);
-    const countryForSite = await loadSiteCountryResolver(
-      this.prisma.client,
-      defaultCountry || 'FR',
-    );
-    const windowDefaults = { start: wStart || '08:00', end: wEnd || '18:00' };
+    const { countryForSite, windowDefaults, fromCompletion } =
+      await loadPlanningContext(this.prisma.client, this.settings);
 
     for (const task of tasks) {
-      const t = task as any;
-      let fromCompletionCtx:
-        import('../tasks/instance.service').FromCompletionContext | undefined;
-
-      if (fcEnabled && t.recurrenceMode === 'FROM_COMPLETION' && t.rrule) {
-        fromCompletionCtx = await loadFromCompletionContext(
-          this.prisma.client,
-          task.id,
-          auditStart,
-          auditEnd,
-        );
-      }
+      const fromCompletionCtx = await fromCompletion(
+        task,
+        auditStart,
+        auditEnd,
+      );
 
       const virtuals = this.instanceService.computeInstances(
         task,
@@ -144,26 +124,28 @@ export class AuditScheduler {
             missingCount++;
             statusDates.add(dateKey);
             missing.add(key);
-          } catch (error: any) {
-            if (error.code === 'P2002') continue;
+          } catch (error: unknown) {
+            if ((error as { code?: string }).code === 'P2002') continue;
             throw error;
           }
         }
-        const kind = `audit:${dateKey}`;
-        if (missing.has(key) && !delivered.has(`${task.id}:${kind}`)) {
-          await this.notificationsService.dispatchTaskNotifications(
+        if (missing.has(key) && !delivered.has(key)) {
+          await delivery.run(
             task.id,
-            'OVERDUE',
-            {
-              instanceDate: dateKey,
-              deadline: periodEnd,
-              deliveryKey: kind,
-            },
+            { type: 'audit', date: dateKey },
+            () =>
+              this.notificationsService.dispatchTaskNotifications(
+                task.id,
+                'OVERDUE',
+                {
+                  instanceDate: dateKey,
+                  deadline: periodEnd,
+                  deliveryKey: UniqueDelivery.auditChannelKey(dateKey),
+                },
+              ),
+            true,
           );
-          await this.prisma.client.notification.create({
-            data: { taskId: task.id, kind, sentAt: new Date() },
-          });
-          delivered.add(`${task.id}:${kind}`);
+          delivered.add(key);
         }
       }
     }

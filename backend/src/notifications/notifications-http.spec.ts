@@ -20,16 +20,14 @@ describe('notification HTTP failures', () => {
     headers: { Authorization: 'secret' },
   };
   const send = (channel: string) =>
-    service['sendToChannel'](
-      channel,
+    service['sendToChannel']({
+      scope: 'broadcast',
+      type: channel,
       config,
-      {},
-      'message',
-      'task',
-      'event',
-      'subject',
-      [],
-    );
+      message: 'message',
+      subject: 'subject',
+      details: [],
+    });
   const fetchMock = safeFetch as jest.Mock;
   let log: jest.SpyInstance;
   beforeEach(() => {
@@ -90,4 +88,34 @@ describe('notification HTTP failures', () => {
       expect(log).not.toHaveBeenCalled();
     },
   );
+  it.each(['SLACK', 'TEAMS', 'TELEGRAM', 'DISCORD', 'WEBHOOK'])(
+    '%s rejects missing credentials rather than acknowledging a delivery',
+    async (type) => {
+      await expect(
+        service['sendToChannel']({
+          scope: 'broadcast',
+          type,
+          config: {},
+          message: 'message',
+          subject: 'subject',
+          details: [],
+        }),
+      ).rejects.toThrow('incomplete channel configuration');
+      expect(fetchMock).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([
+    ['SLACK', { text: 'message' }],
+    ['TEAMS', { text: 'message' }],
+    ['DISCORD', { content: 'message' }],
+    [
+      'TELEGRAM',
+      { chat_id: 'secret', text: 'message', parse_mode: 'Markdown' },
+    ],
+  ])('preserves the %s payload', async (type, payload) => {
+    fetchMock.mockResolvedValue({ ok: true });
+    await send(type as string);
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual(payload);
+  });
 });

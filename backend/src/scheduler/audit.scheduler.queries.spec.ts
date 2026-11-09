@@ -13,7 +13,15 @@ describe('AuditScheduler.auditMissedInstances queries', () => {
   });
 
   const client = {
-    notification: { findMany: jest.fn(), create: jest.fn() },
+    $transaction: jest.fn((run) => run(client)),
+    $executeRaw: jest.fn(),
+    notification: {
+      findMany: jest.fn(),
+      create: jest.fn(),
+      findFirst: jest.fn(),
+      deleteMany: jest.fn(),
+      updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+    },
     task: { findMany: jest.fn() },
     site: { findMany: jest.fn() },
     status: {

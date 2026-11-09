@@ -5,7 +5,13 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { NotificationChannelType, Prisma } from '@prisma/client';
+import { UniqueDelivery } from './unique-delivery';
+import {
+  NotificationChannelType,
+  Prisma,
+  TaskNotification,
+  NotificationChannel,
+} from '@prisma/client';
 import { formatInTimeZone } from 'date-fns-tz';
 import { safeFetch } from '../common/utils/url-validator.util';
 import { EmailService } from '../email/email.service';
@@ -23,6 +29,33 @@ import {
   TaskNotificationEvent,
   renderTaskNotificationEmail,
 } from './task-notification-email.template';
+
+interface ChannelConfig {
+  [key: string]: unknown;
+  webhookUrl?: string;
+  botToken?: string;
+  chatId?: string;
+  method?: string;
+  headers?: Record<string, string>;
+  payloadTemplate?: unknown;
+}
+
+type ChannelDelivery = {
+  type: string;
+  config: ChannelConfig;
+  message: string;
+  subject: string;
+  details: DetailLine[];
+} & (
+  | {
+      scope: 'task';
+      notification: TaskNotification;
+      taskName: string;
+      eventLabel: string;
+      event: TaskNotificationEvent;
+    }
+  | { scope: 'broadcast' }
+);
 
 /** What the caller knows about the occurrence that triggered the notification. */
 export interface TaskNotificationContext {
@@ -213,12 +246,10 @@ export class NotificationsService {
       // a round trip (read, rename, save) never overwrites a secret with a flag,
       // and omitted fields keep their stored value.
       let stored: Record<string, unknown> = {};
-      if (existing.config) {
-        try {
-          stored = JSON.parse(this.encryption.decrypt(existing.config));
-        } catch {
-          stored = {};
-        }
+      try {
+        stored = this.decodeChannelConfig(existing);
+      } catch {
+        stored = {};
       }
       const merged: Record<string, unknown> = { ...stored };
       for (const [key, value] of Object.entries(
@@ -331,29 +362,11 @@ export class NotificationsService {
       });
       const message = this.buildNotificationMessage(subject, details);
       for (const channel of channels) {
-        let config = {};
-        try {
-          config = JSON.parse(this.encryption.decrypt(channel.config));
-        } catch {
-          this.logger.error(
-            `Failed to decrypt config for channel ${channel.id}`,
-          );
-          continue;
-        }
-        await this.sendToChannel(
-          channel.type,
-          config,
-          {},
+        await this.deliverChannel(channel, {
+          scope: 'broadcast',
           message,
           subject,
-          subject,
-          subject,
           details,
-        ).catch((err) => {
-          this.logger.error(
-            `Error sending ${channel.type} broadcast on channel ${channel.id}:`,
-            err,
-          );
         });
       }
     } catch (error) {
@@ -475,6 +488,7 @@ export class NotificationsService {
         context?.instanceDate,
       );
 
+      const failures: unknown[] = [];
       for (const notif of notifications) {
         if (
           context?.notificationId !== undefined &&
@@ -517,57 +531,42 @@ export class NotificationsService {
           context?.instanceDate ? ` — ${frenchDate(context.instanceDate)}` : ''
         }`;
 
-        // Decode config once per channel
-        let config = {};
-        if (notif.channel.config) {
-          try {
-            config = JSON.parse(this.encryption.decrypt(notif.channel.config));
-          } catch (error) {
-            this.logger.error(
-              `Failed to decrypt config for channel ${notif.channelId}`,
-            );
-            throw error;
-          }
-        }
-
-        const kind = context?.deliveryKey
-          ? `sent:${context.deliveryKey}:${notif.id}`
-          : undefined;
-        if (
-          kind &&
-          (await this.prisma.client.notification.findFirst({
-            where: {
-              taskId,
-              kind,
-              ...(context?.deliveryKey === 'hourly'
-                ? { sentAt: { gte: new Date(Date.now() - 86400000) } }
-                : {}),
-            },
-          }))
-        )
-          continue;
-
-        await this.sendToChannel(
-          notif.channel.type,
-          config,
-          notif,
-          message,
-          task.name,
-          eventLabel,
-          subject,
-          details,
-          event,
-        );
-        if (kind)
-          await this.prisma.client.notification.create({
-            data: { taskId, kind, sentAt: new Date() },
+        const send = async () => {
+          const result = await this.deliverChannel(notif.channel, {
+            scope: 'task',
+            notification: notif,
+            message,
+            taskName: task.name,
+            eventLabel,
+            subject,
+            details,
+            event,
           });
+          if (!result.ok) throw result.error;
+        };
+        try {
+          if (context?.deliveryKey) {
+            await new UniqueDelivery(this.prisma.client).run(
+              taskId,
+              {
+                type: 'channel',
+                key: context.deliveryKey,
+                notificationId: notif.id,
+              },
+              send,
+            );
+          } else {
+            await send();
+          }
+        } catch (error) {
+          failures.push(error);
+        }
+      }
+      if (failures.length && (context?.awaitDelivery || event === 'OVERDUE')) {
+        throw failures[0];
       }
     } catch (error) {
-      this.logger.error(
-        `Failed to dispatch notifications for task ${taskId}:`,
-        error,
-      );
+      this.logger.error(`Failed to dispatch notifications for task ${taskId}`);
       if (context?.awaitDelivery || event === 'OVERDUE') throw error;
     }
   }
@@ -705,33 +704,74 @@ export class NotificationsService {
       .join('\n')}`;
   }
 
-  private async sendToChannel(
-    type: string,
-    config: any,
-    notif: any,
-    message: string,
-    taskName: string,
-    eventLabel: string,
-    subject: string,
-    details: DetailLine[],
-    event?: TaskNotificationEvent,
-  ) {
+  /** A single decoding boundary; never expose parser errors or encrypted values. */
+  private decodeChannelConfig(
+    channel: Pick<NotificationChannel, 'id' | 'config'>,
+  ): ChannelConfig {
+    if (!channel.config) return {};
+    try {
+      const config: unknown = JSON.parse(
+        this.encryption.decrypt(channel.config),
+      );
+      if (!config || typeof config !== 'object' || Array.isArray(config))
+        throw new Error();
+      return config as ChannelConfig;
+    } catch {
+      throw new Error(`Failed to decrypt config for channel ${channel.id}`);
+    }
+  }
+
+  private async deliverChannel(
+    channel: Pick<NotificationChannel, 'id' | 'type' | 'config'>,
+    delivery:
+      | Omit<Extract<ChannelDelivery, { scope: 'task' }>, 'type' | 'config'>
+      | Omit<
+          Extract<ChannelDelivery, { scope: 'broadcast' }>,
+          'type' | 'config'
+        >,
+  ): Promise<{ ok: true } | { ok: false; error: unknown }> {
+    try {
+      await this.sendToChannel({
+        ...delivery,
+        type: channel.type,
+        config: this.decodeChannelConfig(channel),
+      });
+      return { ok: true };
+    } catch (error) {
+      // Errors may contain provider credentials: only log channel identity here.
+      this.logger.error(
+        `Failed to deliver ${channel.type} notification on channel ${channel.id}`,
+      );
+      return { ok: false, error };
+    }
+  }
+
+  private async sendToChannel(delivery: ChannelDelivery) {
+    const { type, config, message, subject, details } = delivery;
     switch (type) {
       case 'SLACK':
-        return this.sendSlack(config, message);
       case 'TEAMS':
-        return this.sendTeams(config, message);
       case 'TELEGRAM':
-        return this.sendTelegram(config, message);
       case 'DISCORD':
-        return this.sendDiscord(config, message);
+        return this.sendProviderWebhook(type, config, message);
       case 'EMAIL':
-        // Team broadcasts carry no event and never target an email channel.
         return (
-          event && this.sendEmail(notif, subject, details, event, taskName)
+          delivery.scope === 'task' &&
+          this.sendEmail(
+            delivery.notification,
+            subject,
+            details,
+            delivery.event,
+            delivery.taskName,
+          )
         );
       case 'WEBHOOK':
-        return this.sendWebhook(config, message, taskName, eventLabel);
+        return this.sendWebhook(
+          config,
+          message,
+          delivery.scope === 'task' ? delivery.taskName : subject,
+          delivery.scope === 'task' ? delivery.eventLabel : subject,
+        );
       case 'PUSH':
         return this.sendPush(config, message);
       default:
@@ -775,74 +815,41 @@ export class NotificationsService {
     throw new Error(message);
   }
 
-  private async sendSlack(config: any, text: string) {
-    if (!config.webhookUrl) return;
+  private async sendProviderWebhook(
+    type: string,
+    config: ChannelConfig,
+    text: string,
+  ) {
+    const telegram = type === 'TELEGRAM';
+    if (telegram ? !config.botToken || !config.chatId : !config.webhookUrl) {
+      throw new Error(`${type}: incomplete channel configuration`);
+    }
+    const url = telegram
+      ? `https://api.telegram.org/bot${config.botToken}/sendMessage`
+      : config.webhookUrl!;
+    const body = telegram
+      ? { chat_id: config.chatId, text, parse_mode: 'Markdown' }
+      : { [type === 'DISCORD' ? 'content' : 'text']: text };
     await this.sendHttp(
-      'SLACK',
-      config.webhookUrl,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text }),
-      },
-      { timeoutMs: 5000, allowHttp: false },
-    );
-  }
-
-  private async sendTeams(config: any, text: string) {
-    if (!config.webhookUrl) return;
-    await this.sendHttp(
-      'TEAMS',
-      config.webhookUrl,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text }),
-      },
-      { timeoutMs: 5000, allowHttp: false },
-    );
-  }
-
-  private async sendTelegram(config: any, text: string) {
-    if (!config.botToken || !config.chatId) return;
-    const url = `https://api.telegram.org/bot${config.botToken}/sendMessage`;
-    await this.sendHttp(
-      'TELEGRAM',
+      type,
       url,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chat_id: config.chatId,
-          text,
-          parse_mode: 'Markdown',
-        }),
-      },
-      { timeoutMs: 5000, allowHttp: false },
-    );
-  }
-
-  private async sendDiscord(config: any, text: string) {
-    if (!config.webhookUrl) return;
-    await this.sendHttp(
-      'DISCORD',
-      config.webhookUrl,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: text }),
+        body: JSON.stringify(body),
       },
       { timeoutMs: 5000, allowHttp: false },
     );
   }
 
   private async sendWebhook(
-    config: any,
+    config: ChannelConfig,
     text: string,
     taskName: string,
     eventLabel: string,
   ) {
-    if (!config.webhookUrl) return;
+    if (!config.webhookUrl)
+      throw new Error('WEBHOOK: incomplete channel configuration');
 
     const method = config.method || 'POST';
     const headers = {
@@ -885,7 +892,7 @@ export class NotificationsService {
   }
 
   private async sendEmail(
-    notif: any,
+    notif: TaskNotification,
     subject: string,
     details: DetailLine[],
     event: TaskNotificationEvent,
@@ -895,14 +902,20 @@ export class NotificationsService {
 
     // 1. Custom emails
     if (Array.isArray(notif.emailCustom)) {
-      notif.emailCustom.forEach((e: string) => recipients.add(e));
+      notif.emailCustom.forEach((e) => {
+        if (typeof e === 'string') recipients.add(e);
+      });
     }
 
     // 2. Users emails
     if (Array.isArray(notif.emailUserIds) && notif.emailUserIds.length > 0) {
       const users = await this.prisma.client.user.findMany({
         where: {
-          id: { in: notif.emailUserIds },
+          id: {
+            in: notif.emailUserIds.filter(
+              (id): id is number => typeof id === 'number',
+            ),
+          },
           deletedAt: null,
           email: { not: null },
         },
@@ -914,15 +927,19 @@ export class NotificationsService {
     // 3. Groups emails
     if (Array.isArray(notif.emailGroupIds) && notif.emailGroupIds.length > 0) {
       const groups = await this.prisma.client.group.findMany({
-        where: { id: { in: notif.emailGroupIds } },
+        where: {
+          id: {
+            in: notif.emailGroupIds.filter(
+              (id): id is number => typeof id === 'number',
+            ),
+          },
+        },
         include: {
           members: { include: { user: { select: { email: true } } } },
         },
       });
       groups.forEach((g) => {
-        g.members.forEach(
-          (m: any) => m.user?.email && recipients.add(m.user.email),
-        );
+        g.members.forEach((m) => m.user?.email && recipients.add(m.user.email));
       });
     }
 
@@ -957,20 +974,16 @@ export class NotificationsService {
     }
   }
 
-  private async sendPush(config: any, text: string) {
+  private async sendPush(config: ChannelConfig, text: string) {
     await this.pushService.sendViaChannelConfig(config, text);
   }
 
   private mapChannelToDto(channel: any) {
     let decryptedConfig = {};
-    if (channel.config) {
-      try {
-        const jsonStr = this.encryption.decrypt(channel.config);
-        decryptedConfig = JSON.parse(jsonStr);
-      } catch {
-        // If decryption fails (e.g., secret changed), return an empty object or a marker
-        decryptedConfig = { error: 'Failed to decrypt config' };
-      }
+    try {
+      decryptedConfig = this.decodeChannelConfig(channel);
+    } catch {
+      decryptedConfig = { error: 'Failed to decrypt config' };
     }
 
     return {

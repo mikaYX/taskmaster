@@ -1,14 +1,14 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
+import { UniqueDelivery } from '../../notifications/unique-delivery';
 import { endOfDay, format, startOfDay, subDays } from 'date-fns';
 import type { SchedulerJob, JobExecutionResult } from '../scheduler.interface';
 import { JobLockService } from '../job-lock.service';
-import { loadFromCompletionContext } from '../from-completion-context';
 import { PrismaService } from '../../prisma';
 import { SettingsService } from '../../settings/settings.service';
 import { NotificationsService } from '../../notifications/notifications.service';
 import { InstanceService } from '../../tasks/instance.service';
-import { loadSiteCountryResolver } from '../../sites/site-country';
+import { loadPlanningContext } from '../../tasks/planning-context';
 
 const INTERVAL_MS = 15 * 60_000; // match cron interval
 /** A yearly occurrence can start long before its deadline. */
@@ -76,30 +76,17 @@ export class ReminderNotificationJob implements SchedulerJob {
       ),
     );
 
-    const [defaultCountry, fcEnabled, wStart, wEnd] = await Promise.all([
-      this.settings.getRawValue<string>('app.country'),
-      this.settings.getRawValue<boolean>('FROM_COMPLETION_ENABLED'),
-      this.settings.getRawValue<string>('SCHEDULE_DEFAULT_START_TIME'),
-      this.settings.getRawValue<string>('SCHEDULE_DEFAULT_END_TIME'),
-    ]);
-    const countryForSite = await loadSiteCountryResolver(
-      this.prisma.client,
-      defaultCountry || 'FR',
-    );
-    const windowDefaults = { start: wStart || '08:00', end: wEnd || '18:00' };
+    const { countryForSite, windowDefaults, fromCompletion } =
+      await loadPlanningContext(this.prisma.client, this.settings);
 
     // Same schedule as the audit, so the reminder and the missed-task alert agree on the deadline.
     const openByTask = new Map<number, { date: string; deadline: Date }[]>();
     for (const [taskId, task] of tasks) {
-      const fromCompletionCtx =
-        fcEnabled && task.recurrenceMode === 'FROM_COMPLETION' && task.rrule
-          ? await loadFromCompletionContext(
-              this.prisma.client,
-              taskId,
-              rangeStart,
-              rangeEnd,
-            )
-          : undefined;
+      const fromCompletionCtx = await fromCompletion(
+        task,
+        rangeStart,
+        rangeEnd,
+      );
 
       const open: { date: string; deadline: Date }[] = [];
       for (const instance of this.instanceService.computeInstances(
@@ -118,6 +105,7 @@ export class ReminderNotificationJob implements SchedulerJob {
       openByTask.set(taskId, open);
     }
 
+    const delivery = new UniqueDelivery(this.prisma.client);
     let dispatched = 0;
     for (const row of rows) {
       const windowEnd = tick + row.reminderOffsetMinutes * 60_000;
@@ -127,43 +115,29 @@ export class ReminderNotificationJob implements SchedulerJob {
         const time = deadline.getTime();
         if (time <= windowStart || time > windowEnd) continue;
 
-        // The unique (taskId, kind, sentAt) key makes the reservation atomic:
-        // sentAt is the deadline, so a given row and occurrence is claimed once,
-        // whatever the run, the window or the process that sees it.
-        const kind = `reminder:${row.id}:${date}`;
-        const reservation = { taskId: row.taskId, kind, sentAt: deadline };
         try {
-          await this.prisma.client.notification.create({ data: reservation });
-        } catch (err: unknown) {
-          if ((err as { code?: string }).code === 'P2002') continue;
-          this.logger.error(
-            `Failed to record REMINDER for task ${row.taskId}`,
-            err,
-          );
-          continue;
-        }
-
-        dispatched++;
-        try {
-          await this.notificationsService.dispatchTaskNotifications(
+          const sent = await delivery.run(
             row.taskId,
-            'REMINDER',
-            { notificationId: row.id, instanceDate: date, deadline },
-          );
-        } catch (err: unknown) {
-          // Not delivered: free the reservation so a later run can retry it.
-          dispatched--;
-          await this.prisma.client.notification
-            .delete({
-              where: {
-                taskId_kind_sentAt: {
-                  taskId: row.taskId,
-                  kind,
-                  sentAt: deadline,
+            {
+              type: 'reminder',
+              notificationId: row.id,
+              date,
+              deadline,
+            },
+            () =>
+              this.notificationsService.dispatchTaskNotifications(
+                row.taskId,
+                'REMINDER',
+                {
+                  notificationId: row.id,
+                  instanceDate: date,
+                  deadline,
+                  awaitDelivery: true,
                 },
-              },
-            })
-            .catch(() => undefined);
+              ),
+          );
+          if (sent) dispatched++;
+        } catch (err: unknown) {
           this.logger.error(
             `Failed to dispatch REMINDER notification for task ${row.taskId}`,
             err,

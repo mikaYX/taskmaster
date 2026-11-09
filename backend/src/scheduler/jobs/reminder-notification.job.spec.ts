@@ -110,6 +110,7 @@ describe('ReminderNotificationJob', () => {
       1,
       'REMINDER',
       {
+        awaitDelivery: true,
         notificationId: 10,
         instanceDate: format(new Date(deadline), 'yyyy-MM-dd'),
         deadline: new Date(deadline),
