@@ -75,7 +75,13 @@ export function NotificationsSettingsPage() {
                 name: editingChannel.name,
                 type: editingChannel.type,
                 enabled: editingChannel.enabled,
-                config: editingChannel.config,
+                // The API only returns presence flags for stored values: never
+                // put them in the inputs, leave them empty ("unchanged").
+                config: Object.fromEntries(
+                    Object.entries(editingChannel.config ?? {}).filter(
+                        ([, value]) => typeof value !== "boolean",
+                    ),
+                ),
             });
         } else {
             form.reset({
@@ -90,9 +96,17 @@ export function NotificationsSettingsPage() {
     const onSubmit = async (values: ChannelFormValues) => {
         try {
             if (editingChannel) {
+                // Empty fields keep their stored value on the server.
                 await updateMutation.mutateAsync({
                     id: editingChannel.id,
-                    dto: values,
+                    dto: {
+                        ...values,
+                        config: Object.fromEntries(
+                            Object.entries(values.config ?? {}).filter(
+                                ([, value]) => value !== "" && value != null,
+                            ),
+                        ),
+                    },
                 });
                 toast.success(t('settings.notifications.updated'));
             } else {
