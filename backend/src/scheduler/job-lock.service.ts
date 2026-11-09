@@ -1,5 +1,6 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
 import Redis from 'ioredis';
+import { randomUUID } from 'node:crypto';
 import { REDIS_CLIENT } from '../common/redis/redis.module';
 
 @Injectable()
@@ -15,18 +16,24 @@ export class JobLockService {
   async acquireLock(
     jobName: string,
     ttlSeconds: number = 300,
-  ): Promise<boolean> {
+  ): Promise<string | null> {
     const key = `scheduler:lock:${jobName}`;
-    const result = await this.redis.set(key, 'LOCKED', 'EX', ttlSeconds, 'NX');
-    return result === 'OK';
+    const token = randomUUID();
+    const result = await this.redis.set(key, token, 'EX', ttlSeconds, 'NX');
+    return result === 'OK' ? token : null;
   }
 
   /**
    * Release the lock for a job.
    */
-  async releaseLock(jobName: string): Promise<void> {
+  async releaseLock(jobName: string, token: string): Promise<void> {
     const key = `scheduler:lock:${jobName}`;
-    await this.redis.del(key);
+    await this.redis.eval(
+      "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end",
+      1,
+      key,
+      token,
+    );
   }
 
   /**
@@ -56,7 +63,7 @@ export class JobLockService {
       );
       return { success: false, message: `Execution failed: ${err.message}` };
     } finally {
-      await this.releaseLock(jobName);
+      await this.releaseLock(jobName, locked);
       this.logger.log(`[${jobName}] Lock released.`);
     }
   }

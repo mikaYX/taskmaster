@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **A job lock can no longer be released by a run that no longer owns it.** Each lock now carries a unique token and is released with an atomic compare-and-delete, so a run whose lease expired cannot free the lock of a newer run and let a third one start.
+
 ## [1.2.2-beta.7] - 2026-11-06
 
 Seventh beta of 1.2.2, for testing only (pre-release, `beta` Docker tag, never `latest`).
