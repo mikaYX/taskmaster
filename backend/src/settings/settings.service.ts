@@ -328,6 +328,50 @@ export class SettingsService {
     };
   }
 
+  /** Resolve both VAPID settings under a cross-process PostgreSQL lock. */
+  async getOrCreateVapidKeys(
+    generate: () => { publicKey: string; privateKey: string },
+  ): Promise<{ publicKey: string; privateKey: string }> {
+    const publicKeySetting = 'push.vapid.publicKey';
+    const privateKeySetting = 'push.vapid.privateKey';
+    const keys = await this.prisma.client.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT pg_advisory_xact_lock(824731, 1)::text`;
+      // Read inside the lock, bypassing each instance's settings cache.
+      const read = async (key: typeof publicKeySetting | typeof privateKeySetting) => {
+        const record = await tx.config.findUnique({ where: { key } });
+        if (!record) return '';
+        const value =
+          SETTINGS_REGISTRY[key].sensitive && this.encryption.isEncrypted(record.value)
+            ? this.encryption.decrypt(record.value)
+            : record.value;
+        return this.parseValue(value) as string;
+      };
+      const publicKey = await read(publicKeySetting);
+      const privateKey = await read(privateKeySetting);
+      if (publicKey && privateKey) return { publicKey, privateKey };
+
+      const generated = generate();
+      for (const [key, value] of [
+        [publicKeySetting, generated.publicKey],
+        [privateKeySetting, generated.privateKey],
+      ] as const) {
+        const serialized = JSON.stringify(SETTINGS_REGISTRY[key].schema.parse(value));
+        const stored = SETTINGS_REGISTRY[key].sensitive
+          ? this.encryption.encrypt(serialized)
+          : serialized;
+        await tx.config.upsert({
+          where: { key },
+          create: { key, value: stored },
+          update: { value: stored },
+        });
+      }
+      return generated;
+    });
+    this.invalidateCache(publicKeySetting);
+    this.invalidateCache(privateKeySetting);
+    return keys;
+  }
+
   /**
    * Get raw value (for internal use).
    * Decrypts sensitive values.

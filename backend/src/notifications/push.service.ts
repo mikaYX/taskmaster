@@ -76,21 +76,7 @@ export class PushService implements OnModuleInit {
       return { publicKey: envPublic, privateKey: envPrivate };
     }
 
-    const storedPublic = await this.settings.getRawValue<string>(
-      'push.vapid.publicKey',
-    );
-    const storedPrivate = await this.settings.getRawValue<string>(
-      'push.vapid.privateKey',
-    );
-    if (storedPublic && storedPrivate) {
-      return { publicKey: storedPublic, privateKey: storedPrivate };
-    }
-
-    const generated = webpush.generateVAPIDKeys();
-    await this.settings.set('push.vapid.publicKey', generated.publicKey);
-    await this.settings.set('push.vapid.privateKey', generated.privateKey);
-    this.logger.log('Paire de clés VAPID générée et enregistrée');
-    return generated;
+    return this.settings.getOrCreateVapidKeys(() => webpush.generateVAPIDKeys());
   }
 
   /** Whether the server can send pushes at all. */

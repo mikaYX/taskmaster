@@ -25,6 +25,17 @@ function build(env: Record<string, string | undefined> = {}) {
       return Promise.resolve({});
     }),
   };
+  // The settings service owns atomic persistence; these tests cover push setup.
+  const getOrCreateVapidKeys = jest.fn(async (generate: () => { publicKey: string; privateKey: string }) => {
+    if (stored['push.vapid.publicKey'] && stored['push.vapid.privateKey']) {
+      return { publicKey: stored['push.vapid.publicKey'], privateKey: stored['push.vapid.privateKey'] };
+    }
+    const keys = generate();
+    await settings.set('push.vapid.publicKey', keys.publicKey);
+    await settings.set('push.vapid.privateKey', keys.privateKey);
+    return keys;
+  });
+  Object.assign(settings, { getOrCreateVapidKeys });
   const config = {
     get: jest.fn((key: string, fallback?: string) => env[key] ?? fallback),
   };
