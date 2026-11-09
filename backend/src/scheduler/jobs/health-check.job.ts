@@ -33,6 +33,7 @@ export class HealthCheckJob implements SchedulerJob {
         `[${this.name}] Database check failed after ${duration}ms`,
         error,
       );
+      throw error;
     }
   }
 }

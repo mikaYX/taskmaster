@@ -204,6 +204,7 @@ export class AutoExportJob implements SchedulerJob {
         details: { error: error.message, duration },
         severity: AuditSeverity.ERROR,
       });
+      throw error;
     }
   }
 

@@ -73,6 +73,7 @@ export class AutoBackupJob implements SchedulerJob {
     } catch (error) {
       const duration = Date.now() - start;
       this.logger.error(`[${this.name}] Job failed after ${duration}ms`, error);
+      throw error;
     }
   }
 
