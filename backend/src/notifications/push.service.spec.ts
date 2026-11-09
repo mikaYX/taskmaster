@@ -1,5 +1,11 @@
+import { lookup } from 'node:dns/promises';
 import * as webpush from 'web-push';
 import { PushService } from './push.service';
+
+jest.mock('node:dns/promises', () => ({ lookup: jest.fn() }));
+beforeEach(() => {
+  (lookup as jest.Mock).mockResolvedValue([{ address: '8.8.8.8', family: 4 }]);
+});
 
 jest.mock('web-push', () => ({
   setVapidDetails: jest.fn(),
@@ -26,15 +32,20 @@ function build(env: Record<string, string | undefined> = {}) {
     }),
   };
   // The settings service owns atomic persistence; these tests cover push setup.
-  const getOrCreateVapidKeys = jest.fn(async (generate: () => { publicKey: string; privateKey: string }) => {
-    if (stored['push.vapid.publicKey'] && stored['push.vapid.privateKey']) {
-      return { publicKey: stored['push.vapid.publicKey'], privateKey: stored['push.vapid.privateKey'] };
-    }
-    const keys = generate();
-    await settings.set('push.vapid.publicKey', keys.publicKey);
-    await settings.set('push.vapid.privateKey', keys.privateKey);
-    return keys;
-  });
+  const getOrCreateVapidKeys = jest.fn(
+    async (generate: () => { publicKey: string; privateKey: string }) => {
+      if (stored['push.vapid.publicKey'] && stored['push.vapid.privateKey']) {
+        return {
+          publicKey: stored['push.vapid.publicKey'],
+          privateKey: stored['push.vapid.privateKey'],
+        };
+      }
+      const keys = generate();
+      await settings.set('push.vapid.publicKey', keys.publicKey);
+      await settings.set('push.vapid.privateKey', keys.privateKey);
+      return keys;
+    },
+  );
   Object.assign(settings, { getOrCreateVapidKeys });
   const config = {
     get: jest.fn((key: string, fallback?: string) => env[key] ?? fallback),
@@ -168,5 +179,83 @@ describe('PushService subscriptions and sending', () => {
     await service.sendToUser(8, { title: 'T', body: 'B' });
 
     expect(subs.findMany).not.toHaveBeenCalled();
+  });
+});
+
+describe('PushService SSRF protection', () => {
+  const blocked = [
+    'https://127.0.0.1/x',
+    'https://10.0.0.1/x',
+    'https://172.16.0.1/x',
+    'https://192.168.0.1/x',
+    'https://169.254.169.254/x',
+    'https://[::1]/x',
+    'https://[fd12::1]/x',
+    'https://[febf::1]/x',
+    'https://[::ffff:127.0.0.1]/x',
+    'https://2130706433/x',
+    'http://push.example/x',
+    'https://user:password@push.example/x',
+  ];
+  beforeEach(() => jest.clearAllMocks());
+  it.each(blocked)('rejects registration of %s', async (endpoint) => {
+    const { service, subs } = build();
+    await expect(
+      service.subscribe({
+        endpoint,
+        keys: { p256dh: 'p', auth: 'a' },
+        userId: 8,
+      }),
+    ).rejects.toMatchObject({ status: 400 });
+    expect(subs.upsert).not.toHaveBeenCalled();
+  });
+  it('rejects a hostname with any private DNS answer', async () => {
+    (lookup as jest.Mock).mockResolvedValue([
+      { address: '8.8.8.8', family: 4 },
+      { address: '10.0.0.1', family: 4 },
+    ]);
+    const { service, subs } = build();
+    await expect(
+      service.subscribe({
+        endpoint: 'https://push.example/x',
+        keys: { p256dh: 'p', auth: 'a' },
+        userId: 8,
+      }),
+    ).rejects.toMatchObject({ status: 400 });
+    expect(subs.upsert).not.toHaveBeenCalled();
+  });
+  it('revalidates DNS before sending a stored subscription', async () => {
+    const { service, subs } = build();
+    await service.onModuleInit();
+    await service.subscribe({
+      endpoint: 'https://push.example/x',
+      keys: { p256dh: 'p', auth: 'a' },
+      userId: 8,
+    });
+    subs.findMany.mockResolvedValue([
+      { endpoint: 'https://push.example/x', p256dh: 'p', auth: 'a' },
+    ]);
+    (lookup as jest.Mock).mockResolvedValue([
+      { address: '169.254.169.254', family: 4 },
+    ]);
+    await service.sendToUser(8, { title: 'T', body: 'B' });
+    expect(webpush.sendNotification).not.toHaveBeenCalled();
+  });
+  it('pins the connection to the validated public address', async () => {
+    const { service, subs } = build();
+    await service.onModuleInit();
+    subs.findMany.mockResolvedValue([
+      { endpoint: 'https://push.example/x', p256dh: 'p', auth: 'a' },
+    ]);
+    (webpush.sendNotification as jest.Mock).mockResolvedValue({});
+    await service.sendToUser(8, { title: 'T', body: 'B' });
+    const agent = (webpush.sendNotification as jest.Mock).mock.calls[0][2]
+      ?.agent;
+    expect(agent).toBeDefined();
+    const callback = jest.fn();
+    agent.options.lookup('push.example', { all: true }, callback);
+    expect(callback).toHaveBeenCalledWith(null, [
+      { address: '8.8.8.8', family: 4 },
+    ]);
   });
 });

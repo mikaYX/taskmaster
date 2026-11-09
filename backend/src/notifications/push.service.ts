@@ -1,3 +1,4 @@
+import { pushEndpointAgent } from './push-endpoint';
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as webpush from 'web-push';
@@ -76,7 +77,9 @@ export class PushService implements OnModuleInit {
       return { publicKey: envPublic, privateKey: envPrivate };
     }
 
-    return this.settings.getOrCreateVapidKeys(() => webpush.generateVAPIDKeys());
+    return this.settings.getOrCreateVapidKeys(() =>
+      webpush.generateVAPIDKeys(),
+    );
   }
 
   /** Whether the server can send pushes at all. */
@@ -91,6 +94,8 @@ export class PushService implements OnModuleInit {
 
   /** Enregistre (ou rattache à l'utilisateur courant) l'abonnement d'un navigateur. */
   async subscribe(payload: PushSubscriptionPayload): Promise<void> {
+    const agent = await pushEndpointAgent(payload.endpoint);
+    agent.destroy();
     await this.prisma.client.pushSubscription.upsert({
       where: { endpoint: payload.endpoint },
       create: {
@@ -137,14 +142,18 @@ export class PushService implements OnModuleInit {
     const payload = JSON.stringify(message);
 
     await Promise.allSettled(
-      userSubs.map((sub) =>
-        webpush
+      userSubs.map(async (sub) => {
+        const agent = await pushEndpointAgent(sub.endpoint);
+        // web-push uses https.request and rejects all non-2xx responses,
+        // including redirects. Never follow a Location from a push service.
+        return webpush
           .sendNotification(
             {
               endpoint: sub.endpoint,
               keys: { p256dh: sub.p256dh, auth: sub.auth },
             },
             payload,
+            { agent, timeout: 5000 },
           )
           .catch(async (err: Error & { statusCode?: number }) => {
             if (err.statusCode === 404 || err.statusCode === 410) {
@@ -158,8 +167,9 @@ export class PushService implements OnModuleInit {
             } else {
               this.logger.error(`Erreur push userId=${userId}: ${err.message}`);
             }
-          }),
-      ),
+          })
+          .finally(() => agent.destroy());
+      }),
     );
   }
 
