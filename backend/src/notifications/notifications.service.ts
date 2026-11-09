@@ -692,9 +692,46 @@ export class NotificationsService {
     }
   }
 
+  private async sendHttp(
+    channel: string,
+    ...args: Parameters<typeof safeFetch>
+  ): Promise<void> {
+    let response: Awaited<ReturnType<typeof safeFetch>>;
+    try {
+      response = await safeFetch(...args);
+    } catch {
+      // Provider URLs and transport errors can contain credentials.
+      const message = `${channel}: request failed`;
+      this.logger.error(message);
+      throw new Error(message);
+    }
+    if (response.ok) return;
+
+    const message = `${channel}: HTTP ${response.status}`;
+    this.logger.error(message);
+    if (response.status === 429) {
+      const retryAfter = response.headers.get('Retry-After');
+      if (retryAfter) {
+        const delay = /^\d+$/.test(retryAfter)
+          ? Number(retryAfter) * 1000
+          : Date.parse(retryAfter) - Date.now();
+        // Delay propagation so the caller cannot retry before Retry-After.
+        // Chunk long waits to avoid Node's timer overflow.
+        const deadline = Date.now() + Math.max(0, delay);
+        while (Number.isFinite(deadline) && Date.now() < deadline) {
+          await new Promise((resolve) =>
+            setTimeout(resolve, Math.min(deadline - Date.now(), 2_147_483_647)),
+          );
+        }
+      }
+    }
+    throw new Error(message);
+  }
+
   private async sendSlack(config: any, text: string) {
     if (!config.webhookUrl) return;
-    await safeFetch(
+    await this.sendHttp(
+      'SLACK',
       config.webhookUrl,
       {
         method: 'POST',
@@ -707,7 +744,8 @@ export class NotificationsService {
 
   private async sendTeams(config: any, text: string) {
     if (!config.webhookUrl) return;
-    await safeFetch(
+    await this.sendHttp(
+      'TEAMS',
       config.webhookUrl,
       {
         method: 'POST',
@@ -721,7 +759,8 @@ export class NotificationsService {
   private async sendTelegram(config: any, text: string) {
     if (!config.botToken || !config.chatId) return;
     const url = `https://api.telegram.org/bot${config.botToken}/sendMessage`;
-    await safeFetch(
+    await this.sendHttp(
+      'TELEGRAM',
       url,
       {
         method: 'POST',
@@ -738,7 +777,8 @@ export class NotificationsService {
 
   private async sendDiscord(config: any, text: string) {
     if (!config.webhookUrl) return;
-    await safeFetch(
+    await this.sendHttp(
+      'DISCORD',
       config.webhookUrl,
       {
         method: 'POST',
@@ -780,7 +820,8 @@ export class NotificationsService {
       body = JSON.stringify({ message: text });
     }
 
-    await safeFetch(
+    await this.sendHttp(
+      'WEBHOOK',
       config.webhookUrl,
       { method, headers, body },
       { timeoutMs: 10000, allowHttp: false },
