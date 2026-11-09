@@ -127,19 +127,48 @@ export class ReminderNotificationJob implements SchedulerJob {
         const time = deadline.getTime();
         if (time <= windowStart || time > windowEnd) continue;
 
+        // The unique (taskId, kind, sentAt) key makes the reservation atomic:
+        // sentAt is the deadline, so a given row and occurrence is claimed once,
+        // whatever the run, the window or the process that sees it.
+        const kind = `reminder:${row.id}:${date}`;
+        const reservation = { taskId: row.taskId, kind, sentAt: deadline };
+        try {
+          await this.prisma.client.notification.create({ data: reservation });
+        } catch (err: unknown) {
+          if ((err as { code?: string }).code === 'P2002') continue;
+          this.logger.error(
+            `Failed to record REMINDER for task ${row.taskId}`,
+            err,
+          );
+          continue;
+        }
+
         dispatched++;
-        this.notificationsService
-          .dispatchTaskNotifications(row.taskId, 'REMINDER', {
-            notificationId: row.id,
-            instanceDate: date,
-            deadline,
-          })
-          .catch((err: unknown) => {
-            this.logger.error(
-              `Failed to dispatch REMINDER notification for task ${row.taskId}`,
-              err,
-            );
-          });
+        try {
+          await this.notificationsService.dispatchTaskNotifications(
+            row.taskId,
+            'REMINDER',
+            { notificationId: row.id, instanceDate: date, deadline },
+          );
+        } catch (err: unknown) {
+          // Not delivered: free the reservation so a later run can retry it.
+          dispatched--;
+          await this.prisma.client.notification
+            .delete({
+              where: {
+                taskId_kind_sentAt: {
+                  taskId: row.taskId,
+                  kind,
+                  sentAt: deadline,
+                },
+              },
+            })
+            .catch(() => undefined);
+          this.logger.error(
+            `Failed to dispatch REMINDER notification for task ${row.taskId}`,
+            err,
+          );
+        }
       }
     }
 

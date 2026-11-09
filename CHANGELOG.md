@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **A job lock can no longer be released by a run that no longer owns it.** Each lock now carries a unique token and is released with an atomic compare-and-delete, so a run whose lease expired cannot free the lock of a newer run and let a third one start.
+- **A task reminder is no longer sent twice.** Each reminder is claimed in the `notifications` table (task, row and occurrence, keyed on the deadline) before it is sent, so two runs on the same window cannot both send it. The claim is freed if dispatching fails, so a later run can retry.
 
 ## [1.2.2-beta.7] - 2026-11-06
 

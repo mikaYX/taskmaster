@@ -11,6 +11,7 @@ describe('ReminderNotificationJob', () => {
     status: { findMany: jest.fn(), findFirst: jest.fn(), count: jest.fn() },
     taskNotification: { findMany: jest.fn() },
     site: { findMany: jest.fn() },
+    notification: { create: jest.fn(), delete: jest.fn() },
   };
   const settings = { getRawValue: jest.fn() };
   const notifications = { dispatchTaskNotifications: jest.fn() };
@@ -43,6 +44,21 @@ describe('ReminderNotificationJob', () => {
     client.status.findMany.mockResolvedValue([]);
     client.taskNotification.findMany.mockResolvedValue([]);
     client.site.findMany.mockResolvedValue([]);
+    // Reservation rows: the unique key rejects a second claim of the same reminder.
+    const claimed = new Set<string>();
+    client.notification.create.mockImplementation(
+      async ({
+        data,
+      }: {
+        data: { taskId: number; kind: string; sentAt: Date };
+      }) => {
+        const key = `${data.taskId}|${data.kind}|${data.sentAt.getTime()}`;
+        if (claimed.has(key))
+          throw Object.assign(new Error('unique'), { code: 'P2002' });
+        claimed.add(key);
+      },
+    );
+    client.notification.delete.mockResolvedValue(undefined);
     instances.computeInstances.mockReturnValue([]);
     jobLock.withLock.mockImplementation(
       async (_name: string, run: () => Promise<void>) => {
@@ -191,5 +207,31 @@ describe('ReminderNotificationJob', () => {
       lastTerminalDate: null,
       hasRunningInstance: false,
     });
+  });
+
+  it('does not resend a reminder when two runs cover the same window', async () => {
+    client.taskNotification.findMany.mockResolvedValue([row(10, 1, 60)]);
+    instances.computeInstances.mockReturnValue([
+      occurrence(TICK + 60 * MINUTE),
+    ]);
+
+    await job.execute();
+    await job.execute(); // same clock: same window, e.g. after a lock expiry
+
+    expect(notifications.dispatchTaskNotifications).toHaveBeenCalledTimes(1);
+  });
+
+  it('frees the reservation when delivery fails so a later run can retry', async () => {
+    client.taskNotification.findMany.mockResolvedValue([row(10, 1, 60)]);
+    instances.computeInstances.mockReturnValue([
+      occurrence(TICK + 60 * MINUTE),
+    ]);
+    notifications.dispatchTaskNotifications.mockRejectedValueOnce(
+      new Error('smtp down'),
+    );
+
+    await job.execute();
+
+    expect(client.notification.delete).toHaveBeenCalledTimes(1);
   });
 });
