@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.2-beta.9] - 2026-11-10
+
+Ninth beta of 1.2.2, for testing only (pre-release, `beta` Docker tag, never `latest`).
+
+**Database migration:** none. The migrations folder is unchanged since beta.7 (`20261106181704_baseline`).
+
+### Fixed
+
+- **Missed-task alerts no longer flood the inbox on the first run.** Since the missed-task alerts started working, the audit notified every missed occurrence of its 90-day look-back at once, because none of them had ever been announced. An occurrence is now still marked missed, but it only triggers an alert within 48 hours of its deadline (the audit and the hourly job). An alert is therefore still sent after an outage shorter than two days, and never for an old occurrence. Installations that already received that burst when updating will not receive it again: the alerts sent are recorded.
+
+### Changed
+
+- **The Windows installer now targets PostgreSQL 18.** The local PostgreSQL it provisions, the service name it waits for (`postgresql-x64-18`) and the pinned installer (18.6-5, SHA-256 checked) move from 17 to 18, which fixes the 28 vulnerabilities of the August 2026 PostgreSQL releases. An installation made by an earlier installer keeps its PostgreSQL 17: moving it to 18 is a major upgrade (`pg_upgrade` or dump and restore) that the installer does not do. The Docker stack was already on PostgreSQL 18.
+- **The Docker image is rebuilt on a fresh base at each release.** The release workflow now pulls the latest `node:*-alpine` and replays `apk upgrade`, so a release no longer ships a cached Alpine layer without the latest security fixes (for example the musl fix CVE-2026-107891). The PostgreSQL 18 image of the CI is no longer pinned to 18.1.
+
 ## [1.2.2-beta.8] - 2026-11-09
 
 Eighth beta of 1.2.2, for testing only (pre-release, `beta` Docker tag, never `latest`).
