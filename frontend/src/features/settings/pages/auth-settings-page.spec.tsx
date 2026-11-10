@@ -6,6 +6,16 @@ import { AuthSettingsPage } from './auth-settings-page';
 import { settingsApi } from '@/api/settings';
 import React from 'react';
 
+const mockSettings = vi.hoisted(() => {
+    const values: Record<string, unknown> = {};
+    return {
+        values,
+        settings: [] as { key: string; value: unknown }[],
+        getSetting: vi.fn((key: string) => values[key]),
+        getSettingAsBool: vi.fn((key: string) => values[key] === true || values[key] === 'true'),
+    };
+});
+
 // Mock the modules
 vi.mock('@/api/settings', () => ({
     settingsApi: {
@@ -15,8 +25,9 @@ vi.mock('@/api/settings', () => ({
 
 vi.mock('../hooks/use-settings', () => ({
     useSettings: () => ({
-        settings: [],
-        getSetting: vi.fn().mockReturnValue(''),
+        settings: mockSettings.settings,
+        getSetting: mockSettings.getSetting,
+        getSettingAsBool: mockSettings.getSettingAsBool,
         updateSetting: vi.fn(),
         isLoading: false,
         isUpdating: false,
@@ -40,6 +51,8 @@ vi.mock('@/components/ui/scroll-area', () => ({
 describe('AuthSettingsPage Capability Constraints', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        mockSettings.settings.length = 0;
+        for (const key of Object.keys(mockSettings.values)) delete mockSettings.values[key];
     });
 
     it('disables unimplemented providers and leaves implemented ones editable', async () => {
@@ -110,4 +123,30 @@ describe('AuthSettingsPage Capability Constraints', () => {
 
         consoleSpy.mockRestore();
     });
+    it.each([true, 'true', false, 'false'])('loads provider switches from stored value %s', async (value) => {
+        for (const provider of ['azureAd', 'google', 'generic', 'ldap']) {
+            const key = `auth.${provider}.enabled`;
+            mockSettings.values[key] = value;
+            mockSettings.settings.push({ key, value });
+        }
+        const capability = { implemented: true, configured: true, enabled: false, effectiveEnabled: false };
+        vi.mocked(settingsApi.getAuthCapabilities).mockResolvedValue({
+            azure_ad: capability,
+            google_workspace: capability,
+            oidc_generic: capability,
+            ldap: capability,
+            saml: capability,
+        });
+        render(<AuthSettingsPage />);
+        const user = userEvent.setup();
+        const expected = value === true || value === 'true';
+        for (const tab of [/Azure AD/i, /Google Workspace/i, /OIDC \/ SAML/i, /LDAP/i]) {
+            await user.click(await screen.findByRole('tab', { name: tab }));
+            await waitFor(() => expect(screen.getByRole('switch')).toHaveAttribute('aria-checked', String(expected)));
+        }
+        for (const provider of ['azureAd', 'google', 'generic', 'ldap']) {
+            expect(mockSettings.getSettingAsBool).toHaveBeenCalledWith(`auth.${provider}.enabled`);
+        }
+    });
+
 });

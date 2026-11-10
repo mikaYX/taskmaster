@@ -5,7 +5,7 @@ export async function isSchedulerEnabled(
   settings: Pick<SettingsService, 'getRawValue'>,
 ): Promise<boolean> {
   const value =
-    (await settings.getRawValue<unknown>('scheduler.enabled')) ??
+    (await settings.getRawValue('scheduler.enabled')) ??
     SETTINGS_REGISTRY['scheduler.enabled'].default;
-  return value === true || value === 'true';
+  return value;
 }

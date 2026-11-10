@@ -294,9 +294,7 @@ export class BackupController {
   @HttpCode(HttpStatus.OK)
   async triggerCleanup() {
     const retentionDays =
-      (await this.settingsService.getRawValue<number>(
-        'export.retention.days',
-      )) ?? 30;
+      (await this.settingsService.getRawValue('export.retention.days')) ?? 30;
     const deleted = await this.exportService.cleanupExpired(retentionDays);
     return { deleted };
   }

@@ -83,9 +83,9 @@ export class TodoReminderJob implements SchedulerJob {
 
   async execute(now: Date = new Date()): Promise<void> {
     const [todolist, emailEnabled, timeZone] = await Promise.all([
-      this.settings.getRawValue<boolean>('addons.todolist.enabled'),
-      this.settings.getRawValue<boolean>('email.enabled'),
-      this.settings.getRawValue<string>('scheduler.timezone'),
+      this.settings.getRawValue('addons.todolist.enabled'),
+      this.settings.getRawValue('email.enabled'),
+      this.settings.getRawValue('scheduler.timezone'),
     ]);
     const on = (v: unknown) => v === true || v === 'true';
     if (!on(todolist)) return;

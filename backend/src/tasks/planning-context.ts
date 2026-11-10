@@ -11,10 +11,10 @@ export async function loadPlanningContext(
   settings: SettingsService,
 ) {
   const [country, enabled, start, end] = await Promise.all([
-    settings.getRawValue<string>('app.country'),
-    settings.getRawValue<boolean>('FROM_COMPLETION_ENABLED'),
-    settings.getRawValue<string>('SCHEDULE_DEFAULT_START_TIME'),
-    settings.getRawValue<string>('SCHEDULE_DEFAULT_END_TIME'),
+    settings.getRawValue('app.country'),
+    settings.getRawValue('FROM_COMPLETION_ENABLED'),
+    settings.getRawValue('SCHEDULE_DEFAULT_START_TIME'),
+    settings.getRawValue('SCHEDULE_DEFAULT_END_TIME'),
   ]);
   const countryForSite = await loadSiteCountryResolver(
     client,

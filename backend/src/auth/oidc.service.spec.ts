@@ -83,7 +83,7 @@ describe('OidcService', () => {
 
   describe('getClient', () => {
     it('should configure and return generic client', async () => {
-      settingsService.getRawValue.mockResolvedValueOnce('true');
+      settingsService.getRawValue.mockResolvedValueOnce(true);
       settingsService.getRawValue.mockResolvedValueOnce('https://issuer.com');
       settingsService.getRawValue.mockResolvedValueOnce('clientId');
       settingsService.getRawValue.mockResolvedValueOnce('clientSecret');
@@ -104,7 +104,7 @@ describe('OidcService', () => {
     });
 
     it('should throw if generic is disabled', async () => {
-      settingsService.getRawValue.mockResolvedValueOnce('false');
+      settingsService.getRawValue.mockResolvedValueOnce(false);
       await expect(service.getClient('generic')).rejects.toThrow(
         BadRequestException,
       );
@@ -117,7 +117,7 @@ describe('OidcService', () => {
     });
 
     it('should validate the issuer URL against SSRF before discovery (AUDIT #3)', async () => {
-      settingsService.getRawValue.mockResolvedValueOnce('true');
+      settingsService.getRawValue.mockResolvedValueOnce(true);
       settingsService.getRawValue.mockResolvedValueOnce('https://issuer.com');
       settingsService.getRawValue.mockResolvedValueOnce('clientId');
       settingsService.getRawValue.mockResolvedValueOnce('clientSecret');
@@ -143,7 +143,7 @@ describe('OidcService', () => {
     });
 
     it('should reject loopback / private-range issuer URLs without contacting them (AUDIT #3)', async () => {
-      settingsService.getRawValue.mockResolvedValueOnce('true');
+      settingsService.getRawValue.mockResolvedValueOnce(true);
       settingsService.getRawValue.mockResolvedValueOnce(
         'http://169.254.169.254/.well-known/openid-configuration',
       );
@@ -162,7 +162,7 @@ describe('OidcService', () => {
     });
 
     it('should return cached client if config unchanged', async () => {
-      settingsService.getRawValue.mockResolvedValueOnce('true');
+      settingsService.getRawValue.mockResolvedValueOnce(true);
       settingsService.getRawValue.mockResolvedValueOnce('https://issuer.com');
       settingsService.getRawValue.mockResolvedValueOnce('clientId');
       settingsService.getRawValue.mockResolvedValueOnce('clientSecret');
@@ -174,7 +174,7 @@ describe('OidcService', () => {
 
       await service.getClient('generic');
 
-      settingsService.getRawValue.mockResolvedValueOnce('true');
+      settingsService.getRawValue.mockResolvedValueOnce(true);
       settingsService.getRawValue.mockResolvedValueOnce('https://issuer.com');
       settingsService.getRawValue.mockResolvedValueOnce('clientId');
       settingsService.getRawValue.mockResolvedValueOnce('clientSecret');
@@ -186,7 +186,7 @@ describe('OidcService', () => {
     });
 
     it('should rebuild client if config changes (cache invalidation)', async () => {
-      settingsService.getRawValue.mockResolvedValueOnce('true');
+      settingsService.getRawValue.mockResolvedValueOnce(true);
       settingsService.getRawValue.mockResolvedValueOnce('https://issuer.com');
       settingsService.getRawValue.mockResolvedValueOnce('clientId');
       settingsService.getRawValue.mockResolvedValueOnce('clientSecret');
@@ -199,7 +199,7 @@ describe('OidcService', () => {
       await service.getClient('generic');
 
       // Config changed: different clientId
-      settingsService.getRawValue.mockResolvedValueOnce('true');
+      settingsService.getRawValue.mockResolvedValueOnce(true);
       settingsService.getRawValue.mockResolvedValueOnce('https://issuer.com');
       settingsService.getRawValue.mockResolvedValueOnce('newClientId');
       settingsService.getRawValue.mockResolvedValueOnce('clientSecret');
@@ -216,7 +216,7 @@ describe('OidcService', () => {
 
     it('should configure and return google client', async () => {
       settingsService.getRawValue.mockImplementation((key: string) => {
-        if (key === 'auth.google.enabled') return Promise.resolve('true');
+        if (key === 'auth.google.enabled') return Promise.resolve(true);
         if (key === 'auth.google.clientId')
           return Promise.resolve('googleClientId');
         if (key === 'auth.google.clientSecret')
@@ -245,7 +245,7 @@ describe('OidcService', () => {
 
     it('should throw if google is disabled', async () => {
       settingsService.getRawValue.mockImplementation((key: string) => {
-        if (key === 'auth.google.enabled') return Promise.resolve('false');
+        if (key === 'auth.google.enabled') return Promise.resolve(false);
         return Promise.resolve(null);
       });
       await expect(service.getClient('google')).rejects.toThrow(
@@ -256,7 +256,7 @@ describe('OidcService', () => {
 
   describe('getLoginUrl', () => {
     it('should generate state+nonce and store in Redis', async () => {
-      settingsService.getRawValue.mockResolvedValueOnce('true');
+      settingsService.getRawValue.mockResolvedValueOnce(true);
       settingsService.getRawValue.mockResolvedValueOnce('https://issuer.com');
       settingsService.getRawValue.mockResolvedValueOnce('clientId');
       settingsService.getRawValue.mockResolvedValueOnce('clientSecret');
@@ -295,7 +295,7 @@ describe('OidcService', () => {
 
     it('should include hd parameter for google if configured', async () => {
       settingsService.getRawValue.mockImplementation((key: string) => {
-        if (key === 'auth.google.enabled') return Promise.resolve('true');
+        if (key === 'auth.google.enabled') return Promise.resolve(true);
         if (key === 'auth.google.clientId')
           return Promise.resolve('googleClientId');
         if (key === 'auth.google.clientSecret')
@@ -328,7 +328,7 @@ describe('OidcService', () => {
 
   describe('handleCallback', () => {
     const setupMockClient = () => {
-      settingsService.getRawValue.mockResolvedValueOnce('true');
+      settingsService.getRawValue.mockResolvedValueOnce(true);
       settingsService.getRawValue.mockResolvedValueOnce('https://issuer.com');
       settingsService.getRawValue.mockResolvedValueOnce('clientId');
       settingsService.getRawValue.mockResolvedValueOnce('clientSecret');
@@ -567,7 +567,7 @@ describe('OidcService', () => {
 
     it('should reject google callback if hd parameter does not match', async () => {
       settingsService.getRawValue.mockImplementation((key: string) => {
-        if (key === 'auth.google.enabled') return Promise.resolve('true');
+        if (key === 'auth.google.enabled') return Promise.resolve(true);
         if (key === 'auth.google.clientId')
           return Promise.resolve('googleClientId');
         if (key === 'auth.google.clientSecret')

@@ -88,7 +88,7 @@ export class BackupLogicService {
     const envPath = this.configService
       .get<string>('BACKUP_STORAGE_PATH')
       ?.trim();
-    const settingPath = await this.settings.getRawValue<string>('backup.path');
+    const settingPath = await this.settings.getRawValue('backup.path');
 
     const rawPath = envPath || settingPath || getBackupSystemDir();
 
@@ -458,7 +458,7 @@ export class BackupLogicService {
 
   async cleanupExpired(): Promise<number> {
     const count =
-      (await this.settings.getRawValue<number>('backup.retention.count')) || 10;
+      (await this.settings.getRawValue('backup.retention.count')) || 10;
     const backups = await this.listBackups();
     const backupDir = await this.getStoragePath();
     let deleted = 0;

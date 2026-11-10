@@ -25,9 +25,9 @@ describe('SchedulerService pause/resume', () => {
   it('resets individual pauses on global resume, preserving existing behavior', async () => {
     const { service, settings, job } = schedulerFixture();
     service.toggleJob('health-check');
-    settings.getRawValue.mockResolvedValue('false');
+    settings.getRawValue.mockResolvedValue(false);
     expect((await service.syncSchedulerState()).enabled).toBe(false);
-    settings.getRawValue.mockResolvedValue('true');
+    settings.getRawValue.mockResolvedValue(true);
     expect((await service.syncSchedulerState()).enabled).toBe(true);
     expect(job.start).toHaveBeenCalledTimes(1);
     expect((await service.getJobsStatus())[0].enabled).toBe(true);

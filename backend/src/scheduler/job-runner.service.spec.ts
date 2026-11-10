@@ -122,7 +122,7 @@ describe('JobRunner', () => {
     });
   });
 
-  it.each([true, 'true', false, 'false', undefined, null])(
+  it.each([true, false, undefined, null])(
     'parses the global flag consistently: %s',
     async (value) => {
       const { settings } = buildRunner(value);
@@ -130,7 +130,7 @@ describe('JobRunner', () => {
       expect(await isSchedulerEnabled(settings as never)).toBe(
         value == null
           ? SETTINGS_REGISTRY['scheduler.enabled'].default
-          : value === true || value === 'true',
+          : value === true,
       );
     },
   );

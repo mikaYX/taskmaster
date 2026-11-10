@@ -415,9 +415,7 @@ export class TodosService {
   /** The channels picked in the todolist settings that are still enabled. */
   private async todoChannels(): Promise<TodoChannels> {
     if (!this.settings) return NO_CHANNELS;
-    const ids = await this.settings.getRawValue<number[]>(
-      TODO_CHANNELS_SETTING,
-    );
+    const ids = await this.settings.getRawValue(TODO_CHANNELS_SETTING);
     if (!Array.isArray(ids) || ids.length === 0) return NO_CHANNELS;
     const rows = await this.prisma.client.notificationChannel.findMany({
       where: { id: { in: ids }, enabled: true },
@@ -629,8 +627,8 @@ export class TodosService {
       });
       if (!person?.email) return;
       const [appTitle, logo, group] = await Promise.all([
-        this.settings.getRawValue<string>('app.title'),
-        this.settings.getRawValue<string>('app.logoUrl'),
+        this.settings.getRawValue('app.title'),
+        this.settings.getRawValue('app.logoUrl'),
         todo.groupId === null
           ? null
           : this.prisma.client.group.findUnique({

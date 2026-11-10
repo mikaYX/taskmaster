@@ -325,9 +325,7 @@ export class NotificationsService {
   /** A deleted channel must not stay selected for the todolist. */
   private async forgetTodoChannel(id: number) {
     try {
-      const ids = await this.settingsService.getRawValue<number[]>(
-        TODO_CHANNELS_SETTING,
-      );
+      const ids = await this.settingsService.getRawValue(TODO_CHANNELS_SETTING);
       if (Array.isArray(ids) && ids.includes(id)) {
         await this.settingsService.set(
           TODO_CHANNELS_SETTING,
@@ -978,8 +976,8 @@ export class NotificationsService {
     }
 
     const [appTitle, logo] = await Promise.all([
-      this.settingsService.getRawValue<string>('app.title'),
-      this.settingsService.getRawValue<string>('app.logoUrl'),
+      this.settingsService.getRawValue('app.title'),
+      this.settingsService.getRawValue('app.logoUrl'),
     ]);
 
     const sent = await this.emailService.send({

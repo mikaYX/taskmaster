@@ -1,3 +1,4 @@
+import { UserRole } from '@prisma/client';
 import { JobRunner } from '../job-runner.service';
 import { JOB_DEFINITIONS } from '../job-definitions';
 import { Injectable, Logger } from '@nestjs/common';
@@ -49,9 +50,7 @@ export class AutoExportJob implements SchedulerJob {
 
   async execute(): Promise<void> {
     // 1. Check if enabled
-    let enabled = await this.settings.getRawValue<boolean>(
-      'export.autoExport.enabled',
-    );
+    let enabled = await this.settings.getRawValue('export.autoExport.enabled');
     if (enabled ?? true) {
       if (enabled === undefined || enabled === null) {
         this.logger.log(
@@ -64,27 +63,20 @@ export class AutoExportJob implements SchedulerJob {
 
     // 2. Get Schedule Config
     const scheduleType =
-      (await this.settings.getRawValue<string>(
-        'export.autoExport.scheduleType',
-      )) ?? 'daily';
+      (await this.settings.getRawValue('export.autoExport.scheduleType')) ??
+      'daily';
     const dayOfWeek =
-      (await this.settings.getRawValue<number>(
-        'export.autoExport.dayOfWeek',
-      )) ?? 1;
+      (await this.settings.getRawValue('export.autoExport.dayOfWeek')) ?? 1;
     const dayOfMonth =
-      (await this.settings.getRawValue<number>(
-        'export.autoExport.dayOfMonth',
-      )) ?? 1;
+      (await this.settings.getRawValue('export.autoExport.dayOfMonth')) ?? 1;
     const monthMode =
-      (await this.settings.getRawValue<string>(
-        'export.autoExport.monthMode',
-      )) ?? 'specific';
+      (await this.settings.getRawValue('export.autoExport.monthMode')) ??
+      'specific';
     const weekOrdinal =
-      (await this.settings.getRawValue<string>(
-        'export.autoExport.weekOrdinal',
-      )) ?? 'first';
+      (await this.settings.getRawValue('export.autoExport.weekOrdinal')) ??
+      'first';
     const rawCustomCron =
-      (await this.settings.getRawValue<string>('export.autoExport.cron')) ||
+      (await this.settings.getRawValue('export.autoExport.cron')) ||
       '0 0 * * *';
 
     // 3. Compare with Current Time
@@ -144,26 +136,36 @@ export class AutoExportJob implements SchedulerJob {
       });
 
       // 5. Send Email if enabled
-      const emailEnabled = await this.settings.getRawValue<boolean>(
+      const emailEnabled = await this.settings.getRawValue(
         'export.autoExport.email.enabled',
       );
       if (emailEnabled) {
         try {
           const recipients = new Set<string>();
           const customEmails =
-            (await this.settings.getRawValue<string[]>(
+            (await this.settings.getRawValue(
               'export.autoExport.email.customEmails',
             )) || [];
           customEmails.forEach((e) => recipients.add(e));
 
-          const userIds =
-            (await this.settings.getRawValue<number[]>(
+          const configuredRecipients =
+            (await this.settings.getRawValue(
               'export.autoExport.email.recipients',
             )) || [];
-          if (userIds.length > 0) {
+          const userIds = configuredRecipients
+            .filter((value) => /^[1-9]\d*$/.test(value))
+            .map(Number)
+            .filter(Number.isSafeInteger);
+          const includeAdmins = configuredRecipients.some(
+            (value) => value.toLowerCase() === 'admin',
+          );
+          if (userIds.length > 0 || includeAdmins) {
             const users = await this.prisma.client.user.findMany({
               where: {
-                id: { in: userIds },
+                OR: [
+                  { id: { in: userIds } },
+                  ...(includeAdmins ? [{ role: UserRole.SUPER_ADMIN }] : []),
+                ],
                 deletedAt: null,
                 email: { not: null },
               },

@@ -69,12 +69,12 @@ describe('AzureAdService', () => {
 
   describe('getClient', () => {
     it('should throw if azure ad is disabled', async () => {
-      settingsService.getRawValue.mockResolvedValueOnce('false');
+      settingsService.getRawValue.mockResolvedValueOnce(false);
       await expect(service.getClient()).rejects.toThrow(BadRequestException);
     });
 
     it('should configure MSAL client with settings', async () => {
-      settingsService.getRawValue.mockResolvedValueOnce('true');
+      settingsService.getRawValue.mockResolvedValueOnce(true);
       settingsService.getRawValue.mockResolvedValueOnce('mock-tenant-id');
       settingsService.getRawValue.mockResolvedValueOnce('mock-client-id');
       settingsService.getRawValue.mockResolvedValueOnce('mock-client-secret');
@@ -87,7 +87,7 @@ describe('AzureAdService', () => {
 
   describe('getLoginUrl', () => {
     it('should generate URL and store state/nonce in Redis', async () => {
-      settingsService.getRawValue.mockResolvedValueOnce('true');
+      settingsService.getRawValue.mockResolvedValueOnce(true);
       settingsService.getRawValue.mockResolvedValueOnce('mock-tenant-id');
       settingsService.getRawValue.mockResolvedValueOnce('mock-client-id');
       settingsService.getRawValue.mockResolvedValueOnce('mock-client-secret');
@@ -108,7 +108,7 @@ describe('AzureAdService', () => {
   describe('handleCallback', () => {
     const setupMockClient = () => {
       settingsService.getRawValue.mockImplementation((key: string) => {
-        if (key === 'auth.azureAd.enabled') return Promise.resolve('true');
+        if (key === 'auth.azureAd.enabled') return Promise.resolve(true);
         if (key === 'auth.azureAd.tenantId')
           return Promise.resolve('tenant-123');
         if (key === 'auth.azureAd.clientId')

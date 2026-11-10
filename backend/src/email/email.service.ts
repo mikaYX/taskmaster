@@ -68,7 +68,7 @@ export class EmailService {
    * Send an email using the configured provider.
    */
   async send(options: EmailOptions): Promise<boolean> {
-    const enabled = await this.settings.getRawValue<boolean>('email.enabled');
+    const enabled = await this.settings.getRawValue('email.enabled');
     if (!enabled) {
       this.logger.warn('Email sending is disabled');
       return false;
@@ -76,7 +76,7 @@ export class EmailService {
 
     const provider = await this.getConfiguredProvider();
     const from =
-      options.from || (await this.settings.getRawValue<string>('email.from'));
+      options.from || (await this.settings.getRawValue('email.from'));
 
     // Fire Circuit Breaker
     try {
@@ -100,7 +100,7 @@ export class EmailService {
   ): Promise<{ success: boolean; provider: string }> {
     const provider = await this.getConfiguredProvider();
 
-    const from = await this.settings.getRawValue<string>('email.from');
+    const from = await this.settings.getRawValue('email.from');
     const success = await provider.send({
       to,
       from,
@@ -140,9 +140,8 @@ export class EmailService {
     configValid: boolean;
     provider: string;
   }> {
-    const enabled = await this.settings.getRawValue<boolean>('email.enabled');
-    const providerName =
-      await this.settings.getRawValue<string>('email.provider');
+    const enabled = await this.settings.getRawValue('email.enabled');
+    const providerName = await this.settings.getRawValue('email.provider');
 
     if (!enabled) {
       return { enabled: false, configValid: false, provider: providerName };
@@ -159,35 +158,34 @@ export class EmailService {
    */
   private async isProviderConfigured(providerName: string): Promise<boolean> {
     try {
-      const from = await this.settings.getRawValue<string>('email.from');
+      const from = await this.settings.getRawValue('email.from');
       if (!from) return false;
 
       switch (providerName) {
         case 'smtp': {
-          const host =
-            await this.settings.getRawValue<string>('email.smtp.host');
+          const host = await this.settings.getRawValue('email.smtp.host');
           return !!host;
         }
         case 'mailgun': {
-          const apiKey = await this.settings.getRawValue<string>(
+          const apiKey = await this.settings.getRawValue(
             'email.mailgun.apiKey',
           );
-          const domain = await this.settings.getRawValue<string>(
+          const domain = await this.settings.getRawValue(
             'email.mailgun.domain',
           );
           return !!(apiKey && domain);
         }
         case 'mailjet': {
-          const apiKey = await this.settings.getRawValue<string>(
+          const apiKey = await this.settings.getRawValue(
             'email.mailjet.apiKey',
           );
-          const secretKey = await this.settings.getRawValue<string>(
+          const secretKey = await this.settings.getRawValue(
             'email.mailjet.secretKey',
           );
           return !!(apiKey && secretKey);
         }
         case 'sendgrid': {
-          const apiKey = await this.settings.getRawValue<string>(
+          const apiKey = await this.settings.getRawValue(
             'email.sendgrid.apiKey',
           );
           return !!apiKey;
@@ -225,8 +223,7 @@ export class EmailService {
   }
 
   private async resolveProvider(): Promise<EmailProvider> {
-    const providerName =
-      await this.settings.getRawValue<string>('email.provider');
+    const providerName = await this.settings.getRawValue('email.provider');
 
     switch (providerName) {
       case 'smtp':
@@ -253,12 +250,10 @@ export class EmailService {
   }
 
   private async configureSmtp(): Promise<void> {
-    const host = await this.settings.getRawValue<string>('email.smtp.host');
-    const port = await this.settings.getRawValue<number>('email.smtp.port');
-    const user = await this.settings.getRawValue<string>('email.smtp.user');
-    const password = await this.settings.getRawValue<string>(
-      'email.smtp.password',
-    );
+    const host = await this.settings.getRawValue('email.smtp.host');
+    const port = await this.settings.getRawValue('email.smtp.port');
+    const user = await this.settings.getRawValue('email.smtp.user');
+    const password = await this.settings.getRawValue('email.smtp.password');
 
     if (!host) {
       throw new BadRequestException('SMTP host not configured');
@@ -268,12 +263,8 @@ export class EmailService {
   }
 
   private async configureMailgun(): Promise<void> {
-    const apiKey = await this.settings.getRawValue<string>(
-      'email.mailgun.apiKey',
-    );
-    const domain = await this.settings.getRawValue<string>(
-      'email.mailgun.domain',
-    );
+    const apiKey = await this.settings.getRawValue('email.mailgun.apiKey');
+    const domain = await this.settings.getRawValue('email.mailgun.domain');
 
     if (!apiKey || !domain) {
       throw new BadRequestException('Mailgun credentials not configured');
@@ -283,10 +274,8 @@ export class EmailService {
   }
 
   private async configureMailjet(): Promise<void> {
-    const apiKey = await this.settings.getRawValue<string>(
-      'email.mailjet.apiKey',
-    );
-    const secretKey = await this.settings.getRawValue<string>(
+    const apiKey = await this.settings.getRawValue('email.mailjet.apiKey');
+    const secretKey = await this.settings.getRawValue(
       'email.mailjet.secretKey',
     );
 
@@ -298,9 +287,7 @@ export class EmailService {
   }
 
   private async configureSendgrid(): Promise<void> {
-    const apiKey = await this.settings.getRawValue<string>(
-      'email.sendgrid.apiKey',
-    );
+    const apiKey = await this.settings.getRawValue('email.sendgrid.apiKey');
 
     if (!apiKey) {
       throw new BadRequestException('SendGrid API key not configured');

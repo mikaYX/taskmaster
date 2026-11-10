@@ -17,7 +17,7 @@ export class ReportExportService {
   ) {}
 
   async generate(now = new Date()): Promise<string[]> {
-    const formats = (await this.settings.getRawValue<string[]>(
+    const formats = (await this.settings.getRawValue(
       'export.autoExport.formats',
     )) ?? ['csv'];
     if (
@@ -29,10 +29,8 @@ export class ReportExportService {
         'Select at least one export format: CSV or PDF',
       );
     }
-    const from =
-      (await this.settings.getRawValue<number>('export.offset.from')) ?? 30;
-    const to =
-      (await this.settings.getRawValue<number>('export.offset.to')) ?? 0;
+    const from = (await this.settings.getRawValue('export.offset.from')) ?? 30;
+    const to = (await this.settings.getRawValue('export.offset.to')) ?? 0;
     if (!Number.isFinite(from) || !Number.isFinite(to) || from < to) {
       throw new BadRequestException('Invalid export period');
     }

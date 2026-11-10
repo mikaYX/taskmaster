@@ -1,3 +1,5 @@
+import { ConfigService } from '@nestjs/config';
+import { SETTINGS_REGISTRY, SETTING_KEYS } from './settings.registry';
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuditService } from '../audit/audit.service';
 import { PrismaService } from '../prisma';
@@ -133,5 +135,194 @@ describe('SettingsService', () => {
         'email.smtp.host',
       );
     });
+  });
+});
+
+describe('Settings persistence with real encryption and audit', () => {
+  const rows = new Map<
+    string,
+    { key: string; value: string; updatedAt: Date }
+  >();
+  const config = {
+    findUnique: jest.fn(
+      async ({ where }: { where: { key: string } }) =>
+        rows.get(where.key) ?? null,
+    ),
+    findMany: jest.fn(async () => [...rows.values()]),
+    upsert: jest.fn(
+      async ({
+        create,
+        update,
+      }: {
+        create: { key: string; value: string };
+        update: { value: string };
+      }) => {
+        const row = {
+          key: create.key,
+          value: rows.has(create.key) ? update.value : create.value,
+          updatedAt: new Date(),
+        };
+        rows.set(row.key, row);
+        return row;
+      },
+    ),
+    deleteMany: jest.fn(async ({ where }: { where: { key: string } }) => ({
+      count: Number(rows.delete(where.key)),
+    })),
+  };
+  const auditCreate = jest.fn();
+  let service: SettingsService;
+  beforeEach(async () => {
+    rows.clear();
+    jest.clearAllMocks();
+    const module = await Test.createTestingModule({
+      providers: [
+        SettingsService,
+        EncryptionService,
+        AuditService,
+        {
+          provide: ConfigService,
+          useValue: new ConfigService({
+            AUTH_SECRET: 'test-secret-at-least-16',
+          }),
+        },
+        {
+          provide: PrismaService,
+          useValue: { client: { config, auditLog: { create: auditCreate } } },
+        },
+      ],
+    }).compile();
+    service = module.get(SettingsService);
+  });
+
+  it('accepts the string true for Azure AD', async () => {
+    expect((await service.set('auth.azureAd.enabled', 'true')).value).toBe(
+      true,
+    );
+  });
+
+  it('presents an absent secret as empty in get and getAll', async () => {
+    expect((await service.get('email.smtp.password')).value).toBe('');
+    expect(
+      (await service.getAll()).find((row) => row.key === 'email.smtp.password')
+        ?.value,
+    ).toBe('');
+  });
+
+  it.each(SETTING_KEYS.filter((key) => SETTINGS_REGISTRY[key].sensitive))(
+    'redacts persisted audit changes for %s',
+    async (key) => {
+      await service.set(key, 'first-private-value', {
+        id: 1,
+        username: 'admin',
+      });
+      await service.set(key, 'second-private-value', {
+        id: 1,
+        username: 'admin',
+      });
+      await service.reset(key, { id: 1, username: 'admin' });
+      expect(auditCreate).toHaveBeenCalledTimes(3);
+      const persisted = JSON.stringify(auditCreate.mock.calls);
+      expect(persisted).not.toContain('first-private-value');
+      expect(persisted).not.toContain('second-private-value');
+      expect(persisted).toContain('[REDACTED]');
+    },
+  );
+  it('preserves encrypted secrets when get/getAll masks are returned through set and bulk', async () => {
+    await service.set('email.smtp.password', 'original-secret');
+    const raw = rows.get('email.smtp.password')?.value;
+    expect(raw).not.toContain('original-secret');
+    const response = await service.get('email.smtp.password');
+    expect(response.value).toBe('••••••••');
+    expect(
+      (await service.getAll()).find((row) => row.key === response.key)?.value,
+    ).toBe(response.value);
+    await service.set(response.key, response.value);
+    await service.setBulk({ email: { smtp: { password: response.value } } });
+    expect(rows.get(response.key)?.value).toBe(raw);
+    expect(await service.getRawValue('email.smtp.password')).toBe(
+      'original-secret',
+    );
+    expect(config.upsert).toHaveBeenCalledTimes(1);
+  });
+
+  it('stores an explicitly empty secret and clears its mask on reset', async () => {
+    expect((await service.set('email.smtp.password', '')).value).toBe(
+      '••••••••',
+    );
+    expect(await service.getRawValue('email.smtp.password')).toBe('');
+    expect((await service.reset('email.smtp.password')).value).toBe('');
+    expect(rows.has('email.smtp.password')).toBe(false);
+    expect((await service.get('email.smtp.password')).value).toBe('');
+  });
+
+  it.each(['true', '"true"', 'false', '"false"'])(
+    'reads legacy boolean %s',
+    async (value) => {
+      rows.set('email.enabled', {
+        key: 'email.enabled',
+        value,
+        updatedAt: new Date(),
+      });
+      expect(await service.getRawValue('email.enabled')).toBe(
+        value.includes('true'),
+      );
+      expect((await service.get('email.enabled')).value).toBe(
+        value.includes('true'),
+      );
+    },
+  );
+
+  it('caches defaults and stored values, invalidates writes and reset, and expires reads', async () => {
+    const now = jest.spyOn(Date, 'now').mockReturnValue(1000);
+    try {
+      expect(await service.getRawValue('app.title')).toBe('Taskmaster');
+      expect(await service.getRawValue('app.title')).toBe('Taskmaster');
+      expect(config.findUnique).toHaveBeenCalledTimes(1);
+      await service.set('app.title', 'Changed');
+      expect(await service.getRawValue('app.title')).toBe('Changed');
+      rows.set('app.title', {
+        key: 'app.title',
+        value: '"External"',
+        updatedAt: new Date(),
+      });
+      expect(await service.getRawValue('app.title')).toBe('Changed');
+      now.mockReturnValue(61001);
+      expect(await service.getRawValue('app.title')).toBe('External');
+      expect((await service.reset('app.title')).value).toBe('Taskmaster');
+      expect(await service.getRawValue('app.title')).toBe('Taskmaster');
+    } finally {
+      now.mockRestore();
+    }
+  });
+
+  it('keeps partial bulk success, leaves rejected values unchanged and ignores unknown keys', async () => {
+    await service.set('email.smtp.port', 2525);
+    const results = await service.setBulk({
+      email: { smtp: { port: 0 }, enabled: 'true' },
+      'unknown.setting': 'ignored',
+    });
+    expect(results.map((row) => row.key)).toEqual(['email.enabled']);
+    expect(await service.getRawValue('email.smtp.port')).toBe(2525);
+    expect(await service.getRawValue('email.enabled')).toBe(true);
+    expect(rows.has('unknown.setting')).toBe(false);
+  });
+
+  it('rejects arbitrary boolean strings without writing', async () => {
+    await expect(service.set('auth.azureAd.enabled', 'yes')).rejects.toThrow(
+      'Invalid value',
+    );
+    expect(config.upsert).not.toHaveBeenCalled();
+  });
+
+  it('ignores obsolete stored keys in getAll', async () => {
+    rows.set('obsolete', {
+      key: 'obsolete',
+      value: 'invalid',
+      updatedAt: new Date(),
+    });
+    expect((await service.getAll()).some((row) => row.key === 'obsolete')).toBe(
+      false,
+    );
   });
 });

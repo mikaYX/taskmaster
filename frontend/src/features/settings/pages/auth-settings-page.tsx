@@ -121,7 +121,7 @@ function ProviderStatus({ enabled, valid }: { enabled: boolean; valid: boolean }
 export function AuthSettingsPage() {
     const { t } = useTranslation();
 
-    const { settings, getSetting, updateSettings, isLoading, isUpdating, emailConfigStatus } = useSettings();
+    const { settings, getSetting, getSettingAsBool, updateSettings, isLoading, isUpdating, emailConfigStatus } = useSettings();
     const isInitialized = useRef(false);
     const [providerTab, setProviderTab] = useState('azure');
     const [activeTab, setActiveTab] = useState('auth');
@@ -262,19 +262,19 @@ export function AuthSettingsPage() {
                     secureActions: getSetting('auth.session.secureActions') === 'true',
                 },
                 azureAd: {
-                    enabled: getSetting('auth.azureAd.enabled') === 'true',
+                    enabled: getSettingAsBool('auth.azureAd.enabled'),
                     tenantId: getSetting('auth.azureAd.tenantId') || '',
                     clientId: getSetting('auth.azureAd.clientId') || '',
                     clientSecret: getSetting('auth.azureAd.clientSecret') || '',
                 },
                 google: {
-                    enabled: getSetting('auth.google.enabled') === 'true',
+                    enabled: getSettingAsBool('auth.google.enabled'),
                     clientId: getSetting('auth.google.clientId') || '',
                     clientSecret: getSetting('auth.google.clientSecret') || '',
                     hostedDomain: getSetting('auth.google.hostedDomain') || '',
                 },
                 generic: {
-                    enabled: getSetting('auth.generic.enabled') === 'true',
+                    enabled: getSettingAsBool('auth.generic.enabled'),
                     type: (getSetting('auth.generic.type') as 'oidc' | 'saml') || 'oidc',
                     oidc: {
                         issuer: getSetting('auth.generic.oidc.issuer') || '',
@@ -291,7 +291,7 @@ export function AuthSettingsPage() {
                     },
                 },
                 ldap: {
-                    enabled: getSetting('auth.ldap.enabled') === 'true',
+                    enabled: getSettingAsBool('auth.ldap.enabled'),
                     url: getSetting('auth.ldap.url') || '',
                     bindDn: getSetting('auth.ldap.bindDn') || '',
                     bindPassword: getSetting('auth.ldap.bindPassword') || '',
@@ -300,7 +300,7 @@ export function AuthSettingsPage() {
                 },
             });
         }
-    }, [settings.length, form, getSetting]);
+    }, [settings.length, form, getSetting, getSettingAsBool]);
 
     const onSubmit = (data: z.infer<typeof authSettingsSchema>) => {
         // Validate Email OTP selection

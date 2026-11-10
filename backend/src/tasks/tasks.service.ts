@@ -94,7 +94,7 @@ export class TasksService {
   async preview(dto: CreateTaskDto): Promise<VirtualInstance[]> {
     try {
       if (dto.recurrenceMode === 'FROM_COMPLETION') {
-        const fcEnabled = await this.settings.getRawValue<boolean>(
+        const fcEnabled = await this.settings.getRawValue(
           'FROM_COMPLETION_ENABLED',
         );
         if (!fcEnabled) {
@@ -665,7 +665,7 @@ export class TasksService {
   async create(dto: CreateTaskDto): Promise<TaskResponseDto> {
     // === Recurrence Mode Validation ===
     if (dto.recurrenceMode === 'FROM_COMPLETION') {
-      const fcEnabled = await this.settings.getRawValue<boolean>(
+      const fcEnabled = await this.settings.getRawValue(
         'FROM_COMPLETION_ENABLED',
       );
 
@@ -756,7 +756,7 @@ export class TasksService {
 
     if (!task) throw new NotFoundException(`Task ${id} not found`);
 
-    const fcEnabled = await this.settings.getRawValue<boolean>(
+    const fcEnabled = await this.settings.getRawValue(
       'FROM_COMPLETION_ENABLED',
     );
 
@@ -1049,7 +1049,7 @@ export class TasksService {
     dto: OverrideOccurrenceDto,
     actor: { id: number; username: string },
   ) {
-    const flag = await this.settings.getRawValue<boolean>(
+    const flag = await this.settings.getRawValue(
       'TASK_OCCURRENCE_OVERRIDES_ENABLED',
     );
     if (!flag) {
@@ -1126,7 +1126,7 @@ export class TasksService {
     originalDateStr: string,
     actor: { id: number; username: string },
   ) {
-    const flag = await this.settings.getRawValue<boolean>(
+    const flag = await this.settings.getRawValue(
       'TASK_OCCURRENCE_OVERRIDES_ENABLED',
     );
     if (!flag) {

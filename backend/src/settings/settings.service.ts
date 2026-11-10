@@ -7,6 +7,7 @@ import {
   SETTINGS_REGISTRY,
   SETTING_KEYS,
   SettingKey,
+  SettingValue,
   isValidKey,
 } from './settings.registry';
 import { SettingResponseDto } from './dto';
@@ -15,7 +16,13 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { getUploadsDir } from '../config/app-paths';
 
-const SENSITIVE_PLACEHOLDER = '••••••••';
+import {
+  decodeSetting,
+  encodeSetting,
+  parseValue,
+  presentSetting,
+  SENSITIVE_PLACEHOLDER,
+} from './setting-codec';
 
 /**
  * Whitelist of settings keys returned by `getPublicBranding()`.
@@ -117,7 +124,7 @@ export class SettingsService {
       result[key] = SETTINGS_REGISTRY[key].default;
     }
     for (const record of stored) {
-      result[record.key] = this.parseValue(record.value);
+      result[record.key] = parseValue(record.value);
     }
     return result;
   }
@@ -196,7 +203,7 @@ export class SettingsService {
       isConfigured(azureSecret);
     this.logger.debug(`Azure configured: ${azureConfigured}`);
 
-    const azureEnabled = String(azureEnabledRaw) === 'true';
+    const azureEnabled = azureEnabledRaw === true;
 
     // Debug logging
     this.logger.debug(
@@ -208,9 +215,9 @@ export class SettingsService {
       isConfigured(googleClient) && isConfigured(googleSecret);
     this.logger.debug(`Google configured: ${googleConfigured}`);
 
-    const googleEnabled = String(googleEnabledRaw) === 'true';
+    const googleEnabled = googleEnabledRaw === true;
 
-    const genericEnabled = String(genericEnabledRaw) === 'true';
+    const genericEnabled = genericEnabledRaw === true;
 
     const oidcConfigured =
       isConfigured(oidcIssuer) &&
@@ -227,7 +234,7 @@ export class SettingsService {
       isConfigured(ldapBindDn) &&
       isConfigured(ldapBindPass) &&
       isConfigured(ldapSearch);
-    const ldapEnabled = String(ldapEnabledRaw) === 'true';
+    const ldapEnabled = ldapEnabledRaw === true;
 
     return {
       oidc_generic: {
@@ -270,62 +277,38 @@ export class SettingsService {
    */
   async getAll(): Promise<SettingResponseDto[]> {
     const stored = await this.prisma.client.config.findMany();
-    const storedMap = new Map(stored.map((s: any) => [s.key, s]));
-
-    return SETTING_KEYS.map((key) => {
-      const config = SETTINGS_REGISTRY[key];
-      const record = storedMap.get(key);
-      const sensitive = config.sensitive;
-
-      let value: unknown;
-      if (record) {
-        value = sensitive
-          ? SENSITIVE_PLACEHOLDER
-          : this.parseValue((record as any).value);
-      } else {
-        value = sensitive ? SENSITIVE_PLACEHOLDER : config.default;
-      }
-
-      return {
-        key,
-        value,
-        sensitive,
-        description: config.description,
-        updatedAt: (record as any)?.updatedAt,
-      };
-    });
+    const storedMap = new Map(stored.map((record) => [record.key, record]));
+    return SETTING_KEYS.map((key) => this.toResponse(key, storedMap.get(key)));
   }
 
-  /**
-   * Get a single setting.
-   */
+  private toResponse(
+    key: SettingKey,
+    record?: { value: string; updatedAt: Date } | null,
+  ): SettingResponseDto {
+    const config = SETTINGS_REGISTRY[key];
+    return {
+      key,
+      value: presentSetting(
+        key,
+        config.sensitive
+          ? undefined
+          : decodeSetting(key, record?.value, this.encryption),
+        { stored: record != null },
+      ),
+      sensitive: config.sensitive,
+      description: config.description,
+      updatedAt: record?.updatedAt,
+    };
+  }
+
   async get(key: string): Promise<SettingResponseDto> {
     if (!isValidKey(key)) {
       throw new BadRequestException(`Unknown setting key: ${key}`);
     }
-
-    const config = SETTINGS_REGISTRY[key];
     const record = await this.prisma.client.config.findUnique({
       where: { key },
     });
-    const sensitive = config.sensitive;
-
-    let value: unknown;
-    if (record) {
-      value = sensitive
-        ? SENSITIVE_PLACEHOLDER
-        : this.parseValue((record as any).value);
-    } else {
-      value = sensitive ? SENSITIVE_PLACEHOLDER : config.default;
-    }
-
-    return {
-      key,
-      value,
-      sensitive,
-      description: config.description,
-      updatedAt: (record as any)?.updatedAt,
-    };
+    return this.toResponse(key, record);
   }
 
   /** Resolve both VAPID settings under a cross-process PostgreSQL lock. */
@@ -341,13 +324,7 @@ export class SettingsService {
         key: typeof publicKeySetting | typeof privateKeySetting,
       ) => {
         const record = await tx.config.findUnique({ where: { key } });
-        if (!record) return '';
-        const value =
-          SETTINGS_REGISTRY[key].sensitive &&
-          this.encryption.isEncrypted(record.value)
-            ? this.encryption.decrypt(record.value)
-            : record.value;
-        return this.parseValue(value) as string;
+        return decodeSetting(key, record?.value, this.encryption);
       };
       const publicKey = await read(publicKeySetting);
       const privateKey = await read(privateKeySetting);
@@ -358,12 +335,7 @@ export class SettingsService {
         [publicKeySetting, generated.publicKey],
         [privateKeySetting, generated.privateKey],
       ] as const) {
-        const serialized = JSON.stringify(
-          SETTINGS_REGISTRY[key].schema.parse(value),
-        );
-        const stored = SETTINGS_REGISTRY[key].sensitive
-          ? this.encryption.encrypt(serialized)
-          : serialized;
+        const stored = encodeSetting(key, value, this.encryption);
         await tx.config.upsert({
           where: { key },
           create: { key, value: stored },
@@ -381,34 +353,19 @@ export class SettingsService {
    * Get raw value (for internal use).
    * Decrypts sensitive values.
    */
-  async getRawValue<T = unknown>(key: SettingKey): Promise<T> {
-    const config = SETTINGS_REGISTRY[key];
-
+  async getRawValue<K extends SettingKey>(key: K): Promise<SettingValue<K>>;
+  async getRawValue(key: SettingKey): Promise<SettingValue<SettingKey>> {
     const now = Date.now();
     const cached = this.cache.get(key);
     if (cached && now < cached.expiresAt) {
-      return cached.value as T;
+      return SETTINGS_REGISTRY[key].schema.parse(cached.value);
     }
 
     const record = await this.prisma.client.config.findUnique({
       where: { key },
     });
 
-    if (!record) {
-      const defaultVal = config.default as T;
-      this.cache.set(key, {
-        value: defaultVal,
-        expiresAt: now + this.CACHE_TTL_MS,
-      });
-      return defaultVal;
-    }
-
-    let value = record.value;
-    if (config.sensitive && this.encryption.isEncrypted(value)) {
-      value = this.encryption.decrypt(value);
-    }
-
-    const parsedVal = this.parseValue(value) as T;
+    const parsedVal = decodeSetting(key, record?.value, this.encryption);
     this.cache.set(key, {
       value: parsedVal,
       expiresAt: now + this.CACHE_TTL_MS,
@@ -470,21 +427,13 @@ export class SettingsService {
       );
     }
 
-    // SSO Unimplemented Providers Guard
-
     // Get value before update for audit
     const beforeRaw = await this.getRawValue(key);
     const before = beforeRaw;
 
-    // Serialize value
-    let serialized = JSON.stringify(result.data);
+    const serialized = encodeSetting(key, result.data, this.encryption);
 
-    // Encrypt if sensitive
-    if (config.sensitive) {
-      serialized = this.encryption.encrypt(serialized);
-    }
-
-    await this.prisma.client.config.upsert({
+    const record = await this.prisma.client.config.upsert({
       where: { key },
       create: { key, value: serialized },
       update: { value: serialized },
@@ -511,13 +460,7 @@ export class SettingsService {
 
     this.logger.log(`Setting updated: ${key}`);
 
-    return {
-      key,
-      value: config.sensitive ? SENSITIVE_PLACEHOLDER : result.data,
-      sensitive: config.sensitive,
-      description: config.description,
-      updatedAt: new Date(),
-    };
+    return this.toResponse(key, record);
   }
   /**
    * Reset a setting to default.
@@ -556,12 +499,7 @@ export class SettingsService {
 
     this.logger.log(`Setting reset: ${key}`);
 
-    return {
-      key,
-      value: config.sensitive ? SENSITIVE_PLACEHOLDER : config.default,
-      sensitive: config.sensitive,
-      description: config.description,
-    };
+    return this.toResponse(key);
   }
 
   /**
@@ -574,8 +512,6 @@ export class SettingsService {
   ): Promise<SettingResponseDto[]> {
     const flattened = this.flattenObject(settings);
     const results: SettingResponseDto[] = [];
-
-    // Pre-validation for unimplemented providers in bulk
 
     // Special validation guard for global scheduling window
     if (
@@ -644,14 +580,6 @@ export class SettingsService {
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       throw new BadRequestException(`Invalid cron expression: ${message}`);
-    }
-  }
-
-  private parseValue(value: string): unknown {
-    try {
-      return JSON.parse(value);
-    } catch {
-      return value;
     }
   }
 

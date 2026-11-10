@@ -38,19 +38,17 @@ export class AutoBackupJob implements SchedulerJob {
 
   async execute(): Promise<void> {
     // 1. Check if enabled
-    const enabled = await this.settings.getRawValue<boolean>('backup.enabled');
+    const enabled = await this.settings.getRawValue('backup.enabled');
     if (!enabled) return;
 
     // 2. Get Schedule Config
     const scheduleType =
-      (await this.settings.getRawValue<string>('backup.scheduleType')) ||
-      'daily'; // 'daily' | 'weekly' | 'custom'
+      (await this.settings.getRawValue('backup.scheduleType')) || 'daily'; // 'daily' | 'weekly' | 'custom'
     const customCron =
-      (await this.settings.getRawValue<string>('backup.cron')) || '0 3 * * *';
-    const time =
-      (await this.settings.getRawValue<string>('backup.time')) || '00:00';
+      (await this.settings.getRawValue('backup.cron')) || '0 3 * * *';
+    const time = (await this.settings.getRawValue('backup.time')) || '00:00';
     const dayOfWeek =
-      (await this.settings.getRawValue<number>('backup.dayOfWeek')) ?? 1; // 0=Sunday, 1=Monday...
+      (await this.settings.getRawValue('backup.dayOfWeek')) ?? 1; // 0=Sunday, 1=Monday...
 
     // 3. Compare with Current Time
     const now = new Date();

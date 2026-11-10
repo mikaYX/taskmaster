@@ -22,27 +22,22 @@ export class LdapService {
     username: string,
     password: string,
   ): Promise<{ username: string; email: string; fullname: string } | null> {
-    const isEnabled = await this.settingsService.getRawValue<string>(
-      'auth.ldap.enabled' as any,
-    );
-    if (isEnabled !== 'true') {
+    const isEnabled =
+      await this.settingsService.getRawValue('auth.ldap.enabled');
+    if (!isEnabled) {
       return null; // LDAP not active
     }
 
-    const url = await this.settingsService.getRawValue<string>(
-      'auth.ldap.url' as any,
+    const url = await this.settingsService.getRawValue('auth.ldap.url');
+    const bindDn = await this.settingsService.getRawValue('auth.ldap.bindDn');
+    const bindPassword = await this.settingsService.getRawValue(
+      'auth.ldap.bindPassword',
     );
-    const bindDn = await this.settingsService.getRawValue<string>(
-      'auth.ldap.bindDn' as any,
+    const searchBase = await this.settingsService.getRawValue(
+      'auth.ldap.searchBase',
     );
-    const bindPassword = await this.settingsService.getRawValue<string>(
-      'auth.ldap.bindPassword' as any,
-    );
-    const searchBase = await this.settingsService.getRawValue<string>(
-      'auth.ldap.searchBase' as any,
-    );
-    const searchFilterTemplate = await this.settingsService.getRawValue<string>(
-      'auth.ldap.searchFilter' as any,
+    const searchFilterTemplate = await this.settingsService.getRawValue(
+      'auth.ldap.searchFilter',
     );
 
     if (!url || !searchBase || !searchFilterTemplate) {

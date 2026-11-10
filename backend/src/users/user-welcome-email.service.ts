@@ -89,7 +89,7 @@ export class UserWelcomeEmailService {
   /** Branding is cosmetic: a missing setting must never block the email. */
   private async readSetting(key: SettingKey): Promise<string> {
     try {
-      const value = await this.settings.getRawValue<string>(key);
+      const value = await this.settings.getRawValue(key);
       return typeof value === 'string' ? value : '';
     } catch {
       return '';

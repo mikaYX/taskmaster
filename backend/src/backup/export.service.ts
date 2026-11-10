@@ -37,9 +37,7 @@ export class ExportService {
    * `<data>ackupsexports`, mixed in with the database backups.
    */
   async resolveExportDir(): Promise<string> {
-    const raw = (
-      (await this.settings.getRawValue<string>('export.path')) || ''
-    ).trim();
+    const raw = ((await this.settings.getRawValue('export.path')) || '').trim();
     return resolveDataPath(raw || './exports');
   }
 

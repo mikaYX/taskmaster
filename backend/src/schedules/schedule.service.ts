@@ -26,7 +26,7 @@ export class ScheduleService {
 
   async assertBulkEnabled(): Promise<void> {
     // Schedule entity is now core, always enabled.
-    const bulkEnabled = await this.settings.getRawValue<boolean>(
+    const bulkEnabled = await this.settings.getRawValue(
       'SCHEDULE_BULK_ENABLED',
     );
     if (!bulkEnabled) {

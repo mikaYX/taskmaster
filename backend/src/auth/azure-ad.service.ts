@@ -37,7 +37,7 @@ export class AzureAdService {
     const enabled = await this.settingsService.getRawValue(
       'auth.azureAd.enabled',
     );
-    if (enabled !== 'true' && enabled !== true) {
+    if (!enabled) {
       throw new BadRequestException('Azure AD provider is disabled');
     }
 

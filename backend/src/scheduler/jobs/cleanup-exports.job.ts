@@ -47,9 +47,7 @@ export class CleanupExportsJob implements SchedulerJob {
 
     try {
       const retentionDays =
-        (await this.settingsService.getRawValue<number>(
-          'export.retention.days',
-        )) ?? 30;
+        (await this.settingsService.getRawValue('export.retention.days')) ?? 30;
       const deletedCount =
         await this.exportService.cleanupExpired(retentionDays);
       const duration = Date.now() - start;

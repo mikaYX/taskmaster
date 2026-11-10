@@ -8,7 +8,7 @@ jest.mock('ldapts');
 
 describe('LdapService', () => {
   let service: LdapService;
-  let settingsService: jest.Mocked<SettingsService>;
+  const getRawValue = jest.fn<Promise<string | boolean>, [string]>();
   let mockClientInstance: any;
 
   beforeEach(async () => {
@@ -31,7 +31,7 @@ describe('LdapService', () => {
     (Client as jest.Mock).mockImplementation(() => mockClientInstance);
 
     const mockSettingsService = {
-      getRawValue: jest.fn(),
+      getRawValue,
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -45,7 +45,6 @@ describe('LdapService', () => {
     }).compile();
 
     service = module.get<LdapService>(LdapService);
-    settingsService = module.get(SettingsService);
 
     jest.spyOn(Logger.prototype, 'error').mockImplementation(() => {});
     jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => {});
@@ -53,9 +52,9 @@ describe('LdapService', () => {
     jest.spyOn(Logger.prototype, 'debug').mockImplementation(() => {});
   });
 
-  const setupSettings = (overrides: Record<string, string> = {}) => {
-    const defaults: Record<string, string> = {
-      'auth.ldap.enabled': 'true',
+  const setupSettings = (overrides: Record<string, string | boolean> = {}) => {
+    const defaults: Record<string, string | boolean> = {
+      'auth.ldap.enabled': true,
       'auth.ldap.url': 'ldap://localhost:389',
       'auth.ldap.bindDn': 'cn=admin,dc=example,dc=com',
       'auth.ldap.bindPassword': 'adminpassword',
@@ -64,9 +63,7 @@ describe('LdapService', () => {
       ...overrides,
     };
 
-    settingsService.getRawValue.mockImplementation(
-      async (key: any) => defaults[key],
-    );
+    getRawValue.mockImplementation(async (key) => defaults[key]);
   };
 
   it('should be defined', () => {
@@ -74,8 +71,15 @@ describe('LdapService', () => {
   });
 
   describe('authenticate()', () => {
+    it('authenticates when enabled is the boolean true', async () => {
+      setupSettings();
+      getRawValue.mockResolvedValueOnce(true);
+      expect(await service.authenticate('testuser', 'password')).not.toBeNull();
+      expect(mockClientInstance.bind).toHaveBeenCalled();
+    });
+
     it('should return null if LDAP is disabled', async () => {
-      setupSettings({ 'auth.ldap.enabled': 'false' });
+      setupSettings({ 'auth.ldap.enabled': false });
       const result = await service.authenticate('testuser', 'password');
       expect(result).toBeNull();
       expect(mockClientInstance.bind).not.toHaveBeenCalled();

@@ -63,7 +63,7 @@ export class OidcService implements OnModuleInit {
     const enabled = await this.settingsService.getRawValue(
       'auth.generic.enabled',
     );
-    if (enabled !== 'true' && enabled !== true)
+    if (!enabled)
       throw new BadRequestException('Generic OIDC provider is disabled');
 
     const issuerUrl = String(
@@ -83,7 +83,7 @@ export class OidcService implements OnModuleInit {
     const enabled = await this.settingsService.getRawValue(
       'auth.google.enabled',
     );
-    if (enabled !== 'true' && enabled !== true)
+    if (!enabled)
       throw new BadRequestException('Google OIDC provider is disabled');
 
     const issuerUrl = 'https://accounts.google.com';

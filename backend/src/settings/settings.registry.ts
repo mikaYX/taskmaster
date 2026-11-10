@@ -1,4 +1,12 @@
 import { z } from 'zod';
+export const booleanSetting = z.preprocess(
+  (value) => (value === 'true' ? true : value === 'false' ? false : value),
+  z.boolean(),
+);
+const optionalStringSetting = z.string();
+const timeSetting = z
+  .string()
+  .regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Requires HH:mm format');
 
 /**
  * Settings Key Registry.
@@ -12,13 +20,13 @@ import { z } from 'zod';
 export const SETTINGS_REGISTRY = {
   // === Email Settings ===
   'email.enabled': {
-    schema: z.boolean(),
+    schema: booleanSetting,
     sensitive: false,
     default: false,
     description: 'Enable email notifications',
   },
   'email.smtp.host': {
-    schema: z.string().min(1),
+    schema: optionalStringSetting,
     sensitive: false,
     default: '',
     description: 'SMTP server hostname',
@@ -185,7 +193,7 @@ export const SETTINGS_REGISTRY = {
     description: 'Require login for sensitive actions',
   },
   'auth.azureAd.enabled': {
-    schema: z.boolean(),
+    schema: booleanSetting,
     sensitive: false,
     default: false,
     description: 'Enable Azure AD authentication',
@@ -209,7 +217,7 @@ export const SETTINGS_REGISTRY = {
     description: 'Azure AD Client Secret (encrypted)',
   },
   'auth.ldap.enabled': {
-    schema: z.boolean(),
+    schema: booleanSetting,
     sensitive: false,
     default: false,
     description: 'Enable LDAP authentication',
@@ -249,7 +257,7 @@ export const SETTINGS_REGISTRY = {
 
   // --- Google Workspace ---
   'auth.google.enabled': {
-    schema: z.boolean(),
+    schema: booleanSetting,
     sensitive: false,
     default: false,
     description: 'Enable Google Workspace authentication',
@@ -267,7 +275,7 @@ export const SETTINGS_REGISTRY = {
     description: 'Google Client Secret (encrypted)',
   },
   'auth.google.hostedDomain': {
-    schema: z.string().or(z.literal('')),
+    schema: optionalStringSetting,
     sensitive: false,
     default: '',
     description: 'Google Hosted Domain (optional restriction)',
@@ -275,7 +283,7 @@ export const SETTINGS_REGISTRY = {
 
   // --- Generic OIDC / SAML ---
   'auth.generic.enabled': {
-    schema: z.boolean(),
+    schema: booleanSetting,
     sensitive: false,
     default: false,
     description: 'Enable Generic OIDC/SAML authentication',
@@ -294,32 +302,32 @@ export const SETTINGS_REGISTRY = {
     description: 'OIDC Issuer URL',
   },
   'auth.generic.oidc.clientId': {
-    schema: z.string().or(z.literal('')),
+    schema: optionalStringSetting,
     sensitive: false,
     default: '',
     description: 'OIDC Client ID',
   },
   'auth.generic.oidc.clientSecret': {
-    schema: z.string().or(z.literal('')),
+    schema: optionalStringSetting,
     sensitive: true,
     default: '',
     description: 'OIDC Client Secret (encrypted)',
   },
   'auth.generic.oidc.scopes': {
-    schema: z.string().or(z.literal('')),
+    schema: optionalStringSetting,
     sensitive: false,
     default: 'openid profile email',
     description: 'OIDC Scopes (space separated)',
   },
   'auth.generic.oidc.providerName': {
-    schema: z.string().or(z.literal('')),
+    schema: optionalStringSetting,
     sensitive: false,
     default: '',
     description: 'OIDC Provider display name (shown on login button)',
   },
   // SAML
   'auth.generic.saml.entityId': {
-    schema: z.string().or(z.literal('')),
+    schema: optionalStringSetting,
     sensitive: false,
     default: '',
     description: 'SAML Entity ID (Issuer)',
@@ -331,7 +339,7 @@ export const SETTINGS_REGISTRY = {
     description: 'SAML Single Sign-On URL',
   },
   'auth.generic.saml.x509': {
-    schema: z.string().or(z.literal('')),
+    schema: optionalStringSetting,
     sensitive: false,
     default: '',
     description: 'SAML X.509 Certificate',
@@ -345,7 +353,7 @@ export const SETTINGS_REGISTRY = {
 
   // === Export Settings ===
   'export.autoExport.enabled': {
-    schema: z.boolean(),
+    schema: booleanSetting,
     sensitive: false,
     default: false,
     description: 'Enable automatic exports',
@@ -443,10 +451,7 @@ export const SETTINGS_REGISTRY = {
 
   // === Backup Settings ===
   'backup.enabled': {
-    schema: z.preprocess(
-      (v) => (v === 'true' ? true : v === 'false' ? false : v),
-      z.boolean(),
-    ),
+    schema: booleanSetting,
     sensitive: false,
     default: false,
     description: 'Enable automatic backups',
@@ -482,7 +487,7 @@ export const SETTINGS_REGISTRY = {
     description: 'Backup type (JSON only or Full ZIP)',
   },
   'backup.encryption.password': {
-    schema: z.string().or(z.literal('')),
+    schema: optionalStringSetting,
     sensitive: true, // Encrypted
     default: '',
     description: 'Backup encryption password',
@@ -532,13 +537,13 @@ export const SETTINGS_REGISTRY = {
     description: 'Application country (for holidays)',
   },
   'app.logoUrl': {
-    schema: z.string().or(z.literal('')),
+    schema: optionalStringSetting,
     sensitive: false,
     default: '',
     description: 'Application Logo URL',
   },
   'app.faviconUrl': {
-    schema: z.string().or(z.literal('')),
+    schema: optionalStringSetting,
     sensitive: false,
     default: '',
     description: 'Application Favicon URL',
@@ -556,7 +561,7 @@ export const SETTINGS_REGISTRY = {
     description: 'Sidebar title and subtitle alignment',
   },
   'app.logoDarkUrl': {
-    schema: z.string().or(z.literal('')),
+    schema: optionalStringSetting,
     sensitive: false,
     default: '',
     description: 'Application logo URL used in dark mode',
@@ -610,7 +615,7 @@ export const SETTINGS_REGISTRY = {
     description: 'Login card opacity (percent)',
   },
   'app.wallpaperUrl': {
-    schema: z.string().or(z.literal('')),
+    schema: optionalStringSetting,
     sensitive: false,
     default: '',
     description: 'Login screen wallpaper URL',
@@ -644,10 +649,7 @@ export const SETTINGS_REGISTRY = {
 
   // === Scheduler Settings ===
   'scheduler.enabled': {
-    schema: z.preprocess(
-      (v) => (v === 'true' ? true : v === 'false' ? false : v),
-      z.boolean(),
-    ),
+    schema: booleanSetting,
     sensitive: false,
     default: true,
     description: 'Enable task scheduler',
@@ -659,54 +661,38 @@ export const SETTINGS_REGISTRY = {
     description: 'Scheduler timezone',
   },
   SCHEDULE_DEFAULT_START_TIME: {
-    schema: z
-      .string()
-      .regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Requires HH:mm format'),
+    schema: timeSetting,
     sensitive: false,
     default: '08:00',
     description: 'Global default start time for tasks (HH:mm)',
   },
   SCHEDULE_DEFAULT_END_TIME: {
-    schema: z
-      .string()
-      .regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Requires HH:mm format'),
+    schema: timeSetting,
     sensitive: false,
     default: '18:00',
     description: 'Global default end time for tasks (HH:mm)',
   },
   FROM_COMPLETION_ENABLED: {
-    schema: z.preprocess(
-      (v) => (v === 'true' ? true : v === 'false' ? false : v),
-      z.boolean(),
-    ),
+    schema: booleanSetting,
     sensitive: false,
     default: true,
     description: 'Enable FROM_COMPLETION recurrence mode',
   },
 
   SCHEDULE_BULK_ENABLED: {
-    schema: z.preprocess(
-      (v) => (v === 'true' ? true : v === 'false' ? false : v),
-      z.boolean(),
-    ),
+    schema: booleanSetting,
     sensitive: false,
     default: false,
     description: 'Enable bulk schedule creation',
   },
   TASK_OCCURRENCE_OVERRIDES_ENABLED: {
-    schema: z.preprocess(
-      (v) => (v === 'true' ? true : v === 'false' ? false : v),
-      z.boolean(),
-    ),
+    schema: booleanSetting,
     sensitive: false,
     default: false,
     description: 'Enable single occurrence overrides (MOVE/SKIP)',
   },
   'addons.todolist.enabled': {
-    schema: z.preprocess(
-      (v) => (v === 'true' ? true : v === 'false' ? false : v),
-      z.boolean(),
-    ),
+    schema: booleanSetting,
     sensitive: false,
     default: true,
     description: 'Enable simple Todolist addon',
@@ -735,6 +721,9 @@ export const SETTINGS_REGISTRY = {
 } as const;
 
 export type SettingKey = keyof typeof SETTINGS_REGISTRY;
+export type SettingValue<K extends SettingKey> = z.output<
+  (typeof SETTINGS_REGISTRY)[K]['schema']
+>;
 export const SETTING_KEYS = Object.keys(SETTINGS_REGISTRY) as SettingKey[];
 
 /**
