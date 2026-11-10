@@ -7,12 +7,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.2-beta.8] - 2026-11-09
+
+Eighth beta of 1.2.2, for testing only (pre-release, `beta` Docker tag, never `latest`).
+
+**Database migration:** none. The migrations folder is unchanged since beta.7 (`20261106181704_baseline`).
+
+### Added
+
+- **Last run of each job on the Jobs page.** The page now shows, for every scheduled job, the result of its last run (success, failed or already running), when it ended and how long it took. It is kept in memory, so it is empty after a restart.
+
 ### Fixed
 
+- **A channel that fails no longer blocks the other channels of the same task.** A channel whose stored configuration cannot be decrypted, or whose delivery fails, used to stop the whole notification: the channels after it were never tried. Each channel is now attempted on its own and the failures are logged. A missed-task alert, or a notification sent with delivery awaited, still reports the failure once every channel has been tried.
+- **A missed-task alert can no longer be lost for good, or sent twice, when the server stops at the wrong moment.** The missed-task alerts (the audit and the hourly job) used to record "already sent" before or after sending without a way to recover. They now take a short claim of five minutes: if the server stops between claiming and sending, the alert goes out again once the claim has expired instead of staying silent for ever. In the rare case where the send had succeeded but could not be recorded, the alert can arrive twice. Receipts already in the database keep working.
+- **A failure is announced once, whichever way it is recorded.** Saving a failed occurrence again from the task screen already stayed silent, but the status API (`POST /status`) sent the alert again on every call, so a client that retried a request notified the channels again. Both now follow the same rule: the alert goes out when an occurrence becomes failed, never when it is already failed.
+- **A task reminder that could not be delivered is retried.** The failure used to be swallowed, so the reminder was never tried again. It is now freed and retried at the next run (every 15 minutes) until the deadline has passed.
+- **The Azure AD switch and LDAP sign-in are now read and saved correctly.** The Authentication page sends the "enabled" switches as text, and the setting for Azure AD refused it. LDAP sign-in compared the stored value to the text `true` while the setting is saved as a real true/false value, so it could stay off after being enabled. Settings that hold a switch now accept `true`/`false` in both forms and always store a real boolean. Values already in the database keep working.
+- **A secret that was never filled in no longer looks as if it were set.** The SMTP password, the API keys and the SSO secrets showed the mask (`••••••••`) even when nothing was stored. They now appear empty until a secret exists, and show the mask only then. Saving a form without touching a stored secret still keeps it.
+- **A deleted user in a group no longer receives the group's notification emails.** Members of a group were not checked for deletion or for a missing address when a task notification was sent by email. Task notifications and the automatic export now resolve their recipients in one place: deleted users and users without an address are skipped, invalid ids are ignored, and addresses are de-duplicated (case-insensitively).
+- **Automatic export emails now reach the super administrators.** The `admin` recipient of the automatic export (the default, and the "Admin" button) was passed as a user id and never matched anyone, so the email went to nobody. It now means every super administrator. Installations with the export email enabled will start sending it to their super administrators after the update; remove `admin` from the recipients to avoid it.
+- **One stored value that no longer fits its rules can no longer break the settings page.** The page and the jobs that read it now use the default of that setting and log its name (never its value) instead of failing.
 - **A job lock can no longer be released by a run that no longer owns it.** Each lock now carries a unique token and is released with an atomic compare-and-delete, so a run whose lease expired cannot free the lock of a newer run and let a third one start.
 - **A task reminder is no longer sent twice.** Each reminder is claimed in the `notifications` table (task, row and occurrence, keyed on the deadline) before it is sent, so two runs on the same window cannot both send it. The claim is freed if dispatching fails, so a later run can retry.
 - **A todo reminder is no longer lost when the inbox write fails.** The todo is only marked as reminded once at least one recipient has it in the bell; otherwise it is retried on the next run. A todo shared by several people is marked once one of them has it, so the others are not reminded twice.
 - **Running a job by hand now tells the truth.** The jobs page used to report success even when the job had failed or when its lock was already held. It now shows an error with the reason (already running, or the error message of the failed job). A job that catches its own errors (backups, exports, health check) is still reported as run.
+- **Every scheduled job is now locked, with a lock duration suited to the job.** Only the missed-task alerts and the reminders were locked: the audit, the automatic backup and export, the cleanups and the health check could overlap with themselves (or with another instance) when a run was slow. The audit that runs at startup now takes the same lock as the one that runs every five minutes. Backups and exports hold their lock for up to 30 minutes, so after a crash the next run may wait for it to expire.
+- **A job that fails no longer ends in an unhandled error.** All jobs, run by the schedule or by hand, report the same result (success, failed, already running) and a failure is logged once. Running a job by hand while Redis is down now answers with a clear failure instead of an error page.
+- **The scheduler on/off setting is read the same way everywhere.** It was read in four different ways, and a missing value meant "on" at startup but "off" elsewhere. Every reader now uses the default of the settings (on).
+- **The Jobs page no longer shows "System Job" for the audit-log and refresh-token cleanups.** Names, schedules and descriptions of the 13 jobs are declared once.
+
+### Changed
+
+- **One module reads, writes, encrypts and masks every setting.** Reading a setting is now typed from the settings registry instead of a type asserted by each caller, the true/false rule is declared once instead of six times, and the push keys go through the same code. The SMTP host can now be saved empty, which is its default.
+- **The settings controller is split.** The SSO connection tests and the logo/favicon uploads moved out of the controller into their own modules (routes, roles and responses unchanged), the public settings list is now a `public` flag on each setting in the registry, and form rules repeated across the settings pages are declared once.
+- **The first-start wizard saves its choices like any other setting.** The to-do list switch, the language and the time zone go through the settings module instead of being written straight to the database. A value the settings refuse is logged and no longer risks the setup itself.
+- **The email settings page saves in one request.** It used to send one request per field, each with its own message. The whole form is now saved together, and the form is only marked as saved once the server has accepted every field.
+- **Transitive dependencies refreshed.** `npm audit fix` updated the lockfile (public holidays data, time zones, date handling, test tooling). 13 low-severity alerts remain, all reached through `deepmerge` by build and test tools and by the SendGrid client; fixing them would force a breaking downgrade of the SendGrid package.
+- **No visible change: the notification and schedule code is simpler.** The country, the default time window and the "from completion" rule were rebuilt by hand in six places (the audit, the reminders, the missed-task job, the task board, the preview and the execution status), each with its own fallback values. They now come from one place and from the defaults of the settings. The "already sent" receipts are handled by one module, and the Slack, Teams, Telegram and Discord channels share one sender (HTTP status check, `Retry-After`, escaping and secret redaction are unchanged).
+- **A PostgreSQL test for the delivery claims.** `npm -w backend run test:notifications:postgres` checks the lock, the unique constraint, two runs at once and the recovery of an expired claim on a disposable database named `taskmaster_notifications_test`. It is not part of `npm test`.
+- **No visible change: one shared way to run a job.** Jobs register with a single runner instead of a table of runners, a table of descriptions and a fallback that lost the result. The two job types of the front end are merged into one.
 
 ## [1.2.2-beta.7] - 2026-11-06
 
