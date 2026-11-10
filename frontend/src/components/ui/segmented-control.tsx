@@ -37,7 +37,7 @@ export function SegmentedControl<T extends string>({
                         aria-pressed={active}
                         onClick={() => onChange(option.value)}
                         className={cn(
-                            'h-7 rounded-full px-3.5 text-xs font-medium transition-all duration-200 outline-none',
+                            'h-8 rounded-full px-4 text-sm font-medium transition-all duration-200 outline-none',
                             'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background',
                             active
                                 ? 'bg-primary text-primary-foreground shadow-sm'
