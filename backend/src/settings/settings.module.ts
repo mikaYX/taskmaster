@@ -1,3 +1,5 @@
+import { SsoConnectionTester } from './sso-connection-tester';
+import { SettingsUploads } from './settings-uploads';
 import { Module, forwardRef } from '@nestjs/common';
 import { SettingsService } from './settings.service';
 import { SettingsController } from './settings.controller';
@@ -17,7 +19,12 @@ import { AuthModule } from '../auth/auth.module';
 @Module({
   imports: [forwardRef(() => EmailModule), forwardRef(() => AuthModule)],
   controllers: [SettingsController, ApiKeysController],
-  providers: [SettingsService, EncryptionService],
+  providers: [
+    SettingsService,
+    EncryptionService,
+    SsoConnectionTester,
+    SettingsUploads,
+  ],
   exports: [SettingsService, EncryptionService],
 })
 export class SettingsModule {}

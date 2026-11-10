@@ -1,4 +1,4 @@
-import { UserRole } from '@prisma/client';
+import { resolveEmailRecipients } from '../../notifications/email-recipients';
 import { JobRunner } from '../job-runner.service';
 import { JOB_DEFINITIONS } from '../job-definitions';
 import { Injectable, Logger } from '@nestjs/common';
@@ -141,12 +141,10 @@ export class AutoExportJob implements SchedulerJob {
       );
       if (emailEnabled) {
         try {
-          const recipients = new Set<string>();
           const customEmails =
             (await this.settings.getRawValue(
               'export.autoExport.email.customEmails',
             )) || [];
-          customEmails.forEach((e) => recipients.add(e));
 
           const configuredRecipients =
             (await this.settings.getRawValue(
@@ -159,22 +157,13 @@ export class AutoExportJob implements SchedulerJob {
           const includeAdmins = configuredRecipients.some(
             (value) => value.toLowerCase() === 'admin',
           );
-          if (userIds.length > 0 || includeAdmins) {
-            const users = await this.prisma.client.user.findMany({
-              where: {
-                OR: [
-                  { id: { in: userIds } },
-                  ...(includeAdmins ? [{ role: UserRole.SUPER_ADMIN }] : []),
-                ],
-                deletedAt: null,
-                email: { not: null },
-              },
-              select: { email: true },
-            });
-            users.forEach((u) => u.email && recipients.add(u.email));
-          }
+          const recipients = await resolveEmailRecipients(this.prisma.client, {
+            emails: customEmails,
+            userIds,
+            includeSuperAdmins: includeAdmins,
+          });
 
-          if (recipients.size > 0) {
+          if (recipients.length > 0) {
             const dateStr = new Date().toLocaleDateString('fr-FR');
             const subject = `[Taskmaster] Automated Export - ${dateStr}`;
             const messageText = `L'export automatique du ${dateStr} a été généré avec succès.\nVous pouvez le télécharger depuis la page des paramètres d'export du système.`;
@@ -188,13 +177,13 @@ export class AutoExportJob implements SchedulerJob {
               </div>`;
 
             await this.emailService.send({
-              to: Array.from(recipients),
+              to: recipients,
               subject,
               html: messageHtml,
               text: messageText,
             });
             this.logger.log(
-              `[${this.name}] Export email notification sent to ${recipients.size} recipient(s).`,
+              `[${this.name}] Export email notification sent to ${recipients.length} recipient(s).`,
             );
           }
         } catch (emailError) {

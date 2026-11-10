@@ -16,6 +16,7 @@ const timeSetting = z
  * - Whether the value is sensitive (encrypted at rest, not returned)
  * - Default value
  * - Description
+ * - Optional public flag: exposed without authentication (never for secrets)
  */
 export const SETTINGS_REGISTRY = {
   // === Email Settings ===
@@ -112,6 +113,7 @@ export const SETTINGS_REGISTRY = {
     description: 'Allowed MFA methods',
   },
   'auth.passkeys.enabled': {
+    public: true,
     schema: z.string(),
     sensitive: false,
     default: 'false',
@@ -283,6 +285,7 @@ export const SETTINGS_REGISTRY = {
 
   // --- Generic OIDC / SAML ---
   'auth.generic.enabled': {
+    public: true,
     schema: booleanSetting,
     sensitive: false,
     default: false,
@@ -320,6 +323,7 @@ export const SETTINGS_REGISTRY = {
     description: 'OIDC Scopes (space separated)',
   },
   'auth.generic.oidc.providerName': {
+    public: true,
     schema: optionalStringSetting,
     sensitive: false,
     default: '',
@@ -507,24 +511,28 @@ export const SETTINGS_REGISTRY = {
 
   // === App Settings ===
   'app.title': {
+    public: true,
     schema: z.string().max(50),
     sensitive: false,
     default: 'Taskmaster',
     description: 'Application title',
   },
   'app.subtitle': {
+    public: true,
     schema: z.string().max(100),
     sensitive: false,
     default: 'Task Management System',
     description: 'Application subtitle',
   },
   'app.showTitle': {
+    public: true,
     schema: z.string(), // Frontend sends "true" / "false" as strings
     sensitive: false,
     default: 'true',
     description: 'Show application title in sidebar',
   },
   'app.showSubtitle': {
+    public: true,
     schema: z.string(), // Frontend sends "true" / "false" as strings
     sensitive: false,
     default: 'true',
@@ -537,36 +545,42 @@ export const SETTINGS_REGISTRY = {
     description: 'Application country (for holidays)',
   },
   'app.logoUrl': {
+    public: true,
     schema: optionalStringSetting,
     sensitive: false,
     default: '',
     description: 'Application Logo URL',
   },
   'app.faviconUrl': {
+    public: true,
     schema: optionalStringSetting,
     sensitive: false,
     default: '',
     description: 'Application Favicon URL',
   },
   'app.logoAlign': {
+    public: true,
     schema: z.enum(['left', 'center']),
     sensitive: false,
     default: 'left',
     description: 'Sidebar logo alignment',
   },
   'app.textAlign': {
+    public: true,
     schema: z.enum(['left', 'center']),
     sensitive: false,
     default: 'left',
     description: 'Sidebar title and subtitle alignment',
   },
   'app.logoDarkUrl': {
+    public: true,
     schema: optionalStringSetting,
     sensitive: false,
     default: '',
     description: 'Application logo URL used in dark mode',
   },
   'app.wallpaperBlur': {
+    public: true,
     schema: z.string().refine((v) => {
       const n = Number(v);
       return Number.isInteger(n) && n >= 0 && n <= 20;
@@ -576,6 +590,7 @@ export const SETTINGS_REGISTRY = {
     description: 'Login wallpaper blur (pixels)',
   },
   'app.wallpaperDim': {
+    public: true,
     schema: z.string().refine((v) => {
       const n = Number(v);
       return Number.isInteger(n) && n >= 0 && n <= 80;
@@ -585,18 +600,21 @@ export const SETTINGS_REGISTRY = {
     description: 'Login wallpaper darkening (percent)',
   },
   'app.loginWelcomeText': {
+    public: true,
     schema: z.string().max(100),
     sensitive: false,
     default: '',
     description: 'Login screen sub-heading (empty = translated default)',
   },
   'app.loginMessage': {
+    public: true,
     schema: z.string().max(300),
     sensitive: false,
     default: '',
     description: 'Notice shown on the login screen',
   },
   'app.accentColor': {
+    public: true,
     schema: z
       .string()
       .regex(/^(#[0-9a-fA-F]{6})?$/, 'Must be #rrggbb or empty'),
@@ -605,6 +623,7 @@ export const SETTINGS_REGISTRY = {
     description: 'Custom accent colour (overrides the theme colour)',
   },
   'app.loginCardOpacity': {
+    public: true,
     // Percentage as a string like the other UI flags; 40 keeps the form readable.
     schema: z.string().refine((v) => {
       const n = Number(v);
@@ -615,6 +634,7 @@ export const SETTINGS_REGISTRY = {
     description: 'Login card opacity (percent)',
   },
   'app.wallpaperUrl': {
+    public: true,
     schema: optionalStringSetting,
     sensitive: false,
     default: '',
@@ -629,6 +649,7 @@ export const SETTINGS_REGISTRY = {
     description: 'Default UI language',
   },
   'ui.theme': {
+    public: true,
     schema: z.string(),
     sensitive: false,
     default: 'zinc',
@@ -692,6 +713,7 @@ export const SETTINGS_REGISTRY = {
     description: 'Enable single occurrence overrides (MOVE/SKIP)',
   },
   'addons.todolist.enabled': {
+    public: true,
     schema: booleanSetting,
     sensitive: false,
     default: true,

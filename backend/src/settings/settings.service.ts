@@ -27,7 +27,7 @@ import {
 /**
  * Whitelist of settings keys returned by `getPublicBranding()`.
  *
- * Public endpoint, NO authentication. Any key added here is observable by
+ * Public endpoint, NO authentication. Any registry key marked public is observable by
  * any anonymous visitor of the login page (AUDIT.md Finding #17). Strict
  * review required for additions.
  *
@@ -46,31 +46,10 @@ import {
  * MUST NOT include: any `*.clientSecret`, `*.apiKey`, `*.password`,
  * `*.privateKey`, `*.signingKey`, internal endpoints, DB URLs, etc.
  */
-export const PUBLIC_BRANDING_KEYS = [
-  'app.title',
-  'app.subtitle',
-  // Display flags for the same public title/subtitle, used by every role.
-  'app.showTitle',
-  'app.showSubtitle',
-  'app.logoUrl',
-  'app.faviconUrl',
-  'app.wallpaperUrl',
-  'app.loginCardOpacity',
-  'app.logoDarkUrl',
-  'app.wallpaperBlur',
-  'app.wallpaperDim',
-  'app.loginWelcomeText',
-  'app.loginMessage',
-  'app.accentColor',
-  // Sidebar header layout, rendered for every role.
-  'app.logoAlign',
-  'app.textAlign',
-  'ui.theme',
-  'auth.generic.enabled',
-  'auth.generic.oidc.providerName',
-  'auth.passkeys.enabled',
-  'addons.todolist.enabled',
-] as const;
+export const PUBLIC_BRANDING_KEYS = SETTING_KEYS.filter((key) => {
+  const setting = SETTINGS_REGISTRY[key];
+  return 'public' in setting && setting.public === true;
+});
 
 const UPLOAD_URL_KEYS = new Set([
   'app.logoUrl',
@@ -108,8 +87,8 @@ export class SettingsService {
    * Only returns non-sensitive branding settings for login page.
    *
    * AUDIT.md Finding #17: the list of public-facing settings keys is
-   * intentionally pinned here and exported as a read-only constant so any
-   * future addition is reviewable. Each key is justified inline — add a
+   * intentionally derived from the registry and pinned by a regression test so any
+   * future addition is reviewable. Each key must be justified — add a
    * comment when extending the list and confirm the value is never sensitive.
    */
   async getPublicBranding(): Promise<Record<string, unknown>> {

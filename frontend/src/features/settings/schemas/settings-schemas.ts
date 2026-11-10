@@ -1,6 +1,15 @@
 import { z } from 'zod';
 import i18n from '@/lib/i18n';
 
+// Shared form rules. Keep their existing coercion, optionality and messages:
+// the forms intentionally do not import the backend registry.
+const optionalEmailAddressSchema = z.string()
+    .email(i18n.t('settingsValidation.invalidEmailAddress')).optional().or(z.literal(''));
+const optionalUrlSchema = z.string().url().optional().or(z.literal(''));
+const dayOfWeekSchema = z.number().min(0).max(6);
+const exportFormatsSchema = z.array(z.enum(['csv', 'pdf']));
+
+
 export const generalSettingsSchema = z.object({
     lang: z.enum(['en', 'fr']),
     country: z.string().min(2, i18n.t('settingsValidation.countryRequired')),
@@ -48,7 +57,7 @@ export const authSettingsSchema = z.object({
         enabled: z.boolean(),
         type: z.enum(['oidc', 'saml']),
         oidc: z.object({
-            issuer: z.string().url().optional().or(z.literal('')),
+            issuer: optionalUrlSchema,
             clientId: z.string().optional(),
             clientSecret: z.string().optional(),
             scopes: z.string().optional(),
@@ -56,9 +65,9 @@ export const authSettingsSchema = z.object({
         }),
         saml: z.object({
             entityId: z.string().optional(),
-            ssoUrl: z.string().url().optional().or(z.literal('')),
+            ssoUrl: optionalUrlSchema,
             x509: z.string().optional(),
-            metadataUrl: z.string().url().optional().or(z.literal('')),
+            metadataUrl: optionalUrlSchema,
         }),
     }),
     ldap: z.object({
@@ -81,23 +90,23 @@ export const emailSettingsSchema = z.object({
         port: z.number().int().positive().optional(),
         user: z.string().optional(),
         pass: z.string().optional(),
-        from: z.string().email(i18n.t('settingsValidation.invalidEmailAddress')).optional().or(z.literal('')),
+        from: optionalEmailAddressSchema,
         secure: z.boolean(),
     }).optional(),
     mailgun: z.object({
         apiKey: z.string().optional(),
         domain: z.string().optional(),
         region: z.string().optional(),
-        from: z.string().email(i18n.t('settingsValidation.invalidEmailAddress')).optional().or(z.literal('')),
+        from: optionalEmailAddressSchema,
     }).optional(),
     mailjet: z.object({
         apiKey: z.string().optional(),
         secretKey: z.string().optional(),
-        from: z.string().email(i18n.t('settingsValidation.invalidEmailAddress')).optional().or(z.literal('')),
+        from: optionalEmailAddressSchema,
     }).optional(),
     sendgrid: z.object({
         apiKey: z.string().optional(),
-        from: z.string().email(i18n.t('settingsValidation.invalidEmailAddress')).optional().or(z.literal('')),
+        from: optionalEmailAddressSchema,
     }).optional(),
 });
 
@@ -105,15 +114,15 @@ export const exportSettingsSchema = z.object({
     autoExport: z.object({
         enabled: z.boolean(),
         scheduleType: z.enum(['daily', 'weekly', 'monthly', 'custom']),
-        dayOfWeek: z.number().min(0).max(6), // 0=Sunday
+        dayOfWeek: dayOfWeekSchema, // 0=Sunday
         dayOfMonth: z.number().min(1).max(31),
         monthMode: z.enum(['specific', 'last', 'relative']),
         weekOrdinal: z.enum(['first', 'second', 'third', 'fourth', 'last']).optional(),
         cron: z.string(), // used if scheduleType === 'custom'
-        formats: z.array(z.enum(['csv', 'pdf'])),
+        formats: exportFormatsSchema,
         email: z.object({
             enabled: z.boolean(),
-            formats: z.array(z.enum(['csv', 'pdf'])),
+            formats: exportFormatsSchema,
             recipients: z.array(z.string()),
             customEmails: z.array(z.string().email()),
         }),
@@ -131,7 +140,7 @@ export const exportSettingsSchema = z.object({
 export const backupSettingsSchema = z.object({
     enabled: z.boolean(),
     scheduleType: z.enum(['daily', 'weekly', 'custom']),
-    dayOfWeek: z.number().min(0).max(6),
+    dayOfWeek: dayOfWeekSchema,
     cron: z.string(),
     time: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, i18n.t('settingsValidation.invalidTimeFormat')).optional(),
     type: z.enum(['json', 'zip']),

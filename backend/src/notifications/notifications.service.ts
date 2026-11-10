@@ -1,3 +1,4 @@
+import { resolveEmailRecipients } from './email-recipients';
 import {
   BadRequestException,
   Injectable,
@@ -923,52 +924,13 @@ export class NotificationsService {
     event: TaskNotificationEvent,
     taskName: string,
   ) {
-    const recipients = new Set<string>();
+    const recipients = await resolveEmailRecipients(this.prisma.client, {
+      emails: Array.isArray(notif.emailCustom) ? notif.emailCustom : [],
+      userIds: Array.isArray(notif.emailUserIds) ? notif.emailUserIds : [],
+      groupIds: Array.isArray(notif.emailGroupIds) ? notif.emailGroupIds : [],
+    });
 
-    // 1. Custom emails
-    if (Array.isArray(notif.emailCustom)) {
-      notif.emailCustom.forEach((e) => {
-        if (typeof e === 'string') recipients.add(e);
-      });
-    }
-
-    // 2. Users emails
-    if (Array.isArray(notif.emailUserIds) && notif.emailUserIds.length > 0) {
-      const users = await this.prisma.client.user.findMany({
-        where: {
-          id: {
-            in: notif.emailUserIds.filter(
-              (id): id is number => typeof id === 'number',
-            ),
-          },
-          deletedAt: null,
-          email: { not: null },
-        },
-        select: { email: true },
-      });
-      users.forEach((u) => u.email && recipients.add(u.email));
-    }
-
-    // 3. Groups emails
-    if (Array.isArray(notif.emailGroupIds) && notif.emailGroupIds.length > 0) {
-      const groups = await this.prisma.client.group.findMany({
-        where: {
-          id: {
-            in: notif.emailGroupIds.filter(
-              (id): id is number => typeof id === 'number',
-            ),
-          },
-        },
-        include: {
-          members: { include: { user: { select: { email: true } } } },
-        },
-      });
-      groups.forEach((g) => {
-        g.members.forEach((m) => m.user?.email && recipients.add(m.user.email));
-      });
-    }
-
-    if (recipients.size === 0) {
+    if (recipients.length === 0) {
       this.logger.warn(
         `Email "${subject}" not sent: channel ${notif.channelId} has no recipient`,
       );
@@ -981,7 +943,7 @@ export class NotificationsService {
     ]);
 
     const sent = await this.emailService.send({
-      to: Array.from(recipients),
+      to: recipients,
       subject,
       html: renderTaskNotificationEmail({
         event,

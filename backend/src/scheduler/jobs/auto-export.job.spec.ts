@@ -62,7 +62,7 @@ describe('AutoExportJob recipient settings', () => {
     };
     const findMany = jest
       .fn()
-      .mockResolvedValue([{ email: 'admin@example.com' }]);
+      .mockResolvedValue([{ email: 'admin@example.com', deletedAt: null }]);
     const send = jest.fn();
     const module = await Test.createTestingModule({
       providers: [

@@ -1,3 +1,4 @@
+import { isEmailReachable } from '../../notifications/email-recipients';
 import { JobRunner } from '../job-runner.service';
 import { JOB_DEFINITIONS } from '../job-definitions';
 import { Injectable, Logger } from '@nestjs/common';
@@ -176,7 +177,11 @@ export class TodoReminderJob implements SchedulerJob {
         continue;
       }
       for (const item of items) stored.add(item.id);
-      if (on(emailEnabled) && person.todoReminderEmail && person.email) {
+      if (
+        on(emailEnabled) &&
+        person.todoReminderEmail &&
+        isEmailReachable(person)
+      ) {
         const sent = await this.email.send({
           to: person.email,
           subject:

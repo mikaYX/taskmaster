@@ -81,6 +81,58 @@ describe('NotificationsService.dispatchTaskNotifications (email)', () => {
     delete process.env.FRONTEND_URL;
   });
 
+  it('excludes deleted and emailless group members and deduplicates without changing case', async () => {
+    prisma.client.taskNotification.findMany.mockResolvedValue([
+      {
+        taskId: 7,
+        channelId: 1,
+        channel: emailChannel,
+        notifyOnFailed: true,
+        emailCustom: ['First@Example.com'],
+        emailUserIds: [1],
+        emailGroupIds: [2],
+      },
+    ]);
+    prisma.client.user.findMany.mockResolvedValue([
+      { email: 'first@example.com', deletedAt: null },
+    ]);
+    prisma.client.group.findMany.mockResolvedValue([
+      {
+        members: [
+          { user: { email: 'deleted@example.com', deletedAt: new Date() } },
+          { user: { email: null, deletedAt: null } },
+          { user: { email: 'member@example.com', deletedAt: null } },
+        ],
+      },
+    ]);
+    await service.dispatchTaskNotifications(7, 'FAILED', context);
+    await flush();
+    expect(email.send.mock.calls[0][0].to).toEqual([
+      'First@Example.com',
+      'member@example.com',
+    ]);
+  });
+
+  it('ignores invalid user and group IDs', async () => {
+    prisma.client.taskNotification.findMany.mockResolvedValue([
+      {
+        taskId: 7,
+        channelId: 1,
+        channel: emailChannel,
+        notifyOnFailed: true,
+        emailCustom: ['valid@example.com'],
+        emailUserIds: ['bad', -1, 1.5],
+        emailGroupIds: ['bad', 0],
+      },
+    ]);
+    prisma.client.user.findMany.mockResolvedValue([]);
+    prisma.client.group.findMany.mockResolvedValue([]);
+    await service.dispatchTaskNotifications(7, 'FAILED', context);
+    await flush();
+    expect(prisma.client.user.findMany).not.toHaveBeenCalled();
+    expect(prisma.client.group.findMany).not.toHaveBeenCalled();
+  });
+
   it('writes a mail a helpdesk can turn into a ticket', async () => {
     prisma.client.taskNotification.findMany.mockResolvedValue([
       {

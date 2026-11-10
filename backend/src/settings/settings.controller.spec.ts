@@ -1,3 +1,5 @@
+import { SsoConnectionTester } from './sso-connection-tester';
+import { SettingsUploads } from './settings-uploads';
 import { Test, TestingModule } from '@nestjs/testing';
 import { SettingsController } from './settings.controller';
 import { SettingsService } from './settings.service';
@@ -33,6 +35,8 @@ describe('SettingsController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [SettingsController],
       providers: [
+        SsoConnectionTester,
+        SettingsUploads,
         { provide: SettingsService, useValue: mockSettingsService },
         { provide: EmailService, useValue: mockEmailService },
         { provide: LdapService, useValue: mockLdapService },
