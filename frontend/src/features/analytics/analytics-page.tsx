@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { SegmentedControl } from '@/components/ui/segmented-control';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -1113,25 +1114,12 @@ export function AnalyticsPage() {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
-                    <div className="flex items-center gap-0.5 rounded-xl border bg-card p-1 shadow-sm" role="radiogroup" aria-label={t('analytics.periodBadge', { period: '' })}>
-                        {periodOptions.map((opt) => (
-                            <button
-                                key={opt.value}
-                                type="button"
-                                role="radio"
-                                aria-checked={period === opt.value}
-                                onClick={() => setPeriod(opt.value)}
-                                className={cn(
-                                    'h-8 rounded-lg px-3 text-xs font-medium transition-colors',
-                                    period === opt.value
-                                        ? 'bg-primary text-primary-foreground shadow-sm'
-                                        : 'text-muted-foreground hover:bg-muted hover:text-foreground',
-                                )}
-                            >
-                                {opt.label}
-                            </button>
-                        ))}
-                    </div>
+                    <SegmentedControl
+                        ariaLabel={t('analytics.periodLabel')}
+                        options={periodOptions}
+                        value={period}
+                        onChange={setPeriod}
+                    />
 
                     <Button variant="outline" size="sm" onClick={() => setIsSummaryOpen(true)} className="h-10 gap-2 rounded-xl">
                         <BarChart2 className="h-4 w-4" />

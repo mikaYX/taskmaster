@@ -249,6 +249,7 @@
         "preset1": "7j",
         "preset2": "30j",
         "preset3": "90j",
+        "periodLabel": "Période",
         "validateTask": "Valider {{name}}",
         "failTask": "Signaler un échec pour {{name}}",
         "downloadProcedure": "Télécharger la procédure",
@@ -2817,11 +2818,12 @@
         "subtitle": "KPI, conformité et rapports opérationnels.",
         "tvMode": "Mode TV",
         "periods": {
-            "1": "Auj.",
+            "1": "Aujourd'hui",
             "7": "7j",
             "30": "30j",
             "90": "90j"
         },
+        "periodLabel": "Période",
         "summary": "Synthèse",
         "tabs": {
             "overview": "Vue d'ensemble",

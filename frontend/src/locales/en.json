@@ -249,6 +249,7 @@
         "preset1": "7d",
         "preset2": "30d",
         "preset3": "90d",
+        "periodLabel": "Period",
         "validateTask": "Complete {{name}}",
         "failTask": "Report failure for {{name}}",
         "downloadProcedure": "Download procedure",
@@ -2822,6 +2823,7 @@
             "30": "30d",
             "90": "90d"
         },
+        "periodLabel": "Period",
         "summary": "Summary",
         "tabs": {
             "overview": "Overview",

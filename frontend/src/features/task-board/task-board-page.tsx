@@ -28,6 +28,7 @@ import { useGroups } from '@/hooks/use-groups';
 import { useIsAdminOrManager } from '@/stores/auth-store';
 import { cn } from '@/lib/utils';
 import { PRESETS, getActivePresetLabel } from './lib/task-board-utils';
+import { SegmentedControl } from '@/components/ui/segmented-control';
 
 // ── Page ─────────────────────────────────────────────────────────────
 
@@ -189,24 +190,18 @@ function TaskBoardWorkspace({ scope }: { scope: string }) {
                 <div className="space-y-2.5 rounded-xl border bg-card p-3 shadow-sm">
                     <div className="flex flex-wrap items-center gap-2">
                         {/* Presets */}
-                        <div className="flex items-center rounded-lg border bg-muted/40 p-0.5">
-                            {PRESETS.map(preset => (
-                                <Button
-                                    key={t(`taskBoard.preset${PRESETS.indexOf(preset)}`)}
-                                    variant="ghost"
-                                    size="sm"
-                                    className={cn(
-                                        "h-7 rounded-md px-3 text-xs",
-                                        activePresetLabel === preset.label
-                                            ? "bg-background text-foreground shadow-sm hover:bg-background"
-                                            : "text-muted-foreground hover:text-foreground"
-                                    )}
-                                    onClick={() => setDateRange(preset.getValue())}
-                                >
-                                    {t(`taskBoard.preset${PRESETS.indexOf(preset)}`)}
-                                </Button>
-                            ))}
-                        </div>
+                        <SegmentedControl
+                            ariaLabel={t('taskBoard.periodLabel')}
+                            options={PRESETS.map((preset, index) => ({
+                                value: preset.label,
+                                label: t(`taskBoard.preset${index}`),
+                            }))}
+                            value={activePresetLabel}
+                            onChange={(label) => {
+                                const preset = PRESETS.find((p) => p.label === label);
+                                if (preset) setDateRange(preset.getValue());
+                            }}
+                        />
 
                         {/* Date picker */}
                         <Popover>
