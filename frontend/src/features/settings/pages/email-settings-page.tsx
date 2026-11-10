@@ -33,7 +33,7 @@ import { z } from 'zod';
 
 export function EmailSettingsPage() {
     const { t } = useTranslation();
-    const { settings, getSetting, updateSetting, isLoading, isUpdating, testEmail, isTestingEmail } = useSettings();
+    const { settings, getSetting, updateSettings, isLoading, isUpdating, testEmail, isTestingEmail } = useSettings();
     const [isTestDialogOpen, setIsTestDialogOpen] = useState(false);
     const [testEmailTo, setTestEmailTo] = useState('');
     const isInitialized = useRef(false);
@@ -93,36 +93,36 @@ export function EmailSettingsPage() {
 
 
     const onSubmit = (data: z.infer<typeof emailSettingsSchema>) => {
-        // Global
-        updateSetting({ key: 'email.enabled', value: data.enabled });
-        updateSetting({ key: 'email.provider', value: data.provider });
+        // One request for the whole form: all keys are saved together, and the hook
+        // reports an error if the server refused any of them.
+        const values: Record<string, unknown> = {
+            'email.enabled': data.enabled,
+            'email.provider': data.provider,
+        };
 
-        let fromAddress = '';
-        if (data.provider === 'smtp') fromAddress = data.smtp?.from ?? '';
-        else if (data.provider === 'mailgun') fromAddress = data.mailgun?.from ?? '';
-        else if (data.provider === 'mailjet') fromAddress = data.mailjet?.from ?? '';
-        else if (data.provider === 'sendgrid') fromAddress = data.sendgrid?.from ?? '';
-
-        updateSetting({ key: 'email.from', value: fromAddress || '' });
-
-        // Provider specific
         if (data.provider === 'smtp') {
-            updateSetting({ key: 'email.smtp.host', value: data.smtp?.host ?? '' });
-            updateSetting({ key: 'email.smtp.port', value: data.smtp?.port ?? 587 });
-            updateSetting({ key: 'email.smtp.user', value: data.smtp?.user ?? '' });
-            updateSetting({ key: 'email.smtp.password', value: data.smtp?.pass ?? '' });
+            values['email.from'] = data.smtp?.from ?? '';
+            values['email.smtp.host'] = data.smtp?.host ?? '';
+            values['email.smtp.port'] = data.smtp?.port ?? 587;
+            values['email.smtp.user'] = data.smtp?.user ?? '';
+            values['email.smtp.password'] = data.smtp?.pass ?? '';
         } else if (data.provider === 'mailgun') {
-            updateSetting({ key: 'email.mailgun.apiKey', value: data.mailgun?.apiKey ?? '' });
-            updateSetting({ key: 'email.mailgun.domain', value: data.mailgun?.domain ?? '' });
+            values['email.from'] = data.mailgun?.from ?? '';
+            values['email.mailgun.apiKey'] = data.mailgun?.apiKey ?? '';
+            values['email.mailgun.domain'] = data.mailgun?.domain ?? '';
         } else if (data.provider === 'mailjet') {
-            updateSetting({ key: 'email.mailjet.apiKey', value: data.mailjet?.apiKey ?? '' });
-            updateSetting({ key: 'email.mailjet.secretKey', value: data.mailjet?.secretKey ?? '' });
+            values['email.from'] = data.mailjet?.from ?? '';
+            values['email.mailjet.apiKey'] = data.mailjet?.apiKey ?? '';
+            values['email.mailjet.secretKey'] = data.mailjet?.secretKey ?? '';
         } else if (data.provider === 'sendgrid') {
-            updateSetting({ key: 'email.sendgrid.apiKey', value: data.sendgrid?.apiKey ?? '' });
+            values['email.from'] = data.sendgrid?.from ?? '';
+            values['email.sendgrid.apiKey'] = data.sendgrid?.apiKey ?? '';
+        } else {
+            values['email.from'] = '';
         }
 
-        // Reset form dirty state with new values
-        form.reset(data);
+        // Reset the dirty state only once the server has saved everything.
+        updateSettings(values, { onSuccess: () => form.reset(data) });
     };
 
     const handleTestConnection = () => {
