@@ -24,7 +24,9 @@ import { CreateTodoDto } from './dto/create-todo.dto';
 import { UpdateTodoDto } from './dto/update-todo.dto';
 import { Prisma, Todo, TodoScope } from '@prisma/client';
 
-const USER_BRIEF = { select: { id: true, username: true, fullname: true } };
+const USER_BRIEF = {
+  select: { id: true, username: true, fullname: true, avatarUrl: true },
+};
 
 /** Who ticked the todo, who is in charge, and how much is attached. */
 const TODO_INCLUDE = {
@@ -351,7 +353,7 @@ export class TodosService {
             members: {
               where: { user: { deletedAt: null } },
               select: {
-                user: { select: { id: true, username: true, fullname: true } },
+                user: USER_BRIEF,
               },
             },
           },

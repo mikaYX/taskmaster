@@ -535,6 +535,11 @@ describe('TodosService assignment', () => {
 
       const targets = await service.dispatchTargets(8);
 
+      const select =
+        client.userGroupMembership.findMany.mock.calls[0][0].select;
+      expect(select.group.select.members.select.user.select.avatarUrl).toBe(
+        true,
+      );
       expect(targets).toEqual([
         {
           id: 4,

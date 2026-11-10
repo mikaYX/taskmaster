@@ -615,6 +615,8 @@ export interface TodoPerson {
   id: number;
   username: string;
   fullname: string | null;
+  /** Profile photo path (`/public/uploads/...`); null when none was uploaded. */
+  avatarUrl?: string | null;
 }
 
 export interface TodoComment {

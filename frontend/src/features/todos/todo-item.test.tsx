@@ -178,6 +178,16 @@ describe('TodoItem', () => {
         expect(onToggle).toHaveBeenCalledWith(todo, true);
     });
 
+    it("shows the assignee's initials when there is no profile photo", () => {
+        setup({
+            todo: { ...collective, assigneeId: 9, assignee: { ...person, avatarUrl: null } },
+            canManage: false,
+            currentUserId: 3,
+        });
+
+        expect(screen.getByText('MA')).toBeTruthy();
+    });
+
     it('says who completed a collective todo', () => {
         setup({
             todo: {

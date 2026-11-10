@@ -20,6 +20,7 @@ import { cn } from '@/lib/utils';
 import type { Todo } from '@/api/todos';
 import { describeDue } from './todo-due';
 import { PRIORITY_DOT } from './todo-priority';
+import { PersonAvatar } from './person-avatar';
 
 export interface TodoItemActions {
     onToggle: (todo: Todo, checked: boolean) => void;
@@ -241,7 +242,11 @@ export function TodoItem({ todo, subtasks = [], canManage, currentUserId = null,
                                             mine ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground',
                                         )}
                                     >
-                                        <User className="h-3 w-3" aria-hidden="true" />
+                                        {todo.assignee ? (
+                                            <PersonAvatar person={todo.assignee} />
+                                        ) : (
+                                            <User className="h-3 w-3" aria-hidden="true" />
+                                        )}
                                         {mine ? t('todos.item.assignedToYou') : assigneeName}
                                     </span>
                                 )}
@@ -257,7 +262,10 @@ export function TodoItem({ todo, subtasks = [], canManage, currentUserId = null,
                                     </span>
                                 )}
                                 {todo.isCompleted && completer && (
-                                    <span className="text-[11px] text-muted-foreground">{t('todos.item.completedBy', { name: completer })}</span>
+                                    <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+                                        {todo.completedBy && <PersonAvatar person={todo.completedBy} />}
+                                        {t('todos.item.completedBy', { name: completer })}
+                                    </span>
                                 )}
                             </div>
                         )}
