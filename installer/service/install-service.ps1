@@ -27,7 +27,7 @@ param(
     [string] $ServiceAccount = 'LocalSystem',
     # Windows service names Taskmaster should depend on (SCM-level "start
     # this after that"). Only meaningful for LOCALLY installed dependencies
-    # (e.g. 'postgresql-x64-17', 'Memurai') - never set this for an
+    # (e.g. 'postgresql-x64-18', 'Memurai') - never set this for an
     # "Existing" Postgres/Redis target, which may not even be a Windows
     # service on this machine. taskmaster-service.xml intentionally has no
     # static <depend> for exactly this reason: a hardcoded dependency on a

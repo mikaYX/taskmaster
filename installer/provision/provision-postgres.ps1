@@ -1,7 +1,7 @@
 #Requires -RunAsAdministrator
 <#
 .SYNOPSIS
-  Provisions a local PostgreSQL 17 x64 instance for Taskmaster: silent install,
+  Provisions a local PostgreSQL 18 x64 instance for Taskmaster: silent install,
   localhost-only listening, idempotent `taskmaster` role + database creation,
   and Prisma migration. Called by installer/orchestrate-install.ps1 during a
   local ("install PostgreSQL locally") Setup.exe run. Skipped entirely when the
@@ -17,7 +17,7 @@
 #>
 param(
     [Parameter(Mandatory)] [string] $InstallerExePath, # staged by build.ps1 from installer/payloads (or auto-fetched, see payloads/README.md)
-    [string] $PgInstallDir = 'C:\Program Files\PostgreSQL\17',
+    [string] $PgInstallDir = 'C:\Program Files\PostgreSQL\18',
     [string] $PgDataDir = 'C:\ProgramData\Taskmaster\data\postgresql',
     [string] $DbName = 'taskmaster',
     [string] $DbUser = 'taskmaster',
@@ -30,7 +30,7 @@ Assert-WindowsX64
 Write-Stage 'Installation de PostgreSQL...'
 
 $binDir = Join-Path $PgInstallDir 'bin'
-$serviceName = 'postgresql-x64-17'
+$serviceName = 'postgresql-x64-18'
 
 $alreadyInstalled = Get-Service -Name $serviceName -ErrorAction SilentlyContinue
 if (-not $alreadyInstalled) {

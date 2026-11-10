@@ -34,7 +34,7 @@ function Test-Checklist {
     Write-Stage "Controle : $Label"
 
     $results = @{}
-    $results['Service PostgreSQL'] = (Get-Service -Name 'postgresql-x64-17' -ErrorAction SilentlyContinue).Status -eq 'Running'
+    $results['Service PostgreSQL'] = (Get-Service -Name 'postgresql-x64-18' -ErrorAction SilentlyContinue).Status -eq 'Running'
     $results['Service Memurai'] = (Get-Service -Name 'Memurai' -ErrorAction SilentlyContinue).Status -eq 'Running'
     $results['Service Taskmaster'] = (Get-Service -Name 'Taskmaster' -ErrorAction SilentlyContinue).Status -eq 'Running'
 
@@ -103,7 +103,7 @@ if (Test-Path 'C:\ProgramData\Taskmaster\config\.env') {
 } else {
     $failures += 'Desinstallation : ProgramData a ete supprime (attendu : conserve).'
 }
-if ((Get-Service -Name 'postgresql-x64-17' -ErrorAction SilentlyContinue).Status -eq 'Running') {
+if ((Get-Service -Name 'postgresql-x64-18' -ErrorAction SilentlyContinue).Status -eq 'Running') {
     Write-Host '  [OK] PostgreSQL toujours actif' -ForegroundColor Green
 } else {
     $failures += 'Desinstallation : le service PostgreSQL ne tourne plus (attendu : conserve actif).'

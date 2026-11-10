@@ -54,7 +54,7 @@ if ($DropLocalDatabase) {
                 $dbName = $uri.AbsolutePath.TrimStart('/')
                 $confirmDb = Read-Host "Tapez le nom exact de la base locale a supprimer ($dbName) pour confirmer"
                 if ($confirmDb -eq $dbName) {
-                    $binDir = 'C:\Program Files\PostgreSQL\17\bin'
+                    $binDir = 'C:\Program Files\PostgreSQL\18\bin'
                     $psql = Join-Path $binDir 'psql.exe'
                     if (Test-Path $psql) {
                         & $psql -h 127.0.0.1 -p $uri.Port -U postgres -v ON_ERROR_STOP=1 -c "DROP DATABASE IF EXISTS `"$dbName`""

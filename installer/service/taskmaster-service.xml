@@ -48,7 +48,7 @@
     No static <depend> here: whether Postgres/Memurai are even local named
     Windows services depends on the install-time choice (Local vs Existing -
     an "Existing" server could be on a different machine entirely, or not a
-    Windows service at all). A hardcoded `<depend>postgresql-x64-17</depend>`
+    Windows service at all). A hardcoded `<depend>postgresql-x64-18</depend>`
     made the SCM refuse to start Taskmaster with error 1075 (dependency
     service does not exist) on a real Existing-mode install - confirmed the
     hard way. install-service.ps1 sets the right dependency list per-install

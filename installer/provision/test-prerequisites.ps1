@@ -42,7 +42,7 @@ Write-Stage 'Verification des prerequis...'
 $problems = @()
 
 # Oldest/newest PostgreSQL major version this project has actually been run
-# against (17 = bundled by provision-postgres.ps1's Local mode; 18 = an
+# against (18 = bundled by provision-postgres.ps1's Local mode and also an
 # operator-supplied Existing server, confirmed working). Below the floor is
 # a hard failure (real incompatibility risk); above the ceiling is a
 # warning only, since a newer major isn't necessarily broken - just
@@ -136,9 +136,9 @@ if ($PostgresMode -eq 'Existing') {
     # path is passed down in that flow - only require one here when the
     # service isn't already present (mirrors provision-postgres.ps1's own
     # idempotency check, which is the only place that would actually use it).
-    $pgServiceExists = Get-Service -Name 'postgresql-x64-17' -ErrorAction SilentlyContinue
+    $pgServiceExists = Get-Service -Name 'postgresql-x64-18' -ErrorAction SilentlyContinue
     if (-not $pgServiceExists -and (-not $PostgresInstallerPath -or -not (Test-Path $PostgresInstallerPath))) {
-        $problems += "PostgresMode=Local, le service postgresql-x64-17 n'existe pas encore, et l'installeur PostgreSQL est introuvable : '$PostgresInstallerPath'. Voir installer/payloads/README.md."
+        $problems += "PostgresMode=Local, le service postgresql-x64-18 n'existe pas encore, et l'installeur PostgreSQL est introuvable : '$PostgresInstallerPath'. Voir installer/payloads/README.md."
     }
 }
 

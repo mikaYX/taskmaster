@@ -333,7 +333,7 @@ try {
     # "WinSW service files not found in C:\Program Files\Taskmaster\service".
     $serviceDir = Join-Path (Split-Path $InstallDir -Parent) 'service'
     $serviceDependencies = @()
-    if ($PostgresMode -eq 'Local') { $serviceDependencies += 'postgresql-x64-17' }
+    if ($PostgresMode -eq 'Local') { $serviceDependencies += 'postgresql-x64-18' }
     if ($RedisMode -eq 'Local') { $serviceDependencies += 'Memurai' }
     & (Join-Path $PSScriptRoot 'service\install-service.ps1') -ServiceDir $serviceDir -Dependencies $serviceDependencies
 
@@ -371,7 +371,7 @@ try {
     Start-Sleep -Seconds 3
 
     # Get-Service returns $null (not a terminating error) when the service
-    # doesn't exist - genuinely expected here for postgresql-x64-17/Memurai
+    # doesn't exist - genuinely expected here for postgresql-x64-18/Memurai
     # in "Existing" mode, since that server may not even be a local Windows
     # service. Under Set-StrictMode -Version Latest (in effect via the
     # dot-sourced common script), `$null.Status` is a terminating error
@@ -386,7 +386,7 @@ try {
     }
 
     $checks = @()
-    $checks += @{ Name = 'Service PostgreSQL'; Ok = (Test-ServiceRunning 'postgresql-x64-17') -or ($PostgresMode -eq 'Existing') }
+    $checks += @{ Name = 'Service PostgreSQL'; Ok = (Test-ServiceRunning 'postgresql-x64-18') -or ($PostgresMode -eq 'Existing') }
     $checks += @{ Name = 'Service Memurai'; Ok = (Test-ServiceRunning 'Memurai') -or ($RedisMode -eq 'Existing') }
     $checks += @{ Name = 'Service Taskmaster'; Ok = (Test-ServiceRunning 'Taskmaster') }
 

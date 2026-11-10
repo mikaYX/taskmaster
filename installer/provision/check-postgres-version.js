@@ -2,7 +2,7 @@
 
 /**
  * Connects to a PostgreSQL server and prints its major version number to
- * stdout (e.g. "17"). Run by test-prerequisites.ps1 via the bundled Node
+ * stdout (e.g. "18"). Run by test-prerequisites.ps1 via the bundled Node
  * runtime + the app's own `pg` dependency - no extra binary needed.
  *
  * Reads the connection string from TASKMASTER_CHECK_DATABASE_URL (env var,

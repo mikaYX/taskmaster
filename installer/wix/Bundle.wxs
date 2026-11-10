@@ -1,7 +1,7 @@
 <!--
   Taskmaster Setup.exe — WiX Burn bootstrapper (WiX Toolset v5, MS-RL license
   applies to WiX's own source only; see docs/windows-server-2019-local.md).
-  This is the recommended install path: it chains PostgreSQL 17 x64, Memurai
+  This is the recommended install path: it chains PostgreSQL 18 x64, Memurai
   (or skips both when the admin points at existing servers), the Taskmaster
   MSI, then runs installer/orchestrate-install.ps1 (secrets generation, .env
   creation, Prisma migration, Windows Service install, health checks).
@@ -70,7 +70,7 @@
          e.g. repair or upgrade). -->
     <util:RegistrySearch Id="PostgresServiceProbe"
                           Root="HKLM"
-                          Key="SYSTEM\CurrentControlSet\Services\postgresql-x64-17"
+                          Key="SYSTEM\CurrentControlSet\Services\postgresql-x64-18"
                           Variable="PostgresServiceExists"
                           Result="exists" />
     <util:RegistrySearch Id="MemuraiServiceProbe"
@@ -80,18 +80,18 @@
                           Result="exists" />
 
     <Chain>
-      <!-- PostgreSQL 17 x64 — auto-fetched and SHA-256-verified by build.ps1
+      <!-- PostgreSQL 18 x64 — auto-fetched and SHA-256-verified by build.ps1
            (PostgreSQL License is redistribution-permissive; see
            installer/payloads/README.md). Skipped when POSTGRES_MODE=Existing
            or the service is already installed. Wrapped in a preprocessor
            <?if?> because build.ps1 only passes HasPostgresPayload=1 when
-           installer/payloads/postgresql-17-x64.exe actually exists — WiX
+           installer/payloads/postgresql-18-x64.exe actually exists — WiX
            needs the referenced SourceFile to exist AT BUILD TIME (to size it
            for the Burn manifest), so this package is omitted from the chain
            entirely rather than referencing a possibly-missing file. -->
       <?if $(var.HasPostgresPayload) = 1?>
       <ExePackage Id="PostgreSql"
-                  SourceFile="!(bindpath.payloads)\postgresql-17-x64.exe"
+                  SourceFile="!(bindpath.payloads)\postgresql-18-x64.exe"
                   InstallArguments="--mode unattended --unattendedmodeui minimal"
                   DetectCondition="PostgresServiceExists OR POSTGRES_MODE = &quot;Existing&quot;"
                   InstallCondition="POSTGRES_MODE = &quot;Local&quot;"

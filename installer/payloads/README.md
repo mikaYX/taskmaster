@@ -14,7 +14,7 @@ only this README and `checksums.sha256`).
 |---|---|---|
 | Node.js 24 LTS x64 runtime | Auto-fetched by `build.ps1` from nodejs.org, verified against the published `SHASUMS256.txt` | Official Node.js releases are freely redistributable |
 | WinSW (service wrapper) | Auto-fetched by `build.ps1` from the WinSW GitHub Releases, verified against a SHA-256 pinned in `build.ps1` | Apache-2.0, freely redistributable |
-| **PostgreSQL 17 x64 installer** | Auto-fetched by `build.ps1` from EnterpriseDB, verified against `checksums.sha256` below | The PostgreSQL License is permissive/redistribution-friendly |
+| **PostgreSQL 18 x64 installer** | Auto-fetched by `build.ps1` from EnterpriseDB, verified against `checksums.sha256` below | The PostgreSQL License is permissive/redistribution-friendly |
 | **Memurai installer (`memurai.msi`)** | **You must download it yourself** from https://www.memurai.com and place it here | Memurai is proprietary — this project cannot legally redistribute it. `build.ps1` will never download it automatically. |
 
 If `memurai.msi` (with a matching entry in `checksums.sha256`) is not present,
@@ -43,6 +43,6 @@ never fails silently and never substitutes a different package.
 installer/payloads/
   README.md              (this file — committed)
   checksums.sha256        (committed — hashes only, no binaries)
-  postgresql-17-x64.exe   (fetched automatically by build.ps1; gitignored)
+  postgresql-18-x64.exe   (fetched automatically by build.ps1; gitignored)
   memurai.msi             (you place this manually; gitignored)
 ```

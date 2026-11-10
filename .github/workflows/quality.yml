@@ -78,7 +78,7 @@ jobs:
       TASKMASTER_EXECUTION_TEST_DATABASE_URL: postgresql://postgres:execution-test@127.0.0.1:5432/taskmaster_execution_test
     services:
       postgres:
-        image: postgres:18.1-alpine
+        image: postgres:18-alpine
         env:
           POSTGRES_PASSWORD: execution-test
           POSTGRES_DB: taskmaster_execution_test

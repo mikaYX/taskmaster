@@ -130,6 +130,8 @@ jobs:
             APP_VERSION=${{ needs.changelog.outputs.version }}
             VCS_REF=${{ github.sha }}
           platforms: linux/amd64
+          pull: true
+          no-cache-filters: production
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
