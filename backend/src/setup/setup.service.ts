@@ -2,6 +2,7 @@ import { Injectable, ConflictException, Logger } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma';
 import { BCRYPT_ROUNDS } from '../auth/auth.constants';
+import { SettingsService } from '../settings';
 
 /**
  * Setup Service.
@@ -22,7 +23,10 @@ export class SetupService {
   /** Settings flag persisted after a successful setup wizard. */
   private static readonly SETUP_COMPLETED_KEY = 'setup.completed';
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly settings: SettingsService,
+  ) {}
 
   /**
    * Check if initial setup is needed.
@@ -152,29 +156,23 @@ export class SetupService {
       throw error;
     }
 
-    // Persist initial preferences (e.g. Todo list) so first login reflects wizard choices
-    const todolistEnabled =
-      preferences?.addonsTodolistEnabled !== false ? 'true' : 'false';
-    await this.prisma.client.config.upsert({
-      where: { key: 'addons.todolist.enabled' },
-      create: { key: 'addons.todolist.enabled', value: todolistEnabled },
-      update: { value: todolistEnabled },
-    });
-
-    // Language and time zone picked in the wizard. Stored the way the settings
-    // service does (JSON), and only when chosen, so the defaults stay otherwise.
-    const chosen: Record<string, string | undefined> = {
-      'ui.language': preferences?.language,
-      'scheduler.timezone': preferences?.timezone,
+    // Choices made in the wizard go through the settings service, like any other
+    // setting, so they are validated and stored in the one format everything reads.
+    // A value the registry refuses must not undo a setup that already succeeded.
+    const chosen: Record<string, unknown> = {
+      'addons.todolist.enabled': preferences?.addonsTodolistEnabled !== false,
     };
+    if (preferences?.language) chosen['ui.language'] = preferences.language;
+    if (preferences?.timezone)
+      chosen['scheduler.timezone'] = preferences.timezone;
     for (const [key, value] of Object.entries(chosen)) {
-      if (!value) continue;
-      const serialized = JSON.stringify(value);
-      await this.prisma.client.config.upsert({
-        where: { key },
-        create: { key, value: serialized },
-        update: { value: serialized },
-      });
+      try {
+        await this.settings.set(key, value);
+      } catch (error) {
+        this.logger.warn(
+          `Setup preference ${key} not saved: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
     }
 
     // Mark setup as completed so `needsSetup()` short-circuits afterwards

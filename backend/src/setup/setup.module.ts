@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { SetupController } from './setup.controller';
 import { SetupService } from './setup.service';
 import { SetupGuard } from './setup.guard';
+import { SettingsModule } from '../settings/settings.module';
 
 /**
  * Setup Module.
@@ -10,6 +11,7 @@ import { SetupGuard } from './setup.guard';
  * Public endpoints (no auth required), but protected by SetupGuard.
  */
 @Module({
+  imports: [SettingsModule],
   controllers: [SetupController],
   providers: [SetupService, SetupGuard],
   exports: [SetupService],

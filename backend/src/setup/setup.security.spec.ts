@@ -9,6 +9,7 @@ import { REDIS_CLIENT } from '../common/redis/redis.module';
 import { PrismaService } from '../prisma';
 import { SetupGuard } from './setup.guard';
 import { SetupService } from './setup.service';
+import { SettingsService } from '../settings';
 
 // ─── SetupGuard Tests ───────────────────────────────────────────────
 
@@ -130,6 +131,8 @@ describe('SetupService', () => {
     },
   };
 
+  const mockSettings = { set: jest.fn() };
+
   const mockPrisma = {
     client: {
       user: { count: jest.fn() },
@@ -146,6 +149,7 @@ describe('SetupService', () => {
     mockTx.site.findFirst.mockResolvedValue(null);
     mockTx.site.create.mockResolvedValue({ id: 1 });
     mockTx.userSiteAssignment.create.mockResolvedValue({});
+    mockSettings.set.mockResolvedValue({});
     mockPrisma.client.config.upsert.mockResolvedValue({});
     mockPrisma.client.config.findUnique.mockResolvedValue(null);
     mockPrisma.client.user.count.mockResolvedValue(0);
@@ -154,6 +158,7 @@ describe('SetupService', () => {
       providers: [
         SetupService,
         { provide: PrismaService, useValue: mockPrisma },
+        { provide: SettingsService, useValue: mockSettings },
       ],
     }).compile();
 
@@ -226,32 +231,45 @@ describe('SetupService', () => {
     });
   });
 
-  it('stores the language and time zone chosen in the wizard like the settings service does', async () => {
+  it('saves the wizard choices through the settings service as typed values', async () => {
     await service.initializeAdmin('admin', 'StrongP@ss123!', {
       language: 'en',
       timezone: 'America/New_York',
+      addonsTodolistEnabled: false,
     });
 
-    expect(mockPrisma.client.config.upsert).toHaveBeenCalledWith({
-      where: { key: 'ui.language' },
-      create: { key: 'ui.language', value: '"en"' },
-      update: { value: '"en"' },
-    });
-    expect(mockPrisma.client.config.upsert).toHaveBeenCalledWith({
-      where: { key: 'scheduler.timezone' },
-      create: { key: 'scheduler.timezone', value: '"America/New_York"' },
-      update: { value: '"America/New_York"' },
-    });
+    expect(mockSettings.set).toHaveBeenCalledWith(
+      'addons.todolist.enabled',
+      false,
+    );
+    expect(mockSettings.set).toHaveBeenCalledWith('ui.language', 'en');
+    expect(mockSettings.set).toHaveBeenCalledWith(
+      'scheduler.timezone',
+      'America/New_York',
+    );
   });
 
   it('leaves the language and time zone defaults alone when none was chosen', async () => {
     await service.initializeAdmin('admin', 'StrongP@ss123!');
 
-    const keys = mockPrisma.client.config.upsert.mock.calls.map(
-      ([arg]: [{ where: { key: string } }]) => arg.where.key,
+    const keys = mockSettings.set.mock.calls.map(([key]: [string]) => key);
+    expect(keys).toEqual(['addons.todolist.enabled']);
+    expect(mockSettings.set).toHaveBeenCalledWith(
+      'addons.todolist.enabled',
+      true,
     );
-    expect(keys).not.toContain('ui.language');
-    expect(keys).not.toContain('scheduler.timezone');
+  });
+
+  it('keeps the setup successful when a preference is refused by the registry', async () => {
+    mockSettings.set.mockRejectedValueOnce(new Error('invalid'));
+    const result = await service.initializeAdmin('admin', 'StrongP@ss123!', {
+      language: 'xx',
+    });
+
+    expect(result.success).toBe(true);
+    expect(mockPrisma.client.config.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { key: 'setup.completed' } }),
+    );
   });
 
   it('needsSetup() should return false as soon as setup.completed=true is persisted, even with no admin', async () => {
