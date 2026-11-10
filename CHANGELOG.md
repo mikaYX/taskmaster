@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.2-beta.10] - 2026-11-10
+
+Tenth beta of 1.2.2, for testing only (pre-release, `beta` Docker tag, never `latest`).
+
+**Database migration:** none. The migrations folder is unchanged since beta.7 (`20261106181704_baseline`).
+
+### Added
+
+- **Profile photos on todos.** The person in charge of a todo, and the person who completed it, now show their profile photo (their initials when they have none).
+
+### Changed
+
+- **A more modern period selector.** The "Today / 7d / 30d / 90d" choice of the task board and of the analytics page is now a pill with the selected option filled with the accent colour, and the analytics page says "Today" (Aujourd'hui) instead of "Auj.".
+
 ## [1.2.2-beta.9] - 2026-11-10
 
 Ninth beta of 1.2.2, for testing only (pre-release, `beta` Docker tag, never `latest`).
