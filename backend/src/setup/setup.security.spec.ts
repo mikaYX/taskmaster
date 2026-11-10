@@ -221,6 +221,20 @@ describe('SetupService', () => {
     expect(hash).toMatch(/^\$2[aby]\$12\$/);
   });
 
+  it('stores an email-shaped username as the admin email too', async () => {
+    await service.initializeAdmin('admin@example.com', 'StrongP@ss123!');
+
+    const data = mockTx.user.create.mock.calls[0][0].data;
+    expect(data.username).toBe('admin@example.com');
+    expect(data.email).toBe('admin@example.com');
+  });
+
+  it('leaves the email empty when the username is not an address', async () => {
+    await service.initializeAdmin('admin', 'StrongP@ss123!');
+
+    expect(mockTx.user.create.mock.calls[0][0].data.email).toBeNull();
+  });
+
   it('should persist the setup.completed flag after a successful run (AUDIT #7)', async () => {
     await service.initializeAdmin('admin', 'StrongP@ss123!');
 

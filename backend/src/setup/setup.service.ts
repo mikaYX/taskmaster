@@ -16,6 +16,9 @@ import { SettingsService } from '../settings';
  * - Idempotent flag `setup.completed` persisted so the wizard cannot be
  *   re-triggered after a SUPER_ADMIN soft-delete (AUDIT.md Finding #7 / §6.6)
  */
+/** Same shape the setup wizard checks before it sends the address. */
+const EMAIL_LIKE = /^\S+@\S+\.\S+$/;
+
 @Injectable()
 export class SetupService {
   private readonly logger = new Logger(SetupService.name);
@@ -104,6 +107,9 @@ export class SetupService {
         const admin = await tx.user.create({
           data: {
             username,
+            // The wizard asks for an email address and uses it as the username:
+            // keep it as the email too, or the account looks like it has none.
+            email: EMAIL_LIKE.test(username) ? username : null,
             fullname: 'Admin Local',
             passwordHash,
             role: 'SUPER_ADMIN',
