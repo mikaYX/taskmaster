@@ -74,6 +74,9 @@ describe('MissingTasksNotificationJob', () => {
     ],
     ['2026-05-01T20:00:00Z', 'UTC', '2026-05-01', 'FREQ=DAILY', true, 0],
     ['2026-05-04T20:00:00Z', 'UTC', '2026-05-04', 'FREQ=WEEKLY', false, 0],
+    ['2026-05-06T17:59:00Z', 'UTC', '2026-05-04', 'FREQ=DAILY', false, 1],
+    // More than 48 hours past the deadline: no catch-up alert.
+    ['2026-05-06T18:01:00Z', 'UTC', '2026-05-04', 'FREQ=DAILY', false, 0],
   ])(
     'respects deadline/holiday at %s in %s (%s %s %s)',
     async (now, timezone, date, rrule, skipHolidays, count) => {

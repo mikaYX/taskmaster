@@ -1,5 +1,6 @@
 import { JobRunner } from '../job-runner.service';
 import { JOB_DEFINITIONS } from '../job-definitions';
+import { isWithinAlertCatchUp } from '../alert-catch-up';
 import { endOfDay, format, startOfDay } from 'date-fns';
 import { InstanceService } from '../../tasks/instance.service';
 import { SettingsService } from '../../settings/settings.service';
@@ -76,7 +77,8 @@ export class MissingTasksNotificationJob implements SchedulerJob {
           format(instance.date, 'yyyy-MM-dd') ===
             format(status.instanceDate, 'yyyy-MM-dd') &&
           instance.periodEnd &&
-          instance.periodEnd < now
+          instance.periodEnd < now &&
+          isWithinAlertCatchUp(instance.periodEnd, now)
         ) {
           overdueTaskIds.add(status.taskId);
         }

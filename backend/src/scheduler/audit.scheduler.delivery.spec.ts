@@ -69,4 +69,16 @@ describe('Audit OVERDUE delivery', () => {
     expect(dispatchTaskNotifications).toHaveBeenCalledTimes(1);
     expect(receipts[0].kind).toBe('audit:2026-05-04');
   });
+  it('marks an occurrence missed for more than 48 hours without alerting', async () => {
+    jest.setSystemTime(new Date('2026-05-06T18:00:01Z'));
+    await scheduler.work();
+    expect(client.status.create).toHaveBeenCalledTimes(1);
+    expect(dispatchTaskNotifications).not.toHaveBeenCalled();
+    expect(receipts).toHaveLength(0);
+  });
+  it('still alerts an occurrence missed less than 48 hours ago', async () => {
+    jest.setSystemTime(new Date('2026-05-06T17:59:59Z'));
+    await scheduler.work();
+    expect(dispatchTaskNotifications).toHaveBeenCalledTimes(1);
+  });
 });

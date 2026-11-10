@@ -10,6 +10,7 @@ import { PrismaService } from '../prisma';
 import { SettingsService } from '../settings/settings.service';
 import { InstanceService } from '../tasks/instance.service';
 import { loadPlanningContext } from '../tasks/planning-context';
+import { isWithinAlertCatchUp } from './alert-catch-up';
 
 const DEF = JOB_DEFINITIONS['audit-producer'];
 
@@ -140,7 +141,11 @@ export class AuditScheduler {
             throw error;
           }
         }
-        if (missing.has(key) && !delivered.has(key)) {
+        if (
+          missing.has(key) &&
+          !delivered.has(key) &&
+          isWithinAlertCatchUp(periodEnd, now)
+        ) {
           await delivery.run(
             task.id,
             { type: 'audit', date: dateKey },
