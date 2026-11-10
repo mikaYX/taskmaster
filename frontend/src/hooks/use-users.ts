@@ -60,6 +60,8 @@ export function useUpdateUser() {
             usersApi.update(id, dto),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: userKeys.lists() });
+            // The profile page shows the same account: refresh it too (email, name, role).
+            queryClient.invalidateQueries({ queryKey: ['own-profile'] });
         },
     });
 }
