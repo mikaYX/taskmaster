@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.2] - 2026-11-10
+
+First stable release of 1.2.2, including the changes tested in 1.2.2-beta.1 through beta.10 (see their sections below for the detail) and the fixes made since. The notes below cover the upgrade from 1.2.1. This stable release publishes the Docker tags `1.2.2` and `latest`.
+
+**Database migration:** the migrations are folded into one file, `20261110153427_baseline`. It adds, compared with 1.2.1, `task_notifications.reminder_offset_minutes` (default 60 minutes, so existing reminders do not change), the todo reminder email default, the team assignee of corrective actions and the team leads, and it fills the empty email of local accounts whose username is an email address (accounts that already have an email, deleted accounts and non-local accounts are left alone). Run `prisma migrate deploy` before starting the new version: the Docker image, the Windows installer and `update.bat` already do. Existing data is kept.
+
+### Added
+
+- **Assign to a team, team leads and bulk actions.** Todos and corrective actions can go to a team, a team can have several leads, and managers can delegate, deactivate, reactivate or delete several tasks at once.
+- **Todo notification channels** (Settings > Communication > Todo notifications), and a **reminder delay per task channel** (15 minutes to 24 hours).
+- **Windows installer in the release.** Every tagged release attaches the `Taskmaster-<version>-x64.msi` and its `SHA256SUMS`.
+- **Last run of each job on the Jobs page**, and **profile photos on todos** (assignee and who completed it).
+
+### Changed
+
+- **Failure, missed-task and reminder emails have a new design and carry the checklist.** Titles are clearer (`Tâche non réalisée`, `Échec de tâche : …`). **A helpdesk rule that matches the old subject has to be updated.**
+- **"Security" is now "Users and groups"** in Settings, with a description that matches (accounts, roles, teams and access).
+- **A more modern period selector** on the task board and the analytics page.
+- **One module reads, writes, encrypts and masks every setting**, the first-start wizard and the email settings page save through it, and every scheduled job is locked and reports its result the same way.
+
+### Fixed
+
+- **The first administrator now has an email.** The setup wizard asks for an email address but stored it only as the username, so the profile page showed no email, the users list hid the gap by falling back to the username, and the automatic export skipped the account. The address is now saved as the email too, and the migration repairs existing local accounts.
+- **The profile page refreshes after an account is edited** from the users page (email, name, role), instead of keeping the previous values for up to a minute.
+- **Missed-task and reminder emails are sent.** Each channel decides from its own options, the audit sends the alert when it marks an occurrence missed, reminders reach tasks nobody had started, a skipped occurrence is no longer reported as missed, and an alert is neither lost nor sent twice when the server stops at the wrong moment.
+- **A channel that fails no longer blocks the other channels** of the same task, and a deleted user in a group no longer receives its emails.
+- **Task emails no longer repeat the link.** The "Ouvrir la tâche" button was followed by the same address written out in full; only the button remains (the plain-text version still carries the link).
+- **Delegation emails show the dates in the French format.** The start and end dates were written with the server's locale (`03/15/2026`); they now read `15/03/2026`, like the other emails.
+- **The task board always opens on "Today"**, and a task that already started can be saved from its edit screen.
+
+### Security
+
+- Dependencies refreshed (`glob`, `minimatch`, `@azure/msal-node`, `body-parser`, `multer`, `follow-redirects`). The 13 low-severity alerts left are reached through `deepmerge`, with no fixed version published.
+
 ## [1.2.2-beta.10] - 2026-11-10
 
 Tenth beta of 1.2.2, for testing only (pre-release, `beta` Docker tag, never `latest`).
