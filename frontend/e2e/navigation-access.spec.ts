@@ -43,7 +43,7 @@ test('le super administrateur conserve les liens de gestion et le branding publi
     expect(privateReads).toEqual([]);
 });
 
-test('le manager accède à Paramètres, mais uniquement à Sécurité (utilisateurs et groupes)', async ({ context, page }) => {
+test('le manager accède à Paramètres, mais uniquement à Utilisateurs et groupes', async ({ context, page }) => {
     const privateReads = await session(context, 'MANAGER');
     await page.goto('/');
     await expect(page.getByRole('link', { name: 'Paramètres', exact: true })).toBeVisible();
@@ -52,7 +52,7 @@ test('le manager accède à Paramètres, mais uniquement à Sécurité (utilisat
 
     await page.getByRole('link', { name: 'Paramètres', exact: true }).click();
     await expect(page).toHaveURL(/\/settings$/);
-    await expect(page.getByRole('tab', { name: 'Sécurité' })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Utilisateurs et groupes' })).toBeVisible();
     for (const hidden of ['Général', 'Authentification', 'Email', 'Export', 'Sauvegarde', 'Planificateur', 'Mises à jour']) {
         await expect(page.getByRole('tab', { name: hidden })).toHaveCount(0);
     }
@@ -68,7 +68,7 @@ test('le manager accède à Paramètres, mais uniquement à Sécurité (utilisat
     expect(privateReads).toEqual([]);
 });
 
-test("le super administrateur n'a pas d'entrée Utilisateurs dans le menu : elle est dans Paramètres > Sécurité", async ({ context, page }) => {
+test("le super administrateur n'a pas d'entrée Utilisateurs dans le menu : elle est dans Paramètres > Utilisateurs et groupes", async ({ context, page }) => {
     await session(context, 'SUPER_ADMIN');
     await page.goto('/');
     await expect(page.getByRole('link', { name: 'Utilisateurs', exact: true })).toHaveCount(0);
