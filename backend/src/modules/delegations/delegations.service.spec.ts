@@ -119,6 +119,7 @@ describe('DelegationsService', () => {
         expect.objectContaining({
           to: ['test@example.com'],
           subject: expect.stringContaining('Nouvelle délégation'),
+          text: expect.stringContaining('du 01/03/2026 au 15/03/2026'),
         }),
       );
       expect(result).toHaveProperty('id', 1);

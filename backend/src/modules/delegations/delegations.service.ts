@@ -175,8 +175,8 @@ export class DelegationsService {
         new Set(users.map((u) => u.email).filter(Boolean)),
       ) as string[];
       if (emails.length === 0) return;
-      const start = new Date(delegation.startAt!).toLocaleDateString();
-      const end = new Date(delegation.endAt!).toLocaleDateString();
+      const start = new Date(delegation.startAt!).toLocaleDateString('fr-FR');
+      const end = new Date(delegation.endAt!).toLocaleDateString('fr-FR');
       await this.emailService.send({
         to: emails,
         subject: `Nouvelle délégation pour ${taskNames.length} tâches`,
@@ -208,8 +208,12 @@ export class DelegationsService {
         new Set(usersToNotify.map((u) => u.email).filter(Boolean)),
       ) as string[];
       if (emails.length > 0) {
-        const startDateStr = new Date(delegation.startAt).toLocaleDateString();
-        const endDateStr = new Date(delegation.endAt).toLocaleDateString();
+        const startDateStr = new Date(delegation.startAt).toLocaleDateString(
+          'fr-FR',
+        );
+        const endDateStr = new Date(delegation.endAt).toLocaleDateString(
+          'fr-FR',
+        );
         await this.emailService.send({
           to: emails,
           subject: `Nouvelle délégation pour la Tâche #${delegation.taskId}`,

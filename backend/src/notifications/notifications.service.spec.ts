@@ -168,7 +168,7 @@ describe('NotificationsService.dispatchTaskNotifications (email)', () => {
     expect(mail.html).toContain('Check &lt;b&gt;boiler&lt;/b&gt;');
     expect(mail.html).toContain('Pressure too low<br>second line');
     expect(mail.html).toContain(
-      '<a href="https://taskmaster.example.com/task-definitions/7">',
+      '<a href="https://taskmaster.example.com/task-definitions/7"',
     );
   });
 

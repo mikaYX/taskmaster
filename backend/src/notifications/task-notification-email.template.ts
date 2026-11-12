@@ -75,15 +75,12 @@ export function renderTaskNotificationEmail(
     : `<span style="font-size:20px;font-weight:700;letter-spacing:.3px;color:#ffffff;">${appTitle}</span>`;
 
   const button = url
-    ? `<tr><td align="center" style="padding:4px 32px 12px 32px;">
+    ? `<tr><td align="center" style="padding:4px 32px 26px 32px;">
         <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
           <td align="center" bgcolor="${ACCENT}" style="background:${ACCENT};border-radius:8px;">
             <a href="${url}" style="display:inline-block;padding:13px 30px;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;">Ouvrir la tâche</a>
           </td>
         </tr></table>
-      </td></tr>
-      <tr><td align="center" style="padding:0 32px 26px 32px;font-size:12px;line-height:1.5;color:#94a3b8;word-break:break-all;">
-        <a href="${url}">${url}</a>
       </td></tr>`
     : '';
 

@@ -34,13 +34,14 @@ describe('renderTaskNotificationEmail', () => {
     expect(html).toContain('Disk &lt;full&gt;<br>second line');
   });
 
-  it('turns the link into a button and keeps it readable in plain text', () => {
+  it('turns the link into a button and does not repeat it as plain text', () => {
     const html = renderTaskNotificationEmail({ ...data, event: 'OVERDUE' });
 
     expect(html).toContain('Ouvrir la tâche');
     expect(html).toContain(
-      '<a href="https://taskmaster.example.com/task-definitions/1">',
+      '<a href="https://taskmaster.example.com/task-definitions/1"',
     );
+    expect(html.match(/task-definitions\/1/g)).toHaveLength(1);
   });
 
   it('has no button without a link', () => {
