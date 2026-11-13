@@ -56,9 +56,9 @@ test('le manager accède à Paramètres, mais uniquement à Utilisateurs et grou
     for (const hidden of ['Général', 'Authentification', 'Email', 'Export', 'Sauvegarde', 'Planificateur', 'Mises à jour']) {
         await expect(page.getByRole('tab', { name: hidden })).toHaveCount(0);
     }
-    // Inside Security, a manager gets users and groups (of their own sites).
-    await expect(page.getByRole('tab', { name: 'Utilisateurs' })).toBeVisible();
-    await expect(page.getByRole('tab', { name: 'Groupes' })).toBeVisible();
+    // Inside Users and groups, a manager gets users and groups (of their own sites).
+    await expect(page.getByRole('tab', { name: 'Utilisateurs', exact: true })).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Groupes', exact: true })).toBeVisible();
 
     for (const path of ['/admin/audit', '/backups']) {
         await page.goto(path);

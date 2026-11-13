@@ -121,9 +121,7 @@ export function PasskeyOnboardingModal({
 
             // Fallback passkey sync
             localStorage.setItem('passkey-sync-fallback', 'passkey-added');
-            setTimeout(() => {
-                localStorage.removeItem('passkey-sync-fallback');
-            }, 500);
+            localStorage.removeItem('passkey-sync-fallback');
 
             // Refetch session to update hasPasskey flag
             await authApi.getSession();
