@@ -24,6 +24,7 @@ import { CreateTodoDto } from './dto/create-todo.dto';
 import { UpdateTodoDto } from './dto/update-todo.dto';
 import {
   CreateTodoCommentDto,
+  MarkCommentsReadDto,
   ReorderTodosDto,
   UpdateTodoPreferencesDto,
 } from './dto/todo-extras.dto';
@@ -90,12 +91,20 @@ export class TodosController {
 
   /** What needs attention now (badges and the opening reminder). */
   @Get('summary')
-  async summary(@CurrentUser() user: JwtPayload) {
+  async summary(
+    @CurrentUser() user: JwtPayload,
+    @Query('scope') scope?: string,
+  ) {
+    if (scope !== undefined && scope !== '' && scope !== 'personal') {
+      throw new BadRequestException('scope must be personal');
+    }
     const actor = await this.actor(user);
     return this.todosService.summary(
       actor.userId,
       actor.groupIds,
       actor.siteId,
+      new Date(),
+      { personal: scope === 'personal' },
     );
   }
 
@@ -190,6 +199,15 @@ export class TodosController {
     return this.todosService.reorder(dto.ids, user.sub, user.role, siteId);
   }
 
+  /** One todo, under the same access rules as the lists (even a ticked one). */
+  @Get(':id')
+  async findOne(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.todosService.findOne(id, await this.actor(user));
+  }
+
   @Patch(':id')
   async update(
     @Param('id') id: string,
@@ -228,7 +246,29 @@ export class TodosController {
     @Body() dto: CreateTodoCommentDto,
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.todosService.addComment(id, dto.body, await this.actor(user));
+    return this.todosService.addComment(id, dto, await this.actor(user));
+  }
+
+  @Get(':id/mention-targets')
+  async mentionTargets(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.todosService.mentionTargets(id, await this.actor(user));
+  }
+
+  /** Called once the comments were really displayed, never by a plain list request. */
+  @Post(':id/comments/read')
+  async markCommentsRead(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: MarkCommentsReadDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.todosService.markCommentsRead(
+      id,
+      dto.upToCommentId,
+      await this.actor(user),
+    );
   }
 
   @Delete(':id/comments/:commentId')

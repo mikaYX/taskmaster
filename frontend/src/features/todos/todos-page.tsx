@@ -44,6 +44,7 @@ import {
     Users,
 } from 'lucide-react';
 import type { Todo, TodoPriority } from '@/api/todos';
+import { todosApi } from '@/api/todos';
 import { getErrorMessage } from '@/api/http';
 import { PRIORITY_DOT, PRIORITY_VALUES } from './todo-priority';
 import { daysUntilDue } from './todo-due';
@@ -51,7 +52,7 @@ import { REMIND_OPTIONS, remindToSelect, selectToRemind } from './todo-schedule'
 import { parseQuickAdd } from './todo-quick-add';
 import { TodoQuickAddHelp } from './todo-quick-add-help';
 import { usePublicBranding } from '@/hooks/use-public-branding';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation, useSearchParams } from 'react-router-dom';
 import { TodoEditDialog } from './todo-edit-dialog';
 import { TodoDispatchDialog } from './todo-dispatch-dialog';
 import { TodoItem, type TodoDragProps } from './todo-item';
@@ -108,6 +109,12 @@ function TodosPageContent() {
     const [priorityFilter, setPriorityFilter] = useState<'all' | TodoPriority>('all');
     const [historyOpen, setHistoryOpen] = useState(false);
     const [detailsId, setDetailsId] = useState<number | null>(null);
+    // A todo opened from a link (bell, email, push): fetched by id, so it opens even when the lists do not show it.
+    const [linkedTodo, setLinkedTodo] = useState<Todo | null>(null);
+    const [focusCommentId, setFocusCommentId] = useState<number | null>(null);
+    const [searchParams, setSearchParams] = useSearchParams();
+    const location = useLocation();
+    const openedFromLink = useRef(false);
     const [dragId, setDragId] = useState<number | null>(null);
     const [overId, setOverId] = useState<number | null>(null);
     const newTitleRef = useRef<HTMLInputElement>(null);
@@ -254,7 +261,65 @@ function TodosPageContent() {
 
     const openCount = (list?: Todo[]) => (list ?? []).filter((t) => t.parentId === null && !t.isCompleted).length;
 
-    const detailsTodo = detailsId === null ? null : ((todos ?? []).find((t) => t.id === detailsId) ?? null);
+    const detailsTodo =
+        detailsId === null
+            ? null
+            : ((todos ?? []).find((t) => t.id === detailsId) ?? (linkedTodo?.id === detailsId ? linkedTodo : null));
+
+    const closeDetails = () => {
+        setDetailsId(null);
+        setLinkedTodo(null);
+        setFocusCommentId(null);
+        openedFromLink.current = false;
+        if (searchParams.has('todoId') || searchParams.has('commentId')) {
+            const next = new URLSearchParams(searchParams);
+            next.delete('todoId');
+            next.delete('commentId');
+            setSearchParams(next, { replace: true });
+        }
+    };
+
+    // Each arrival on a link (also the same link again, or a reload) opens that todo.
+    // Going back to a URL without a target closes the panel the link had opened.
+    useEffect(() => {
+        const raw = searchParams.get('todoId');
+        const id = raw !== null && /^[1-9]\d{0,9}$/.test(raw) ? Number(raw) : null;
+        if (id === null) {
+            if (raw !== null) toast.error(t('todos.details.notFound'));
+            if (openedFromLink.current) {
+                openedFromLink.current = false;
+                setDetailsId(null);
+                setLinkedTodo(null);
+                setFocusCommentId(null);
+            }
+            return;
+        }
+        const rawComment = searchParams.get('commentId');
+        let cancelled = false;
+        todosApi
+            .getOne(id)
+            .then((todo) => {
+                if (cancelled) return;
+                openedFromLink.current = true;
+                setActiveTab(todo.scope);
+                setLinkedTodo(todo);
+                setDetailsId(todo.id);
+                setFocusCommentId(rawComment && /^[1-9]\d{0,9}$/.test(rawComment) ? Number(rawComment) : null);
+            })
+            .catch(() => {
+                if (cancelled) return;
+                // Same message whether it does not exist or is not allowed: nothing is revealed.
+                toast.error(t('todos.details.notFound'));
+                const next = new URLSearchParams(searchParams);
+                next.delete('todoId');
+                next.delete('commentId');
+                setSearchParams(next, { replace: true });
+            });
+        return () => {
+            cancelled = true;
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [location.key]);
 
     /** Manual order only means something inside one priority, on the unfiltered list. */
     const canReorder = canManage && !filtersActive;
@@ -423,8 +488,12 @@ function TodosPageContent() {
                             id="todo-new-time"
                             type="time"
                             value={newDueTime}
+                            aria-describedby="todo-new-time-help"
                             onChange={(e) => setNewDueTime(e.target.value)}
                         />
+                        <p id="todo-new-time-help" className="text-[11px] text-muted-foreground">
+                            {t('todos.dialog.dueTimeHelp')}
+                        </p>
                     </div>
                     <div className="space-y-1.5">
                         <Label htmlFor="todo-new-remind" className="text-xs">{t('todos.dialog.remind')}</Label>
@@ -860,7 +929,8 @@ function TodosPageContent() {
                 todo={detailsTodo}
                 currentUserId={userId}
                 isManager={isManager}
-                onClose={() => setDetailsId(null)}
+                focusCommentId={focusCommentId}
+                onClose={closeDetails}
             />
 
             <TodoHistoryDialog open={historyOpen} onOpenChange={setHistoryOpen} scope={activeTab} />

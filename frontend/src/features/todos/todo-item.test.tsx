@@ -217,3 +217,27 @@ describe('TodoItem scope marker', () => {
         expect(screen.queryByRole('img', { name: 'Tâche privée' })).toBeNull();
     });
 });
+
+describe('TodoItem unread comments', () => {
+    it('colors the comment button and says it in words when comments are unread', () => {
+        const { container } = render(
+            <TodoItem todo={{ ...todo, unreadComments: 2, _count: { comments: 3, attachments: 0 } }} canManage onToggle={vi.fn()} onRename={vi.fn()} onEdit={vi.fn()} onDelete={vi.fn()} onAddSubtask={vi.fn()} onOpenDetails={vi.fn()} />,
+        );
+
+        const button = screen.getByRole('button', { name: /2 nouveaux commentaires/ });
+        expect(button.getAttribute('data-unread')).toBe('true');
+        expect(button.textContent).toContain('2 nouveaux');
+        expect(container.querySelector('[data-unread="true"]')).not.toBeNull();
+    });
+
+    it('stays plain when everything was read', () => {
+        render(
+            <TodoItem todo={{ ...todo, unreadComments: 0, _count: { comments: 3, attachments: 0 } }} canManage onToggle={vi.fn()} onRename={vi.fn()} onEdit={vi.fn()} onDelete={vi.fn()} onAddSubtask={vi.fn()} onOpenDetails={vi.fn()} />,
+        );
+
+        const button = screen.getByRole('button', { name: "Commentaires et fichiers" });
+        expect(button.getAttribute('data-unread')).toBeNull();
+        expect(button.textContent).toBe('3');
+    });
+});
+

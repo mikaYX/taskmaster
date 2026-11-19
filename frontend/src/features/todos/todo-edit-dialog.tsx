@@ -119,6 +119,7 @@ function TodoEditForm({
                                     <Input
                                         id="todo-edit-time"
                                         type="time"
+                                        aria-describedby="todo-edit-time-help"
                                         value={form.dueTime}
                                         onChange={(e) => set({ dueTime: e.target.value })}
                                     />
@@ -128,6 +129,9 @@ function TodoEditForm({
                                         </Button>
                                     )}
                                 </div>
+                                <p id="todo-edit-time-help" className="text-xs text-muted-foreground">
+                                    {t('todos.dialog.dueTimeHelp')}
+                                </p>
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="todo-edit-remind">{t('todos.dialog.remind')}</Label>

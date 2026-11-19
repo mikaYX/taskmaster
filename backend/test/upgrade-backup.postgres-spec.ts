@@ -162,9 +162,10 @@ suite('legacy upgrade and real encrypted PostgreSQL restore', () => {
         "- 'guest_view' - 'todo_reminder_push' - 'todo_reminder_email' - 'todo_reminder_collective'",
       ),
     ).toEqual(legacy.users);
-    expect(await rows('tasks', "- 'execution_checklist'")).toEqual(
-      legacy.tasks,
-    );
+    // exclude_from_analytics is an additive column (default false) of the discussions migration.
+    expect(
+      await rows('tasks', "- 'execution_checklist' - 'exclude_from_analytics'"),
+    ).toEqual(legacy.tasks);
     expect(await rows('statuses', "- 'execution_record'")).toEqual(
       legacy.statuses,
     );

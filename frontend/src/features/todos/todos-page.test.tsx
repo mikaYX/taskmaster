@@ -63,7 +63,7 @@ describe('TodosPage creation options', () => {
 
     it('lets the time be set without a date, and then the task is due today', async () => {
         const user = await setup();
-        const time = screen.getByLabelText('Time') as HTMLInputElement;
+        const time = screen.getByLabelText('Due time') as HTMLInputElement;
         expect(time.disabled).toBe(false);
 
         await user.type(screen.getByLabelText('New task'), 'Call Paul');

@@ -5,7 +5,7 @@ import {
   escapeHtml,
 } from '../users/credentials-email.template';
 
-export type TodoEmailReason = 'ASSIGNED' | 'CREATED';
+export type TodoEmailReason = 'ASSIGNED' | 'CREATED' | 'COMMENT' | 'MENTION';
 
 export interface TodoEmailData {
   reason: TodoEmailReason;
@@ -19,8 +19,10 @@ export interface TodoEmailData {
   due?: string | null;
   priority: 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT';
   groupName?: string | null;
+  /** The comment text (already cut short) for the COMMENT and MENTION reasons. */
+  excerpt?: string;
   appTitle: string;
-  /** Absolute URL of the todolist, used for the button. */
+  /** Absolute URL of the todo (or the list), used for the button. */
   todosUrl?: string;
   logoUrl?: string;
 }
@@ -40,6 +42,20 @@ const COPY = {
     fr: (actor: string) =>
       `${actor} a ajouté une tâche à la liste de votre équipe.`,
     en: (actor: string) => `${actor} added a task to your team's list.`,
+  },
+  COMMENT: {
+    subject: 'Nouveau commentaire / New comment',
+    titleFr: 'Nouveau commentaire',
+    titleEn: 'New comment',
+    fr: (actor: string) => `${actor} a commenté une tâche qui vous concerne.`,
+    en: (actor: string) => `${actor} commented on a task that concerns you.`,
+  },
+  MENTION: {
+    subject: 'Vous avez été mentionné / You were mentioned',
+    titleFr: 'Vous avez été mentionné',
+    titleEn: 'You were mentioned',
+    fr: (actor: string) => `${actor} vous a mentionné dans un commentaire.`,
+    en: (actor: string) => `${actor} mentioned you in a comment.`,
   },
 } as const;
 
@@ -84,6 +100,10 @@ export function renderTodoEmail(data: TodoEmailData): {
   const rows = [
     `<tr><td style="padding:18px 20px 4px 20px;font-size:12px;text-transform:uppercase;letter-spacing:1px;color:#64748b;">Tâche / Task</td></tr>
      <tr><td style="padding:0 20px 14px 20px;font-size:18px;font-weight:700;color:#0f172a;">${title}</td></tr>`,
+    data.excerpt
+      ? `${divider}${label('Commentaire / Comment')}
+     <tr><td style="padding:0 20px 14px 20px;font-size:14px;line-height:1.6;color:#334155;white-space:pre-line;">${escapeHtml(data.excerpt)}</td></tr>`
+      : '',
     data.description
       ? `${divider}${label('Notes')}
      <tr><td style="padding:0 20px 14px 20px;font-size:14px;line-height:1.6;color:#334155;white-space:pre-line;">${escapeHtml(data.description)}</td></tr>`
@@ -152,6 +172,7 @@ export function renderTodoEmail(data: TodoEmailData): {
   const text =
     `${copy.titleFr}, ${data.name}\n${copy.fr(data.actor)}\n\n` +
     `Tâche : ${data.title}\n` +
+    (data.excerpt ? `Commentaire : ${data.excerpt}\n` : '') +
     (data.description ? `Notes : ${data.description}\n` : '') +
     `Priorité : ${priority.fr}\n` +
     (data.due ? `Échéance : ${data.due}\n` : '') +

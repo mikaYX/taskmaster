@@ -1636,7 +1636,9 @@
             "selectedFile": "Selected: {{name}}",
             "description": "Description",
             "descriptionPlaceholder": "Describe what needs to be done...",
-            "periodicity": "Periodicity"
+            "periodicity": "Periodicity",
+            "excludeFromAnalytics": "Exclude from analytics",
+            "excludeFromAnalyticsHelp": "Past and future activity of this task no longer counts in the analytics and their reports. The task still runs and notifies as usual. You can turn this off at any time."
         },
         "assignment": {
             "usersTab": "Users ({{n}})",
@@ -1783,7 +1785,10 @@
                 "weeks_of_month": "Every {{n}} months on week position",
                 "days_of_year": "Every {{n}} years on specific days",
                 "fallback": "Custom Rules"
-            }
+            },
+            "analytics": "Analytics:",
+            "analyticsExcluded": "excluded",
+            "analyticsIncluded": "included"
         },
         "validation": {
             "nameMin": "Name must be at least 3 characters",
@@ -1886,7 +1891,11 @@
             "assignedToYou": "You",
             "take": "I'll take it",
             "release": "Give it back",
-            "details": "Comments and files"
+            "details": "Comments and files",
+            "detailsUnread_one": "Open details and comments: {{count}} new comment",
+            "detailsUnread_other": "Open details and comments: {{count}} new comments",
+            "unreadCount_one": "{{count}} new",
+            "unreadCount_other": "{{count}} new"
         },
         "dialog": {
             "title": "Edit task",
@@ -1896,12 +1905,13 @@
             "dueDate": "Due date",
             "clear": "Clear",
             "priority": "Priority",
-            "dueTime": "Time",
+            "dueTime": "Due time",
             "remind": "Remind me",
             "assignTo": "Assigned to",
             "assignToPlaceholder": "Whole site, nobody in particular",
             "assignToTeamHint": "The whole team sees the task and handles it together: every member is notified.",
-            "wholeSiteNobody": "Whole site (nobody in particular)"
+            "wholeSiteNobody": "Whole site (nobody in particular)",
+            "dueTimeHelp": "The time the todo is due, not a start time. Without a time, reminders use 09:00 (application time zone)."
         },
         "fab": {
             "title": "My todos",
@@ -1916,7 +1926,8 @@
                 "today": "Today",
                 "upcoming": "Upcoming",
                 "noDate": "No due date"
-            }
+            },
+            "openInPage": "Open “{{title}}” in the todo page"
         },
         "badge": "{{overdue}} overdue, {{today}} due today",
         "options": {
@@ -1975,7 +1986,16 @@
             "download": "Download",
             "deleteAttachment": "Delete file",
             "uploadFailed": "The file could not be added",
-            "downloadFailed": "The file could not be downloaded"
+            "downloadFailed": "The file could not be downloaded",
+            "notFound": "This todo is not available.",
+            "reply": "Reply",
+            "replyTo": "Reply to {{name}}",
+            "replyingTo": "Replying to {{name}}: {{excerpt}}",
+            "replyField": "Your reply",
+            "replyPlaceholder": "Write a reply… type @ to mention someone",
+            "cancelReply": "Cancel",
+            "thread": "Discussion",
+            "deletedComment": "This comment was deleted."
         },
         "reminders": {
             "button": "Reminders",
@@ -2022,6 +2042,13 @@
                 "priority": "A priority"
             },
             "footer": "English words work too: @tomorrow, @monday, @+3d, !high. A word that is not understood simply stays in the title."
+        },
+        "mentions": {
+            "suggestions": "People and teams to mention",
+            "loading": "Loading…",
+            "error": "Could not load the suggestions.",
+            "empty": "Nobody to mention with this name.",
+            "team": "Team"
         }
     },
     "taskList": {

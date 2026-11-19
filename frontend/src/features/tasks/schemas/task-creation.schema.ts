@@ -48,6 +48,7 @@ const baseSchema = z.object({
     customRuleType: z.enum(['every_x_days', 'selected_weekdays', 'weeks_of_month', 'days_of_year']).optional(),
     byYearDay: z.array(z.number().min(1).max(366)).optional(),
     isContinuousBlock: z.boolean().default(false).optional(),
+    excludeFromAnalytics: z.boolean().default(false).optional(),
 
     recurrenceMode: z.enum(['ON_SCHEDULE', 'FROM_COMPLETION']).optional().default('ON_SCHEDULE'),
 

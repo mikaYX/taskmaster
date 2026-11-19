@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+**Database migration:** `20261119090000_todo_discussions_analytics_exclusion` adds threaded comments, mentions, the per-person "comments read" mark (existing comments count as read) and `tasks.exclude_from_analytics` (off by default, so no figure changes). Run `prisma migrate deploy` **before** starting the new version.
+
+### Added
+
+- **Todo discussions.** A comment can be answered; answers are grouped under it, like comments in a document. Type **@** to mention a person or a team of the todo (only people who already have access are offered; a mention grants nothing).
+- **Comment notifications.** A new comment or answer notifies the assignee and the people or teams mentioned, once each. The author is never notified and a team only when it is mentioned. Bell always; email and push follow the todo channels and your preferences.
+- **Unread comment button.** The comment button turns amber with the number of new comments until you have displayed them, on every device.
+- **Notification links open the todo.** Comment, assignment and reminder notifications (bell, email, push) open the right todo and comment, even a todo ticked more than 24 hours ago. Older notifications still open the list.
+- **Exclude a task from analytics.** A checkbox on the task form leaves the task out of every analytics figure, report and export (past and future); it still runs and notifies.
+
+### Changed
+
+- **"My todos" lists only your todos**: your private todos and those assigned to you in person, and its badge counts the same.
+- **The todo time is labelled "Due time"** with a hint: it is not a start time, and without it reminders use 09:00. Reminders are unchanged.
+
 ## [1.2.2] - 2026-11-10
 
 First stable release of 1.2.2, including the changes tested in 1.2.2-beta.1 through beta.10 (see their sections below for the detail) and the fixes made since. The notes below cover the upgrade from 1.2.1. This stable release publishes the Docker tags `1.2.2` and `latest`.

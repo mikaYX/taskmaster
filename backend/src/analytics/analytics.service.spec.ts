@@ -86,12 +86,14 @@ describe('AnalyticsService - figures are limited to the caller sites', () => {
   it('shows a super administrator everything unless a site is selected', async () => {
     as('SUPER_ADMIN', {});
     await service.getOverview(...range);
-    expect(status.groupBy.mock.calls[0][0].where).not.toHaveProperty('task');
+    expect(status.groupBy.mock.calls[0][0].where.task).toEqual({
+      excludeFromAnalytics: false,
+    });
 
     as('SUPER_ADMIN', { siteId: 3 });
     await service.getOverview(...range);
     expect(status.groupBy.mock.calls[1][0].where).toMatchObject({
-      task: { siteId: { in: [3] } },
+      task: { excludeFromAnalytics: false, siteId: { in: [3] } },
     });
   });
 
@@ -114,7 +116,29 @@ describe('AnalyticsService - figures are limited to the caller sites', () => {
     await service.getOverview(...range);
     await service.getByTask(...range, 50);
 
-    expect(status.groupBy.mock.calls[0][0].where).not.toHaveProperty('task');
+    // No site restriction, but a task left out of the analytics stays out.
+    expect(status.groupBy.mock.calls[0][0].where.task).toEqual({
+      excludeFromAnalytics: false,
+    });
     expect(sqlOf(0).sql).not.toMatch(/site_id/);
+    expect(sqlOf(0).sql).toMatch(/t\.exclude_from_analytics = false/);
+  });
+
+  it('leaves excluded tasks out of every query, raw SQL included', async () => {
+    as('MANAGER', { siteId: 2 });
+
+    await service.getOverview(...range);
+    await service.getTrend(...range, 'day');
+    await service.getTrend(...range, 'week');
+    await service.getByTask(...range, 50);
+    await service.getByUser(...range);
+
+    for (const [query] of status.groupBy.mock.calls) {
+      expect(query.where.task.excludeFromAnalytics).toBe(false);
+    }
+    expect(queryRaw).toHaveBeenCalledTimes(3);
+    for (let i = 0; i < 3; i++) {
+      expect(sqlOf(i).sql).toMatch(/t\.exclude_from_analytics = false/);
+    }
   });
 });

@@ -30,6 +30,7 @@ export class TaskResponseDto {
   rrule?: string | null;
   timezone?: string | null;
   dueOffset?: number | null;
+  excludeFromAnalytics?: boolean;
 }
 
 export class TaskAssigneeDto {
@@ -80,6 +81,7 @@ export function toTaskResponse(task: {
   rrule?: string | null;
   timezone?: string | null;
   dueOffset?: number | null;
+  excludeFromAnalytics?: boolean;
 
   userAssignments?: {
     user: { id: number; username: string; fullname: string | null };
@@ -121,6 +123,7 @@ export function toTaskResponse(task: {
     deletedAt: task.deletedAt,
     deletedBy: task.deletedBy,
     isActive,
+    excludeFromAnalytics: task.excludeFromAnalytics ?? false,
     assignedUserIds: task.userAssignments?.map((a) => a.user.id) || [],
     assignedGroupIds: task.groupAssignments?.map((a) => a.group.id) || [],
     assignedUsers: task.userAssignments?.map((a) => ({

@@ -63,6 +63,25 @@ describe('NotificationBell', () => {
         expect(navigate).toHaveBeenCalledWith('/todos');
     });
 
+    it('opens the exact todo and comment a notification points at, and keeps old list links', async () => {
+        inbox.data = {
+            items: [
+                item({ id: 5, url: '/todos?todoId=12&commentId=40' }),
+                item({ id: 6, title: 'Ancienne notification', url: '/todos' }),
+            ],
+            unread: 2,
+        };
+        const user = setup();
+
+        await user.click(screen.getByRole('button', { name: 'Notifications (2 unread)' }));
+        await user.click(screen.getByText('Appeler le prestataire'));
+        expect(navigate).toHaveBeenLastCalledWith('/todos?todoId=12&commentId=40');
+
+        await user.click(screen.getByRole('button', { name: 'Notifications (2 unread)' }));
+        await user.click(screen.getByText('Ancienne notification'));
+        expect(navigate).toHaveBeenLastCalledWith('/todos');
+    });
+
     it('does not mark an already read notification again', async () => {
         inbox.data = { items: [item({ id: 6, readAt: new Date().toISOString() })], unread: 0 };
         const user = setup();

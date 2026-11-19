@@ -161,6 +161,8 @@ export interface Task {
   rrule: string | null;
   recurrenceMode: "ON_SCHEDULE" | "FROM_COMPLETION" | null;
   dueOffset: number | null;
+  /** Left out of the analytics and their reports; the task still runs and notifies. */
+  excludeFromAnalytics?: boolean;
 
   useGlobalWindowDefaults: boolean;
   windowStartTime: string | null;
@@ -228,6 +230,7 @@ export interface CreateTaskDto {
   timezone?: string;
   dueOffset?: number;
   recurrenceMode?: "ON_SCHEDULE" | "FROM_COMPLETION";
+  excludeFromAnalytics?: boolean;
 
   useGlobalWindowDefaults?: boolean;
   windowStartTime?: string | null;
@@ -254,6 +257,7 @@ export interface UpdateTaskDto {
   rrule?: string;
   recurrenceMode?: "ON_SCHEDULE" | "FROM_COMPLETION";
   dueOffset?: number;
+  excludeFromAnalytics?: boolean;
 
   useGlobalWindowDefaults?: boolean;
   windowStartTime?: string | null;
@@ -606,6 +610,8 @@ export interface Todo {
   assigneeId: number | null;
   assignee: TodoPerson | null;
   _count?: { comments: number; attachments: number };
+  /** Comments of other people this person has not been shown yet (individual, any device). */
+  unreadComments?: number;
   groupId: number | null;
   userId: number;
   createdAt: string;
@@ -619,13 +625,33 @@ export interface TodoPerson {
   avatarUrl?: string | null;
 }
 
+/** A person or team picked in the @ list; the server stores it by id, not by name. */
+export interface TodoMention {
+  id: number;
+  userId: number | null;
+  groupId: number | null;
+  user?: { id: number; username: string; fullname: string | null } | null;
+  group?: { id: number; name: string } | null;
+}
+
 export interface TodoComment {
   id: number;
   todoId: number;
   userId: number;
+  /** Set on an answer: the id of the root comment of its thread (one level only). */
+  parentId: number | null;
   body: string;
+  /** A deleted root that still has answers: the slot stays, the text is gone. */
+  deleted?: boolean;
+  mentions?: TodoMention[];
   createdAt: string;
   user: TodoPerson;
+}
+
+/** What the @ list offers on a todo: only people and teams who already have access. */
+export interface TodoMentionTargets {
+  users: TodoPerson[];
+  groups: { id: number; name: string }[];
 }
 
 export interface TodoAttachment {

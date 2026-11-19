@@ -134,4 +134,9 @@ export class UpdateTaskDto {
   @IsOptional()
   @IsBoolean()
   isContinuousBlock?: boolean;
+
+  /** Leaves the task out of the analytics and their reports; it still runs and notifies. */
+  @IsOptional()
+  @IsBoolean()
+  excludeFromAnalytics?: boolean;
 }

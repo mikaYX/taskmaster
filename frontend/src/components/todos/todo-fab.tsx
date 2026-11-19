@@ -6,11 +6,13 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTr
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
-import { ArrowRight, CalendarDays, CheckSquare, Loader2, PartyPopper, Plus, Trash2, User, Users } from 'lucide-react';
+import { ArrowRight, CalendarDays, CheckSquare, ExternalLink, Loader2, PartyPopper, Plus, Trash2, User, Users } from 'lucide-react';
 import type { Todo } from '@/api/todos';
 import { useAuthStore } from '@/stores';
 import { cn } from '@/lib/utils';
 import { daysUntilDue, describeDue } from '@/features/todos/todo-due';
+import { todoLink } from '@/features/todos/todo-link';
+import { isMyTodo } from '@/features/todos/todo-mine';
 import { PRIORITY_DOT } from '@/features/todos/todo-priority';
 import { parseQuickAdd } from '@/features/todos/todo-quick-add';
 import { TodoQuickAddHelp } from '@/features/todos/todo-quick-add-help';
@@ -68,9 +70,16 @@ export function TodoFab() {
         );
     };
 
-    // Subtasks are shown under their parent on the full page, not as tasks of their own.
+    // "My tasks": my own private todos and those assigned to me in person: not everything
+    // the site or my teams can merely see. Subtasks are shown under their parent on the full page.
     const activeTodos =
-        todos?.filter((todo: Todo) => !todo.isCompleted && todo.parentId === null && !pendingIds.includes(todo.id)) ?? [];
+        todos?.filter(
+            (todo: Todo) =>
+                !todo.isCompleted &&
+                todo.parentId === null &&
+                !pendingIds.includes(todo.id) &&
+                isMyTodo(todo, userId),
+        ) ?? [];
     const sections = SECTIONS.map((key) => ({ key, items: activeTodos.filter((todo) => sectionOf(todo) === key) })).filter(
         (section) => section.items.length > 0,
     );
@@ -85,7 +94,7 @@ export function TodoFab() {
                     className="fixed bottom-6 right-6 z-50 h-14 w-14 rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/30 ring-4 ring-background transition-all hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-xl"
                 >
                     <CheckSquare className="h-6 w-6" />
-                    <TodoAttentionBadge className="absolute -right-1.5 -top-1.5 ring-2 ring-background" />
+                    <TodoAttentionBadge personal className="absolute -right-1.5 -top-1.5 ring-2 ring-background" />
                 </Button>
             </SheetTrigger>
             <SheetContent side="right" className="flex w-full flex-col gap-0 p-0 sm:max-w-md">
@@ -228,6 +237,19 @@ export function TodoFab() {
                                                             </div>
                                                         )}
                                                     </div>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        aria-label={t('todos.fab.openInPage', { title: todo.title })}
+                                                        title={t('todos.fab.openInPage', { title: todo.title })}
+                                                        className="h-7 w-7 shrink-0 text-muted-foreground transition-opacity focus-visible:opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
+                                                        onClick={() => {
+                                                            setIsOpen(false);
+                                                            navigate(todoLink(todo.id));
+                                                        }}
+                                                    >
+                                                        <ExternalLink className="h-3.5 w-3.5" />
+                                                    </Button>
                                                     {(todo.scope === 'PRIVATE' || isManager) && (
                                                         <Button
                                                             variant="ghost"

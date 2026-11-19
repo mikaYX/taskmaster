@@ -1636,7 +1636,9 @@
             "selectedFile": "Sélectionné : {{name}}",
             "description": "Description",
             "descriptionPlaceholder": "Décrivez ce qui doit être fait...",
-            "periodicity": "Périodicité"
+            "periodicity": "Périodicité",
+            "excludeFromAnalytics": "Exclure des analytics",
+            "excludeFromAnalyticsHelp": "L'activité passée et future de cette tâche ne compte plus dans les analytics ni dans leurs rapports. La tâche continue de s'exécuter et de notifier normalement. Vous pouvez désactiver cette option à tout moment."
         },
         "assignment": {
             "usersTab": "Utilisateurs ({{n}})",
@@ -1783,7 +1785,10 @@
                 "weeks_of_month": "Tous les {{n}} mois, à la position choisie",
                 "days_of_year": "Tous les {{n}} ans, à des jours précis",
                 "fallback": "Règles personnalisées"
-            }
+            },
+            "analytics": "Analytics :",
+            "analyticsExcluded": "exclue",
+            "analyticsIncluded": "incluse"
         },
         "validation": {
             "nameMin": "Le nom doit contenir au moins 3 caractères",
@@ -1886,7 +1891,11 @@
             "assignedToYou": "Vous",
             "take": "Je prends",
             "release": "Libérer",
-            "details": "Commentaires et fichiers"
+            "details": "Commentaires et fichiers",
+            "detailsUnread_one": "Ouvrir les détails et commentaires : {{count}} nouveau commentaire",
+            "detailsUnread_other": "Ouvrir les détails et commentaires : {{count}} nouveaux commentaires",
+            "unreadCount_one": "{{count}} nouveau",
+            "unreadCount_other": "{{count}} nouveaux"
         },
         "dialog": {
             "title": "Modifier la tâche",
@@ -1896,12 +1905,13 @@
             "dueDate": "Échéance",
             "clear": "Effacer",
             "priority": "Priorité",
-            "dueTime": "Heure",
+            "dueTime": "Heure d'échéance",
             "remind": "Me rappeler",
             "assignTo": "Assignée à",
             "assignToPlaceholder": "Tout le site, personne en particulier",
             "assignToTeamHint": "Toute l'équipe voit la tâche et la traite ensemble : chaque membre est prévenu.",
-            "wholeSiteNobody": "Tout le site (personne en particulier)"
+            "wholeSiteNobody": "Tout le site (personne en particulier)",
+            "dueTimeHelp": "L'heure à laquelle la tâche est due, pas une heure de début. Sans heure, les rappels utilisent 09:00 (fuseau horaire de l'application)."
         },
         "fab": {
             "title": "Mes tâches",
@@ -1916,7 +1926,8 @@
                 "today": "Aujourd'hui",
                 "upcoming": "À venir",
                 "noDate": "Sans échéance"
-            }
+            },
+            "openInPage": "Ouvrir « {{title}} » dans la page des tâches"
         },
         "badge": "{{overdue}} en retard, {{today}} pour aujourd'hui",
         "options": {
@@ -1975,7 +1986,16 @@
             "download": "Télécharger",
             "deleteAttachment": "Supprimer le fichier",
             "uploadFailed": "Le fichier n'a pas pu être ajouté",
-            "downloadFailed": "Le fichier n'a pas pu être téléchargé"
+            "downloadFailed": "Le fichier n'a pas pu être téléchargé",
+            "notFound": "Cette tâche n'est pas disponible.",
+            "reply": "Répondre",
+            "replyTo": "Répondre à {{name}}",
+            "replyingTo": "Réponse à {{name}} : {{excerpt}}",
+            "replyField": "Votre réponse",
+            "replyPlaceholder": "Écrivez une réponse… tapez @ pour mentionner quelqu’un",
+            "cancelReply": "Annuler",
+            "thread": "Discussion",
+            "deletedComment": "Ce commentaire a été supprimé."
         },
         "reminders": {
             "button": "Rappels",
@@ -2022,6 +2042,13 @@
                 "priority": "Une priorité"
             },
             "footer": "Les mots anglais marchent aussi : @tomorrow, @monday, @+3d, !high. Un mot non reconnu reste simplement dans le titre."
+        },
+        "mentions": {
+            "suggestions": "Personnes et équipes à mentionner",
+            "loading": "Chargement…",
+            "error": "Impossible de charger les suggestions.",
+            "empty": "Personne à mentionner avec ce nom.",
+            "team": "Équipe"
         }
     },
     "taskList": {

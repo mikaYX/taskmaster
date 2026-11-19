@@ -11,6 +11,7 @@ import {
     Send,
     ListPlus,
     MessageSquare,
+    MessageSquareDot,
     Pencil,
     Trash2,
     User,
@@ -79,6 +80,7 @@ export function TodoItem({ todo, subtasks = [], canManage, currentUserId = null,
     const isCollective = todo.scope === 'COLLECTIVE' && !isSubtask;
     const mine = todo.assigneeId !== null && todo.assigneeId === currentUserId;
     const activity = (todo._count?.comments ?? 0) + (todo._count?.attachments ?? 0);
+    const unreadComments = todo.unreadComments ?? 0;
     const priorityText = t('todos.priorityAria', { priority: t(`todos.priorities.${todo.priority}`).toLowerCase() });
     const showSubtasks = !isSubtask && expanded;
     const completer = todo.completedBy?.fullname || todo.completedBy?.username;
@@ -311,13 +313,31 @@ export function TodoItem({ todo, subtasks = [], canManage, currentUserId = null,
                         <Button
                             variant="ghost"
                             size="sm"
-                            aria-label={t('todos.item.details')}
-                            title={t('todos.item.details')}
-                            className={`h-8 gap-1 px-2 text-muted-foreground ${activity > 0 ? '' : 'sm:opacity-0 sm:group-hover:opacity-100 focus-visible:opacity-100 transition-opacity'}`}
+                            aria-label={
+                                unreadComments > 0
+                                    ? t('todos.item.detailsUnread', { count: unreadComments })
+                                    : t('todos.item.details')
+                            }
+                            title={
+                                unreadComments > 0
+                                    ? t('todos.item.detailsUnread', { count: unreadComments })
+                                    : t('todos.item.details')
+                            }
+                            data-unread={unreadComments > 0 ? 'true' : undefined}
+                            className={
+                                unreadComments > 0
+                                    ? 'h-8 gap-1 bg-amber-100 px-2 font-semibold text-amber-900 hover:bg-amber-200 dark:bg-amber-500/20 dark:text-amber-200 dark:hover:bg-amber-500/30'
+                                    : `h-8 gap-1 px-2 text-muted-foreground ${activity > 0 ? '' : 'sm:opacity-0 sm:group-hover:opacity-100 focus-visible:opacity-100 transition-opacity'}`
+                            }
                             onClick={() => actions.onOpenDetails?.(todo)}
                         >
-                            <MessageSquare className="h-4 w-4" />
-                            {activity > 0 && <span className="text-xs">{activity}</span>}
+                            {/* a different icon and a number, not just a color, mark the unread state */}
+                            {unreadComments > 0 ? <MessageSquareDot className="h-4 w-4" /> : <MessageSquare className="h-4 w-4" />}
+                            {unreadComments > 0 ? (
+                                <span className="text-xs">{t('todos.item.unreadCount', { count: unreadComments })}</span>
+                            ) : (
+                                activity > 0 && <span className="text-xs">{activity}</span>
+                            )}
                         </Button>
                     )}
                     {!isSubtask && (subtasks.length > 0 || canManage) && (

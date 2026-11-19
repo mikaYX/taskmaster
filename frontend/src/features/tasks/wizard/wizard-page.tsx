@@ -49,6 +49,7 @@ export default function WizardPage() {
             useGlobalWindowDefaults: true,
             skipWeekends: false,
             skipHolidays: false,
+            excludeFromAnalytics: false,
             userIds: [],
             groupIds: [],
         }
@@ -152,6 +153,8 @@ export default function WizardPage() {
                 toast.error(t('taskWizard.toasts.invalidConfig'), { description: t('taskWizard.toasts.recurrentNeedsRule') });
                 return;
             }
+
+            payload.excludeFromAnalytics = data.excludeFromAnalytics === true;
 
             // Scheduling Windows V2
             payload.useGlobalWindowDefaults = data.useGlobalWindowDefaults !== false;

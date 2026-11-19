@@ -734,6 +734,7 @@ export class TasksService {
             ? (dto.windowEndTime ?? null)
             : null,
         isContinuousBlock: dto.isContinuousBlock ?? false,
+        excludeFromAnalytics: dto.excludeFromAnalytics ?? false,
       } as unknown as Prisma.TaskCreateInput,
       include: this.includeRelations,
     });
@@ -862,6 +863,8 @@ export class TasksService {
         windowStartTime: updates.windowStartTime as unknown as string,
         windowEndTime: updates.windowEndTime as unknown as string,
         isContinuousBlock: updates.isContinuousBlock,
+        // undefined keeps the stored value: an unrelated edit never loses the option.
+        excludeFromAnalytics: updates.excludeFromAnalytics,
       } as unknown as Prisma.TaskUpdateInput,
       include: this.includeRelations,
     });

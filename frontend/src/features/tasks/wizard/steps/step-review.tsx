@@ -136,6 +136,10 @@ export function StepReview() {
                             <span className="font-semibold">{t('taskWizard.review.startDate')}</span> {formValues.startDate ? format(formValues.startDate, 'PPP', { locale: dateLocale }) : '-'}
                         </div>
                         <div>
+                            <span className="font-semibold">{t('taskWizard.review.analytics')}</span>{' '}
+                            {formValues.excludeFromAnalytics === true ? t('taskWizard.review.analyticsExcluded') : t('taskWizard.review.analyticsIncluded')}
+                        </div>
+                        <div>
                             <span className="font-semibold">{t('taskWizard.review.assignments')}</span> {t('taskWizard.review.recipients', { n: (formValues.userIds?.length || 0) + (formValues.groupIds?.length || 0) })}
                         </div>
                     </CardContent>

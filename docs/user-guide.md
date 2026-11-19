@@ -103,7 +103,21 @@ Examples of schedules are in [Use cases](use-cases.md).
 - a **Private** list, and a **Collective** list shared with a group or the whole site;
 - due dates, priorities (low, normal, high, urgent), subtasks and recurrence;
 - reminders by email or push notification, set under **Reminders**;
-- **History** lists everything ticked in the private or collective list.
+- **History** lists everything ticked in the private or collective list;
+- the **time** of a todo is its **due time**, not a start time. Without a time, reminders use 09:00 (application time zone).
+
+### Comments and discussions
+
+The speech-bubble button of a todo opens its discussion:
+- each comment is a card, and **Reply** adds an answer under it. Answers are grouped in time order, one level only (an answer to an answer stays in the same thread). There is no "resolved" state;
+- type **@** to mention a person or a team of the todo. The list only offers people who can already see the todo; a mention never gives access to anything more;
+- a new comment or answer notifies the person the todo is assigned to and the people or teams mentioned (once each). The author is never notified, and a team is only notified when it is mentioned. The bell is always on; email and push follow the todo channels set by the administrator and your own preferences under **Reminders**;
+- the comment button is **coloured, with the number of new comments**, as long as you have not displayed the comments of someone else. This follows you across devices and does not depend on the bell;
+- a notification opens the right todo and the right comment, even if the todo was ticked long ago. If the todo is no longer available to you, a message says so.
+
+### My todos (floating button)
+
+The round button at the bottom right lists **your** todos: your private todos and the ones assigned to you in person. Todos that are only visible to your site or your teams, or assigned to someone else, are not in it, and the red badge counts the same todos. Use the arrow on a todo to open it in the full page.
 
 Quick add reads the date, time and priority from what you type:
 
@@ -127,6 +141,8 @@ Anything else stays in the title. The French words (`@demain`, `!haute`…) work
 - **By user** (managers and super admins): ranking of the users;
 - **Reports** (managers and super admins): export to CSV or PDF;
 - **TV mode**: a full-screen layout for a 1080p wall screen, refreshed every 30 seconds.
+
+To keep a task out of the figures (a test task, a housekeeping routine), tick **Exclude from analytics** when you create or edit it. Its past and future activity then no longer counts in the overview, trends, rankings, compliance, exports or reports, and ticking the box off brings it back. The task still runs, appears on the task board, and notifies as usual.
 
 ## Profile
 

@@ -72,7 +72,7 @@ describe('TodoReminderJob', () => {
         type: 'todo.reminder',
         title: 'Une tâche arrive à échéance',
         body: 'Call <supplier>',
-        url: '/todos',
+        url: '/todos?todoId=1',
       },
       { push: true },
     );
@@ -80,12 +80,31 @@ describe('TodoReminderJob', () => {
     expect(mail.to).toBe('user1@example.com');
     expect(mail.html).toContain('Call &lt;supplier&gt;');
     expect(mail.html).toContain('20/10/2026 09:00');
-    expect(mail.html).toContain('href="https://taskmaster.example.com/todos"');
-    expect(mail.text).toContain('https://taskmaster.example.com/todos');
+    expect(mail.html).toContain(
+      'href="https://taskmaster.example.com/todos?todoId=1"',
+    );
+    expect(mail.text).toContain(
+      'https://taskmaster.example.com/todos?todoId=1',
+    );
     expect(todoModel.updateMany).toHaveBeenCalledWith({
       where: { id: { in: [1] } },
       data: { reminderSentAt: dayBefore },
     });
+  });
+
+  it('points at the list when one reminder covers several todos', async () => {
+    todoModel.findMany.mockResolvedValue([
+      base,
+      { ...base, id: 2, title: 'B' },
+    ]);
+
+    await job.execute(dayBefore);
+
+    expect(inbox.notify.mock.calls[0][1].url).toBe('/todos');
+    expect(email.send.mock.calls[0][0].text).toContain(
+      'https://taskmaster.example.com/todos',
+    );
+    expect(email.send.mock.calls[0][0].text).not.toContain('todoId');
   });
 
   it('waits for the lead time the todo asked for', async () => {

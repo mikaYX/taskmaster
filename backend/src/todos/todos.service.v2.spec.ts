@@ -34,12 +34,16 @@ function fixture(
       todoReminderPush: true,
     }),
     update: jest.fn(),
+    findMany: jest.fn().mockResolvedValue([]),
   };
   const comment = {
     findMany: jest.fn(),
     findFirst: jest.fn(),
+    findUnique: jest.fn(),
     create: jest.fn(),
+    update: jest.fn(),
     delete: jest.fn(),
+    count: jest.fn().mockResolvedValue(0),
   };
   const attachment = {
     findMany: jest.fn().mockResolvedValue([]),
@@ -52,8 +56,12 @@ function fixture(
     todo,
     user,
     todoComment: comment,
+    todoCommentMention: { deleteMany: jest.fn() },
+    $queryRaw: jest.fn().mockResolvedValue([]),
+    $executeRaw: jest.fn().mockResolvedValue(1),
     todoAttachment: attachment,
     group: {
+      findMany: jest.fn().mockResolvedValue([]),
       findFirst: jest.fn().mockResolvedValue({ id: 4 }),
       findUnique: jest.fn().mockResolvedValue({ name: 'Maintenance' }),
     },
@@ -198,7 +206,10 @@ describe('TodosService assignment', () => {
     expect(todo.create.mock.calls[0][0].data.assigneeId).toBe(3);
     expect(inbox.notify).toHaveBeenCalledWith(
       3,
-      expect.objectContaining({ type: 'todo.assigned', url: '/todos' }),
+      expect.objectContaining({
+        type: 'todo.assigned',
+        url: '/todos?todoId=2',
+      }),
       { push: true },
     );
   });
@@ -681,32 +692,211 @@ describe('TodosService comments', () => {
     );
   });
 
-  it('adds a trimmed comment and tells the people in charge', async () => {
-    const { service, todo, comment, inbox } = fixture();
+  const saved = (extra: Record<string, unknown> = {}) => ({
+    id: 11,
+    body: 'Done soon',
+    userId: 8,
+    parentId: null,
+    deletedAt: null,
+    mentions: [],
+    user: { id: 8, username: 'jean', fullname: 'Jean Martin' },
+    ...extra,
+  });
+  const person = (id: number, extra: Record<string, unknown> = {}) => ({
+    id,
+    username: `u${id}`,
+    fullname: null,
+    avatarUrl: null,
+    email: `u${id}@x.io`,
+    todoReminderEmail: true,
+    ...extra,
+  });
+
+  it('tells the assignee only: not the creator, not the author, not the team', async () => {
+    const { service, todo, comment, user, inbox } = fixture();
     todo.findUnique.mockResolvedValue({ ...collective, assigneeId: 5 });
-    comment.create.mockResolvedValue({
-      id: 1,
-      body: 'Done soon',
-      user: { id: 8, username: 'jean', fullname: 'Jean Martin' },
+    comment.create.mockResolvedValue(saved());
+    user.findMany.mockResolvedValue([person(5)]);
+
+    await service.addComment(2, { body: '  Done soon  ' }, actor());
+
+    const data = comment.create.mock.calls[0][0].data;
+    expect(data).toMatchObject({ todoId: 2, userId: 8, body: 'Done soon' });
+    // Only the assignee (5): the creator (3) and the whole team are not told.
+    expect(user.findMany.mock.calls[0][0].where.id).toEqual({ in: [5] });
+    expect(inbox.notify.mock.calls.map(([id]) => id)).toEqual([5]);
+    expect(inbox.notify.mock.calls[0][1].url).toBe(
+      '/todos?todoId=2&commentId=11',
+    );
+  });
+
+  it('tells mentioned people and team members once, with the mention wording', async () => {
+    const { service, todo, comment, user, inbox, client, email } = fixture([
+      { id: 1, type: 'PUSH' },
+      { id: 2, type: 'EMAIL' },
+    ]);
+    todo.findUnique.mockResolvedValue({ ...collective, assigneeId: 5 });
+    comment.create.mockResolvedValue(saved());
+    // mention validation: person 6 and team 4 are allowed
+    user.findMany
+      .mockResolvedValueOnce([person(6)])
+      .mockResolvedValueOnce([person(5), person(6), person(7)]);
+    client.group.findMany.mockResolvedValue([{ id: 4, name: 'Maintenance' }]);
+    // team 4 = members 6, 7 and the author 8
+    client.userGroupMembership.findMany.mockResolvedValue([
+      { userId: 6 },
+      { userId: 7 },
+      { userId: 8 },
+    ]);
+    user.findUnique.mockResolvedValue({
+      username: 'x',
+      fullname: 'X',
+      email: 'x@x.io',
+      todoReminderPush: true,
     });
 
-    await service.addComment(2, '  Done soon  ', actor());
+    await service.addComment(
+      2,
+      { body: 'Hi', mentions: ['user:6', 'group:4', 'user:6'] },
+      actor(),
+    );
 
-    expect(comment.create.mock.calls[0][0].data).toEqual({
-      todoId: 2,
+    const told = inbox.notify.mock.calls.map(([id, n]) => [id, n.type]);
+    expect(told.sort()).toEqual([
+      [5, 'todo.comment'],
+      [6, 'todo.mention'],
+      [7, 'todo.mention'],
+    ]);
+    expect(email.send).toHaveBeenCalledTimes(3);
+    expect(comment.create.mock.calls[0][0].data.mentions.create).toEqual([
+      { userId: 6 },
+      { groupId: 4 },
+    ]);
+  });
+
+  it('refuses a mention of someone who cannot see the todo', async () => {
+    const { service, todo, user, comment } = fixture();
+    todo.findUnique.mockResolvedValue(collective);
+    user.findMany.mockResolvedValue([]); // not allowed
+
+    await expect(
+      service.addComment(2, { body: 'Hi', mentions: ['user:99'] }, actor()),
+    ).rejects.toThrow(BadRequestException);
+    expect(comment.create).not.toHaveBeenCalled();
+    await expect(
+      service.addComment(2, { body: 'Hi', mentions: ['bad'] }, actor()),
+    ).rejects.toThrow(BadRequestException);
+  });
+
+  it('keeps the comment when a notification fails', async () => {
+    const { service, todo, comment, user, inbox } = fixture();
+    todo.findUnique.mockResolvedValue({ ...collective, assigneeId: 5 });
+    comment.create.mockResolvedValue(saved());
+    user.findMany.mockResolvedValue([person(5)]);
+    inbox.notify.mockRejectedValue(new Error('down'));
+
+    await expect(
+      service.addComment(2, { body: 'Hi' }, actor()),
+    ).resolves.toMatchObject({ id: 11 });
+  });
+
+  it('keeps an answer to a reply in the same thread and refuses a foreign parent', async () => {
+    const { service, todo, comment } = fixture();
+    todo.findUnique.mockResolvedValue(collective);
+    comment.create.mockResolvedValue(saved({ parentId: 7 }));
+    comment.findFirst.mockResolvedValueOnce({ id: 9, parentId: 7 });
+
+    await service.addComment(2, { body: 'Re', parentId: 9 }, actor());
+    expect(comment.create.mock.calls[0][0].data.parentId).toBe(7);
+
+    comment.findFirst.mockResolvedValueOnce(null); // other todo / unknown
+    await expect(
+      service.addComment(2, { body: 'Re', parentId: 500 }, actor()),
+    ).rejects.toThrow(NotFoundException);
+  });
+
+  it('offers only people and teams who can already see the todo', async () => {
+    const { service, todo, user, client } = fixture();
+    todo.findUnique.mockResolvedValue(collective);
+    user.findMany.mockResolvedValue([person(8), person(6)]);
+    client.group.findMany.mockResolvedValue([{ id: 4, name: 'Maintenance' }]);
+
+    const result = await service.mentionTargets(2, actor());
+
+    expect(result.users.map((u) => u.id)).toEqual([6]); // not oneself
+    expect(result.groups).toEqual([{ id: 4, name: 'Maintenance' }]);
+    expect(user.findMany.mock.calls[0][0].where.groupMemberships).toEqual({
+      some: { groupId: 4 },
+    });
+    expect(user.findMany.mock.calls[0][0].where.deletedAt).toBeNull();
+  });
+
+  it('offers nobody on a private todo', async () => {
+    const { service, todo, user, client } = fixture();
+    todo.findUnique.mockResolvedValue({
+      ...collective,
+      scope: 'PRIVATE',
       userId: 8,
-      body: 'Done soon',
     });
-    expect(inbox.notify.mock.calls.map(([id]) => id).sort()).toEqual([3, 5]);
+    user.findMany.mockResolvedValue([person(8)]);
+
+    const result = await service.mentionTargets(2, actor());
+
+    expect(result).toEqual({ users: [], groups: [] });
+    expect(client.group.findMany).not.toHaveBeenCalled();
+  });
+
+  it('marks as read only up to a comment of this todo, never backwards', async () => {
+    const { service, todo, comment, client } = fixture();
+    todo.findUnique.mockResolvedValue(collective);
+    comment.findFirst.mockResolvedValue({ id: 40 });
+
+    await expect(service.markCommentsRead(2, 55, actor())).resolves.toEqual({
+      lastReadCommentId: 40,
+    });
+    expect(comment.findFirst.mock.calls[0][0].where).toEqual({
+      todoId: 2,
+      id: { lte: 55 },
+    });
+    expect(String(client.$executeRaw.mock.calls[0][0].join(' '))).toContain(
+      'GREATEST',
+    );
+
+    comment.findFirst.mockResolvedValue(null);
+    client.$executeRaw.mockClear();
+    await service.markCommentsRead(2, 5, actor());
+    expect(client.$executeRaw).not.toHaveBeenCalled();
+  });
+
+  it('flags unread comments of other people for a whole list in one query', async () => {
+    const { service, todo, client } = fixture();
+    todo.findMany.mockResolvedValue([{ id: 2 }, { id: 3 }]);
+    client.$queryRaw.mockResolvedValue([{ todo_id: 3, unread: 2 }]);
+
+    const rows = await service.findAll(8, [4], 1);
+
+    expect(client.$queryRaw).toHaveBeenCalledTimes(1);
+    expect(rows.map((r) => r.unreadComments)).toEqual([0, 2]);
+  });
+
+  it('narrows the summary to my own and assigned todos for the personal scope', async () => {
+    const { service, todo } = fixture();
+    await service.summary(8, [4], 1, new Date('2026-10-20T15:00:00Z'), {
+      personal: true,
+    });
+    const open = todo.count.mock.calls[2][0].where;
+    expect(open.AND[2]).toEqual({
+      OR: [{ scope: 'PRIVATE', userId: 8 }, { assigneeId: 8 }],
+    });
   });
 
   it('refuses an empty comment', async () => {
     const { service, todo } = fixture();
     todo.findUnique.mockResolvedValue(collective);
 
-    await expect(service.addComment(2, '   ', actor())).rejects.toThrow(
-      BadRequestException,
-    );
+    await expect(
+      service.addComment(2, { body: '   ' }, actor()),
+    ).rejects.toThrow(BadRequestException);
   });
 
   it('lets authors and managers delete, nobody else', async () => {
@@ -720,10 +910,24 @@ describe('TodosService comments', () => {
     await expect(
       service.deleteComment(2, 1, actor({ role: 'MANAGER' })),
     ).resolves.toEqual({ success: true });
-    comment.findFirst.mockResolvedValue({ id: 1, userId: 8 });
+    comment.findFirst.mockResolvedValue({ id: 1, userId: 8, parentId: null });
     await expect(service.deleteComment(2, 1, actor())).resolves.toEqual({
       success: true,
     });
+    expect(comment.delete).toHaveBeenCalledWith({ where: { id: 1 } });
+  });
+
+  it('keeps an empty slot for a deleted root that still has replies', async () => {
+    const { service, todo, comment } = fixture();
+    todo.findUnique.mockResolvedValue(collective);
+    comment.findFirst.mockResolvedValue({ id: 1, userId: 8, parentId: null });
+    comment.count.mockResolvedValue(2);
+
+    await service.deleteComment(2, 1, actor());
+
+    expect(comment.delete).not.toHaveBeenCalled();
+    expect(comment.update.mock.calls[0][0].data).toMatchObject({ body: '' });
+    expect(comment.update.mock.calls[0][0].data.deletedAt).toBeInstanceOf(Date);
   });
 });
 

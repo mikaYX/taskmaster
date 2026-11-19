@@ -63,6 +63,37 @@ describe('TasksService Update (V2)', () => {
     service = module.get<TasksService>(TasksService);
   });
 
+  it('saves the analytics exclusion and keeps it through an unrelated edit', async () => {
+    settings.getRawValue.mockResolvedValue(true);
+    prisma.client.task.findUnique.mockResolvedValue(mockTask);
+    prisma.client.task.update.mockResolvedValue({
+      ...mockTask,
+      excludeFromAnalytics: true,
+    });
+
+    const result = await service.update(1, { excludeFromAnalytics: true });
+    expect(prisma.client.task.update.mock.calls[0][0].data).toMatchObject({
+      excludeFromAnalytics: true,
+    });
+    expect(result.excludeFromAnalytics).toBe(true);
+
+    // An edit that does not mention it sends undefined: Prisma then leaves the column alone.
+    await service.update(1, { description: 'Other change' });
+    expect(
+      prisma.client.task.update.mock.calls[1][0].data.excludeFromAnalytics,
+    ).toBeUndefined();
+  });
+
+  it('answers false for a task that never had the option', async () => {
+    settings.getRawValue.mockResolvedValue(true);
+    prisma.client.task.findUnique.mockResolvedValue(mockTask);
+    prisma.client.task.update.mockResolvedValue(mockTask);
+
+    const result = await service.update(1, { description: 'x' });
+
+    expect(result.excludeFromAnalytics).toBe(false);
+  });
+
   it('should update legacy fields normally', async () => {
     settings.getRawValue.mockResolvedValue(true); // V2 Enabled
     prisma.client.task.findUnique.mockResolvedValue(mockTask);

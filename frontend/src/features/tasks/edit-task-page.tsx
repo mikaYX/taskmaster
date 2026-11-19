@@ -102,6 +102,7 @@ export function EditTaskPage() {
 
                 skipWeekends: task.skipWeekends,
                 skipHolidays: task.skipHolidays,
+                excludeFromAnalytics: task.excludeFromAnalytics ?? false,
 
                 userIds: task.assignedUserIds || [],
                 groupIds: task.assignedGroupIds || [],
@@ -157,6 +158,8 @@ export function EditTaskPage() {
             } else {
                 payload.recurrenceMode = 'ON_SCHEDULE';
             }
+
+            payload.excludeFromAnalytics = data.excludeFromAnalytics === true;
 
             // Scheduling Windows V2
             payload.useGlobalWindowDefaults = data.useGlobalWindowDefaults !== false;

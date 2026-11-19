@@ -6,9 +6,10 @@ import { cn } from '@/lib/utils';
  * How many open todos need attention (late or due today). Red as soon as one is late,
  * amber when it is only today. Nothing when there is nothing to do.
  */
-export function TodoAttentionBadge({ className }: { className?: string }) {
+export function TodoAttentionBadge({ className, personal = false }: { className?: string; personal?: boolean }) {
     const { t } = useTranslation();
-    const { data } = useTodoSummary();
+    // `personal` counts only my own private todos and those assigned to me in person.
+    const { data } = useTodoSummary(true, personal);
     const count = (data?.overdue ?? 0) + (data?.dueToday ?? 0);
     if (!data || count === 0) return null;
 

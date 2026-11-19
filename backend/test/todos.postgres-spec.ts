@@ -370,8 +370,12 @@ postgresTests('todolist against isolated PostgreSQL', () => {
       siteId,
       'MANAGER',
     );
-    await service.addComment(todo.id, 'first', actor(member));
-    await service.addComment(todo.id, 'second', actor(manager, 'MANAGER'));
+    await service.addComment(todo.id, { body: 'first' }, actor(member));
+    await service.addComment(
+      todo.id,
+      { body: 'second' },
+      actor(manager, 'MANAGER'),
+    );
     await service.addAttachment(
       todo.id,
       { buffer: Buffer.from('%PDF-1.4 test'), originalname: 'doc.pdf' },
@@ -499,5 +503,311 @@ postgresTests('todolist against isolated PostgreSQL', () => {
     ).toEqual({ email: true, push: false, collective: false });
     // Only that person: the other account keeps email off.
     expect((await service.getPreferences(member)).email).toBe(false);
+  });
+
+  describe('discussions', () => {
+    const collective = async (
+      title: string,
+      extra: Record<string, unknown> = {},
+    ) =>
+      service.create(
+        { title, scope: 'COLLECTIVE', groupId, ...extra } as never,
+        manager,
+        siteId,
+        'MANAGER',
+      );
+    const bellFor = async (userId: number, type: string) =>
+      (await inbox.list(userId)).items.filter((n) => n.type === type);
+
+    it('threads answers under a root, in the same todo, one level only', async () => {
+      const todo = await collective('thread');
+      const other = await collective('other todo');
+      const root = await service.addComment(
+        todo.id,
+        { body: 'root' },
+        actor(member),
+      );
+      const reply = await service.addComment(
+        todo.id,
+        { body: 'reply', parentId: root.id },
+        actor(manager, 'MANAGER'),
+      );
+      // an answer to a reply stays in the thread of the root
+      const deeper = await service.addComment(
+        todo.id,
+        { body: 'deeper', parentId: reply.id },
+        actor(member),
+      );
+      expect(reply.parentId).toBe(root.id);
+      expect(deeper.parentId).toBe(root.id);
+      // a parent of another todo is refused by the service...
+      await expect(
+        service.addComment(
+          other.id,
+          { body: 'x', parentId: root.id },
+          actor(member),
+        ),
+      ).rejects.toThrow();
+      // ...and by the database itself
+      await expect(
+        client.todoComment.create({
+          data: {
+            todoId: other.id,
+            userId: member,
+            body: 'x',
+            parentId: root.id,
+          },
+        }),
+      ).rejects.toThrow(/same todo/);
+      await expect(
+        client.todoComment.create({
+          data: {
+            todoId: todo.id,
+            userId: member,
+            body: 'x',
+            parentId: reply.id,
+          },
+        }),
+      ).rejects.toThrow(/nested/);
+    });
+
+    it('stores a mention by one target only', async () => {
+      const todo = await collective('check');
+      const c = await service.addComment(
+        todo.id,
+        { body: 'hi' },
+        actor(member),
+      );
+      await expect(
+        client.todoCommentMention.create({ data: { commentId: c.id } }),
+      ).rejects.toThrow();
+      await expect(
+        client.todoCommentMention.create({
+          data: { commentId: c.id, userId: owner, groupId },
+        }),
+      ).rejects.toThrow();
+    });
+
+    it('tells the assignee and the mentioned once, never the author, the creator or the team', async () => {
+      const todo = await collective('mentions', { assigneeId: member });
+      // owner is in the team and mentioned through it; the manager (creator) writes the comment
+      const before = (await bellFor(owner, 'todo.mention')).length;
+      const bellMember = (await bellFor(member, 'todo.comment')).length;
+      await service.addComment(
+        todo.id,
+        { body: 'cc team', mentions: [`group:${groupId}`, `user:${member}`] },
+        actor(manager, 'MANAGER'),
+      );
+      // member: assignee AND mentioned (directly and through the team) => one notification
+      expect((await bellFor(member, 'todo.mention')).length).toBe(1);
+      expect((await bellFor(member, 'todo.comment')).length).toBe(bellMember);
+      expect((await bellFor(owner, 'todo.mention')).length).toBe(before + 1);
+      // the author gets nothing
+      expect((await bellFor(manager, 'todo.mention')).length).toBe(0);
+
+      // a plain comment of the member: the creator is not told, the team is not told
+      const managerBefore = (await inbox.list(manager)).items.length;
+      const ownerBefore = (await inbox.list(owner)).items.length;
+      await service.addComment(todo.id, { body: 'plain' }, actor(member));
+      expect((await inbox.list(manager)).items.length).toBe(managerBefore);
+      expect((await inbox.list(owner)).items.length).toBe(ownerBefore);
+      // the link opens the todo and the comment
+      const link = (await bellFor(owner, 'todo.mention'))[0].url;
+      expect(link).toMatch(
+        new RegExp(`^/todos\\?todoId=${todo.id}&commentId=\\d+$`),
+      );
+    });
+
+    it('refuses a mention of someone without access and offers only those with access', async () => {
+      const todo = await collective('access');
+      await expect(
+        service.addComment(
+          todo.id,
+          { body: 'x', mentions: [`user:${outsider}`] },
+          actor(manager, 'MANAGER'),
+        ),
+      ).rejects.toThrow();
+      const targets = await service.mentionTargets(todo.id, actor(member));
+      const ids = targets.users.map((u) => u.id);
+      expect(ids).toEqual(expect.arrayContaining([owner, manager]));
+      expect(ids).not.toContain(outsider);
+      expect(ids).not.toContain(member); // oneself
+      expect(targets.groups.map((g) => g.id)).toEqual([groupId]);
+      await expect(
+        service.mentionTargets(todo.id, actor(outsider, 'USER', [])),
+      ).rejects.toThrow();
+    });
+
+    it('keeps unread per person, reads forward only, and ignores older comments', async () => {
+      const todo = await collective('unread');
+      const unread = async (userId: number) =>
+        (await service.findAll(userId, [groupId], siteId, 'COLLECTIVE')).find(
+          (t) => t.id === todo.id,
+        )?.unreadComments;
+
+      const a = await service.addComment(
+        todo.id,
+        { body: 'a' },
+        actor(manager, 'MANAGER'),
+      );
+      const b = await service.addComment(
+        todo.id,
+        { body: 'b' },
+        actor(manager, 'MANAGER'),
+      );
+      expect(await unread(member)).toBe(2);
+      expect(await unread(owner)).toBe(2); // individual
+      expect(await unread(manager)).toBe(0); // own comments never count
+
+      // reading up to a: only b is left
+      await service.markCommentsRead(todo.id, a.id, actor(member));
+      expect(await unread(member)).toBe(1);
+      // two devices: the older mark arrives last and must not move it backwards
+      await service.markCommentsRead(todo.id, b.id, actor(member));
+      await service.markCommentsRead(todo.id, a.id, actor(member));
+      expect(await unread(member)).toBe(0);
+      // a comment that arrived after the read stays unread
+      await service.addComment(
+        todo.id,
+        { body: 'c' },
+        actor(manager, 'MANAGER'),
+      );
+      expect(await unread(member)).toBe(1);
+      expect(await unread(owner)).toBe(3); // owner never read
+      // a mark beyond what exists does not swallow future comments
+      await service.markCommentsRead(todo.id, 2_000_000_000, actor(owner));
+      const later = await service.addComment(
+        todo.id,
+        { body: 'd' },
+        actor(manager, 'MANAGER'),
+      );
+      expect(await unread(owner)).toBe(1);
+      expect(later.id).toBeGreaterThan(0);
+      // history and single reads carry it too
+      expect(
+        (await service.findOne(todo.id, actor(owner))).unreadComments,
+      ).toBe(1);
+    });
+
+    it('treats comments from before the migration as read', async () => {
+      const todo = await collective('legacy');
+      const created = await service.addComment(
+        todo.id,
+        { body: 'old' },
+        actor(manager, 'MANAGER'),
+      );
+      await client.todoComment.update({
+        where: { id: created.id },
+        data: { legacyRead: true },
+      });
+      const [row] = (
+        await service.findAll(member, [groupId], siteId, 'COLLECTIVE')
+      ).filter((t) => t.id === todo.id);
+      expect(row.unreadComments).toBe(0);
+    });
+
+    it('keeps an empty slot for a deleted root that still has answers', async () => {
+      const todo = await collective('tombstone');
+      const root = await service.addComment(
+        todo.id,
+        { body: 'secret text', mentions: [`user:${owner}`] },
+        actor(member),
+      );
+      await service.addComment(
+        todo.id,
+        { body: 'answer', parentId: root.id },
+        actor(owner),
+      );
+
+      await service.deleteComment(todo.id, root.id, actor(member));
+
+      const listed = await service.listComments(todo.id, actor(owner));
+      const slot = listed.find((c) => c.id === root.id);
+      expect(slot).toMatchObject({ deleted: true, body: '', mentions: [] });
+      expect(JSON.stringify(listed)).not.toContain('secret text');
+      expect(
+        listed.some((c) => c.body === 'answer' && c.parentId === root.id),
+      ).toBe(true);
+      expect(
+        await client.todoCommentMention.count({
+          where: { commentId: root.id },
+        }),
+      ).toBe(0);
+
+      // deleting the last answer cleans the empty slot up
+      const answer = listed.find((c) => c.body === 'answer')!;
+      await service.deleteComment(todo.id, answer.id, actor(owner));
+      expect(
+        await client.todoComment.count({ where: { todoId: todo.id } }),
+      ).toBe(0);
+    });
+
+    it('opens any visible todo by id, even one ticked long ago, and hides the others', async () => {
+      const todo = await collective('long ago');
+      await client.todo.update({
+        where: { id: todo.id },
+        data: {
+          isCompleted: true,
+          completedAt: new Date(Date.now() - 5 * 24 * 3600 * 1000),
+        },
+      });
+      const lists = await service.findAll(
+        member,
+        [groupId],
+        siteId,
+        'COLLECTIVE',
+      );
+      expect(lists.some((t) => t.id === todo.id)).toBe(false);
+      expect((await service.findOne(todo.id, actor(member))).id).toBe(todo.id);
+      await expect(
+        service.findOne(todo.id, actor(outsider, 'USER', [])),
+      ).rejects.toThrow();
+      const secret = await service.create(
+        { title: 'private one' } as never,
+        owner,
+        siteId,
+      );
+      await expect(service.findOne(secret.id, actor(member))).rejects.toThrow();
+    });
+
+    it('counts only my own and my assigned todos for the personal badge', async () => {
+      const mine = await service.create(
+        { title: 'my private', dueDate: '2000-01-01' } as never,
+        member,
+        siteId,
+      );
+      await collective('assigned to me', {
+        assigneeId: member,
+        dueDate: '2000-01-01',
+      });
+      await collective('assigned to owner', {
+        assigneeId: owner,
+        dueDate: '2000-01-01',
+      });
+      await collective('team only', { dueDate: '2000-01-01' });
+
+      const all = await service.summary(member, [groupId], siteId);
+      const personal = await service.summary(
+        member,
+        [groupId],
+        siteId,
+        new Date(),
+        {
+          personal: true,
+        },
+      );
+      expect(personal.overdue).toBeLessThan(all.overdue);
+      const rows = await client.todo.findMany({
+        where: {
+          siteId,
+          isCompleted: false,
+          parentId: null,
+          dueDate: { lt: new Date() },
+          OR: [{ scope: 'PRIVATE', userId: member }, { assigneeId: member }],
+        },
+      });
+      expect(personal.overdue).toBe(rows.length);
+      expect(rows.some((t) => t.id === mine.id)).toBe(true);
+    });
   });
 });

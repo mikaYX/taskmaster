@@ -3,6 +3,7 @@ import type {
     Todo,
     TodoAttachment,
     TodoComment,
+    TodoMentionTargets,
     TodoHistoryPage,
     TodoPreferences,
     TodoPriority,
@@ -17,6 +18,7 @@ export type {
     Todo,
     TodoAttachment,
     TodoComment,
+    TodoMentionTargets,
     TodoHistoryPage,
     TodoPreferences,
     TodoPriority,
@@ -42,7 +44,11 @@ export const todosApi = {
         return await http.get<Todo[]>('/todos', { params });
     },
 
-    summary: async () => await http.get<TodoSummary>('/todos/summary'),
+    summary: async (options: { personal?: boolean } = {}) =>
+        await http.get<TodoSummary>('/todos/summary', options.personal ? { params: { scope: 'personal' } } : undefined),
+
+    /** One todo by id, under the same access rules as the lists (even a ticked one). */
+    getOne: async (id: number) => await http.get<Todo>(`/todos/${id}`),
 
     history: async (options: { scope?: TodoScope; search?: string; cursor?: number | null } = {}) => {
         const params = new URLSearchParams();
@@ -79,7 +85,14 @@ export const todosApi = {
 
     comments: async (id: number) => await http.get<TodoComment[]>(`/todos/${id}/comments`),
 
-    addComment: async (id: number, body: string) => await http.post<TodoComment>(`/todos/${id}/comments`, { body }),
+    addComment: async (id: number, dto: { body: string; parentId?: number; mentions?: string[] }) =>
+        await http.post<TodoComment>(`/todos/${id}/comments`, dto),
+
+    mentionTargets: async (id: number) => await http.get<TodoMentionTargets>(`/todos/${id}/mention-targets`),
+
+    /** Tells the server which comments were really displayed; never called by a list request. */
+    markCommentsRead: async (id: number, upToCommentId: number) =>
+        await http.post<{ lastReadCommentId: number }>(`/todos/${id}/comments/read`, { upToCommentId }),
 
     deleteComment: async (id: number, commentId: number) =>
         await http.delete<{ success: boolean }>(`/todos/${id}/comments/${commentId}`),

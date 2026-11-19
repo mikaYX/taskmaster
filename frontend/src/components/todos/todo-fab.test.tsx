@@ -1,11 +1,13 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Todo } from '@/api/todos';
 import { TodoFab } from './todo-fab';
 
 const create = vi.hoisted(() => ({ mutate: vi.fn(), isPending: false }));
+const summaryHook = vi.hoisted(() => vi.fn(() => ({ data: undefined })));
+const fabTodos = vi.hoisted(() => ({ list: [] as unknown[] }));
 const day = (offset: number) => {
     const d = new Date();
     d.setUTCHours(0, 0, 0, 0);
@@ -25,11 +27,11 @@ const todos: Todo[] = [
 ];
 
 vi.mock('@/hooks/use-todos', () => ({
-    useTodos: () => ({ data: todos }),
+    useTodos: () => ({ data: fabTodos.list }),
     useCreateTodo: () => create,
     useUpdateTodo: () => ({ mutate: vi.fn() }),
     useDeleteTodo: () => ({ mutate: vi.fn() }),
-    useTodoSummary: () => ({ data: undefined }),
+    useTodoSummary: summaryHook,
 }));
 vi.mock('@/stores', () => ({
     useAuthStore: (selector: (s: { role: string; userId: number }) => unknown) => selector({ role: 'USER', userId: 1 }),
@@ -47,6 +49,11 @@ async function open() {
 }
 
 describe('TodoFab', () => {
+    beforeEach(() => {
+        fabTodos.list = todos;
+        summaryHook.mockClear();
+    });
+
     it('groups open tasks by when they are due, without subtasks', async () => {
         await open();
 
@@ -69,5 +76,43 @@ describe('TodoFab', () => {
             expect.objectContaining({ title: 'Appeler Paul', priority: 'URGENT', scope: 'PRIVATE' }),
             expect.anything(),
         );
+    });
+
+    it('lists only my private todos and the ones assigned to me in person', async () => {
+        const person = { id: 2, username: 'paul', fullname: 'Paul' };
+        fabTodos.list = [
+            { ...base, id: 10, title: 'Ma tâche privée' },
+            { ...base, id: 11, title: 'Attribuée à moi', scope: 'COLLECTIVE', assigneeId: 1, userId: 9 },
+            { ...base, id: 12, title: 'Attribuée à Paul', scope: 'COLLECTIVE', assigneeId: 2, assignee: person, userId: 9 },
+            { ...base, id: 13, title: 'Pour mon équipe seulement', scope: 'COLLECTIVE', groupId: 4, userId: 9 },
+            { ...base, id: 14, title: 'Collectif non attribué', scope: 'COLLECTIVE', userId: 1 },
+        ];
+        await open();
+
+        expect(screen.getByText('Ma tâche privée')).toBeTruthy();
+        expect(screen.getByText('Attribuée à moi')).toBeTruthy();
+        expect(screen.queryByText('Attribuée à Paul')).toBeNull();
+        expect(screen.queryByText('Pour mon équipe seulement')).toBeNull();
+        expect(screen.queryByText('Collectif non attribué')).toBeNull();
+        expect(screen.getByText('2 tasks in progress')).toBeTruthy();
+    });
+
+    it('counts the badge on the same personal scope', () => {
+        render(
+            <MemoryRouter>
+                <TodoFab />
+            </MemoryRouter>,
+        );
+        // enabled, personal
+        expect(summaryHook).toHaveBeenCalledWith(true, true);
+    });
+
+    it('opens a todo in the full page from the panel', async () => {
+        fabTodos.list = [{ ...base, id: 21, title: 'À ouvrir' }];
+        const user = await open();
+
+        await user.click(screen.getByRole('button', { name: /Open “À ouvrir”/ }));
+
+        expect(screen.queryByText('À ouvrir')).toBeNull(); // the panel closed and navigated
     });
 });

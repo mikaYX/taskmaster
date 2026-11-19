@@ -16,6 +16,8 @@ export const todoKeys = {
     lists: ['todos', 'list'] as const,
     list: (scope?: TodoScope) => ['todos', 'list', scope] as const,
     summary: ['todos', 'summary'] as const,
+    personalSummary: ['todos', 'summary', 'personal'] as const,
+    mentionTargets: (id: number) => ['todos', 'detail', id, 'mention-targets'] as const,
     history: (scope: TodoScope | undefined, search: string) => ['todos', 'history', scope, search] as const,
     preferences: ['todos', 'preferences'] as const,
     dispatchTargets: ['todos', 'dispatch-targets'] as const,
@@ -34,10 +36,10 @@ export function useTodos(scope?: TodoScope) {
 }
 
 /** What needs attention now: drives the badges and the reminder shown on opening. */
-export function useTodoSummary(enabled = true) {
+export function useTodoSummary(enabled = true, personal = false) {
     return useQuery({
-        queryKey: todoKeys.summary,
-        queryFn: () => todosApi.summary(),
+        queryKey: personal ? todoKeys.personalSummary : todoKeys.summary,
+        queryFn: () => todosApi.summary({ personal }),
         enabled,
         refetchInterval: COUNTER_REFRESH_MS,
         refetchIntervalInBackground: false,
@@ -178,6 +180,35 @@ export function useTodoComments(id: number | null) {
         queryKey: todoKeys.comments(id ?? 0),
         queryFn: () => todosApi.comments(id!),
         enabled: id !== null,
+        // A colleague's answer shows up while the panel is open (no WebSocket needed).
+        refetchInterval: id === null ? false : 15_000,
+        refetchIntervalInBackground: false,
+    });
+}
+
+/** The people and teams the @ list may offer; only loaded once someone types @. */
+export function useMentionTargets(id: number, enabled: boolean) {
+    return useQuery({
+        queryKey: todoKeys.mentionTargets(id),
+        queryFn: () => todosApi.mentionTargets(id),
+        enabled,
+        staleTime: 60_000,
+    });
+}
+
+/**
+ * Tells the server which comments were really displayed. It only refreshes the lists and the
+ * counters once the server confirmed: the unread mark stays until then.
+ */
+export function useMarkCommentsRead(id: number) {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: (upToCommentId: number) => todosApi.markCommentsRead(id, upToCommentId),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: todoKeys.lists });
+            queryClient.invalidateQueries({ queryKey: ['todos', 'history'] });
+        },
     });
 }
 
@@ -185,7 +216,7 @@ export function useAddTodoComment(id: number) {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: (body: string) => todosApi.addComment(id, body),
+        mutationFn: (dto: { body: string; parentId?: number; mentions?: string[] }) => todosApi.addComment(id, dto),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: todoKeys.all });
         },

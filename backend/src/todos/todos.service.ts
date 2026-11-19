@@ -19,7 +19,13 @@ import {
 import { EmailService } from '../email/email.service';
 import { SettingsService } from '../settings/settings.service';
 import { resolveEmailLogoUrl } from '../users/credentials-email.template';
-import { formatTodoDue, renderTodoEmail } from './todo-email.template';
+import {
+  formatTodoDue,
+  renderTodoEmail,
+  TodoEmailReason,
+} from './todo-email.template';
+import { todoLink } from './todo-link';
+import { CreateTodoCommentDto } from './dto/todo-extras.dto';
 import { CreateTodoDto } from './dto/create-todo.dto';
 import { UpdateTodoDto } from './dto/update-todo.dto';
 import { Prisma, Todo, TodoScope } from '@prisma/client';
@@ -142,7 +148,7 @@ export class TodosService {
   ) {
     const twentyFourHoursAgo = new Date(Date.now() - DAY_MS);
 
-    return this.prisma.client.todo.findMany({
+    const todos = await this.prisma.client.todo.findMany({
       where: {
         AND: [
           {
@@ -158,6 +164,7 @@ export class TodosService {
       orderBy: TODO_ORDER,
       include: TODO_INCLUDE,
     });
+    return this.withUnread(todos, userId);
   }
 
   /** Counters for the badges and the opening reminder: what needs attention now. */
@@ -166,6 +173,7 @@ export class TodosService {
     userGroupIds: number[],
     siteId: number,
     now: Date = new Date(),
+    options: { personal?: boolean } = {},
   ) {
     const start = startOfUtcDay(now);
     const end = new Date(start.getTime() + DAY_MS);
@@ -173,6 +181,14 @@ export class TodosService {
       AND: [
         { siteId, isCompleted: false, parentId: null },
         this.visibleTo(userId, userGroupIds),
+        // "My tasks": my own private todos and those assigned to me in person.
+        ...(options.personal
+          ? [
+              {
+                OR: [this.privateCondition(userId), { assigneeId: userId }],
+              },
+            ]
+          : []),
       ],
     };
     const [overdue, dueToday, total, mine] = await Promise.all([
@@ -216,7 +232,10 @@ export class TodosService {
       include: TODO_INCLUDE,
     });
     const hasMore = rows.length > take;
-    const items = hasMore ? rows.slice(0, take) : rows;
+    const items = await this.withUnread(
+      hasMore ? rows.slice(0, take) : rows,
+      userId,
+    );
     return { items, nextCursor: hasMore ? items[items.length - 1].id : null };
   }
 
@@ -438,7 +457,14 @@ export class TodosService {
    */
   private async tell(
     userId: number,
-    notification: { type: string; title: string; body?: string },
+    notification: {
+      type: string;
+      title: string;
+      body?: string;
+      /** The todo (and comment) the bell entry opens; without it the entry opens the list. */
+      todoId?: number;
+      commentId?: number;
+    },
     channels?: TodoChannels,
   ) {
     if (!this.inbox) return;
@@ -451,9 +477,10 @@ export class TodosService {
       });
       push = prefs?.todoReminderPush ?? false;
     }
+    const { todoId, commentId, ...entry } = notification;
     await this.inbox.notify(
       userId,
-      { ...notification, url: '/todos' },
+      { ...entry, url: todoLink(todoId, commentId) },
       { push },
     );
   }
@@ -561,6 +588,7 @@ export class TodosService {
           type: event.type,
           title: event.title,
           body: `${who} ${event.verb} : ${todo.title}`,
+          todoId: todo.id,
         },
         channels,
       );
@@ -580,6 +608,7 @@ export class TodosService {
         type: 'todo.assigned',
         title: 'Tâche assignée',
         body: `${await this.displayName(actorId)} vous a confié : ${todo.title}`,
+        todoId: todo.id,
       },
       channels,
     );
@@ -616,10 +645,11 @@ export class TodosService {
 
   /** Styled email for one person; a missing address or disabled email is not an error. */
   private async mail(
-    reason: 'ASSIGNED' | 'CREATED',
+    reason: TodoEmailReason,
     userId: number,
     todo: Todo,
     actorId: number,
+    extra: { excerpt?: string; commentId?: number } = {},
   ) {
     if (!this.email || !this.settings) return;
     try {
@@ -627,7 +657,10 @@ export class TodosService {
         where: { id: userId },
         select: { email: true, fullname: true, username: true },
       });
-      if (!person?.email) return;
+      if (!person?.email) {
+        this.logger.warn(`Todo email to user ${userId} skipped: no address`);
+        return;
+      }
       const [appTitle, logo, group] = await Promise.all([
         this.settings.getRawValue('app.title'),
         this.settings.getRawValue('app.logoUrl'),
@@ -651,7 +684,10 @@ export class TodosService {
         priority: todo.priority,
         groupName: group?.name,
         appTitle: appTitle || 'Taskmaster',
-        todosUrl: base ? `${base}/todos` : undefined,
+        excerpt: extra.excerpt,
+        todosUrl: base
+          ? `${base}${todoLink(todo.id, extra.commentId)}`
+          : undefined,
         logoUrl: resolveEmailLogoUrl(logo, base) ?? undefined,
       });
       await this.email.send({
@@ -857,6 +893,7 @@ export class TodosService {
               type: 'todo.completed',
               title: 'Tâche terminée',
               body: `${who} a terminé : ${after.title}`,
+              todoId: after.id,
             });
           }
         }
@@ -958,51 +995,373 @@ export class TodosService {
   // Comments
   // ------------------------------------------------------------------
 
-  async listComments(todoId: number, actor: TodoActor) {
+  /** The todo itself, for a link that targets it even when the lists do not show it. */
+  async findOne(todoId: number, actor: TodoActor) {
     await this.findVisible(todoId, actor);
-    return this.prisma.client.todoComment.findMany({
-      where: { todoId },
-      orderBy: { createdAt: 'asc' },
-      include: { user: USER_BRIEF },
+    const todo = await this.prisma.client.todo.findUniqueOrThrow({
+      where: { id: todoId },
+      include: TODO_INCLUDE,
+    });
+    const [withUnread] = await this.withUnread([todo], actor.userId);
+    return withUnread;
+  }
+
+  /**
+   * Adds `unreadComments` (comments of other people the user has not been shown yet) to
+   * each todo with one grouped query for the whole page, never one per row.
+   */
+  private async withUnread<T extends { id: number }>(
+    todos: T[],
+    userId: number,
+  ): Promise<Array<T & { unreadComments: number }>> {
+    if (todos.length === 0) return [];
+    const rows = await this.prisma.client.$queryRaw<
+      Array<{ todo_id: number; unread: number }>
+    >(Prisma.sql`
+      SELECT c.todo_id, COUNT(*)::int AS unread
+      FROM todo_comments c
+      LEFT JOIN todo_comment_reads r
+        ON r.todo_id = c.todo_id AND r.user_id = ${userId}
+      WHERE c.todo_id IN (${Prisma.join(todos.map((t) => t.id))})
+        AND c.user_id <> ${userId}
+        AND c.legacy_read = false
+        AND c.deleted_at IS NULL
+        AND c.id > COALESCE(r.last_read_comment_id, 0)
+      GROUP BY c.todo_id
+    `);
+    const unread = new Map(rows.map((row) => [row.todo_id, row.unread]));
+    return todos.map((todo) => ({
+      ...todo,
+      unreadComments: unread.get(todo.id) ?? 0,
+    }));
+  }
+
+  /**
+   * Active people who may see this todo, among `candidateIds` (all of them when omitted).
+   * Assignment or a mention never grants access: this is the same rule as the lists.
+   */
+  private async peopleWhoCanSee(
+    todo: Pick<Todo, 'scope' | 'userId' | 'groupId' | 'siteId'>,
+    candidateIds?: number[],
+  ) {
+    const where: Prisma.UserWhereInput = {
+      deletedAt: null,
+      role: { not: 'GUEST' },
+      sites: { some: { siteId: todo.siteId } },
+      ...(candidateIds ? { id: { in: candidateIds } } : {}),
+    };
+    if (todo.scope === TodoScope.PRIVATE) {
+      where.id = candidateIds
+        ? { in: candidateIds.filter((id) => id === todo.userId) }
+        : todo.userId;
+    } else if (todo.groupId !== null) {
+      where.groupMemberships = { some: { groupId: todo.groupId } };
+    }
+    return this.prisma.client.user.findMany({
+      where,
+      select: {
+        id: true,
+        username: true,
+        fullname: true,
+        avatarUrl: true,
+        email: true,
+        todoReminderEmail: true,
+      },
+      orderBy: [{ fullname: 'asc' }, { username: 'asc' }],
     });
   }
 
-  async addComment(todoId: number, body: string, actor: TodoActor) {
-    const todo = await this.findVisible(todoId, actor);
-    const text = body.trim();
-    if (!text) throw new BadRequestException('A comment cannot be empty');
-    const comment = await this.prisma.client.todoComment.create({
-      data: { todoId, userId: actor.userId, body: text },
-      include: { user: USER_BRIEF },
+  /** Teams whose members can see this todo: all the site's teams, or only the todo's own. */
+  private async teamsWhoCanSee(
+    todo: Pick<Todo, 'scope' | 'groupId' | 'siteId'>,
+    candidateIds?: number[],
+  ) {
+    if (todo.scope === TodoScope.PRIVATE) return [];
+    return this.prisma.client.group.findMany({
+      where: {
+        siteId: todo.siteId,
+        deletedAt: null,
+        ...(todo.groupId !== null ? { id: todo.groupId } : {}),
+        ...(candidateIds ? { id: { in: candidateIds } } : {}),
+      },
+      select: { id: true, name: true },
+      orderBy: { name: 'asc' },
     });
-    if (todo.scope === TodoScope.COLLECTIVE) {
-      const concerned = new Set(
-        [todo.assigneeId, todo.userId].filter(
-          (id): id is number => id !== null && id !== actor.userId,
-        ),
+  }
+
+  /** The people and teams the @ list offers: only those who already have access. */
+  async mentionTargets(todoId: number, actor: TodoActor) {
+    const todo = await this.findVisible(todoId, actor);
+    const [users, groups] = await Promise.all([
+      this.peopleWhoCanSee(todo),
+      this.teamsWhoCanSee(todo),
+    ]);
+    return {
+      users: users
+        .filter((user) => user.id !== actor.userId)
+        .map(({ id, username, fullname, avatarUrl }) => ({
+          id,
+          username,
+          fullname,
+          avatarUrl,
+        })),
+      groups,
+    };
+  }
+
+  async listComments(todoId: number, actor: TodoActor) {
+    await this.findVisible(todoId, actor);
+    const rows = await this.prisma.client.todoComment.findMany({
+      where: { todoId },
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+      include: {
+        user: USER_BRIEF,
+        mentions: {
+          include: {
+            user: { select: { id: true, username: true, fullname: true } },
+            group: { select: { id: true, name: true } },
+          },
+        },
+      },
+    });
+    return rows.map((row) => this.presentComment(row));
+  }
+
+  /** A deleted root that still has replies keeps its slot but never its old text. */
+  private presentComment<
+    C extends { body: string; deletedAt: Date | null; mentions?: unknown[] },
+  >(comment: C) {
+    if (!comment.deletedAt) return { ...comment, deleted: false };
+    return { ...comment, body: '', mentions: [], deleted: true };
+  }
+
+  /** `user:3` / `group:7` -> checked against who can really see the todo. */
+  private async resolveMentions(
+    todo: Todo,
+    refs: string[] | undefined,
+    authorId: number,
+  ) {
+    const userIds = new Set<number>();
+    const groupIds = new Set<number>();
+    for (const ref of refs ?? []) {
+      const [kind, raw] = ref.split(':');
+      const id = Number(raw);
+      if (!Number.isInteger(id) || id <= 0) {
+        throw new BadRequestException('Invalid mention');
+      }
+      if (kind === 'user') userIds.add(id);
+      else if (kind === 'group') groupIds.add(id);
+      else throw new BadRequestException('Invalid mention');
+    }
+    userIds.delete(authorId);
+    const [users, groups] = await Promise.all([
+      userIds.size > 0
+        ? this.peopleWhoCanSee(todo, [...userIds])
+        : Promise.resolve([]),
+      groupIds.size > 0
+        ? this.teamsWhoCanSee(todo, [...groupIds])
+        : Promise.resolve([]),
+    ]);
+    // Same answer whatever is wrong, so a mention cannot probe who exists elsewhere.
+    if (users.length !== userIds.size || groups.length !== groupIds.size) {
+      throw new BadRequestException(
+        'A mentioned person or team is not allowed',
       );
-      const who = comment.user.fullname || comment.user.username;
-      for (const userId of concerned) {
-        await this.tell(userId, {
-          type: 'todo.comment',
-          title: 'Nouveau commentaire',
-          body: `${who} sur « ${todo.title} » : ${text.slice(0, 120)}`,
-        });
+    }
+    return { userIds: [...userIds], groupIds: [...groupIds] };
+  }
+
+  async addComment(
+    todoId: number,
+    dto: CreateTodoCommentDto,
+    actor: TodoActor,
+  ) {
+    const todo = await this.findVisible(todoId, actor);
+    const text = dto.body.trim();
+    if (!text) throw new BadRequestException('A comment cannot be empty');
+
+    let parentId: number | null = null;
+    if (dto.parentId !== undefined) {
+      const parent = await this.prisma.client.todoComment.findFirst({
+        where: { id: dto.parentId, todoId },
+        select: { id: true, parentId: true },
+      });
+      if (!parent) throw new NotFoundException('Comment not found');
+      // A thread has one level: an answer to a reply joins the same thread.
+      parentId = parent.parentId ?? parent.id;
+    }
+    const mentioned = await this.resolveMentions(
+      todo,
+      dto.mentions,
+      actor.userId,
+    );
+
+    const comment = await this.prisma.client.todoComment.create({
+      data: {
+        todoId,
+        userId: actor.userId,
+        body: text,
+        parentId,
+        mentions: {
+          create: [
+            ...mentioned.userIds.map((userId) => ({ userId })),
+            ...mentioned.groupIds.map((groupId) => ({ groupId })),
+          ],
+        },
+      },
+      include: {
+        user: USER_BRIEF,
+        mentions: {
+          include: {
+            user: { select: { id: true, username: true, fullname: true } },
+            group: { select: { id: true, name: true } },
+          },
+        },
+      },
+    });
+
+    // The comment is saved: whatever happens to the notifications must not undo it.
+    try {
+      await this.notifyComment(todo, comment, mentioned);
+    } catch (error) {
+      this.logger.error(
+        `Could not notify about comment ${comment.id} on todo ${todoId}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+    return this.presentComment(comment);
+  }
+
+  /**
+   * Tells the assignee and the people or teams mentioned, once each. A team is told only
+   * when it is mentioned; the author, the creator and the whole assignment team are not told
+   * just for being so.
+   */
+  private async notifyComment(
+    todo: Todo,
+    comment: {
+      id: number;
+      body: string;
+      userId: number;
+      user: { fullname: string | null; username: string };
+    },
+    mentioned: { userIds: number[]; groupIds: number[] },
+  ) {
+    const mentionedIds = new Set(mentioned.userIds);
+    if (mentioned.groupIds.length > 0) {
+      const members = await this.prisma.client.userGroupMembership.findMany({
+        where: { groupId: { in: mentioned.groupIds } },
+        select: { userId: true },
+      });
+      for (const member of members) mentionedIds.add(member.userId);
+    }
+    const wanted = new Set(mentionedIds);
+    if (todo.assigneeId !== null) wanted.add(todo.assigneeId);
+    wanted.delete(comment.userId);
+    if (wanted.size === 0) return;
+
+    // Deleted accounts and people without access are dropped here.
+    const people = await this.peopleWhoCanSee(todo, [...wanted]);
+    if (people.length === 0) return;
+
+    const channels = await this.todoChannels();
+    const who = comment.user.fullname || comment.user.username;
+    const excerpt = comment.body.slice(0, 120);
+    for (const person of people) {
+      const isMention = mentionedIds.has(person.id);
+      try {
+        await this.tell(
+          person.id,
+          {
+            type: isMention ? 'todo.mention' : 'todo.comment',
+            title: isMention
+              ? 'Vous avez été mentionné'
+              : 'Nouveau commentaire',
+            body: `${who} sur « ${todo.title} » : ${excerpt}`,
+            todoId: todo.id,
+            commentId: comment.id,
+          },
+          channels,
+        );
+        if (channels.email && person.todoReminderEmail) {
+          await this.mail(
+            isMention ? 'MENTION' : 'COMMENT',
+            person.id,
+            todo,
+            comment.userId,
+            { excerpt, commentId: comment.id },
+          );
+        }
+      } catch (error) {
+        this.logger.warn(
+          `Comment notification to user ${person.id} failed: ${error instanceof Error ? error.message : String(error)}`,
+        );
       }
     }
-    return comment;
+  }
+
+  /**
+   * Marks as read what the person was actually shown: comments up to `upToCommentId` that
+   * belong to this todo. The mark only moves forward, so two devices cannot undo each other.
+   */
+  async markCommentsRead(
+    todoId: number,
+    upToCommentId: number,
+    actor: TodoActor,
+  ) {
+    await this.findVisible(todoId, actor);
+    const shown = await this.prisma.client.todoComment.findFirst({
+      where: { todoId, id: { lte: upToCommentId } },
+      orderBy: { id: 'desc' },
+      select: { id: true },
+    });
+    if (!shown) return { lastReadCommentId: 0 };
+    await this.prisma.client.$executeRaw`
+      INSERT INTO todo_comment_reads (todo_id, user_id, last_read_comment_id, updated_at)
+      VALUES (${todoId}, ${actor.userId}, ${shown.id}, now())
+      ON CONFLICT (todo_id, user_id) DO UPDATE
+        SET last_read_comment_id = GREATEST(todo_comment_reads.last_read_comment_id, EXCLUDED.last_read_comment_id),
+            updated_at = now()`;
+    return { lastReadCommentId: shown.id };
   }
 
   async deleteComment(todoId: number, commentId: number, actor: TodoActor) {
     await this.findVisible(todoId, actor);
     const comment = await this.prisma.client.todoComment.findFirst({
-      where: { id: commentId, todoId },
+      where: { id: commentId, todoId, deletedAt: null },
     });
     if (!comment) throw new NotFoundException('Comment not found');
     if (comment.userId !== actor.userId && !this.isManager(actor.role)) {
       throw new ForbiddenException('You can only delete your own comments');
     }
+    const replies = await this.prisma.client.todoComment.count({
+      where: { parentId: commentId },
+    });
+    if (replies > 0) {
+      // Keep the slot so the answers still make sense, but drop the text and its mentions.
+      await this.prisma.client.$transaction([
+        this.prisma.client.todoCommentMention.deleteMany({
+          where: { commentId },
+        }),
+        this.prisma.client.todoComment.update({
+          where: { id: commentId },
+          data: { body: '', deletedAt: new Date() },
+        }),
+      ]);
+      return { success: true };
+    }
     await this.prisma.client.todoComment.delete({ where: { id: commentId } });
+    // The last answer of an already deleted root: the empty slot has no reason to stay.
+    if (comment.parentId !== null) {
+      const parent = await this.prisma.client.todoComment.findUnique({
+        where: { id: comment.parentId },
+        select: { deletedAt: true, _count: { select: { replies: true } } },
+      });
+      if (parent?.deletedAt && parent._count.replies === 0) {
+        await this.prisma.client.todoComment.delete({
+          where: { id: comment.parentId },
+        });
+      }
+    }
     return { success: true };
   }
 

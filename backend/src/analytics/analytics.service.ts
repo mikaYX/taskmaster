@@ -41,14 +41,21 @@ export class AnalyticsService {
   private statusSiteWhere(
     siteIds: number[] | undefined,
   ): Prisma.StatusWhereInput {
-    return siteIds ? { task: { siteId: { in: siteIds } } } : {};
+    // A task left out of the analytics stays out, for every caller (even internal ones).
+    return {
+      task: {
+        excludeFromAnalytics: false,
+        ...(siteIds ? { siteId: { in: siteIds } } : {}),
+      },
+    };
   }
 
   /** For the raw queries, which alias the tasks table as `t`. */
   private siteSql(siteIds: number[] | undefined): Prisma.Sql {
+    const excluded = Prisma.sql`AND t.exclude_from_analytics = false`;
     return siteIds
-      ? Prisma.sql`AND t.site_id IN (${Prisma.join(siteIds)})`
-      : Prisma.empty;
+      ? Prisma.sql`${excluded} AND t.site_id IN (${Prisma.join(siteIds)})`
+      : excluded;
   }
 
   async getOverview(

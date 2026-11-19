@@ -4,6 +4,7 @@ import type { CreateTaskFormValues } from "../../schemas/task-creation.schema";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -193,6 +194,21 @@ export function StepDefinition() {
                     name="periodicity"
                     render={({ fieldState }) => (
                         fieldState.error ? <p className="text-sm font-medium text-destructive">{fieldState.error.message}</p> : <></>
+                    )}
+                />
+                <FormField
+                    control={control}
+                    name="excludeFromAnalytics"
+                    render={({ field }) => (
+                        <FormItem className="flex flex-row items-start gap-3 rounded-md border p-3">
+                            <FormControl>
+                                <Checkbox checked={field.value === true} onCheckedChange={(checked) => field.onChange(checked === true)} />
+                            </FormControl>
+                            <div className="space-y-1 leading-none">
+                                <FormLabel>{t('taskWizard.definition.excludeFromAnalytics')}</FormLabel>
+                                <p className="text-xs text-muted-foreground">{t('taskWizard.definition.excludeFromAnalyticsHelp')}</p>
+                            </div>
+                        </FormItem>
                     )}
                 />
                 <ChecklistEditor value={watch("executionChecklist") ?? []} onChange={value => setValue("executionChecklist", value, { shouldDirty: true, shouldValidate: true })} />

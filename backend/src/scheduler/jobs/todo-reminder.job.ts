@@ -10,6 +10,7 @@ import { SettingsService } from '../../settings/settings.service';
 import { EmailService } from '../../email/email.service';
 import { UserNotificationsService } from '../../notifications/user-notifications.service';
 import { dueMoment, isReminderDue } from '../../todos/todo-reminder-time';
+import { todoLink } from '../../todos/todo-link';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 /** A reminder never leads by more than a week; look a little further to be safe. */
@@ -168,7 +169,8 @@ export class TodoReminderJob implements SchedulerJob {
             .slice(0, TITLES_IN_BODY)
             .map((i) => i.title)
             .join(' • '),
-          url: '/todos',
+          // One todo opens that todo; several open the list.
+          url: todoLink(items.length === 1 ? items[0].id : undefined),
         },
         { push: person.todoReminderPush },
       );
@@ -214,11 +216,13 @@ export class TodoReminderJob implements SchedulerJob {
     );
   }
 
-  private link(): string {
+  private link(items: DueTodo[]): string {
     const base = (process.env.FRONTEND_URL || process.env.BACKEND_URL || '')
       .trim()
       .replace(/\/+$/, '');
-    return base ? `${base}/todos` : '';
+    return base
+      ? `${base}${todoLink(items.length === 1 ? items[0].id : undefined)}`
+      : '';
   }
 
   private when(item: DueTodo, zone: string) {
@@ -227,7 +231,7 @@ export class TodoReminderJob implements SchedulerJob {
 
   private renderText(items: DueTodo[], zone: string) {
     const lines = items.map((i) => `- ${i.title} (${this.when(i, zone)})`);
-    const link = this.link();
+    const link = this.link(items);
     return [...lines, ...(link ? ['', link] : [])].join('\n');
   }
 
@@ -238,7 +242,7 @@ export class TodoReminderJob implements SchedulerJob {
           `<li><strong>${escapeHtml(i.title)}</strong> — ${this.when(i, zone)}</li>`,
       )
       .join('');
-    const link = this.link();
+    const link = this.link(items);
     return (
       `<p>Ces tâches de votre liste arrivent à échéance :</p><ul>${list}</ul>` +
       (link
