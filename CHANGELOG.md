@@ -7,7 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-**Database migration:** `20261119090000_todo_discussions_analytics_exclusion` adds threaded comments, mentions, the per-person "comments read" mark (existing comments count as read) and `tasks.exclude_from_analytics` (off by default, so no figure changes). Run `prisma migrate deploy` **before** starting the new version.
+## [1.2.3-beta.1] - 2026-11-19
+
+First beta of 1.2.3, for testing only (pre-release, `beta` Docker tag, never `latest`).
+
+**Database migration:** the migrations are folded again into one file, `20261119161947_baseline`. Compared with 1.2.2 it adds threaded todo comments, mentions, the per-person "comments read" mark (existing comments count as read) and `tasks.exclude_from_analytics` (off by default, so no figure changes). Run `prisma migrate deploy` **before** starting the new version: the Docker image, the Windows installer and `update.bat` already do. Existing data is kept.
 
 ### Added
 
