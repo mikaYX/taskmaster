@@ -26,6 +26,10 @@ First beta of 1.2.3, for testing only (pre-release, `beta` Docker tag, never `la
 - **"My todos" lists only your todos**: your private todos and those assigned to you in person, and its badge counts the same.
 - **The todo time is labelled "Due time"** with a hint: it is not a start time, and without it reminders use 09:00. Reminders are unchanged.
 
+### Security
+
+- **`effect` is pinned to 3.22.5** (npm override), which fixes a ReDoS in `Schema.TemplateLiteral` (GHSA-7589-6fvf-x4pw) reached through the Prisma CLI and `@hookform/resolvers`. `npm audit` now reports no vulnerability.
+
 ## [1.2.2] - 2026-11-10
 
 First stable release of 1.2.2, including the changes tested in 1.2.2-beta.1 through beta.10 (see their sections below for the detail) and the fixes made since. The notes below cover the upgrade from 1.2.1. This stable release publishes the Docker tags `1.2.2` and `latest`.
